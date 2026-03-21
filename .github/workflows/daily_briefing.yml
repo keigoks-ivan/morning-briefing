@@ -39,3 +39,34 @@ jobs:
         run: |
           cd briefing
           python main.py
+
+      - name: Publish briefing to GitHub Pages
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          TODAY=$(TZ=Asia/Taipei date +%Y-%m-%d)
+          HTML_FILE=briefing/output/briefing.html
+
+          if [ ! -f "$HTML_FILE" ]; then
+            echo "No HTML output found, skipping publish"
+            exit 0
+          fi
+
+          # Clone financial-analysis-bot
+          git clone https://x-access-token:${GH_PAT}@github.com/keigoks-ivan/financial-analysis-bot.git /tmp/fab
+          cd /tmp/fab
+
+          # Create briefing directory
+          mkdir -p docs/briefing
+
+          # Copy as index.html (latest) and daily archive
+          cp "${GITHUB_WORKSPACE}/${HTML_FILE}" docs/briefing/index.html
+          cp "${GITHUB_WORKSPACE}/${HTML_FILE}" "docs/briefing/${TODAY}.html"
+
+          # Commit and push
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/briefing/
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "📰 Morning briefing ${TODAY}"
+          git push

@@ -47,6 +47,14 @@ def main() -> None:
     html = build_html(data)
     print(f"      HTML size: {len(html):,} chars")
 
+    # 3.5 存檔 HTML（供 GitHub Pages 發布）
+    output_dir = os.path.join(os.path.dirname(__file__), "output")
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, "briefing.html")
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(html)
+    print(f"      Saved to {output_path}")
+
     # 4. 發送 Email
     print("\n[4/4] Sending email...")
     send_email(html)
