@@ -73,7 +73,11 @@ def fetch_market_data() -> dict:
             "vix":      {"val": fmt_val(vix_val),        "chg": fmt_chg(vix_chg),   "dir": direction(vix_chg, invert=True)},
             "fed_rate": {"val": "3.5–3.75%",             "chg": "維持不變",          "dir": "neu"},
         }
-        print(f"  ✓ Market: NQ={market["nq100"]["val"]} SP={market["sp500"]["val"]} Brent={market["brent"]["val"]} VIX={market["vix"]["val"]}")
+        nq = market['nq100']['val']
+        sp = market['sp500']['val']
+        br = market['brent']['val']
+        vx = market['vix']['val']
+        print(f"  ✓ Market: NQ={nq} SP={sp} Brent={br} VIX={vx}")
         return market
     except Exception as e:
         print(f"  ✗ Market data failed: {e}")
