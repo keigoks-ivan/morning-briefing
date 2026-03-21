@@ -40,7 +40,7 @@ def fetch_market_data() -> dict:
         import yfinance as yf
         tickers = yf.download(
             ["NQ=F", "^GSPC", "BZ=F", "^VIX"],
-            period="2d", interval="1d", progress=False, auto_adjust=True,
+            period="5d", interval="1d", progress=False, auto_adjust=True,
         )
         def get_close(symbol):
             try:
