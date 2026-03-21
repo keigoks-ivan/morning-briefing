@@ -5,7 +5,7 @@ html_template.py
 
 版面順序：
   masthead → daily_summary → alert → 市場數據 → 核心要聞
-  → 總經 → AI產業動態 → 地緣政治 → 四國科技 → Fintech/加密
+  → 總經 → AI產業動態 → 地緣政治 → 全球科技 → Fintech/加密
   → 系統狀態 → 硬核科技趨勢 → 新創產業 → 本週財報預告
   → 隱含趨勢 → 今日行程 → footer
 """
@@ -61,11 +61,13 @@ STARTUP_TAG_STYLE = {
 REGION_LABEL = {
     "taiwan": "🇹🇼 台灣", "japan": "🇯🇵 日本",
     "us": "🇺🇸 美國", "malaysia": "🇲🇾 馬來西亞",
+    "korea": "🇰🇷 韓國", "china": "🇨🇳 中國", "europe": "🇪🇺 歐洲",
 }
 
 REGION_COLOR = {
     "taiwan": "#185FA5", "japan": "#C0392B",
     "us": "#1a7a4a", "malaysia": "#854F0B",
+    "korea": "#1a7a4a", "china": "#C0392B", "europe": "#534AB7",
 }
 
 BASE_CSS = """
@@ -221,7 +223,7 @@ def _geopolitical_section(items: list) -> str:
 
 def _regional_tech_section(regional: dict) -> str:
     content = ""
-    for region in ["taiwan", "japan", "us", "malaysia"]:
+    for region in ["taiwan", "japan", "us", "malaysia", "korea", "china", "europe"]:
         items = regional.get(region, [])
         if not items:
             continue
@@ -247,7 +249,7 @@ def _regional_tech_section(regional: dict) -> str:
         return ""
     return f'''
 <div class="section">
-  <div class="section-label">四國科技產業動態</div>{content}
+  <div class="section-label">全球科技產業動態</div>{content}
 </div>'''
 
 

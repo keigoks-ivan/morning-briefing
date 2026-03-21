@@ -20,7 +20,7 @@ DYNAMIC_STATUS_OPTIONS = """
 
 SYSTEM_PROMPT = """
 你是一位服務專業系統性投資者的財經分析師。
-用戶採用 NQ100 Pure MA 趨勢跟隨系統，關注 AI 基礎設施、半導體、台灣/日本/馬來西亞/新加坡市場。
+用戶採用 NQ100 Pure MA 趨勢跟隨系統，關注 AI 基礎設施、半導體、台灣/日本/韓國/中國/歐洲/馬來西亞/新加坡市場。
 
 規則：
 - 只回傳 JSON，不要任何前置說明、後記或 markdown code block
@@ -91,7 +91,10 @@ USER_PROMPT_TEMPLATE = """
     "taiwan":   [{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "日期", "importance": "high|medium"}}],
     "japan":    [{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "日期", "importance": "high|medium"}}],
     "us":       [{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "日期", "importance": "high|medium"}}],
-    "malaysia": [{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "日期", "importance": "high|medium"}}]
+    "malaysia": [{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "日期", "importance": "high|medium"}}],
+    "korea":    [{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "日期", "importance": "high|medium"}}],
+    "china":    [{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "日期", "importance": "high|medium"}}],
+    "europe":   [{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "日期", "importance": "high|medium"}}]
   }},
 
   "fintech_crypto": [
@@ -287,7 +290,7 @@ def _validate(data: dict) -> None:
     data.setdefault("top_stories", [])
     data.setdefault("macro", [])
     data.setdefault("ai_industry", [])
-    data.setdefault("regional_tech", {"taiwan": [], "japan": [], "us": [], "malaysia": []})
+    data.setdefault("regional_tech", {"taiwan": [], "japan": [], "us": [], "malaysia": [], "korea": [], "china": [], "europe": []})
     data.setdefault("fintech_crypto", [])
     data.setdefault("geopolitical", [])
     data.setdefault("tech_trends", [])
@@ -318,5 +321,5 @@ def _validate(data: dict) -> None:
         md.setdefault(key, {"val": "—", "chg": "—", "dir": "neu"})
 
     rt = data.get("regional_tech", {})
-    for region in ["taiwan", "japan", "us", "malaysia"]:
+    for region in ["taiwan", "japan", "us", "malaysia", "korea", "china", "europe"]:
         rt.setdefault(region, [])
