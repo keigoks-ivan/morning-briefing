@@ -233,13 +233,25 @@ def process_news(raw_news: list[dict], market_data: dict | None = None) -> dict:
     market_context = ""
     if market_data:
         md = market_data
-        market_context = (
-            f"NQ100: {md.get('nq100',{}).get('val','—')} {md.get('nq100',{}).get('chg','—')}\n"
-            f"S&P 500: {md.get('sp500',{}).get('val','—')} {md.get('sp500',{}).get('chg','—')}\n"
-            f"Brent: {md.get('brent',{}).get('val','—')} {md.get('brent',{}).get('chg','—')}\n"
-            f"VIX: {md.get('vix',{}).get('val','—')} {md.get('vix',{}).get('chg','—')}\n"
-            f"Fed Rate: {md.get('fed_rate',{}).get('val','—')}"
-        )
+        def _mc(label, key):
+            d = md.get(key, {})
+            return f"{label}: {d.get('val','—')} {d.get('chg','—')}"
+        market_context = "\n".join([
+            _mc("NQ100", "nq100"), _mc("S&P 500", "sp500"),
+            _mc("道瓊", "dow"), _mc("費半", "sox"),
+            _mc("台灣加權", "twii"), _mc("日經225", "nikkei"),
+            _mc("恒生", "hsi"), _mc("KOSPI", "kospi"), _mc("DAX", "dax"),
+            _mc("Brent", "brent"), _mc("WTI", "wti"),
+            _mc("天然氣", "nat_gas"), _mc("黃金", "gold"),
+            _mc("白銀", "silver"), _mc("銅", "copper"),
+            _mc("美10Y殖利率", "us10y"), _mc("美2Y殖利率", "us2y"),
+            _mc("DXY", "dxy"), _mc("JPY/USD", "jpyusd"),
+            _mc("TWD/USD", "twdusd"), _mc("MYR/USD", "myrusd"),
+            _mc("CNY/USD", "cnyusd"), _mc("EUR/USD", "eurusd"),
+            _mc("BTC", "btc"), _mc("ETH", "eth"),
+            _mc("VIX", "vix"),
+            f"Fed Rate: {md.get('fed_rate',{}).get('val','—')}",
+        ])
 
     user_prompt = USER_PROMPT_TEMPLATE.format(
         market_context=market_context,
@@ -325,7 +337,14 @@ def _validate(data: dict) -> None:
         trend["sub_items"] = trend["sub_items"][:3]
 
     md = data.get("market_data", {})
-    for key in ["nq100", "sp500", "brent", "vix", "fed_rate"]:
+    for key in [
+        "nq100", "sp500", "dow", "sox", "twii", "nikkei", "hsi", "kospi", "dax",
+        "brent", "wti", "nat_gas", "gold", "silver", "copper",
+        "us10y", "us2y",
+        "dxy", "jpyusd", "twdusd", "myrusd", "cnyusd", "eurusd",
+        "btc", "eth",
+        "vix", "fed_rate",
+    ]:
         md.setdefault(key, {"val": "—", "chg": "—", "dir": "neu"})
 
     rt = data.get("regional_tech", {})

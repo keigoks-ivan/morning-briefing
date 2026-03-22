@@ -35,13 +35,53 @@ PERPLEXITY_QUERIES = [
 ]
 
 
+MARKET_TICKERS = [
+    # (key,          symbol,       prefix, invert, label)
+    # 股票指數
+    ("nq100",        "NQ=F",       "",  False, "NQ100"),
+    ("sp500",        "^GSPC",      "",  False, "S&P500"),
+    ("dow",          "YM=F",       "",  False, "道瓊"),
+    ("sox",          "^SOX",       "",  False, "費半"),
+    ("twii",         "^TWII",      "",  False, "台灣加權"),
+    ("nikkei",       "^N225",      "",  False, "日經225"),
+    ("hsi",          "^HSI",       "",  False, "恒生"),
+    ("kospi",        "^KS11",      "",  False, "KOSPI"),
+    ("dax",          "^GDAXI",     "",  False, "DAX"),
+    # 商品
+    ("brent",        "BZ=F",       "$", False, "Brent油"),
+    ("wti",          "CL=F",       "$", False, "WTI油"),
+    ("nat_gas",      "NG=F",       "$", False, "天然氣"),
+    ("gold",         "GC=F",       "$", False, "黃金"),
+    ("silver",       "SI=F",       "$", False, "白銀"),
+    ("copper",       "HG=F",       "$", False, "銅"),
+    # 債券/利率
+    ("us10y",        "^TNX",       "",  True,  "美10Y"),
+    ("us2y",         "^IRX",       "",  True,  "美2Y"),
+    # 外匯
+    ("dxy",          "DX-Y.NYB",   "",  False, "DXY"),
+    ("jpyusd",       "JPY=X",      "¥", False, "JPY/USD"),
+    ("twdusd",       "TWD=X",      "",  False, "TWD/USD"),
+    ("myrusd",       "MYR=X",      "",  False, "MYR/USD"),
+    ("cnyusd",       "CNY=X",      "",  False, "CNY/USD"),
+    ("eurusd",       "EURUSD=X",   "",  False, "EUR/USD"),
+    # 加密貨幣
+    ("btc",          "BTC-USD",    "$", False, "BTC"),
+    ("eth",          "ETH-USD",    "$", False, "ETH"),
+    # VIX（反向）
+    ("vix",          "^VIX",       "",  True,  "VIX"),
+]
+
+
 def fetch_market_data() -> dict:
     try:
         import yfinance as yf
+
+        symbols = [t[1] for t in MARKET_TICKERS]
         tickers = yf.download(
-            ["NQ=F", "^GSPC", "BZ=F", "^VIX"],
-            period="5d", interval="1d", progress=False, auto_adjust=True,
+            symbols, period="5d", interval="1d",
+            progress=False, auto_adjust=True,
         )
+
         def get_close(symbol):
             try:
                 closes = tickers["Close"][symbol].dropna()
@@ -55,11 +95,6 @@ def fetch_market_data() -> dict:
                 pass
             return None, None
 
-        nq_val,    nq_chg    = get_close("NQ=F")
-        sp_val,    sp_chg    = get_close("^GSPC")
-        brent_val, brent_chg = get_close("BZ=F")
-        vix_val,   vix_chg   = get_close("^VIX")
-
         def fmt_val(v, prefix=""):
             return f"{prefix}{v:,.2f}" if v is not None else "—"
         def fmt_chg(c):
@@ -69,18 +104,20 @@ def fetch_market_data() -> dict:
             if c is None: return "neu"
             return ("neg" if c > 0 else "pos") if invert else ("pos" if c > 0 else "neg")
 
-        market = {
-            "nq100":    {"val": fmt_val(nq_val),         "chg": fmt_chg(nq_chg),    "dir": direction(nq_chg)},
-            "sp500":    {"val": fmt_val(sp_val),         "chg": fmt_chg(sp_chg),    "dir": direction(sp_chg)},
-            "brent":    {"val": fmt_val(brent_val, "$"), "chg": fmt_chg(brent_chg), "dir": direction(brent_chg, invert=True)},
-            "vix":      {"val": fmt_val(vix_val),        "chg": fmt_chg(vix_chg),   "dir": direction(vix_chg, invert=True)},
-            "fed_rate": {"val": "3.5–3.75%",             "chg": "維持不變",          "dir": "neu"},
-        }
-        nq = market['nq100']['val']
-        sp = market['sp500']['val']
-        br = market['brent']['val']
-        vx = market['vix']['val']
-        print(f"  ✓ Market: NQ={nq} SP={sp} Brent={br} VIX={vx}")
+        market = {}
+        for key, symbol, prefix, invert, label in MARKET_TICKERS:
+            val, chg = get_close(symbol)
+            market[key] = {
+                "val": fmt_val(val, prefix),
+                "chg": fmt_chg(chg),
+                "dir": direction(chg, invert=invert),
+            }
+
+        market["fed_rate"] = {"val": "3.5–3.75%", "chg": "維持不變", "dir": "neu"}
+
+        print(f"  ✓ Market: NQ={market['nq100']['val']} SP={market['sp500']['val']} "
+              f"Brent={market['brent']['val']} VIX={market['vix']['val']} "
+              f"BTC={market['btc']['val']} Gold={market['gold']['val']}")
         return market
     except Exception as e:
         print(f"  ✗ Market data failed: {e}")

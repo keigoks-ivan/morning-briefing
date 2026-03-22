@@ -140,25 +140,56 @@ def _alert(text: str) -> str:
 </div>'''
 
 
-def _market_strip(market_data: dict) -> str:
-    keys = [("nq100","NQ100"),("sp500","S&P 500"),("brent","BRENT油"),("vix","VIX"),("fed_rate","FED RATE")]
-    cells = ""
-    for key, label in keys:
-        d = market_data.get(key, {"val":"—","chg":"—","dir":"neu"})
-        color = SENTIMENT_COLOR.get(d.get("dir","neu"), "#888")
-        cells += f'''<td style="background:#fff;padding:12px 14px;border-right:1px solid #e8e8e8;
-                    width:20%;vertical-align:top;">
-  <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;
-              color:#888;margin-bottom:5px;">{label}</div>
-  <div style="font-size:19px;font-weight:500;color:#222;margin-bottom:3px;">{d.get("val","—")}</div>
-  <div style="font-size:14px;color:{color};">{d.get("chg","—")}</div>
+def _market_cell(market_data: dict, key: str, label: str) -> str:
+    d = market_data.get(key, {"val": "—", "chg": "—", "dir": "neu"})
+    color = SENTIMENT_COLOR.get(d.get("dir", "neu"), "#888")
+    return f'''<td style="background:#fff;padding:10px 12px;border-right:1px solid #e8e8e8;
+                border-bottom:1px solid #e8e8e8;vertical-align:top;">
+  <div style="font-size:11px;letter-spacing:0.8px;text-transform:uppercase;
+              color:#888;margin-bottom:4px;">{label}</div>
+  <div style="font-size:17px;font-weight:500;color:#222;margin-bottom:2px;">{d.get("val","—")}</div>
+  <div style="font-size:13px;color:{color};">{d.get("chg","—")}</div>
 </td>'''
+
+
+def _market_row(market_data: dict, items: list[tuple[str,str]]) -> str:
+    cells = "".join(_market_cell(market_data, k, l) for k, l in items)
+    return f"<tr>{cells}</tr>"
+
+
+def _market_strip(market_data: dict) -> str:
+    rows = ""
+    # 主要指數
+    rows += _market_row(market_data, [
+        ("nq100","NQ100"), ("sp500","S&P 500"), ("dow","道瓊"),
+        ("sox","費半"), ("vix","VIX"),
+    ])
+    # 亞歐指數
+    rows += _market_row(market_data, [
+        ("twii","台灣加權"), ("nikkei","日經225"), ("hsi","恒生"),
+        ("kospi","KOSPI"), ("dax","DAX"),
+    ])
+    # 商品
+    rows += _market_row(market_data, [
+        ("brent","BRENT油"), ("wti","WTI油"), ("gold","黃金"),
+        ("silver","白銀"), ("copper","銅"),
+    ])
+    # 債券 + 外匯
+    rows += _market_row(market_data, [
+        ("us10y","美10Y"), ("us2y","美2Y"), ("dxy","DXY"),
+        ("eurusd","EUR/USD"), ("fed_rate","FED RATE"),
+    ])
+    # 亞洲外匯 + 加密
+    rows += _market_row(market_data, [
+        ("jpyusd","JPY/USD"), ("twdusd","TWD/USD"), ("myrusd","MYR/USD"),
+        ("cnyusd","CNY/USD"), ("btc","BTC"),
+    ])
     return f'''
 <div class="section">
   <div class="section-label">市場即時數據</div>
   <table width="100%" cellpadding="0" cellspacing="0"
          style="border:1px solid #e8e8e8;border-radius:6px;overflow:hidden;border-collapse:collapse;">
-    <tr>{cells}</tr>
+    {rows}
   </table>
 </div>'''
 
