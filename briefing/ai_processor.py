@@ -29,6 +29,7 @@ SYSTEM_PROMPT = """
 - 新聞按日期排序，最新的排最前面
 - 來源必須標注原始媒體名稱和日期
 - 新聞來源限制在過去24小時內
+- 各區塊之間不可出現重複的新聞事件。同一個事件只能出現在最相關的一個區塊，其他區塊不得重複提及。硬核科技趨勢（tech_trends）的內容不受此限制。
 """
 
 USER_PROMPT_TEMPLATE = """
@@ -178,6 +179,12 @@ USER_PROMPT_TEMPLATE = """
     }}
   ],
 
+  "fun_fact": {{
+    "title": "今日財經冷知識標題（20字以內）",
+    "content": "3–4句，跟今日時事有關的有趣財經知識或歷史背景",
+    "connection": "一句話說明跟今日新聞的關聯"
+  }},
+
   "today_events": [
     {{
       "time": "時間",
@@ -199,7 +206,7 @@ USER_PROMPT_TEMPLATE = """
 9. startup_news 輸出 4–5 條
 10. earnings_preview 輸出本週重要財報，若無則輸出空陣列
 11. implied_trends 固定 4 條，跨多條新聞的綜合訊號
-12. today_events 只輸出新聞中明確提到的今日行程，不要編造
+12. today_events 只輸出未來24小時內即將發生的真實行程，按時間由早到晚排序，不要列已經發生的事件，不要編造
 13. 所有新聞排除 ESG 相關內容
 14. source_date 格式統一為 YYYY-MM-DD
 15. implied_trends 引用的數字必須來自搜尋結果，不能推測
@@ -297,6 +304,7 @@ def _validate(data: dict) -> None:
     data.setdefault("startup_news", [])
     data.setdefault("earnings_preview", [])
     data.setdefault("implied_trends", [])
+    data.setdefault("fun_fact", {})
     data.setdefault("today_events", [])
 
     ss = data.setdefault("system_status", {})

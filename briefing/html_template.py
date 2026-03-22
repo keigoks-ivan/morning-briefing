@@ -7,7 +7,7 @@ html_template.py
   masthead → daily_summary → alert → 市場數據 → 核心要聞
   → 總經 → AI產業動態 → 地緣政治 → 全球科技 → Fintech/加密
   → 系統狀態 → 硬核科技趨勢 → 新創產業 → 本週財報預告
-  → 隱含趨勢 → 今日行程 → footer
+  → 隱含趨勢 → 財經冷知識 → 今日行程 → footer
 """
 
 from datetime import datetime
@@ -445,6 +445,22 @@ def _trend_card(t: dict) -> str:
 </div>'''
 
 
+def _fun_fact(fact: dict) -> str:
+    if not fact or not fact.get("title"):
+        return ""
+    return f'''
+<div class="section">
+  <div class="section-label">財經冷知識</div>
+  <div style="background:#FFFBEA;border-radius:6px;padding:14px 16px;">
+    <div style="font-size:16px;font-weight:500;color:#222;margin-bottom:6px;">💡 {fact.get("title","")}</div>
+    <div style="font-size:15px;color:#555;line-height:1.65;margin-bottom:8px;">{fact.get("content","")}</div>
+    <div style="font-size:14px;color:#888;border-top:0.5px solid #f0e6c0;padding-top:8px;">
+      📎 {fact.get("connection","")}
+    </div>
+  </div>
+</div>'''
+
+
 def _today_events(events: list) -> str:
     if not events:
         return ""
@@ -498,6 +514,7 @@ def build_html(data: dict) -> str:
 {_startup_news(data.get("startup_news",[]))}
 {_earnings_preview(data.get("earnings_preview",[]))}
 {_implied_trends(data.get("implied_trends",[]))}
+{_fun_fact(data.get("fun_fact", {}))}
 {_today_events(data.get("today_events",[]))}
 {_footer()}
 </body>

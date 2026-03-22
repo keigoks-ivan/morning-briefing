@@ -31,7 +31,7 @@ PERPLEXITY_QUERIES = [
     "What are the latest geopolitical risks today? Include Middle East, US-China, Taiwan Strait.",
     "What are the major startup IPOs, defense tech, and venture capital funding news today?",
     "What are the important earnings reports scheduled this week? Include tech companies.",
-    "What are today major economic calendar events, Fed speeches, and earnings reports?",
+    "What are the most important macroeconomic calendar events in the next 24 hours? Include Fed speeches, central bank decisions, economic data releases like CPI, PPI, GDP, jobs data, and major earnings reports.",
 ]
 
 
