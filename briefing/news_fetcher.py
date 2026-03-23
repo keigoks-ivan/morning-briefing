@@ -257,7 +257,7 @@ WEEKLY_MARKET_TICKERS = [
 
 
 def fetch_weekly_market_data() -> dict:
-    """Fetch weekly market data with auto-selected dynamic pool top 2."""
+    """Fetch weekly market data using 7d daily data (first vs last weekday close)."""
     try:
         import yfinance as yf
 
@@ -269,16 +269,20 @@ def fetch_weekly_market_data() -> dict:
         all_symbols.update(["^TNX", "^IRX"])
 
         tickers = yf.download(
-            list(all_symbols), period="1wk", interval="1wk",
+            list(all_symbols), period="7d", interval="1d",
             progress=False, auto_adjust=True,
         )
 
         def get_week_vals(symbol):
+            """Get first and last weekday close from 7d daily data."""
             try:
-                o = tickers["Open"][symbol].dropna()
-                c = tickers["Close"][symbol].dropna()
-                if len(o) > 0 and len(c) > 0:
-                    return float(o.iloc[0]), float(c.iloc[-1])
+                closes = tickers["Close"][symbol].dropna()
+                # Filter to weekdays only (Mon=0 .. Fri=4)
+                weekday_closes = closes[closes.index.dayofweek < 5]
+                if len(weekday_closes) >= 2:
+                    return float(weekday_closes.iloc[0]), float(weekday_closes.iloc[-1])
+                elif len(weekday_closes) == 1:
+                    return float(weekday_closes.iloc[0]), float(weekday_closes.iloc[0])
             except Exception:
                 pass
             return None, None
