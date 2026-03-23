@@ -209,6 +209,204 @@ def _footer(start: str, end: str) -> str:
 </div>'''
 
 
+THEME_LABEL = {
+    "ai_industry": "🤖 AI 產業發展",
+    "semiconductor": "🔬 半導體供應鏈",
+    "macro": "🌍 全球景氣狀況",
+    "black_swan": "🦢 黑天鵝與灰犀牛",
+}
+
+THEME_ORDER = ["ai_industry", "semiconductor", "macro", "black_swan"]
+
+SENTIMENT_COLOR = {"pos": "#1a7a4a", "neg": "#C0392B", "neu": "#888780"}
+
+
+def _index_market_cell(item: dict) -> str:
+    color = SENTIMENT_COLOR.get(item.get("dir", "neu"), "#888")
+    return f'''<td style="background:#fff;padding:10px 12px;border-right:1px solid #e8e8e8;
+                border-bottom:1px solid #e8e8e8;vertical-align:top;width:20%;">
+  <div style="font-size:11px;letter-spacing:0.8px;text-transform:uppercase;
+              color:#888;margin-bottom:4px;">{item.get("label","—")}</div>
+  <div style="font-size:17px;font-weight:500;color:#222;margin-bottom:2px;">{item.get("val","—")}</div>
+  <div style="font-size:13px;color:{color};">{item.get("chg","—")}</div>
+</td>'''
+
+
+def _index_market_table(items: list[dict]) -> str:
+    cells = "".join(_index_market_cell(it) for it in items)
+    return f'''<table width="100%" cellpadding="0" cellspacing="0"
+         style="border:1px solid #e8e8e8;border-radius:6px;overflow:hidden;border-collapse:collapse;">
+    <tr>{cells}</tr>
+  </table>'''
+
+
+def _index_market_strip(market_data: dict) -> str:
+    items = market_data.get("items", [])
+    fear_greed = market_data.get("fear_greed", {"val": "—", "chg": "—", "dir": "neu"})
+
+    by_key = {it.get("key", ""): it for it in items}
+    def _g(key, fb="—"):
+        return by_key.get(key, {"label": fb, "val": "—", "chg": "—", "dir": "neu"})
+
+    row1 = [_g("nq100","NQ100"), _g("sp500","S&P500"), _g("sox","費半"),
+            _g("vix","VIX"), _g("twii","台灣加權")]
+    row2 = [_g("brent","Brent油"), _g("gold","黃金"), _g("silver","白銀"),
+            _g("copper","銅"), _g("dxy","DXY")]
+    fg_item = {"label": "Fear&Greed", "val": fear_greed.get("val","—"),
+               "chg": fear_greed.get("chg","—"), "dir": fear_greed.get("dir","neu")}
+    row3 = [_g("us10y","美10Y"), _g("btc","BTC"), fg_item]
+    # pad row3 to 5 (but 3 is fine since it's the last row — let's just use 3)
+
+    return f'''
+<div style="margin-bottom:24px;">
+  <div style="font-size:13px;letter-spacing:1.8px;text-transform:uppercase;
+              font-weight:500;color:#888;border-bottom:0.5px solid #e0e0e0;
+              padding-bottom:5px;margin-bottom:14px;">市場週度數據</div>
+  {_index_market_table(row1)}
+  <div style="height:8px;"></div>
+  {_index_market_table(row2)}
+  <div style="height:8px;"></div>
+  {_index_market_table(row3)}
+</div>'''
+
+
+def _index_theme_card(theme_key: str, data: dict, today: str) -> str:
+    label = THEME_LABEL.get(theme_key, theme_key)
+    summary = data.get("week_summary", "")
+    signal = data.get("signal_change", "")
+    catalysts = data.get("next_week_catalysts", [])
+    risks = data.get("risk_flags", [])
+    link = f"{today}-{theme_key}.html"
+
+    summary_html = ""
+    if summary:
+        summary_html = f'''<div style="background:#FEF3CD;border-radius:4px;padding:10px 14px;
+            font-size:15px;font-weight:500;color:#856404;line-height:1.6;margin-bottom:12px;">
+      📌 {summary}</div>'''
+
+    signal_html = ""
+    if signal:
+        signal_html = f'''<div style="font-size:14px;color:#555;line-height:1.7;margin-bottom:12px;">
+      {signal}</div>'''
+
+    catalyst_tags = "".join(
+        f'<span style="display:inline-block;background:#E1F5EE;color:#0F6E56;'
+        f'font-size:12px;font-weight:500;padding:4px 10px;border-radius:3px;'
+        f'margin:0 6px 6px 0;">{c}</span>'
+        for c in catalysts[:3]
+    )
+    risk_tags = "".join(
+        f'<span style="display:inline-block;background:#FCF0EC;color:#993C1D;'
+        f'font-size:12px;font-weight:500;padding:4px 10px;border-radius:3px;'
+        f'margin:0 6px 6px 0;">{r}</span>'
+        for r in risks[:3]
+    )
+
+    tags_html = ""
+    if catalyst_tags or risk_tags:
+        tags_html = f'<div style="margin-bottom:12px;">{catalyst_tags}{risk_tags}</div>'
+
+    return f'''
+<div style="background:#fff;border:1px solid #e8e8e8;border-radius:8px;
+            padding:20px 22px;margin-bottom:16px;">
+  <div style="font-size:18px;font-weight:600;color:#1B3A5C;margin-bottom:12px;">
+    {label}</div>
+  {summary_html}
+  {signal_html}
+  {tags_html}
+  <a href="{link}" style="display:inline-block;background:#1B3A5C;color:#fff;
+     font-size:14px;font-weight:500;padding:8px 20px;border-radius:5px;
+     text-decoration:none;">閱讀完整報告 →</a>
+</div>'''
+
+
+def _index_archive(weekly_dir: str, current_date: str) -> str:
+    """Build archive section listing past weekly reports."""
+    import os
+    entries: dict[str, list[tuple[str, str]]] = {}
+    for fname in sorted(os.listdir(weekly_dir), reverse=True):
+        if fname == "index.html" or not fname.endswith(".html"):
+            continue
+        parts = fname.replace(".html", "").split("-", 3)
+        if len(parts) == 4:
+            date_str = f"{parts[0]}-{parts[1]}-{parts[2]}"
+            theme_key = parts[3]
+            entries.setdefault(date_str, []).append((theme_key, fname))
+
+    # Remove current date from archive (it's shown as cards above)
+    entries.pop(current_date, None)
+
+    if not entries:
+        return ""
+
+    rows = ""
+    for date_str in sorted(entries.keys(), reverse=True):
+        links = ""
+        for theme_key, fname in sorted(entries[date_str]):
+            lbl = THEME_LABEL.get(theme_key, theme_key)
+            links += (f'<a href="{fname}" style="display:inline-block;background:#EBF2FA;'
+                      f'color:#185FA5;font-size:13px;font-weight:500;padding:5px 12px;'
+                      f'border-radius:4px;text-decoration:none;margin:0 6px 6px 0;">{lbl}</a>')
+        rows += f'''
+<div style="padding:14px 0;border-bottom:1px solid #f0f0f0;">
+  <div style="font-size:15px;font-weight:600;color:#222;margin-bottom:8px;">{date_str}</div>
+  <div>{links}</div>
+</div>'''
+
+    return f'''
+<div style="margin-top:28px;">
+  <div style="font-size:13px;letter-spacing:1.8px;text-transform:uppercase;
+              font-weight:500;color:#888;border-bottom:0.5px solid #e0e0e0;
+              padding-bottom:5px;margin-bottom:14px;">歷史週報</div>
+  {rows}
+</div>'''
+
+
+def build_weekly_index(
+    theme_data: dict[str, dict],
+    market_data: dict,
+    today: str,
+    start: str,
+    end: str,
+    weekly_dir: str,
+) -> str:
+    """Build the weekly index.html with market data + theme cards."""
+    cards = "".join(
+        _index_theme_card(key, theme_data.get(key, {}), today)
+        for key in THEME_ORDER
+    )
+    archive = _index_archive(weekly_dir, today)
+
+    return f"""<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>每週深度週報</title>
+</head>
+<body style="font-family:Arial,sans-serif;max-width:720px;margin:0 auto;padding:24px 20px;color:#222;">
+<div style="border-bottom:2px solid #1B3A5C;padding-bottom:12px;margin-bottom:20px;
+            display:flex;justify-content:space-between;align-items:flex-end;">
+  <div>
+    <div style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#888;
+                margin-bottom:4px;">WEEKLY DEEP REPORTS</div>
+    <div style="font-family:Georgia,serif;font-size:26px;font-weight:700;color:#1B3A5C;">
+      每週深度週報</div>
+  </div>
+  <div style="font-size:13px;color:#888;text-align:right;">
+    {start} — {end}
+  </div>
+</div>
+{_index_market_strip(market_data)}
+{cards}
+{archive}
+<div style="font-size:12px;color:#aaa;border-top:1px solid #e8e8e8;padding-top:12px;margin-top:20px;">
+  AI 輔助分析 · 僅供參考
+</div>
+</body>
+</html>"""
+
+
 def build_weekly_html(data: dict, theme_key: str) -> str:
     week_label, start, end = _get_week_range()
     theme_name = data.get("theme", theme_key)

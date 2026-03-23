@@ -147,6 +147,78 @@ def fetch_market_data() -> dict:
         return {}
 
 
+# 週報用固定 tickers（與日報相同的前11個 + BTC）
+WEEKLY_MARKET_TICKERS = [
+    # (key,    symbol,      prefix, invert, label)
+    ("nq100",  "NQ=F",      "",  False, "NQ100"),
+    ("sp500",  "^GSPC",     "",  False, "S&P500"),
+    ("sox",    "^SOX",      "",  False, "費半"),
+    ("vix",    "^VIX",      "",  True,  "VIX"),
+    ("twii",   "^TWII",     "",  False, "台灣加權"),
+    ("brent",  "BZ=F",      "$", False, "Brent油"),
+    ("gold",   "GC=F",      "$", False, "黃金"),
+    ("silver", "SI=F",      "$", False, "白銀"),
+    ("copper", "HG=F",      "$", False, "銅"),
+    ("dxy",    "DX-Y.NYB",  "",  False, "DXY"),
+    ("us10y",  "^TNX",      "",  True,  "美10Y"),
+    ("btc",    "BTC-USD",   "$", False, "BTC"),
+]
+
+
+def fetch_weekly_market_data() -> dict:
+    """Fetch weekly market data (first close vs last close over 5d)."""
+    try:
+        import yfinance as yf
+
+        symbols = [t[1] for t in WEEKLY_MARKET_TICKERS]
+        tickers = yf.download(
+            symbols, period="5d", interval="1d",
+            progress=False, auto_adjust=True,
+        )
+
+        def get_weekly_change(symbol):
+            try:
+                closes = tickers["Close"][symbol].dropna()
+                if len(closes) >= 2:
+                    last = float(closes.iloc[-1])
+                    first = float(closes.iloc[0])
+                    return last, (last - first) / first * 100
+                elif len(closes) == 1:
+                    return float(closes.iloc[-1]), None
+            except Exception:
+                pass
+            return None, None
+
+        def fmt_val(v, prefix=""):
+            return f"{prefix}{v:,.2f}" if v is not None else "—"
+        def fmt_chg(c):
+            if c is None: return "—"
+            return f"{'▲' if c > 0 else '▼'} {abs(c):.2f}%"
+        def direction(c, invert=False):
+            if c is None: return "neu"
+            return ("neg" if c > 0 else "pos") if invert else ("pos" if c > 0 else "neg")
+
+        items = []
+        for key, symbol, prefix, invert, label in WEEKLY_MARKET_TICKERS:
+            val, chg = get_weekly_change(symbol)
+            items.append({
+                "label": label, "key": key,
+                "val": fmt_val(val, prefix),
+                "chg": fmt_chg(chg),
+                "dir": direction(chg, invert=invert),
+            })
+
+        fear_greed = _fetch_fear_greed()
+
+        print(f"  ✓ Weekly market: NQ={items[0]['val']} SP={items[1]['val']} "
+              f"BTC={items[11]['val']} F&G={fear_greed['val']}")
+
+        return {"items": items, "fear_greed": fear_greed}
+    except Exception as e:
+        print(f"  ✗ Weekly market data failed: {e}")
+        return {"items": [], "fear_greed": {"val": "—", "chg": "—", "dir": "neu"}}
+
+
 def fetch_financial_news() -> list[dict]:
     api_key = os.environ["PERPLEXITY_API_KEY"]
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}

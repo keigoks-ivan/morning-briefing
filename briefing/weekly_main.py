@@ -29,7 +29,8 @@ except ImportError:
 
 from weekly_fetcher import fetch_weekly_news, WEEKLY_THEMES
 from weekly_processor import process_weekly_theme
-from weekly_template import build_weekly_html
+from weekly_template import build_weekly_html, build_weekly_index
+from news_fetcher import fetch_weekly_market_data
 
 
 THEME_ORDER = ["ai_industry", "semiconductor", "macro", "black_swan"]
@@ -113,7 +114,13 @@ def send_weekly_email(summaries: dict[str, str], today: str, date_short: str) ->
         raise Exception(f"Resend API error: {response.status_code}")
 
 
-def publish_weekly_to_github(output_dir: str, today: str) -> None:
+def publish_weekly_to_github(
+    output_dir: str,
+    today: str,
+    start: str,
+    theme_data: dict[str, dict],
+    market_data: dict,
+) -> None:
     """Push weekly HTML files to financial-analysis-bot repo."""
     gh_pat = os.environ.get("GH_PAT", "")
     if not gh_pat:
@@ -140,8 +147,18 @@ def publish_weekly_to_github(output_dir: str, today: str) -> None:
                 shutil.copy2(src, weekly_dir)
                 print(f"  → Copied {today}-{key}.html")
 
-        # Build index.html
-        _build_weekly_index(weekly_dir)
+        # Build index.html with market data + theme cards
+        index_html = build_weekly_index(
+            theme_data=theme_data,
+            market_data=market_data,
+            today=today,
+            start=start,
+            end=today,
+            weekly_dir=weekly_dir,
+        )
+        with open(os.path.join(weekly_dir, "index.html"), "w", encoding="utf-8") as f:
+            f.write(index_html)
+        print(f"  → Built index.html with market data")
 
         # Commit and push
         subprocess.run(
@@ -182,55 +199,6 @@ def publish_weekly_to_github(output_dir: str, today: str) -> None:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-def _build_weekly_index(weekly_dir: str) -> None:
-    """Build or update the index.html for weekly reports."""
-    # Scan existing HTML files (excluding index.html)
-    entries: dict[str, list[str]] = {}
-    for fname in sorted(os.listdir(weekly_dir), reverse=True):
-        if fname == "index.html" or not fname.endswith(".html"):
-            continue
-        # Format: YYYY-MM-DD-theme_key.html
-        parts = fname.replace(".html", "").split("-", 3)
-        if len(parts) == 4:
-            date_str = f"{parts[0]}-{parts[1]}-{parts[2]}"
-            theme_key = parts[3]
-            entries.setdefault(date_str, []).append((theme_key, fname))
-
-    rows = ""
-    for date_str in sorted(entries.keys(), reverse=True):
-        links = ""
-        for theme_key, fname in sorted(entries[date_str]):
-            label = THEME_LABEL.get(theme_key, theme_key)
-            links += f'<a href="{fname}" style="display:inline-block;background:#EBF2FA;color:#185FA5;font-size:14px;font-weight:500;padding:6px 14px;border-radius:4px;text-decoration:none;margin:0 8px 8px 0;">{label}</a>'
-        rows += f'''
-<div style="padding:16px 0;border-bottom:1px solid #f0f0f0;">
-  <div style="font-size:17px;font-weight:600;color:#222;margin-bottom:10px;">{date_str}</div>
-  <div>{links}</div>
-</div>'''
-
-    index_html = f"""<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>每週深度週報</title>
-</head>
-<body style="font-family:Arial,sans-serif;max-width:720px;margin:0 auto;padding:24px 20px;color:#222;">
-<div style="border-bottom:2px solid #1B3A5C;padding-bottom:12px;margin-bottom:20px;">
-  <div style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#888;margin-bottom:4px;">WEEKLY DEEP REPORTS</div>
-  <div style="font-family:Georgia,serif;font-size:26px;font-weight:700;color:#1B3A5C;">每週深度週報</div>
-</div>
-{rows}
-<div style="font-size:12px;color:#aaa;border-top:1px solid #e8e8e8;padding-top:12px;margin-top:20px;">
-  AI 輔助分析 · 僅供參考
-</div>
-</body>
-</html>"""
-
-    with open(os.path.join(weekly_dir, "index.html"), "w", encoding="utf-8") as f:
-        f.write(index_html)
-
-
 def main() -> None:
     print("=" * 50)
     print("Weekly Deep Report — starting")
@@ -241,6 +209,7 @@ def main() -> None:
     os.makedirs(output_dir, exist_ok=True)
 
     summaries = {}
+    theme_data = {}
 
     for i, theme_key in enumerate(THEME_ORDER, 1):
         theme = WEEKLY_THEMES[theme_key]
@@ -256,6 +225,7 @@ def main() -> None:
         print(f"  Processing with Claude...")
         data = process_weekly_theme(theme_key, theme_name, raw_news)
         summaries[theme_key] = data.get("week_summary", "")
+        theme_data[theme_key] = data
 
         # Save JSON
         json_path = os.path.join(output_dir, f"{today}-{theme_key}.json")
@@ -269,13 +239,17 @@ def main() -> None:
             f.write(html)
         print(f"  → Saved: {html_path} ({len(html):,} chars)")
 
+    # Fetch weekly market data for index page
+    print(f"\n[Market] Fetching weekly market data...")
+    weekly_market = fetch_weekly_market_data()
+
     # Send email
     print(f"\n[Email] Sending weekly summary...")
     send_weekly_email(summaries, today, date_short)
 
     # Publish to GitHub
     print(f"\n[Publish] Publishing to financial-analysis-bot...")
-    publish_weekly_to_github(output_dir, today)
+    publish_weekly_to_github(output_dir, today, start, theme_data, weekly_market)
 
     print("\n✓ Weekly report done.\n")
 
