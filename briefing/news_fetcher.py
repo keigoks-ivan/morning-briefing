@@ -39,8 +39,8 @@ PERPLEXITY_QUERIES = [
     "What are the latest geopolitical risks today? Include Middle East, US-China, Taiwan Strait. Sources: Bloomberg Reuters Financial Times WSJ Foreign Affairs Belfer Center RAND Brookings Politico The Economist",
     # 新創
     "What are the major startup IPOs, defense tech, and venture capital funding news today? Sources: TechCrunch Bloomberg Reuters Crunchbase The Information Axios",
-    # 財報
-    "What are the important earnings reports scheduled this week? Include tech companies. Sources: Bloomberg Reuters Financial Times WSJ CNBC Piper Sandler Bernstein Goldman Sachs",
+    # 今日財報預告
+    "Earnings reports scheduled for today not yet reported, companies reporting earnings today before market open during market after market close. Sources: Earnings Whispers Bloomberg Reuters CNBC WSJ",
     # 總經行事曆
     "What are the most important macroeconomic calendar events in the next 24 hours? Include Fed speeches, central bank decisions, economic data releases like CPI, PPI, GDP, jobs data, and major earnings reports. Sources: Bloomberg Reuters Financial Times WSJ CNBC Federal Reserve ECB BIS FRED Blog",
     # 昨日美股重點
@@ -382,6 +382,88 @@ def fetch_weekly_market_data() -> dict:
     except Exception as e:
         print(f"  ✗ Weekly market data failed: {e}")
         return {"items": [], "fear_greed": {"val": "—", "chg": "—", "dir": "neu"}, "dynamic": []}
+
+
+EARNINGS_WATCHLIST = [
+    # 科技/AI
+    "NVDA", "AMD", "INTC", "MSFT", "GOOGL", "META", "AMZN", "AAPL",
+    "NFLX", "PLTR", "SNOW", "CRM", "NOW", "ADBE", "ORCL", "IBM",
+    "UBER", "LYFT", "ABNB", "DASH",
+    # 半導體
+    "ASML", "AMAT", "LRCX", "KLAC", "TSM", "ARM", "AVGO",
+    "QCOM", "MU", "MRVL", "WOLF", "ON", "MPWR", "ENTG", "ONTO",
+    "ACLS", "COHU", "TER", "FORM",
+    # S&P500 大型權值股
+    "BRK-B", "LLY", "JPM", "V", "UNH", "XOM", "MA", "JNJ",
+    "PG", "HD", "COST", "BAC", "WMT", "ABBV", "GS", "MS",
+    "TSLA", "GE", "CAT", "RTX", "NEE", "CVX", "PFE", "MRK",
+    "TMO", "DHR", "ABT", "BMY", "AMGN", "GILD",
+    # 金融
+    "C", "WFC", "AXP", "BLK", "SCHW", "ICE", "CME", "SPGI",
+    "MCO", "BX", "KKR", "APO",
+    # 能源
+    "SLB", "HAL", "BKR", "OXY", "COP", "EOG", "PSX", "VLO",
+    # 消費/零售
+    "MCD", "SBUX", "NKE", "TGT", "LOW", "TJX", "ROST", "DLTR",
+    # 媒體/電信
+    "DIS", "CMCSA", "T", "VZ", "TMUS", "CHTR", "PARA", "WBD",
+    # 台灣/亞洲ADR
+    "UMC", "ASX",
+    # 國防/航太
+    "LMT", "NOC", "GD", "BA", "HII", "KTOS", "RCAT",
+]
+
+
+def fetch_today_earnings() -> list[dict]:
+    """Check WATCHLIST for earnings scheduled today via yfinance."""
+    try:
+        import yfinance as yf
+    except ImportError:
+        print("  ✗ yfinance not available for earnings check")
+        return []
+
+    tz = pytz.timezone("US/Eastern")
+    today_us = datetime.now(tz).strftime("%Y-%m-%d")
+
+    results = []
+    for symbol in EARNINGS_WATCHLIST:
+        try:
+            t = yf.Ticker(symbol)
+            cal = t.calendar
+            if cal is None or cal.empty if hasattr(cal, 'empty') else not cal:
+                continue
+            # calendar can be a DataFrame or dict
+            if hasattr(cal, "iloc"):
+                # DataFrame: first column is the earnings date
+                earn_date = str(cal.iloc[0, 0])[:10] if cal.shape[1] > 0 else ""
+            elif isinstance(cal, dict):
+                ed = cal.get("Earnings Date", [])
+                earn_date = str(ed[0])[:10] if ed else ""
+            else:
+                continue
+
+            if earn_date == today_us:
+                # Try to determine timing
+                timing = "after-close"  # default
+                if hasattr(cal, "iloc") and cal.shape[0] > 1:
+                    try:
+                        hour_val = cal.iloc[1, 0]
+                        if hasattr(hour_val, 'hour') and hour_val.hour < 12:
+                            timing = "before-open"
+                    except Exception:
+                        pass
+
+                results.append({
+                    "ticker": symbol,
+                    "date": earn_date,
+                    "time": timing,
+                })
+        except Exception:
+            continue
+
+    print(f"  ✓ Today earnings: {len(results)} companies from watchlist "
+          f"({', '.join(r['ticker'] for r in results[:5])}{'...' if len(results) > 5 else ''})")
+    return results
 
 
 def fetch_financial_news() -> list[dict]:

@@ -461,21 +461,55 @@ def _smart_money(data: dict) -> str:
 </div>'''
 
 
+REPORT_TIME_STYLE = {
+    "before-open":    ("background:#FAF0DA;color:#854F0B;", "開盤前"),
+    "after-close":    ("background:#1B3A5C;color:#fff;",    "收盤後"),
+    "during-market":  ("background:#EBF2FA;color:#185FA5;", "盤中"),
+}
+
+
 def _earnings_preview(items: list) -> str:
     if not items:
         return ""
     rows = ""
     for e in items:
+        rt = e.get("report_time", "after-close")
+        rt_style, rt_label = REPORT_TIME_STYLE.get(rt, REPORT_TIME_STYLE["after-close"])
+
+        confirmed = e.get("yfinance_confirmed", False)
+        if confirmed:
+            confirm_html = '<span style="font-size:11px;color:#1a7a4a;">● 已確認</span>'
+        else:
+            confirm_html = '<span style="font-size:11px;color:#aaa;">● 待確認</span>'
+
+        eps = e.get("eps_estimate", "")
+        rev = e.get("revenue_estimate", "")
+        estimates_html = ""
+        if eps or rev:
+            parts = []
+            if eps:
+                parts.append(f"EPS預期: {eps}")
+            if rev:
+                parts.append(f"營收預期: {rev}")
+            estimates_html = f'<div style="font-size:13px;color:#888;margin-top:2px;">{" · ".join(parts)}</div>'
+
+        wtw = e.get("what_to_watch", "")
+        wtw_html = f'<div style="font-size:13px;color:#555;margin-top:4px;">🔍 {wtw}</div>' if wtw else ""
+
         rows += f'''
-<div style="display:grid;grid-template-columns:100px 80px 1fr;gap:12px;
-            padding:8px 0;border-bottom:0.5px solid #f0f0f0;font-size:15px;">
-  <div style="font-weight:500;color:#222;">{e.get("company","")}</div>
-  <div style="color:#888;">{e.get("date","")}</div>
-  <div style="color:#555;">{e.get("note","")}</div>
+<div style="padding:10px 0;border-bottom:0.5px solid #f0f0f0;">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:3px;white-space:nowrap;{rt_style}">{rt_label}</span>
+    <span style="font-size:16px;font-weight:600;color:#222;">{e.get("company","")}</span>
+    <span style="font-size:14px;color:#888;">{e.get("ticker","")}</span>
+    {confirm_html}
+  </div>
+  {estimates_html}
+  {wtw_html}
 </div>'''
     return f'''
 <div class="section">
-  <div class="section-label">本週重要財報預告</div>{rows}
+  <div class="section-label">今日財報預告</div>{rows}
 </div>'''
 
 

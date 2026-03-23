@@ -205,8 +205,11 @@ USER_PROMPT_TEMPLATE = """
     {{
       "company": "公司名稱",
       "ticker": "股票代號",
-      "date": "財報日期",
-      "note": "一句重點說明"
+      "report_time": "before-open/after-close/during-market",
+      "eps_estimate": "預期EPS（有則填，無則填空字串）",
+      "revenue_estimate": "預期營收（有則填，無則填空字串）",
+      "what_to_watch": "今日這份財報最值得關注的一個指標或問題（1句）",
+      "yfinance_confirmed": true
     }}
   ],
 
@@ -258,7 +261,7 @@ USER_PROMPT_TEMPLATE = """
 7. system_status.dynamic 固定輸出 3 個，從以下選：{dynamic_options}
 8. tech_trends 輸出 5–6 條，sub_items 固定 3 個
 9. startup_news 輸出 4–5 條
-10. earnings_preview 輸出本週重要財報，若無則輸出空陣列
+10. earnings_preview 只輸出今日（美股當日）即將發布的財報，不要輸出已經發布的財報，不要輸出非今日的財報，yfinance 確認的優先列出且 yfinance_confirmed=true，Perplexity 搜尋到的作為補充且 yfinance_confirmed=false，如今日無重要財報則輸出空陣列
 11. implied_trends 固定 4 條，跨多條新聞的綜合訊號
 12. today_events 只輸出未來24小時內即將發生的真實行程，按時間由早到晚排序，不要列已經發生的事件，不要編造
 13. us_market_recap 涵蓋台灣時間昨日 16:00 至今日 06:00 之間（即美股完整交易日：盤前、盤中、盤後）發生的重要財報和法說會事件。earnings 輸出這段時間內發布財報的重要公司結果。other_events 輸出這段時間內的重要法說會、Investor Day、產品發布、重大聲明。所有條目按時間由早到晚排序（盤前→盤中→盤後），session 欄位標注對應時段。如無重要事件 has_events 輸出 false，earnings 和 other_events 輸出空陣列。
@@ -281,7 +284,7 @@ def build_news_text(raw_news: list[dict]) -> str:
     return "\n".join(parts)
 
 
-def process_news(raw_news: list[dict], market_data: dict | None = None) -> dict:
+def process_news(raw_news: list[dict], market_data: dict | None = None, today_earnings: list | None = None) -> dict:
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
     news_text = build_news_text(raw_news)
@@ -305,6 +308,18 @@ def process_news(raw_news: list[dict], market_data: dict | None = None) -> dict:
         lines.append("選擇標準：今日漲跌幅絕對值最大、或與當日重大新聞最相關、或能補充固定格沒有的市場視角，")
         lines.append("確保選出的標的不與固定12格重複。")
         lines.append("把選出的動態格放入 market_data.dynamic 陣列，每格包含 label/val/chg/dir。")
+
+        # Today's earnings from yfinance
+        if today_earnings:
+            lines.append("\n【yfinance 確認今日財報】")
+            for e in today_earnings:
+                lines.append(f"{e['ticker']} ({e.get('time','—')})")
+            lines.append("以上為 yfinance 確認的今日財報公司，請優先列入 earnings_preview，")
+            lines.append("並將 yfinance_confirmed 設為 true。")
+            lines.append("Perplexity 搜尋到但 yfinance 未確認的公司，yfinance_confirmed 設為 false。")
+        else:
+            lines.append("\n【yfinance 確認今日財報】無")
+
         market_context = "\n".join(lines)
 
     user_prompt = USER_PROMPT_TEMPLATE.format(
