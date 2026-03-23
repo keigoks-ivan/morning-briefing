@@ -85,6 +85,7 @@ def _fetch_fear_greed() -> dict:
     try:
         resp = requests.get(
             "https://production.dataviz.cnn.io/index/fearandgreed/graphdata",
+            headers={"User-Agent": "Mozilla/5.0 (compatible; MorningBriefing/1.0)"},
             timeout=10,
         )
         resp.raise_for_status()
