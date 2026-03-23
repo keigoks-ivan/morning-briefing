@@ -43,6 +43,10 @@ PERPLEXITY_QUERIES = [
     "What are the important earnings reports scheduled this week? Include tech companies. Sources: Bloomberg Reuters Financial Times WSJ CNBC Piper Sandler Bernstein Goldman Sachs",
     # 總經行事曆
     "What are the most important macroeconomic calendar events in the next 24 hours? Include Fed speeches, central bank decisions, economic data releases like CPI, PPI, GDP, jobs data, and major earnings reports. Sources: Bloomberg Reuters Financial Times WSJ CNBC Federal Reserve ECB BIS FRED Blog",
+    # 昨日美股重點
+    "Earnings reports and conference calls during US market hours yesterday pre-market during-market after-hours results EPS revenue guidance Sources: Bloomberg Reuters CNBC WSJ Seeking Alpha Earnings Whispers",
+    "Key statements from earnings calls investor days analyst conferences yesterday US market hours Sources: Bloomberg Reuters CNBC WSJ",
+    "Significant stock moves reactions to earnings news yesterday US pre-market market hours after-hours Sources: Bloomberg Reuters CNBC",
 ]
 
 

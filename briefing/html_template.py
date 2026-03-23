@@ -498,6 +498,93 @@ def _fun_fact(fact: dict) -> str:
 </div>'''
 
 
+SESSION_STYLE = {
+    "pre-market":  "background:#e8e8e8;color:#555;",
+    "market":      "background:#EBF2FA;color:#185FA5;",
+    "after-hours": "background:#1B3A5C;color:#fff;",
+}
+SESSION_LABEL = {
+    "pre-market": "盤前",
+    "market": "盤中",
+    "after-hours": "盤後",
+}
+
+
+def _session_tag(session: str) -> str:
+    style = SESSION_STYLE.get(session, SESSION_STYLE["market"])
+    label = SESSION_LABEL.get(session, session)
+    return f'<span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:3px;white-space:nowrap;{style}">{label}</span>'
+
+
+def _us_market_recap(recap: dict) -> str:
+    if not recap or not recap.get("has_events", False):
+        return ""
+
+    summary = recap.get("summary", "")
+    summary_html = ""
+    if summary:
+        summary_html = f'''
+<div style="background:#FEF3CD;border-radius:4px;padding:10px 14px;margin-bottom:14px;
+            font-size:15px;font-weight:500;color:#856404;line-height:1.6;">
+  📌 {summary}
+</div>'''
+
+    # Earnings cards
+    earnings_html = ""
+    for e in recap.get("earnings", []):
+        bm = e.get("beat_miss", "")
+        if bm == "beat":
+            bm_style = "background:#E1F5EE;color:#0F6E56;"
+        elif bm == "miss":
+            bm_style = "background:#FCF0EC;color:#993C1D;"
+        else:
+            bm_style = "background:#e8e8e8;color:#555;"
+        bm_label = bm.upper() if bm else "—"
+
+        move = e.get("after_hours_move", "")
+        move_color = "#1a7a4a" if "▲" in move or "+" in move else "#C0392B"
+
+        earnings_html += f'''
+<div style="background:#fff;border:1px solid #e8e8e8;border-radius:6px;padding:14px 16px;margin-bottom:10px;">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+    {_session_tag(e.get("session","market"))}
+    <span style="font-size:16px;font-weight:600;color:#222;">{e.get("company","")}</span>
+    <span style="font-size:14px;color:#888;">{e.get("ticker","")}</span>
+    <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:3px;{bm_style}">{bm_label}</span>
+  </div>
+  <div style="display:flex;gap:0;margin-bottom:8px;">
+    <div style="width:4px;background:#1B3A5C;border-radius:2px;flex-shrink:0;"></div>
+    <div style="padding:8px 12px;font-size:15px;color:#555;line-height:1.65;font-style:italic;flex:1;">
+      {e.get("key_line","")}</div>
+  </div>
+  <div style="font-size:20px;font-weight:600;color:{move_color};margin-bottom:4px;">{move}</div>
+  <div style="font-size:13px;color:#888;line-height:1.5;">{e.get("why_it_matters","")}</div>
+</div>'''
+
+    # Other events
+    events_html = ""
+    for ev in recap.get("other_events", []):
+        events_html += f'''
+<div style="padding:10px 0;border-bottom:0.5px solid #f0f0f0;">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+    {_session_tag(ev.get("session","market"))}
+    <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:3px;
+                 background:#F0EDF8;color:#534AB7;">{ev.get("event","")}</span>
+    <span style="font-size:15px;font-weight:600;color:#222;">{ev.get("company","")}</span>
+  </div>
+  <div style="font-size:15px;color:#555;line-height:1.65;margin-bottom:2px;">{ev.get("key_line","")}</div>
+  <div style="font-size:13px;color:#888;">{ev.get("market_impact","")}</div>
+</div>'''
+
+    return f'''
+<div class="section">
+  <div class="section-label">昨日美股重點（盤前・盤中・盤後）</div>
+  {summary_html}
+  {earnings_html}
+  {events_html}
+</div>'''
+
+
 def _today_events(events: list) -> str:
     if not events:
         return ""
@@ -541,6 +628,7 @@ def build_html(data: dict) -> str:
 {_alert(data.get("alert",""))}
 {_market_strip(data.get("market_data", {}))}
 {_news_section("核心要聞", data.get("top_stories",[]))}
+{_us_market_recap(data.get("us_market_recap", {}))}
 {_news_section("總經動態", data.get("macro",[]))}
 {_news_section("AI 産業動態", data.get("ai_industry",[]), {"macro":"background:#EBF2FA;color:#185FA5;","tech":"background:#EAF3DE;color:#3B6D11;"})}
 {_geopolitical_section(data.get("geopolitical",[]))}

@@ -69,6 +69,31 @@ USER_PROMPT_TEMPLATE = """
     ]
   }},
 
+  "us_market_recap": {{
+    "has_events": true,
+    "earnings": [
+      {{
+        "company": "公司名稱",
+        "ticker": "股票代號",
+        "beat_miss": "beat/miss/in-line",
+        "key_line": "法說會或財報最重要的一句話（含具體數字）",
+        "after_hours_move": "股價反應（如：▲ +8.2%）",
+        "why_it_matters": "為什麼這個結果重要（1句）",
+        "session": "pre-market/market/after-hours"
+      }}
+    ],
+    "other_events": [
+      {{
+        "company": "公司或機構名稱",
+        "event": "事件類型（如：analyst day、investor conference、product launch）",
+        "key_line": "最重要的一句話",
+        "market_impact": "對市場的影響（1句）",
+        "session": "pre-market/market/after-hours"
+      }}
+    ],
+    "summary": "整體一句話總結（如無重要事件則輸出空字串）"
+  }},
+
   "top_stories": [
     {{
       "headline": "標題（30字以內）",
@@ -222,9 +247,10 @@ USER_PROMPT_TEMPLATE = """
 10. earnings_preview 輸出本週重要財報，若無則輸出空陣列
 11. implied_trends 固定 4 條，跨多條新聞的綜合訊號
 12. today_events 只輸出未來24小時內即將發生的真實行程，按時間由早到晚排序，不要列已經發生的事件，不要編造
-13. 所有新聞排除 ESG 相關內容
-14. source_date 格式統一為 YYYY-MM-DD
-15. implied_trends 引用的數字必須來自搜尋結果，不能推測
+13. us_market_recap 涵蓋台灣時間昨日 16:00 至今日 06:00 之間（即美股完整交易日：盤前、盤中、盤後）發生的重要財報和法說會事件。earnings 輸出這段時間內發布財報的重要公司結果。other_events 輸出這段時間內的重要法說會、Investor Day、產品發布、重大聲明。所有條目按時間由早到晚排序（盤前→盤中→盤後），session 欄位標注對應時段。如無重要事件 has_events 輸出 false，earnings 和 other_events 輸出空陣列。
+14. 所有新聞排除 ESG 相關內容
+15. source_date 格式統一為 YYYY-MM-DD
+16. implied_trends 引用的數字必須來自搜尋結果，不能推測
 """
 
 
@@ -332,6 +358,7 @@ def _validate(data: dict) -> None:
     data.setdefault("startup_news", [])
     data.setdefault("earnings_preview", [])
     data.setdefault("implied_trends", [])
+    data.setdefault("us_market_recap", {"has_events": False, "earnings": [], "other_events": [], "summary": ""})
     data.setdefault("fun_fact", {})
     data.setdefault("today_events", [])
 
