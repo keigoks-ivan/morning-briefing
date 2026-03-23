@@ -47,6 +47,8 @@ PERPLEXITY_QUERIES = [
     "Earnings reports and conference calls during US market hours yesterday pre-market during-market after-hours results EPS revenue guidance Sources: Bloomberg Reuters CNBC WSJ Seeking Alpha Earnings Whispers",
     "Key statements from earnings calls investor days analyst conferences yesterday US market hours Sources: Bloomberg Reuters CNBC WSJ",
     "Significant stock moves reactions to earnings news yesterday US pre-market market hours after-hours Sources: Bloomberg Reuters CNBC",
+    # 機構異動
+    "Unusual options activity large block trades institutional buying selling smart money today Sources: Bloomberg CNBC Unusual Whales Barchart ETF flows QQQ SPY SOXX",
 ]
 
 

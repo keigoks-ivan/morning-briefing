@@ -416,6 +416,51 @@ def _startup_news(startups: list) -> str:
 </div>'''
 
 
+DIRECTION_STYLE = {
+    "bullish":  "background:#E1F5EE;color:#0F6E56;",
+    "bearish":  "background:#FCF0EC;color:#993C1D;",
+    "neutral":  "background:#e8e8e8;color:#555;",
+}
+TYPE_LABEL = {"options": "選擇權", "block": "大宗交易", "etf_flow": "ETF資金流"}
+
+
+def _smart_money(data: dict) -> str:
+    if not data or not data.get("has_signals", False):
+        return ""
+    signals = data.get("signals", [])[:3]
+    if not signals:
+        return ""
+
+    summary = data.get("summary", "")
+    summary_html = ""
+    if summary:
+        summary_html = f'''<div style="background:#FEF3CD;border-radius:4px;padding:8px 14px;
+            font-size:14px;font-weight:500;color:#856404;line-height:1.5;margin-bottom:10px;">
+      📌 {summary}</div>'''
+
+    rows = ""
+    for s in signals:
+        d = s.get("direction", "neutral")
+        d_style = DIRECTION_STYLE.get(d, DIRECTION_STYLE["neutral"])
+        d_label = {"bullish": "看多", "bearish": "看空", "neutral": "中性"}.get(d, d)
+        t = s.get("type", "")
+        t_label = TYPE_LABEL.get(t, t)
+        rows += f'''
+<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:0.5px solid #f0f0f0;flex-wrap:wrap;">
+  <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:3px;white-space:nowrap;{d_style}">{d_label}</span>
+  <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:3px;background:#F0EDF8;color:#534AB7;white-space:nowrap;">{t_label}</span>
+  <span style="font-size:15px;font-weight:600;color:#222;">{s.get("ticker","")}</span>
+  <span style="font-size:14px;color:#555;flex:1;">{s.get("description","")}</span>
+  <span style="font-size:12px;color:#888;white-space:nowrap;">{s.get("significance","")}</span>
+</div>'''
+
+    return f'''
+<div class="section">
+  <div class="section-label">機構異動訊號</div>
+  {summary_html}{rows}
+</div>'''
+
+
 def _earnings_preview(items: list) -> str:
     if not items:
         return ""
@@ -637,6 +682,7 @@ def build_html(data: dict) -> str:
 {_status_grid(data.get("system_status", {}))}
 {_tech_trends(data.get("tech_trends",[]))}
 {_startup_news(data.get("startup_news",[]))}
+{_smart_money(data.get("smart_money", {}))}
 {_earnings_preview(data.get("earnings_preview",[]))}
 {_implied_trends(data.get("implied_trends",[]))}
 {_fun_fact(data.get("fun_fact", {}))}

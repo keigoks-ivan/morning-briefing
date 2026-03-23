@@ -225,6 +225,20 @@ USER_PROMPT_TEMPLATE = """
     "connection": "一句話說明跟今日新聞的關聯"
   }},
 
+  "smart_money": {{
+    "has_signals": true,
+    "signals": [
+      {{
+        "type": "options/block/etf_flow",
+        "ticker": "標的代號",
+        "description": "一句話描述異動內容（含具體數字）",
+        "direction": "bullish/bearish/neutral",
+        "significance": "為什麼值得注意（1句，15字以內）"
+      }}
+    ],
+    "summary": "今日機構異動整體方向（1句，如無訊號則空字串）"
+  }},
+
   "today_events": [
     {{
       "time": "時間",
@@ -248,9 +262,10 @@ USER_PROMPT_TEMPLATE = """
 11. implied_trends 固定 4 條，跨多條新聞的綜合訊號
 12. today_events 只輸出未來24小時內即將發生的真實行程，按時間由早到晚排序，不要列已經發生的事件，不要編造
 13. us_market_recap 涵蓋台灣時間昨日 16:00 至今日 06:00 之間（即美股完整交易日：盤前、盤中、盤後）發生的重要財報和法說會事件。earnings 輸出這段時間內發布財報的重要公司結果。other_events 輸出這段時間內的重要法說會、Investor Day、產品發布、重大聲明。所有條目按時間由早到晚排序（盤前→盤中→盤後），session 欄位標注對應時段。如無重要事件 has_events 輸出 false，earnings 和 other_events 輸出空陣列。
-14. 所有新聞排除 ESG 相關內容
-15. source_date 格式統一為 YYYY-MM-DD
-16. implied_trends 引用的數字必須來自搜尋結果，不能推測
+14. smart_money 只輸出今日被可信來源報導的真實異常機構成交或選擇權活動，最多輸出 3 條最重要的，沒有可信來源支撐的不要輸出，has_signals=false 時 signals 輸出空陣列
+15. 所有新聞排除 ESG 相關內容
+16. source_date 格式統一為 YYYY-MM-DD
+17. implied_trends 引用的數字必須來自搜尋結果，不能推測
 """
 
 
@@ -359,6 +374,7 @@ def _validate(data: dict) -> None:
     data.setdefault("earnings_preview", [])
     data.setdefault("implied_trends", [])
     data.setdefault("us_market_recap", {"has_events": False, "earnings": [], "other_events": [], "summary": ""})
+    data.setdefault("smart_money", {"has_signals": False, "signals": [], "summary": ""})
     data.setdefault("fun_fact", {})
     data.setdefault("today_events", [])
 
