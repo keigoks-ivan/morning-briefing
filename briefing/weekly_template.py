@@ -9,25 +9,47 @@ import pytz
 
 
 THEME_ICON = {
+    "central_bank": "🏦",
+    "liquidity": "💧",
+    "credit": "💳",
+    "options": "📊",
     "ai_industry": "🤖",
     "semiconductor": "🔬",
+    "earnings": "📈",
     "macro": "🌍",
+    "commodities": "🛢️",
     "black_swan": "🦢",
 }
 
+THEME_LABEL = {
+    "central_bank": "🏦 央行政策追蹤",
+    "liquidity": "💧 流動性週報",
+    "credit": "💳 信貸市場週報",
+    "options": "📊 選擇權市場情緒",
+    "ai_industry": "🤖 AI 產業發展",
+    "semiconductor": "🔬 半導體供應鏈",
+    "earnings": "📈 財報季追蹤",
+    "macro": "🌍 全球景氣狀況",
+    "commodities": "🛢️ 能源與大宗商品",
+    "black_swan": "🦢 黑天鵝與灰犀牛",
+}
+
+THEME_ORDER = [
+    "central_bank", "liquidity", "credit", "options",
+    "ai_industry", "semiconductor", "earnings",
+    "macro", "commodities", "black_swan",
+]
+
+SENTIMENT_COLOR = {"pos": "#1a7a4a", "neg": "#C0392B", "neu": "#888780"}
+
 
 def _get_week_range() -> tuple[str, str, str]:
-    """Return (week_label, start_date, end_date) for the current week."""
     tz = pytz.timezone("Asia/Taipei")
     now = datetime.now(tz)
     end = now
     start = end - timedelta(days=6)
     week_num = now.isocalendar()[1]
-    return (
-        f"W{week_num}",
-        start.strftime("%Y-%m-%d"),
-        end.strftime("%Y-%m-%d"),
-    )
+    return f"W{week_num}", start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
 
 
 def _header(theme_name: str, theme_key: str, week_label: str, start: str, end: str) -> str:
@@ -72,6 +94,56 @@ def _signal_change(text: str) -> str:
 </div>'''
 
 
+def _section_label(title: str) -> str:
+    return f'''<div style="font-size:13px;letter-spacing:1.8px;text-transform:uppercase;
+              font-weight:500;color:#888;margin-bottom:14px;">{title}</div>'''
+
+
+def _text_block(title: str, text: str) -> str:
+    if not text:
+        return ""
+    return f'''
+<div style="margin:24px 0;">
+  {_section_label(title)}
+  <div style="font-size:16px;color:#222;line-height:1.8;">{text}</div>
+</div>'''
+
+
+def _info_card(title: str, text: str, border_color: str = "#378ADD") -> str:
+    if not text:
+        return ""
+    return f'''
+<div style="margin:20px 0;">
+  {_section_label(title)}
+  <div style="display:flex;gap:0;">
+    <div style="width:4px;background:{border_color};border-radius:2px;flex-shrink:0;"></div>
+    <div style="background:#f7f7f5;border-radius:0 6px 6px 0;padding:16px 20px;
+                font-size:16px;color:#222;line-height:1.8;flex:1;">{text}</div>
+  </div>
+</div>'''
+
+
+def _kv_card(title: str, items: dict, bg: str = "#f7f7f5") -> str:
+    if not items:
+        return ""
+    rows = ""
+    for k, v in items.items():
+        if not v:
+            continue
+        rows += f'''
+<div style="display:flex;gap:12px;padding:8px 0;border-bottom:0.5px solid #e8e8e8;">
+  <div style="font-size:14px;font-weight:500;color:#888;min-width:120px;">{k}</div>
+  <div style="font-size:15px;color:#222;line-height:1.7;flex:1;">{v}</div>
+</div>'''
+    if not rows:
+        return ""
+    return f'''
+<div style="margin:20px 0;">
+  {_section_label(title)}
+  <div style="background:{bg};border-radius:6px;padding:14px 18px;">{rows}</div>
+</div>'''
+
+
 def _deep_analysis(items: list) -> str:
     if not items:
         return ""
@@ -103,8 +175,7 @@ def _deep_analysis(items: list) -> str:
 </div>'''
     return f'''
 <div style="margin:24px 0;">
-  <div style="font-size:13px;letter-spacing:1.8px;text-transform:uppercase;
-              font-weight:500;color:#888;margin-bottom:14px;">深度分析</div>
+  {_section_label("深度分析")}
   {cards}
 </div>'''
 
@@ -129,8 +200,7 @@ def _earnings_calls(items: list) -> str:
 </div>'''
     return f'''
 <div style="margin:24px 0;">
-  <div style="font-size:13px;letter-spacing:1.8px;text-transform:uppercase;
-              font-weight:500;color:#888;margin-bottom:14px;">法說會重點</div>
+  {_section_label("法說會重點")}
   {rows}
 </div>'''
 
@@ -153,18 +223,14 @@ def _analyst_views(items: list) -> str:
 </tr>'''
     return f'''
 <div style="margin:24px 0;">
-  <div style="font-size:13px;letter-spacing:1.8px;text-transform:uppercase;
-              font-weight:500;color:#888;margin-bottom:14px;">分析師觀點</div>
+  {_section_label("分析師觀點")}
   <table width="100%" cellpadding="0" cellspacing="0"
          style="border:1px solid #e8e8e8;border-radius:6px;overflow:hidden;border-collapse:collapse;">
     <thead>
       <tr style="background:#f7f7f5;">
-        <th style="padding:10px 14px;font-size:13px;color:#888;text-align:left;
-                   font-weight:500;letter-spacing:0.5px;">機構</th>
-        <th style="padding:10px 14px;font-size:13px;color:#888;text-align:left;
-                   font-weight:500;letter-spacing:0.5px;">觀點</th>
-        <th style="padding:10px 14px;font-size:13px;color:#888;text-align:left;
-                   font-weight:500;letter-spacing:0.5px;">評級/目標價</th>
+        <th style="padding:10px 14px;font-size:13px;color:#888;text-align:left;font-weight:500;">機構</th>
+        <th style="padding:10px 14px;font-size:13px;color:#888;text-align:left;font-weight:500;">觀點</th>
+        <th style="padding:10px 14px;font-size:13px;color:#888;text-align:left;font-weight:500;">評級/目標價</th>
       </tr>
     </thead>
     <tbody>{rows}</tbody>
@@ -177,8 +243,7 @@ def _watchlist_impact(text: str) -> str:
         return ""
     return f'''
 <div style="margin:24px 0;background:#f7f7f5;border-radius:6px;padding:16px 20px;">
-  <div style="font-size:13px;letter-spacing:1.8px;text-transform:uppercase;
-              font-weight:500;color:#888;margin-bottom:10px;">觀察清單影響</div>
+  {_section_label("觀察清單影響")}
   <div style="font-size:16px;color:#222;line-height:1.8;">{text}</div>
 </div>'''
 
@@ -194,8 +259,7 @@ def _tag_list(title: str, items: list, bg: str, color: str) -> str:
     )
     return f'''
 <div style="margin:20px 0;">
-  <div style="font-size:13px;letter-spacing:1.8px;text-transform:uppercase;
-              font-weight:500;color:#888;margin-bottom:12px;">{title}</div>
+  {_section_label(title)}
   <div>{tags}</div>
 </div>'''
 
@@ -209,17 +273,234 @@ def _footer(start: str, end: str) -> str:
 </div>'''
 
 
-THEME_LABEL = {
-    "ai_industry": "🤖 AI 產業發展",
-    "semiconductor": "🔬 半導體供應鏈",
-    "macro": "🌍 全球景氣狀況",
-    "black_swan": "🦢 黑天鵝與灰犀牛",
+# ──── Theme-specific body renderers ────
+
+def _body_generic(data: dict) -> str:
+    return (
+        _signal_change(data.get("signal_change", ""))
+        + _deep_analysis(data.get("deep_analysis", []))
+        + _earnings_calls(data.get("earnings_calls", []))
+        + _analyst_views(data.get("analyst_views", []))
+        + _watchlist_impact(data.get("watchlist_impact", ""))
+        + _tag_list("下週催化劑", data.get("next_week_catalysts", []), "#E1F5EE", "#0F6E56")
+        + _tag_list("風險警示", data.get("risk_flags", []), "#FCF0EC", "#993C1D")
+    )
+
+
+def _body_earnings(data: dict) -> str:
+    if not data.get("has_earnings", False):
+        return '<div style="margin:24px 0;font-size:16px;color:#888;">本週無重要財報公布。</div>'
+
+    results = data.get("earnings_results", [])
+    rows = ""
+    for r in results:
+        bm = r.get("beat_miss", "")
+        bm_color = "#1a7a4a" if bm == "beat" else ("#C0392B" if bm == "miss" else "#888")
+        rows += f'''
+<tr style="border-bottom:1px solid #f0f0f0;">
+  <td style="padding:10px 12px;font-weight:600;color:#222;font-size:15px;">{r.get("company","")} <span style="color:#888;font-weight:400;">({r.get("ticker","")})</span></td>
+  <td style="padding:10px 12px;font-size:14px;color:#555;">EPS: {r.get("eps_actual","")} vs {r.get("eps_estimate","")}</td>
+  <td style="padding:10px 12px;font-size:14px;color:#555;">Rev: {r.get("revenue_actual","")} vs {r.get("revenue_estimate","")}</td>
+  <td style="padding:10px 12px;font-size:14px;font-weight:600;color:{bm_color};">{bm.upper()}</td>
+  <td style="padding:10px 12px;font-size:14px;color:#555;">{r.get("guidance","")}</td>
+</tr>
+<tr style="border-bottom:1px solid #e8e8e8;">
+  <td colspan="5" style="padding:6px 12px 12px;font-size:14px;color:#555;line-height:1.6;">
+    💡 {r.get("key_insight","")} · 股價：{r.get("stock_reaction","")}
+  </td>
+</tr>'''
+
+    table = ""
+    if rows:
+        table = f'''
+<div style="margin:24px 0;">
+  {_section_label("財報結果")}
+  <table width="100%" cellpadding="0" cellspacing="0"
+         style="border:1px solid #e8e8e8;border-radius:6px;overflow:hidden;border-collapse:collapse;">
+    <thead>
+      <tr style="background:#f7f7f5;">
+        <th style="padding:10px 12px;font-size:13px;color:#888;text-align:left;font-weight:500;">公司</th>
+        <th style="padding:10px 12px;font-size:13px;color:#888;text-align:left;font-weight:500;">EPS</th>
+        <th style="padding:10px 12px;font-size:13px;color:#888;text-align:left;font-weight:500;">營收</th>
+        <th style="padding:10px 12px;font-size:13px;color:#888;text-align:left;font-weight:500;">結果</th>
+        <th style="padding:10px 12px;font-size:13px;color:#888;text-align:left;font-weight:500;">展望</th>
+      </tr>
+    </thead>
+    <tbody>{rows}</tbody>
+  </table>
+</div>'''
+
+    return (
+        table
+        + _text_block("產業趨勢", data.get("sector_trends", ""))
+        + _tag_list("下週財報預告", data.get("next_week_earnings", []), "#EBF2FA", "#185FA5")
+        + _tag_list("風險警示", data.get("risk_flags", []), "#FCF0EC", "#993C1D")
+    )
+
+
+def _body_options(data: dict) -> str:
+    vix = data.get("vix_data", {})
+    pc = data.get("put_call", {})
+
+    vix_card = _kv_card("VIX 數據", {
+        "VIX Spot": vix.get("vix_spot", ""),
+        "VIX 3M": vix.get("vix_3m", ""),
+        "期限結構": vix.get("term_structure", ""),
+        "VVIX": vix.get("vvix", ""),
+    })
+    vix_interp = _info_card("VIX 解讀", vix.get("interpretation", ""), "#534AB7")
+
+    pc_card = _kv_card("Put/Call Ratio", {
+        "QQQ P/C Ratio": pc.get("qqq_ratio", ""),
+        "本週趨勢": pc.get("trend", ""),
+        "訊號": pc.get("signal", ""),
+    })
+    pc_interp = _info_card("P/C 解讀", pc.get("interpretation", ""), "#378ADD")
+
+    return (
+        vix_card + vix_interp + pc_card + pc_interp
+        + _text_block("偏斜與機構部位", data.get("skew_positioning", ""))
+        + _text_block("Gamma 環境", data.get("gamma_environment", ""))
+        + _tag_list("關鍵價位", data.get("key_levels", []), "#F0EDF8", "#534AB7")
+        + _info_card("NQ100 綜合判斷", data.get("nq_signal", ""), "#1B3A5C")
+        + _tag_list("風險警示", data.get("risk_flags", []), "#FCF0EC", "#993C1D")
+    )
+
+
+def _body_commodities(data: dict) -> str:
+    energy = data.get("energy", {})
+    metals = data.get("metals", {})
+
+    energy_html = _text_block("油市分析", energy.get("oil_analysis", ""))
+    energy_html += _tag_list("油價驅動因素", energy.get("key_drivers", []), "#FAF0DA", "#854F0B")
+    if energy.get("opec_update"):
+        energy_html += _info_card("OPEC 動態", energy.get("opec_update", ""), "#854F0B")
+    if energy.get("nat_gas"):
+        energy_html += _text_block("天然氣", energy.get("nat_gas", ""))
+
+    metals_html = _text_block("黃金分析", metals.get("gold_analysis", ""))
+    metals_html += _text_block("工業金屬", metals.get("industrial_metals", ""))
+    if metals.get("key_signal"):
+        metals_html += _info_card("金屬景氣訊號", metals.get("key_signal", ""), "#854F0B")
+
+    return (
+        energy_html + metals_html
+        + _text_block("農產品", data.get("agriculture", ""))
+        + _info_card("通膨與景氣訊號", data.get("macro_signal", ""), "#1B3A5C")
+        + _tag_list("下週催化劑", data.get("next_week_catalysts", []), "#E1F5EE", "#0F6E56")
+        + _tag_list("風險警示", data.get("risk_flags", []), "#FCF0EC", "#993C1D")
+    )
+
+
+def _body_central_bank(data: dict) -> str:
+    fed = data.get("fed", {})
+
+    # Hawkish/Dovish indicator
+    shift = fed.get("hawkish_dovish_shift", 0)
+    try:
+        shift_val = int(shift)
+        if shift_val > 0:
+            shift_label = f"偏鷹 +{shift_val}"
+            shift_color = "#C0392B"
+        elif shift_val < 0:
+            shift_label = f"偏鴿 {shift_val}"
+            shift_color = "#1a7a4a"
+        else:
+            shift_label = "中性 0"
+            shift_color = "#888"
+    except (ValueError, TypeError):
+        shift_label = str(shift)
+        shift_color = "#888"
+
+    fed_card = _kv_card("聯準會", {
+        "重要表態": fed.get("key_statements", ""),
+        "利率機率變化": fed.get("rate_probability", ""),
+        "下次 FOMC": fed.get("next_meeting", ""),
+        f'鷹鴿指標 <span style="color:{shift_color};font-weight:600;">{shift_label}</span>': "",
+    })
+
+    # Other central banks
+    other_cb = data.get("other_cb", [])
+    cb_rows = ""
+    for cb in other_cb:
+        cb_rows += f'''
+<div style="display:flex;gap:0;margin-bottom:10px;">
+  <div style="width:3px;background:#534AB7;border-radius:2px;flex-shrink:0;"></div>
+  <div style="padding:10px 14px;flex:1;">
+    <div style="font-size:15px;font-weight:600;color:#222;margin-bottom:4px;">{cb.get("bank","")}</div>
+    <div style="font-size:15px;color:#555;line-height:1.7;">{cb.get("action","")}</div>
+    <div style="font-size:14px;color:#888;margin-top:4px;">{cb.get("implication","")}</div>
+  </div>
+</div>'''
+    cb_section = ""
+    if cb_rows:
+        cb_section = f'<div style="margin:24px 0;">{_section_label("其他央行")}{cb_rows}</div>'
+
+    return (
+        fed_card + cb_section
+        + _text_block("利率市場定價", data.get("rate_market", ""))
+        + _info_card("NQ100 估值影響", data.get("nq_implication", ""), "#1B3A5C")
+        + _tag_list("下週央行事件", data.get("next_week_events", []), "#E1F5EE", "#0F6E56")
+        + _tag_list("風險警示", data.get("risk_flags", []), "#FCF0EC", "#993C1D")
+    )
+
+
+def _body_credit(data: dict) -> str:
+    sd = data.get("spread_data", {})
+    spread_card = _kv_card("利差數據", {
+        "HYG 週報酬": sd.get("hyg_weekly_return", ""),
+        "LQD 週報酬": sd.get("lqd_weekly_return", ""),
+        "HYG/LQD 比值變化": sd.get("hyg_lqd_ratio_change", ""),
+        "利差方向": sd.get("spread_direction", ""),
+    })
+    spread_interp = _info_card("利差解讀", sd.get("interpretation", ""), "#378ADD")
+
+    return (
+        spread_card + spread_interp
+        + _text_block("信貸條件", data.get("credit_conditions", ""))
+        + _text_block("壓力訊號", data.get("stress_signals", ""))
+        + _info_card("領先指標讀數", data.get("leading_indicator", ""), "#1B3A5C")
+        + _tag_list("風險警示", data.get("risk_flags", []), "#FCF0EC", "#993C1D")
+    )
+
+
+def _body_liquidity(data: dict) -> str:
+    nfci = data.get("nfci", {})
+    nfci_card = _kv_card("NFCI（國家金融條件指數）", {
+        "最新值": nfci.get("latest_value", ""),
+        "上週值": nfci.get("prev_week", ""),
+        "週變化": nfci.get("week_change", ""),
+        "4 週趨勢": nfci.get("4week_trend", ""),
+    })
+    nfci_interp = _info_card("NFCI 解讀", nfci.get("interpretation", ""), "#378ADD")
+    nfci_hist = _text_block("歷史定位", nfci.get("historical_context", ""))
+
+    fed_liq = data.get("fed_liquidity", {})
+    fed_card = _kv_card("Fed 流動性", {
+        "資產負債表": fed_liq.get("balance_sheet", ""),
+        "逆回購 (RRP)": fed_liq.get("rrp", ""),
+        "銀行準備金": fed_liq.get("reserves", ""),
+    })
+
+    return (
+        nfci_card + nfci_interp + nfci_hist + fed_card
+        + _text_block("綜合流動性訊號", data.get("liquidity_signal", ""))
+        + _info_card("NQ100 影響", data.get("nq_implication", ""), "#1B3A5C")
+        + _tag_list("風險警示", data.get("risk_flags", []), "#FCF0EC", "#993C1D")
+    )
+
+
+BODY_RENDERERS = {
+    "earnings": _body_earnings,
+    "options": _body_options,
+    "commodities": _body_commodities,
+    "central_bank": _body_central_bank,
+    "credit": _body_credit,
+    "liquidity": _body_liquidity,
 }
 
-THEME_ORDER = ["ai_industry", "semiconductor", "macro", "black_swan"]
 
-SENTIMENT_COLOR = {"pos": "#1a7a4a", "neg": "#C0392B", "neu": "#888780"}
-
+# ──── Index page components ────
 
 def _index_market_cell(item: dict) -> str:
     color = SENTIMENT_COLOR.get(item.get("dir", "neu"), "#888")
@@ -255,7 +536,6 @@ def _index_market_strip(market_data: dict) -> str:
     fg_item = {"label": "Fear&Greed", "val": fear_greed.get("val","—"),
                "chg": fear_greed.get("chg","—"), "dir": fear_greed.get("dir","neu")}
     row3 = [_g("us10y","美10Y"), _g("btc","BTC"), fg_item]
-    # pad row3 to 5 (but 3 is fine since it's the last row — let's just use 3)
 
     return f'''
 <div style="margin-bottom:24px;">
@@ -278,6 +558,16 @@ def _index_theme_card(theme_key: str, data: dict, today: str) -> str:
     risks = data.get("risk_flags", [])
     link = f"{today}-{theme_key}.html"
 
+    # For earnings theme with no earnings, show minimal card
+    if theme_key == "earnings" and not data.get("has_earnings", True):
+        return f'''
+<div style="background:#fff;border:1px solid #e8e8e8;border-radius:8px;
+            padding:20px 22px;margin-bottom:16px;opacity:0.7;">
+  <div style="font-size:18px;font-weight:600;color:#1B3A5C;margin-bottom:8px;">
+    {label}</div>
+  <div style="font-size:15px;color:#888;">本週無重要財報公布</div>
+</div>'''
+
     summary_html = ""
     if summary:
         summary_html = f'''<div style="background:#FEF3CD;border-radius:4px;padding:10px 14px;
@@ -288,6 +578,12 @@ def _index_theme_card(theme_key: str, data: dict, today: str) -> str:
     if signal:
         signal_html = f'''<div style="font-size:14px;color:#555;line-height:1.7;margin-bottom:12px;">
       {signal}</div>'''
+
+    # Some themes use next_week_events instead of next_week_catalysts
+    if not catalysts:
+        catalysts = data.get("next_week_events", [])
+    if not catalysts:
+        catalysts = data.get("next_week_earnings", [])
 
     catalyst_tags = "".join(
         f'<span style="display:inline-block;background:#E1F5EE;color:#0F6E56;'
@@ -321,7 +617,6 @@ def _index_theme_card(theme_key: str, data: dict, today: str) -> str:
 
 
 def _index_archive(weekly_dir: str, current_date: str) -> str:
-    """Build archive section listing past weekly reports."""
     import os
     entries: dict[str, list[tuple[str, str]]] = {}
     for fname in sorted(os.listdir(weekly_dir), reverse=True):
@@ -333,7 +628,6 @@ def _index_archive(weekly_dir: str, current_date: str) -> str:
             theme_key = parts[3]
             entries.setdefault(date_str, []).append((theme_key, fname))
 
-    # Remove current date from archive (it's shown as cards above)
     entries.pop(current_date, None)
 
     if not entries:
@@ -370,7 +664,6 @@ def build_weekly_index(
     end: str,
     weekly_dir: str,
 ) -> str:
-    """Build the weekly index.html with market data + theme cards."""
     cards = "".join(
         _index_theme_card(key, theme_data.get(key, {}), today)
         for key in THEME_ORDER
@@ -407,9 +700,14 @@ def build_weekly_index(
 </html>"""
 
 
+# ──── Main HTML builder ────
+
 def build_weekly_html(data: dict, theme_key: str) -> str:
     week_label, start, end = _get_week_range()
     theme_name = data.get("theme", theme_key)
+
+    renderer = BODY_RENDERERS.get(theme_key, _body_generic)
+    body = renderer(data)
 
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant">
@@ -427,13 +725,7 @@ body {{ font-family:Arial,sans-serif; max-width:780px; margin:0 auto;
 {_header(theme_name, theme_key, week_label, start, end)}
 {_week_summary(data.get("week_summary",""))}
 <div style="padding:0 4px;">
-{_signal_change(data.get("signal_change",""))}
-{_deep_analysis(data.get("deep_analysis",[]))}
-{_earnings_calls(data.get("earnings_calls",[]))}
-{_analyst_views(data.get("analyst_views",[]))}
-{_watchlist_impact(data.get("watchlist_impact",""))}
-{_tag_list("下週催化劑", data.get("next_week_catalysts",[]), "#E1F5EE", "#0F6E56")}
-{_tag_list("風險警示", data.get("risk_flags",[]), "#FCF0EC", "#993C1D")}
+{body}
 {_footer(start, end)}
 </div>
 </body>
