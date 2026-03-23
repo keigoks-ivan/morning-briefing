@@ -257,11 +257,12 @@ def process_news(raw_news: list[dict], market_data: dict | None = None) -> dict:
         lines.append(f"\n【CNN Fear & Greed Index】")
         lines.append(f"Score: {fg.get('val','—')}  Rating: {fg.get('chg','—')}")
         # Dynamic pool
-        lines.append(f"\n【動態備選池（從中選2–3個最相關的放入 market_data.dynamic）】")
+        lines.append(f"\n【動態備選池（從中選4個最重要的放入 market_data.dynamic）】")
         for item in market_data.get("dynamic_pool", []):
             lines.append(f"{item['label']}({item.get('key','')}): {item.get('val','—')} {item.get('chg','—')}")
-        lines.append("\n從 dynamic_pool 中選出今日最相關的 2–3 個動態格，")
-        lines.append("選擇標準：今日波動最大、或與當日重大新聞最相關、或能補充固定格沒有的市場視角。")
+        lines.append("\n從 dynamic_pool 中選出今日最重要的 4 個動態格，")
+        lines.append("選擇標準：今日漲跌幅絕對值最大、或與當日重大新聞最相關、或能補充固定格沒有的市場視角，")
+        lines.append("確保選出的標的不與固定12格重複。")
         lines.append("把選出的動態格放入 market_data.dynamic 陣列，每格包含 label/val/chg/dir。")
         market_context = "\n".join(lines)
 

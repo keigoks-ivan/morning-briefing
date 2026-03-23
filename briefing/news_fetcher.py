@@ -64,19 +64,43 @@ FIXED_TICKERS = [
 ]
 
 # 第三層：動態備選池
+# fmt: "pct" = 百分比漲跌, "bps" = 基點絕對變化
 DYNAMIC_POOL_TICKERS = [
-    ("us2y",    "^IRX",     "",  True,  "美2Y"),
-    ("jpyusd",  "JPY=X",    "¥", False, "JPY/USD"),
-    ("twdusd",  "TWD=X",    "",  False, "TWD/USD"),
-    ("myrusd",  "MYR=X",    "",  False, "MYR/USD"),
-    ("eth",     "ETH-USD",  "$", False, "ETH"),
-    ("hyg",     "HYG",      "$", False, "HYG"),
-    ("lqd",     "LQD",      "$", False, "LQD"),
-    ("nat_gas", "NG=F",     "$", False, "天然氣"),
-    ("hsi",     "^HSI",     "",  False, "恒生"),
-    ("nikkei",  "^N225",    "",  False, "日經"),
-    ("uso",     "USO",      "$", False, "USO"),
-    ("kbe",     "KBE",      "$", False, "KBE"),
+    # 利率/債券 (bps)
+    # key,        symbol,    prefix, invert, label,           fmt
+    ("us2y",      "^IRX",    "",  True,  "美2Y殖利率",      "bps"),
+    ("us30y",     "^TYX",    "",  True,  "美30Y殖利率",     "bps"),
+    # 10Y-2Y spread is computed separately
+    ("tlt",       "TLT",     "$", False, "TLT長債ETF",      "pct"),
+    ("hyg",       "HYG",     "$", False, "HYG高收益債",     "pct"),
+    ("lqd",       "LQD",     "$", False, "LQD投資級債",     "pct"),
+    # 外匯
+    ("jpyusd",    "JPY=X",   "¥", False, "JPY/USD",         "pct"),
+    ("twdusd",    "TWD=X",   "",  False, "TWD/USD",         "pct"),
+    ("myrusd",    "MYR=X",   "",  False, "MYR/USD",         "pct"),
+    ("cnyusd",    "CNY=X",   "",  False, "CNY/USD",         "pct"),
+    ("eurusd",    "EURUSD=X","",  False, "EUR/USD",         "pct"),
+    ("krwusd",    "KRW=X",   "",  False, "KRW/USD",         "pct"),
+    # 股市
+    ("nikkei",    "^N225",   "",  False, "日經225",          "pct"),
+    ("hsi",       "^HSI",    "",  False, "恒生",             "pct"),
+    ("kospi",     "^KS11",   "",  False, "KOSPI",            "pct"),
+    ("dax",       "^GDAXI",  "",  False, "DAX",              "pct"),
+    ("rut",       "^RUT",    "",  False, "羅素2000",         "pct"),
+    ("kbe",       "KBE",     "$", False, "銀行股ETF",       "pct"),
+    ("soxx",      "SOXX",    "$", False, "半導體ETF",       "pct"),
+    # 大宗商品
+    ("wti",       "CL=F",    "$", False, "WTI油",            "pct"),
+    ("nat_gas",   "NG=F",    "$", False, "天然氣",           "pct"),
+    ("palladium", "PA=F",    "$", False, "鈀金",             "pct"),
+    ("platinum",  "PL=F",    "$", False, "鉑金",             "pct"),
+    ("wheat",     "ZW=F",    "$", False, "小麥",             "pct"),
+    # 加密
+    ("eth",       "ETH-USD", "$", False, "ETH",              "pct"),
+    ("sol",       "SOL-USD", "$", False, "SOL",              "pct"),
+    # 波動率
+    ("vvix",      "^VVIX",   "",  True,  "VVIX",             "pct"),
+    ("skew",      "^SKEW",   "",  False, "SKEW指數",        "pct"),
 ]
 
 
@@ -103,10 +127,16 @@ def fetch_market_data() -> dict:
     try:
         import yfinance as yf
 
-        all_tickers = FIXED_TICKERS + DYNAMIC_POOL_TICKERS
-        symbols = [t[1] for t in all_tickers]
+        all_symbols = set()
+        for t in FIXED_TICKERS:
+            all_symbols.add(t[1])
+        for t in DYNAMIC_POOL_TICKERS:
+            all_symbols.add(t[1])
+        # Also need ^TNX and ^IRX for 10Y-2Y spread
+        all_symbols.update(["^TNX", "^IRX"])
+
         tickers = yf.download(
-            symbols, period="5d", interval="1d",
+            list(all_symbols), period="5d", interval="1d",
             progress=False, auto_adjust=True,
         )
 
@@ -114,9 +144,7 @@ def fetch_market_data() -> dict:
             try:
                 closes = tickers["Close"][symbol].dropna()
                 if len(closes) >= 2:
-                    today = float(closes.iloc[-1])
-                    prev  = float(closes.iloc[-2])
-                    return today, (today - prev) / prev * 100
+                    return float(closes.iloc[-1]), float(closes.iloc[-2])
                 elif len(closes) == 1:
                     return float(closes.iloc[-1]), None
             except Exception:
@@ -125,29 +153,80 @@ def fetch_market_data() -> dict:
 
         def fmt_val(v, prefix=""):
             return f"{prefix}{v:,.2f}" if v is not None else "—"
-        def fmt_chg(c):
-            if c is None: return "—"
-            return f"{'▲' if c > 0 else '▼'} {abs(c):.2f}%"
+
+        def fmt_chg_pct(today, prev):
+            if today is None or prev is None or prev == 0:
+                return "—", None
+            c = (today - prev) / prev * 100
+            return f"{'▲' if c > 0 else '▼'} {abs(c):.2f}%", c
+
+        def fmt_chg_bps(today, prev):
+            if today is None or prev is None:
+                return "—", None
+            diff = (today - prev) * 100  # yield points to bps
+            return f"{'▲' if diff > 0 else '▼'} {abs(diff):.0f}bps", diff
+
         def direction(c, invert=False):
-            if c is None: return "neu"
+            if c is None:
+                return "neu"
             return ("neg" if c > 0 else "pos") if invert else ("pos" if c > 0 else "neg")
 
-        def build_item(key, symbol, prefix, invert, label):
-            val, chg = get_close(symbol)
-            return {
+        # Build fixed items (all pct)
+        fixed = []
+        for key, symbol, prefix, invert, label in FIXED_TICKERS:
+            today_v, prev_v = get_close(symbol)
+            chg_str, chg_raw = fmt_chg_pct(today_v, prev_v)
+            fixed.append({
                 "label": label, "key": key,
-                "val": fmt_val(val, prefix),
-                "chg": fmt_chg(chg),
-                "dir": direction(chg, invert=invert),
-            }
+                "val": fmt_val(today_v, prefix),
+                "chg": chg_str,
+                "dir": direction(chg_raw, invert=invert),
+            })
 
-        fixed = [build_item(*t) for t in FIXED_TICKERS]
-        dynamic_pool = [build_item(*t) for t in DYNAMIC_POOL_TICKERS]
+        # Build dynamic pool items (pct or bps)
+        dynamic_pool = []
+        for key, symbol, prefix, invert, label, fmt in DYNAMIC_POOL_TICKERS:
+            today_v, prev_v = get_close(symbol)
+            if today_v is None:
+                continue  # skip failed tickers
+            if fmt == "bps":
+                chg_str, chg_raw = fmt_chg_bps(today_v, prev_v)
+            else:
+                chg_str, chg_raw = fmt_chg_pct(today_v, prev_v)
+            dynamic_pool.append({
+                "label": label, "key": key,
+                "val": fmt_val(today_v, prefix),
+                "chg": chg_str,
+                "dir": direction(chg_raw, invert=invert),
+                "_abs_chg": abs(chg_raw) if chg_raw is not None else 0,
+            })
+
+        # Add computed 10Y-2Y spread
+        tnx_today, tnx_prev = get_close("^TNX")
+        irx_today, irx_prev = get_close("^IRX")
+        if tnx_today is not None and irx_today is not None:
+            spread_today = tnx_today - irx_today
+            spread_prev = (tnx_prev - irx_prev) if (tnx_prev is not None and irx_prev is not None) else None
+            if spread_prev is not None:
+                diff_bps = (spread_today - spread_prev) * 100
+                chg_str = f"{'▲' if diff_bps > 0 else '▼'} {abs(diff_bps):.0f}bps"
+                d = "pos" if diff_bps > 0 else ("neg" if diff_bps < 0 else "neu")
+            else:
+                chg_str = "—"
+                d = "neu"
+                diff_bps = 0
+            dynamic_pool.append({
+                "label": "10Y-2Y利差", "key": "spread_10y2y",
+                "val": f"{spread_today:.2f}%",
+                "chg": chg_str, "dir": d,
+                "_abs_chg": abs(diff_bps) if diff_bps else 0,
+            })
+
         fear_greed = _fetch_fear_greed()
 
         print(f"  ✓ Market: NQ={fixed[0]['val']} SP={fixed[1]['val']} "
               f"VIX={fixed[3]['val']} BTC={fixed[11]['val']} "
-              f"F&G={fear_greed['val']}")
+              f"F&G={fear_greed['val']} pool={len(dynamic_pool)}")
 
         return {
             "fixed": fixed,
@@ -178,57 +257,121 @@ WEEKLY_MARKET_TICKERS = [
 
 
 def fetch_weekly_market_data() -> dict:
-    """Fetch weekly market data (first close vs last close over 5d)."""
+    """Fetch weekly market data with auto-selected dynamic pool top 2."""
     try:
         import yfinance as yf
 
-        symbols = [t[1] for t in WEEKLY_MARKET_TICKERS]
+        all_symbols = set()
+        for t in WEEKLY_MARKET_TICKERS:
+            all_symbols.add(t[1])
+        for t in DYNAMIC_POOL_TICKERS:
+            all_symbols.add(t[1])
+        all_symbols.update(["^TNX", "^IRX"])
+
         tickers = yf.download(
-            symbols, period="5d", interval="1d",
+            list(all_symbols), period="1wk", interval="1wk",
             progress=False, auto_adjust=True,
         )
 
-        def get_weekly_change(symbol):
+        def get_week_vals(symbol):
             try:
-                closes = tickers["Close"][symbol].dropna()
-                if len(closes) >= 2:
-                    last = float(closes.iloc[-1])
-                    first = float(closes.iloc[0])
-                    return last, (last - first) / first * 100
-                elif len(closes) == 1:
-                    return float(closes.iloc[-1]), None
+                o = tickers["Open"][symbol].dropna()
+                c = tickers["Close"][symbol].dropna()
+                if len(o) > 0 and len(c) > 0:
+                    return float(o.iloc[0]), float(c.iloc[-1])
             except Exception:
                 pass
             return None, None
 
         def fmt_val(v, prefix=""):
             return f"{prefix}{v:,.2f}" if v is not None else "—"
-        def fmt_chg(c):
-            if c is None: return "—"
-            return f"{'▲' if c > 0 else '▼'} {abs(c):.2f}%"
+
+        def fmt_chg_pct(first, last):
+            if first is None or last is None or first == 0:
+                return "—", None
+            c = (last - first) / first * 100
+            return f"{'▲' if c > 0 else '▼'} {abs(c):.2f}%", c
+
+        def fmt_chg_bps(first, last):
+            if first is None or last is None:
+                return "—", None
+            diff = (last - first) * 100
+            return f"{'▲' if diff > 0 else '▼'} {abs(diff):.0f}bps", diff
+
         def direction(c, invert=False):
-            if c is None: return "neu"
+            if c is None:
+                return "neu"
             return ("neg" if c > 0 else "pos") if invert else ("pos" if c > 0 else "neg")
 
+        # Fixed 12
+        fixed_keys = set()
         items = []
         for key, symbol, prefix, invert, label in WEEKLY_MARKET_TICKERS:
-            val, chg = get_weekly_change(symbol)
+            first, last = get_week_vals(symbol)
+            chg_str, chg_raw = fmt_chg_pct(first, last)
             items.append({
                 "label": label, "key": key,
-                "val": fmt_val(val, prefix),
-                "chg": fmt_chg(chg),
-                "dir": direction(chg, invert=invert),
+                "val": fmt_val(last, prefix),
+                "chg": chg_str,
+                "dir": direction(chg_raw, invert=invert),
             })
+            fixed_keys.add(key)
+
+        # Dynamic pool
+        pool = []
+        for key, symbol, prefix, invert, label, fmt in DYNAMIC_POOL_TICKERS:
+            if key in fixed_keys:
+                continue
+            first, last = get_week_vals(symbol)
+            if last is None:
+                continue
+            if fmt == "bps":
+                chg_str, chg_raw = fmt_chg_bps(first, last)
+            else:
+                chg_str, chg_raw = fmt_chg_pct(first, last)
+            pool.append({
+                "label": label, "key": key,
+                "val": fmt_val(last, prefix),
+                "chg": chg_str,
+                "dir": direction(chg_raw, invert=invert),
+                "_abs_chg": abs(chg_raw) if chg_raw is not None else 0,
+            })
+
+        # 10Y-2Y spread
+        tnx_first, tnx_last = get_week_vals("^TNX")
+        irx_first, irx_last = get_week_vals("^IRX")
+        if tnx_last is not None and irx_last is not None:
+            spread_last = tnx_last - irx_last
+            if tnx_first is not None and irx_first is not None:
+                spread_first = tnx_first - irx_first
+                diff_bps = (spread_last - spread_first) * 100
+                chg_str = f"{'▲' if diff_bps > 0 else '▼'} {abs(diff_bps):.0f}bps"
+                d = "pos" if diff_bps > 0 else ("neg" if diff_bps < 0 else "neu")
+            else:
+                chg_str, d, diff_bps = "—", "neu", 0
+            pool.append({
+                "label": "10Y-2Y利差", "key": "spread_10y2y",
+                "val": f"{spread_last:.2f}%", "chg": chg_str, "dir": d,
+                "_abs_chg": abs(diff_bps) if diff_bps else 0,
+            })
+
+        # Auto-select top 2 by abs change
+        pool.sort(key=lambda x: x.get("_abs_chg", 0), reverse=True)
+        top_dynamic = []
+        for p in pool[:2]:
+            item = {k: v for k, v in p.items() if k != "_abs_chg"}
+            top_dynamic.append(item)
 
         fear_greed = _fetch_fear_greed()
 
         print(f"  ✓ Weekly market: NQ={items[0]['val']} SP={items[1]['val']} "
-              f"BTC={items[11]['val']} F&G={fear_greed['val']}")
+              f"BTC={items[11]['val']} F&G={fear_greed['val']} "
+              f"top_dyn={[d['label'] for d in top_dynamic]}")
 
-        return {"items": items, "fear_greed": fear_greed}
+        return {"items": items, "fear_greed": fear_greed, "dynamic": top_dynamic}
     except Exception as e:
         print(f"  ✗ Weekly market data failed: {e}")
-        return {"items": [], "fear_greed": {"val": "—", "chg": "—", "dir": "neu"}}
+        return {"items": [], "fear_greed": {"val": "—", "chg": "—", "dir": "neu"}, "dynamic": []}
 
 
 def fetch_financial_news() -> list[dict]:

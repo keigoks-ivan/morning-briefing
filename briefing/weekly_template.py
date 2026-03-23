@@ -536,6 +536,9 @@ def _index_market_strip(market_data: dict) -> str:
     fg_item = {"label": "Fear&Greed", "val": fear_greed.get("val","—"),
                "chg": fear_greed.get("chg","—"), "dir": fear_greed.get("dir","neu")}
     row3 = [_g("us10y","美10Y"), _g("btc","BTC"), fg_item]
+    # Add auto-selected dynamic items from weekly pool
+    for d in market_data.get("dynamic", [])[:2]:
+        row3.append(d)
 
     return f'''
 <div style="margin-bottom:24px;">
