@@ -35,48 +35,64 @@ PERPLEXITY_QUERIES = [
 ]
 
 
-MARKET_TICKERS = [
-    # (key,          symbol,       prefix, invert, label)
-    # 股票指數
-    ("nq100",        "NQ=F",       "",  False, "NQ100"),
-    ("sp500",        "^GSPC",      "",  False, "S&P500"),
-    ("dow",          "YM=F",       "",  False, "道瓊"),
-    ("sox",          "^SOX",       "",  False, "費半"),
-    ("twii",         "^TWII",      "",  False, "台灣加權"),
-    ("nikkei",       "^N225",      "",  False, "日經225"),
-    ("hsi",          "^HSI",       "",  False, "恒生"),
-    ("kospi",        "^KS11",      "",  False, "KOSPI"),
-    ("dax",          "^GDAXI",     "",  False, "DAX"),
-    # 商品
-    ("brent",        "BZ=F",       "$", False, "Brent油"),
-    ("wti",          "CL=F",       "$", False, "WTI油"),
-    ("nat_gas",      "NG=F",       "$", False, "天然氣"),
-    ("gold",         "GC=F",       "$", False, "黃金"),
-    ("silver",       "SI=F",       "$", False, "白銀"),
-    ("copper",       "HG=F",       "$", False, "銅"),
-    # 債券/利率
-    ("us10y",        "^TNX",       "",  True,  "美10Y"),
-    ("us2y",         "^IRX",       "",  True,  "美2Y"),
-    # 外匯
-    ("dxy",          "DX-Y.NYB",   "",  False, "DXY"),
-    ("jpyusd",       "JPY=X",      "¥", False, "JPY/USD"),
-    ("twdusd",       "TWD=X",      "",  False, "TWD/USD"),
-    ("myrusd",       "MYR=X",      "",  False, "MYR/USD"),
-    ("cnyusd",       "CNY=X",      "",  False, "CNY/USD"),
-    ("eurusd",       "EURUSD=X",   "",  False, "EUR/USD"),
-    # 加密貨幣
-    ("btc",          "BTC-USD",    "$", False, "BTC"),
-    ("eth",          "ETH-USD",    "$", False, "ETH"),
-    # VIX（反向）
-    ("vix",          "^VIX",       "",  True,  "VIX"),
+# 第一層：固定12格
+FIXED_TICKERS = [
+    # (key,    symbol,      prefix, invert, label)
+    ("nq100",  "NQ=F",      "",  False, "NQ100"),
+    ("sp500",  "^GSPC",     "",  False, "S&P500"),
+    ("sox",    "^SOX",      "",  False, "費半"),
+    ("vix",    "^VIX",      "",  True,  "VIX"),
+    ("twii",   "^TWII",     "",  False, "台灣加權"),
+    ("brent",  "BZ=F",      "$", False, "Brent油"),
+    ("gold",   "GC=F",      "$", False, "黃金"),
+    ("silver", "SI=F",      "$", False, "白銀"),
+    ("copper", "HG=F",      "$", False, "銅"),
+    ("dxy",    "DX-Y.NYB",  "",  False, "DXY"),
+    ("us10y",  "^TNX",      "",  True,  "美10Y"),
+    ("btc",    "BTC-USD",   "$", False, "BTC"),
 ]
+
+# 第三層：動態備選池
+DYNAMIC_POOL_TICKERS = [
+    ("us2y",    "^IRX",     "",  True,  "美2Y"),
+    ("jpyusd",  "JPY=X",    "¥", False, "JPY/USD"),
+    ("twdusd",  "TWD=X",    "",  False, "TWD/USD"),
+    ("myrusd",  "MYR=X",    "",  False, "MYR/USD"),
+    ("eth",     "ETH-USD",  "$", False, "ETH"),
+    ("hyg",     "HYG",      "$", False, "HYG"),
+    ("lqd",     "LQD",      "$", False, "LQD"),
+    ("nat_gas", "NG=F",     "$", False, "天然氣"),
+    ("hsi",     "^HSI",     "",  False, "恒生"),
+    ("nikkei",  "^N225",    "",  False, "日經"),
+    ("uso",     "USO",      "$", False, "USO"),
+    ("kbe",     "KBE",      "$", False, "KBE"),
+]
+
+
+def _fetch_fear_greed() -> dict:
+    """Fetch CNN Fear & Greed Index."""
+    try:
+        resp = requests.get(
+            "https://production.dataviz.cnn.io/index/fearandgreed/graphdata",
+            timeout=10,
+        )
+        resp.raise_for_status()
+        fg = resp.json().get("fear_and_greed", {})
+        score = str(int(fg.get("score", 0)))
+        rating = fg.get("rating", "—")
+        print(f"  ✓ Fear & Greed: {score} ({rating})")
+        return {"val": score, "chg": rating, "dir": "neu"}
+    except Exception as e:
+        print(f"  ✗ Fear & Greed failed: {e}")
+        return {"val": "—", "chg": "—", "dir": "neu"}
 
 
 def fetch_market_data() -> dict:
     try:
         import yfinance as yf
 
-        symbols = [t[1] for t in MARKET_TICKERS]
+        all_tickers = FIXED_TICKERS + DYNAMIC_POOL_TICKERS
+        symbols = [t[1] for t in all_tickers]
         tickers = yf.download(
             symbols, period="5d", interval="1d",
             progress=False, auto_adjust=True,
@@ -104,21 +120,28 @@ def fetch_market_data() -> dict:
             if c is None: return "neu"
             return ("neg" if c > 0 else "pos") if invert else ("pos" if c > 0 else "neg")
 
-        market = {}
-        for key, symbol, prefix, invert, label in MARKET_TICKERS:
+        def build_item(key, symbol, prefix, invert, label):
             val, chg = get_close(symbol)
-            market[key] = {
+            return {
+                "label": label, "key": key,
                 "val": fmt_val(val, prefix),
                 "chg": fmt_chg(chg),
                 "dir": direction(chg, invert=invert),
             }
 
-        market["fed_rate"] = {"val": "3.5–3.75%", "chg": "維持不變", "dir": "neu"}
+        fixed = [build_item(*t) for t in FIXED_TICKERS]
+        dynamic_pool = [build_item(*t) for t in DYNAMIC_POOL_TICKERS]
+        fear_greed = _fetch_fear_greed()
 
-        print(f"  ✓ Market: NQ={market['nq100']['val']} SP={market['sp500']['val']} "
-              f"Brent={market['brent']['val']} VIX={market['vix']['val']} "
-              f"BTC={market['btc']['val']} Gold={market['gold']['val']}")
-        return market
+        print(f"  ✓ Market: NQ={fixed[0]['val']} SP={fixed[1]['val']} "
+              f"VIX={fixed[3]['val']} BTC={fixed[11]['val']} "
+              f"F&G={fear_greed['val']}")
+
+        return {
+            "fixed": fixed,
+            "fear_greed": fear_greed,
+            "dynamic_pool": dynamic_pool,
+        }
     except Exception as e:
         print(f"  ✗ Market data failed: {e}")
         return {}

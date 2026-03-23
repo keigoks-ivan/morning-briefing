@@ -140,57 +140,63 @@ def _alert(text: str) -> str:
 </div>'''
 
 
-def _market_cell(market_data: dict, key: str, label: str) -> str:
-    d = market_data.get(key, {"val": "—", "chg": "—", "dir": "neu"})
-    color = SENTIMENT_COLOR.get(d.get("dir", "neu"), "#888")
+def _market_cell_from_item(item: dict) -> str:
+    color = SENTIMENT_COLOR.get(item.get("dir", "neu"), "#888")
+    label = item.get("label", "—")
     return f'''<td style="background:#fff;padding:10px 12px;border-right:1px solid #e8e8e8;
-                border-bottom:1px solid #e8e8e8;vertical-align:top;">
+                border-bottom:1px solid #e8e8e8;vertical-align:top;width:20%;">
   <div style="font-size:11px;letter-spacing:0.8px;text-transform:uppercase;
               color:#888;margin-bottom:4px;">{label}</div>
-  <div style="font-size:17px;font-weight:500;color:#222;margin-bottom:2px;">{d.get("val","—")}</div>
-  <div style="font-size:13px;color:{color};">{d.get("chg","—")}</div>
+  <div style="font-size:17px;font-weight:500;color:#222;margin-bottom:2px;">{item.get("val","—")}</div>
+  <div style="font-size:13px;color:{color};">{item.get("chg","—")}</div>
 </td>'''
 
 
-def _market_row(market_data: dict, items: list[tuple[str,str]]) -> str:
-    cells = "".join(_market_cell(market_data, k, l) for k, l in items)
-    return f"<tr>{cells}</tr>"
+def _market_table(items: list[dict]) -> str:
+    cells = "".join(_market_cell_from_item(it) for it in items)
+    return f'''<table width="100%" cellpadding="0" cellspacing="0"
+         style="border:1px solid #e8e8e8;border-radius:6px;overflow:hidden;border-collapse:collapse;">
+    <tr>{cells}</tr>
+  </table>'''
 
 
 def _market_strip(market_data: dict) -> str:
-    rows = ""
-    # 主要指數
-    rows += _market_row(market_data, [
-        ("nq100","NQ100"), ("sp500","S&P 500"), ("dow","道瓊"),
-        ("sox","費半"), ("vix","VIX"),
-    ])
-    # 亞歐指數
-    rows += _market_row(market_data, [
-        ("twii","台灣加權"), ("nikkei","日經225"), ("hsi","恒生"),
-        ("kospi","KOSPI"), ("dax","DAX"),
-    ])
-    # 商品
-    rows += _market_row(market_data, [
-        ("brent","BRENT油"), ("wti","WTI油"), ("gold","黃金"),
-        ("silver","白銀"), ("copper","銅"),
-    ])
-    # 債券 + 外匯
-    rows += _market_row(market_data, [
-        ("us10y","美10Y"), ("us2y","美2Y"), ("dxy","DXY"),
-        ("eurusd","EUR/USD"), ("fed_rate","FED RATE"),
-    ])
-    # 亞洲外匯 + 加密
-    rows += _market_row(market_data, [
-        ("jpyusd","JPY/USD"), ("twdusd","TWD/USD"), ("myrusd","MYR/USD"),
-        ("cnyusd","CNY/USD"), ("btc","BTC"),
-    ])
+    fixed = market_data.get("fixed", [])
+    fear_greed = market_data.get("fear_greed", {"val": "—", "chg": "—", "dir": "neu"})
+    dynamic = market_data.get("dynamic", [])
+
+    # Build lookup by key for fixed items
+    fixed_by_key = {it.get("key", ""): it for it in fixed}
+    def _get(key, fallback_label="—"):
+        return fixed_by_key.get(key, {"label": fallback_label, "val": "—", "chg": "—", "dir": "neu"})
+
+    # Row 1: NQ100, S&P 500, 費半, VIX, 台灣加權
+    row1 = [_get("nq100", "NQ100"), _get("sp500", "S&P500"), _get("sox", "費半"),
+            _get("vix", "VIX"), _get("twii", "台灣加權")]
+
+    # Row 2: Brent油, 黃金, 白銀, 銅, DXY
+    row2 = [_get("brent", "Brent油"), _get("gold", "黃金"), _get("silver", "白銀"),
+            _get("copper", "銅"), _get("dxy", "DXY")]
+
+    # Row 3: 美10Y, BTC, CNN Fear&Greed + dynamic (2-3)
+    fg_item = {"label": "Fear&Greed", "val": fear_greed.get("val", "—"),
+               "chg": fear_greed.get("chg", "—"), "dir": fear_greed.get("dir", "neu")}
+    row3_base = [_get("us10y", "美10Y"), _get("btc", "BTC"), fg_item]
+    # Add dynamic picks (up to 2 to fill 5 cells)
+    for d in dynamic[:2]:
+        row3_base.append(d)
+    # Pad to 5 if needed
+    while len(row3_base) < 5:
+        row3_base.append({"label": "—", "val": "—", "chg": "—", "dir": "neu"})
+
     return f'''
 <div class="section">
   <div class="section-label">市場即時數據</div>
-  <table width="100%" cellpadding="0" cellspacing="0"
-         style="border:1px solid #e8e8e8;border-radius:6px;overflow:hidden;border-collapse:collapse;">
-    {rows}
-  </table>
+  {_market_table(row1)}
+  <div style="height:8px;"></div>
+  {_market_table(row2)}
+  <div style="height:8px;"></div>
+  {_market_table(row3_base)}
 </div>'''
 
 

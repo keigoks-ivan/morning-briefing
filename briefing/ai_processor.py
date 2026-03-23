@@ -22,14 +22,18 @@ SYSTEM_PROMPT = """
 你是一位服務專業系統性投資者的財經分析師。
 用戶採用 NQ100 Pure MA 趨勢跟隨系統，關注 AI 基礎設施、半導體、台灣/日本/韓國/中國/歐洲/馬來西亞/新加坡市場。
 
-規則：
+去重規則（最高優先級）：
+1. tech_trends 區塊優先權最高，出現在 tech_trends 的公司、事件、新聞，不得再出現在 top_stories、macro、ai_industry、regional_tech、fintech_crypto、geopolitical、startup_news 任何一個區塊
+2. 其餘所有區塊之間也不得重複，同一事件只放在最相關的一個區塊
+3. 執行順序：先填 tech_trends → 再填其他區塊，填其他區塊時主動排除已在 tech_trends 出現的內容
+
+其他規則：
 - 只回傳 JSON，不要任何前置說明、後記或 markdown code block
 - 所有文字使用繁體中文，數字/公司名/技術術語保留英文
 - 排除所有 ESG、永續發展、綠能相關內容
 - 新聞按日期排序，最新的排最前面
 - 來源必須標注原始媒體名稱和日期
 - 新聞來源限制在過去24小時內
-- 各區塊之間不可出現重複的新聞事件。同一個事件只能出現在最相關的一個區塊，其他區塊不得重複提及。硬核科技趨勢（tech_trends）的內容不受此限制。
 """
 
 USER_PROMPT_TEMPLATE = """
@@ -47,11 +51,9 @@ USER_PROMPT_TEMPLATE = """
   "alert": "最高警示事件，一句話，如無重大事件則輸出空字串",
 
   "market_data": {{
-    "nq100":    {{"val": "數值", "chg": "漲跌", "dir": "pos|neg|neu"}},
-    "sp500":    {{"val": "數值", "chg": "漲跌", "dir": "pos|neg|neu"}},
-    "brent":    {{"val": "價格", "chg": "漲跌", "dir": "pos|neg|neu"}},
-    "vix":      {{"val": "數值", "chg": "漲跌", "dir": "pos|neg|neu"}},
-    "fed_rate": {{"val": "利率", "chg": "維持/升/降", "dir": "neu"}}
+    "dynamic": [
+      {{"label": "動態格標籤", "val": "數值", "chg": "漲跌", "dir": "pos|neg|neu"}}
+    ]
   }},
 
   "top_stories": [
@@ -232,26 +234,23 @@ def process_news(raw_news: list[dict], market_data: dict | None = None) -> dict:
 
     market_context = ""
     if market_data:
-        md = market_data
-        def _mc(label, key):
-            d = md.get(key, {})
-            return f"{label}: {d.get('val','—')} {d.get('chg','—')}"
-        market_context = "\n".join([
-            _mc("NQ100", "nq100"), _mc("S&P 500", "sp500"),
-            _mc("道瓊", "dow"), _mc("費半", "sox"),
-            _mc("台灣加權", "twii"), _mc("日經225", "nikkei"),
-            _mc("恒生", "hsi"), _mc("KOSPI", "kospi"), _mc("DAX", "dax"),
-            _mc("Brent", "brent"), _mc("WTI", "wti"),
-            _mc("天然氣", "nat_gas"), _mc("黃金", "gold"),
-            _mc("白銀", "silver"), _mc("銅", "copper"),
-            _mc("美10Y殖利率", "us10y"), _mc("美2Y殖利率", "us2y"),
-            _mc("DXY", "dxy"), _mc("JPY/USD", "jpyusd"),
-            _mc("TWD/USD", "twdusd"), _mc("MYR/USD", "myrusd"),
-            _mc("CNY/USD", "cnyusd"), _mc("EUR/USD", "eurusd"),
-            _mc("BTC", "btc"), _mc("ETH", "eth"),
-            _mc("VIX", "vix"),
-            f"Fed Rate: {md.get('fed_rate',{}).get('val','—')}",
-        ])
+        lines = []
+        # Fixed 12
+        lines.append("【固定行情（12格）】")
+        for item in market_data.get("fixed", []):
+            lines.append(f"{item['label']}: {item.get('val','—')} {item.get('chg','—')}")
+        # Fear & Greed
+        fg = market_data.get("fear_greed", {})
+        lines.append(f"\n【CNN Fear & Greed Index】")
+        lines.append(f"Score: {fg.get('val','—')}  Rating: {fg.get('chg','—')}")
+        # Dynamic pool
+        lines.append(f"\n【動態備選池（從中選2–3個最相關的放入 market_data.dynamic）】")
+        for item in market_data.get("dynamic_pool", []):
+            lines.append(f"{item['label']}({item.get('key','')}): {item.get('val','—')} {item.get('chg','—')}")
+        lines.append("\n從 dynamic_pool 中選出今日最相關的 2–3 個動態格，")
+        lines.append("選擇標準：今日波動最大、或與當日重大新聞最相關、或能補充固定格沒有的市場視角。")
+        lines.append("把選出的動態格放入 market_data.dynamic 陣列，每格包含 label/val/chg/dir。")
+        market_context = "\n".join(lines)
 
     user_prompt = USER_PROMPT_TEMPLATE.format(
         market_context=market_context,
@@ -289,7 +288,10 @@ def process_news(raw_news: list[dict], market_data: dict | None = None) -> dict:
         raise
 
     if market_data:
+        # Preserve Claude's dynamic picks, merge with fetched data
+        claude_dynamic = data.get("market_data", {}).get("dynamic", [])
         data["market_data"] = market_data
+        data["market_data"]["dynamic"] = claude_dynamic
 
     _validate(data)
 
@@ -337,15 +339,10 @@ def _validate(data: dict) -> None:
         trend["sub_items"] = trend["sub_items"][:3]
 
     md = data.get("market_data", {})
-    for key in [
-        "nq100", "sp500", "dow", "sox", "twii", "nikkei", "hsi", "kospi", "dax",
-        "brent", "wti", "nat_gas", "gold", "silver", "copper",
-        "us10y", "us2y",
-        "dxy", "jpyusd", "twdusd", "myrusd", "cnyusd", "eurusd",
-        "btc", "eth",
-        "vix", "fed_rate",
-    ]:
-        md.setdefault(key, {"val": "—", "chg": "—", "dir": "neu"})
+    md.setdefault("fixed", [])
+    md.setdefault("fear_greed", {"val": "—", "chg": "—", "dir": "neu"})
+    md.setdefault("dynamic_pool", [])
+    md.setdefault("dynamic", [])
 
     rt = data.get("regional_tech", {})
     for region in ["taiwan", "japan", "us", "malaysia", "korea", "china", "europe"]:
