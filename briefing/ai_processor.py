@@ -24,12 +24,13 @@ SYSTEM_PROMPT = """
 
 新聞來源品質規則（最高優先級）：
 1. 只使用以下白名單來源的新聞和數據：
-   一線財經媒體：Bloomberg、Reuters、Financial Times、WSJ、CNBC、Barron's
-   科技媒體：TechCrunch、The Information、Wired、Ars Technica、MIT Technology Review
-   半導體專業：Digitimes、SemiAnalysis、EE Times、Nikkei Asia、AnandTech
+   一線財經媒體：Bloomberg、Reuters、Financial Times、WSJ、CNBC、Barron's、The Economist、Axios、Politico
+   科技/AI 媒體：TechCrunch、The Information、Wired、Ars Technica、MIT Technology Review、Import AI、Stratechery、AI Snake Oil
+   半導體專業：DIGITIMES、SemiAnalysis、Semiconductor Engineering、EE Times、Nikkei Asia、AnandTech、ASML 官方、TSMC 官方、Intel 官方投資人日簡報
    亞洲財經：Nikkei Asia、South China Morning Post、Taiwan News
-   官方來源：Fed、ECB、BOJ、TSMC、Nvidia 等公司官方聲明、SEC 文件
-   研究機構：Gartner、IDC、McKinsey（公開報告）、Goldman Sachs Research
+   地緣/智庫：Foreign Affairs、Belfer Center、RAND Corporation、Brookings Institution
+   官方來源：Fed、ECB、BOJ、BIS（國際清算銀行）、IMF World Economic Outlook、TSMC、Nvidia 等公司官方聲明、SEC 文件、FRED Blog
+   研究機構：Gartner、IDC、McKinsey（公開報告）、Goldman Sachs Global Investment Research、JP Morgan Asset Management、Piper Sandler、Bernstein Research、BIS Quarterly Review
 2. 來自不知名網站、個人部落格、PR Newswire 新聞稿（非重要公告）的內容一律排除
 3. 每條新聞的 source 欄位必須填入白名單內的媒體名稱，如果來源不明或不在白名單內，該條新聞不得使用
 4. 數字和數據必須有明確的白名單來源支撐，不能使用來源不明的數字
