@@ -738,8 +738,8 @@ def build_html(data: dict) -> str:
 {_world_news(data.get("world_news", []))}
 {_us_market_recap(data.get("us_market_recap", {}))}
 {_news_section("總經動態", data.get("macro",[]))}
-{_news_section("AI 産業動態", data.get("ai_industry",[]), {"macro":"background:#EBF2FA;color:#185FA5;","tech":"background:#EAF3DE;color:#3B6D11;"})}
 {_geopolitical_section(data.get("geopolitical",[]))}
+{_news_section("AI 産業動態", data.get("ai_industry",[]), {"macro":"background:#EBF2FA;color:#185FA5;","tech":"background:#EAF3DE;color:#3B6D11;"})}
 {_regional_tech_section(data.get("regional_tech", {}))}
 {_fintech_crypto_section(data.get("fintech_crypto",[]))}
 {_status_grid(data.get("system_status", {}))}
