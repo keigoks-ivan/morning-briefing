@@ -577,6 +577,34 @@ def _fun_fact(fact: dict) -> str:
 </div>'''
 
 
+def _world_news(items: list) -> str:
+    if not items:
+        return ""
+    rows = ""
+    for s in items[:3]:
+        importance = s.get("importance", "medium")
+        badge = _importance_badge(importance)
+        region = s.get("region", "")
+        tag = s.get("tag", "")
+        source_html = _source_line(s.get("source", ""), s.get("source_date", ""))
+        rows += f'''
+<div style="padding:11px 0;border-bottom:0.5px solid #f0f0f0;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px;">
+    <div style="font-size:16px;font-weight:500;color:#222;flex:1;line-height:1.5;">{s.get("headline","")}{badge}</div>
+    <div style="display:flex;gap:4px;flex-shrink:0;">
+      <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:3px;white-space:nowrap;background:#1B3A5C;color:#fff;">{region}</span>
+      <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:3px;white-space:nowrap;background:#e8e8e8;color:#555;">{tag}</span>
+    </div>
+  </div>
+  <div style="font-size:15px;color:#555;line-height:1.65;">{s.get("body","")}</div>
+  {source_html}
+</div>'''
+    return f'''
+<div class="section">
+  <div class="section-label">國際新聞</div>{rows}
+</div>'''
+
+
 SESSION_STYLE = {
     "pre-market":  "background:#e8e8e8;color:#555;",
     "market":      "background:#EBF2FA;color:#185FA5;",
@@ -707,6 +735,7 @@ def build_html(data: dict) -> str:
 {_alert(data.get("alert",""))}
 {_market_strip(data.get("market_data", {}))}
 {_news_section("核心要聞", data.get("top_stories",[]))}
+{_world_news(data.get("world_news", []))}
 {_us_market_recap(data.get("us_market_recap", {}))}
 {_news_section("總經動態", data.get("macro",[]))}
 {_news_section("AI 産業動態", data.get("ai_industry",[]), {"macro":"background:#EBF2FA;color:#185FA5;","tech":"background:#EAF3DE;color:#3B6D11;"})}

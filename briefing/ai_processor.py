@@ -40,11 +40,21 @@ SYSTEM_PROMPT = """
 2. 其餘所有區塊之間也不得重複，同一事件只放在最相關的一個區塊
 3. 執行順序：先填 tech_trends → 再填其他區塊，填其他區塊時主動排除已在 tech_trends 出現的內容
 
+新聞內容規則：
+- top_stories、macro、ai_industry、regional_tech、fintech_crypto、geopolitical、startup_news、world_news 所有新聞類區塊只輸出事件性新聞（公司動態、政策、併購、產品發布、人事異動等）
+- 嚴禁在新聞類區塊出現以下內容：股價漲跌、指數點位、交易量、市值變化、技術分析、行情走勢
+- 行情數字只出現在 market_data 區塊，新聞類區塊的內容不得重複行情數字
+- 如果一條新聞的主要內容是行情走勢（如：「NQ100今日下跌2%」），該條新聞不得列入新聞類區塊
+
+新聞時效與排序規則：
+- 所有新聞類區塊只使用過去24小時內的新聞，超過24小時的一律不得使用
+- 每個區塊內的新聞同時按重要程度和時效排序：importance=high 且最新的排最前面，importance=high 但較早的排其次，importance=medium 且最新的排再其次
+- 如果一條新聞的 source_date 無法確認在過去24小時內，不得列入任何新聞類區塊
+
 其他規則：
 - 只回傳 JSON，不要任何前置說明、後記或 markdown code block
 - 所有文字使用繁體中文，數字/公司名/技術術語保留英文
 - 排除所有 ESG、永續發展、綠能相關內容
-- 新聞按日期排序，最新的排最前面
 - 來源必須標注原始媒體名稱和日期
 - 新聞來源限制在過去24小時內
 """
@@ -160,6 +170,18 @@ USER_PROMPT_TEMPLATE = """
     }}
   ],
 
+  "world_news": [
+    {{
+      "headline": "標題（30字以內）",
+      "body": "2–3句，著重事件本身和區域影響，不含行情數字",
+      "region": "地區（如：中東、歐洲、東南亞、拉美、非洲、北美、東北亞）",
+      "tag": "分類標籤（如：外交、衝突、選舉、氣候、人道）",
+      "source": "來源媒體",
+      "source_date": "日期 YYYY-MM-DD",
+      "importance": "high|medium"
+    }}
+  ],
+
   "system_status": {{
     "fixed": [
       {{"name": "NQ100 趨勢", "val": "狀態", "sub": "說明", "sentiment": "pos|neg|neu"}},
@@ -266,9 +288,10 @@ USER_PROMPT_TEMPLATE = """
 12. today_events 只輸出未來24小時內即將發生的真實行程，按時間由早到晚排序，不要列已經發生的事件，不要編造
 13. us_market_recap 涵蓋台灣時間昨日 16:00 至今日 06:00 之間（即美股完整交易日：盤前、盤中、盤後）發生的重要財報和法說會事件。earnings 輸出這段時間內發布財報的重要公司結果。other_events 輸出這段時間內的重要法說會、Investor Day、產品發布、重大聲明。所有條目按時間由早到晚排序（盤前→盤中→盤後），session 欄位標注對應時段。如無重要事件 has_events 輸出 false，earnings 和 other_events 輸出空陣列。
 14. smart_money 只輸出今日被可信來源報導的真實異常機構成交或選擇權活動，最多輸出 3 條最重要的，沒有可信來源支撐的不要輸出，has_signals=false 時 signals 輸出空陣列
-15. 所有新聞排除 ESG 相關內容
-16. source_date 格式統一為 YYYY-MM-DD
-17. implied_trends 引用的數字必須來自搜尋結果，不能推測
+15. world_news 固定輸出 3 條，著重國際情勢和區域發展，全球範圍皆可，優先選過去24小時內最重要且與金融市場或地緣政治有潛在關聯的事件，importance=high 的優先排前，同級別按 source_date 最新優先，嚴禁與 top_stories、geopolitical、macro 等其他區塊的新聞重複
+16. 所有新聞排除 ESG 相關內容
+17. source_date 格式統一為 YYYY-MM-DD
+18. implied_trends 引用的數字必須來自搜尋結果，不能推測
 """
 
 
@@ -384,6 +407,8 @@ def _validate(data: dict) -> None:
     data.setdefault("regional_tech", {"taiwan": [], "japan": [], "us": [], "malaysia": [], "korea": [], "china": [], "europe": []})
     data.setdefault("fintech_crypto", [])
     data.setdefault("geopolitical", [])
+    data.setdefault("world_news", [])
+    data["world_news"] = data["world_news"][:3]
     data.setdefault("tech_trends", [])
     data.setdefault("startup_news", [])
     data.setdefault("earnings_preview", [])

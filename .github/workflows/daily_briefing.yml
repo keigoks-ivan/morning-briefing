@@ -3,7 +3,7 @@ name: Daily Financial Briefing
 on:
   schedule:
     # 每日 UTC 22:00 = 台灣時間 06:00
-    - cron: "0 22 * * *"
+    - cron: "55 21 * * *"
   # 允許手動觸發（測試用）
   workflow_dispatch:
 

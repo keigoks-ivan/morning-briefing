@@ -49,6 +49,8 @@ PERPLEXITY_QUERIES = [
     "Significant stock moves reactions to earnings news yesterday US pre-market market hours after-hours Sources: Bloomberg Reuters CNBC",
     # 機構異動
     "Unusual options activity large block trades institutional buying selling smart money today Sources: Bloomberg CNBC Unusual Whales Barchart ETF flows QQQ SPY SOXX",
+    # 國際新聞
+    "Major international news today geopolitical developments regional conflicts diplomacy global affairs past 24 hours only most important first Sources: Bloomberg Reuters Financial Times BBC AP",
 ]
 
 
@@ -482,10 +484,12 @@ def fetch_financial_news() -> list[dict]:
                         "role": "system",
                         "content": (
                             f"Today is {today} Taiwan time (UTC+8). "
-                            "Only report news from the past 24 hours. "
+                            "Only report news from the past 24 hours. No exceptions. "
+                            "Sort results by BOTH recency AND importance: breaking news and high-impact events first, "
+                            "then other recent news. If no news from past 24 hours is available, say so explicitly. "
+                            "Never include news older than 24 hours even if no recent news is available. "
                             "Always include specific numbers, dates, and source names. "
-                            "Never include ESG, sustainability, or green energy related news. "
-                            "If no news from past 24 hours is available, say so explicitly."
+                            "Never include ESG, sustainability, or green energy related news."
                         ),
                     },
                     {"role": "user", "content": query},
