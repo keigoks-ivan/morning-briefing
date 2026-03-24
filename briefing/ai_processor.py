@@ -297,10 +297,10 @@ USER_PROMPT_TEMPLATE = """
 7. system_status.dynamic 固定輸出 3 個，從以下選：{dynamic_options}
 8. tech_trends 輸出 5–6 條，sub_items 固定 3 個
 9. startup_news 輸出 4–5 條
-10. earnings_preview 只輸出今日（美股當日）即將發布的財報，不要輸出已經發布的財報，不要輸出非今日的財報，yfinance 確認的優先列出且 yfinance_confirmed=true，Perplexity 搜尋到的作為補充且 yfinance_confirmed=false，如今日無重要財報則輸出空陣列
+10. earnings_preview 只輸出今日（美股當日）即將發布但尚未公布數字的財報，不要輸出已經發布的財報，不要輸出非今日的財報，yfinance 確認的優先列出且 yfinance_confirmed=true，Perplexity 搜尋到的作為補充且 yfinance_confirmed=false，如今日無重要財報則輸出空陣列。earnings_preview 和 us_market_recap 嚴格互斥：earnings_preview 是今日即將發布但尚未公布數字的財報，us_market_recap 是已經公布數字的昨日財報結果，同一家公司不得同時出現在兩個區塊。
 11. implied_trends 固定 4 條，跨多條新聞的綜合訊號
 12. today_events 只輸出未來24小時內即將發生的真實行程，按時間由早到晚排序，不要列已經發生的事件，不要編造
-13. us_market_recap 涵蓋台灣時間昨日 16:00 至今日 06:00 之間（即美股完整交易日：盤前、盤中、盤後）發生的重要財報和法說會事件。earnings 輸出這段時間內發布財報的重要公司結果。other_events 輸出這段時間內的重要法說會、Investor Day、產品發布、重大聲明。所有條目按時間由早到晚排序（盤前→盤中→盤後），session 欄位標注對應時段。如無重要事件 has_events 輸出 false，earnings 和 other_events 輸出空陣列。
+13. us_market_recap 嚴格規則：只輸出已經發生且已公布結果的財報和事件，時間範圍為台灣時間昨日 16:00 至今日 05:55 之間實際發生的事件。盤前（pre-market）財報只在財報數字已公布後才列入，不得列入「預計今日發布」的財報。如果財報只是「預計今日發布」但尚未公布數字，不得列入 us_market_recap，應列入 earnings_preview。has_events=false 優先於輸出不確定的事件。所有條目按時間由早到晚排序（盤前→盤中→盤後），session 欄位標注對應時段。
 14. smart_money 只輸出今日被可信來源報導的真實異常機構成交或選擇權活動，最多輸出 3 條最重要的，沒有可信來源支撐的不要輸出，has_signals=false 時 signals 輸出空陣列
 15. world_news 固定輸出 3 條，著重國際情勢和區域發展，全球範圍皆可，優先選過去24小時內最重要且與金融市場或地緣政治有潛在關聯的事件，importance=high 的優先排前，同級別按 source_date 最新優先，嚴禁與 top_stories、geopolitical、macro 等其他區塊的新聞重複
 16. 所有新聞排除 ESG 相關內容
