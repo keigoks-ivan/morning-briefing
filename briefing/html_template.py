@@ -736,7 +736,6 @@ def build_html(data: dict) -> str:
 {_market_strip(data.get("market_data", {}))}
 {_news_section("核心要聞", data.get("top_stories",[]))}
 {_world_news(data.get("world_news", []))}
-{_us_market_recap(data.get("us_market_recap", {}))}
 {_news_section("總經動態", data.get("macro",[]))}
 {_geopolitical_section(data.get("geopolitical",[]))}
 {_news_section("AI 産業動態", data.get("ai_industry",[]), {"macro":"background:#EBF2FA;color:#185FA5;","tech":"background:#EAF3DE;color:#3B6D11;"})}
@@ -749,6 +748,7 @@ def build_html(data: dict) -> str:
 {_earnings_preview(data.get("earnings_preview",[]))}
 {_implied_trends(data.get("implied_trends",[]))}
 {_fun_fact(data.get("fun_fact", {}))}
+{_us_market_recap(data.get("us_market_recap", {}))}
 {_today_events(data.get("today_events",[]))}
 {_footer()}
 </body>
