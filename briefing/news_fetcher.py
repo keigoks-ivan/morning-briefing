@@ -6,8 +6,10 @@ news_fetcher.py
 """
 
 import os
+import time
 import requests
-from datetime import datetime
+import feedparser
+from datetime import datetime, timedelta
 import pytz
 
 
@@ -465,6 +467,50 @@ def fetch_today_earnings() -> list[dict]:
 
     print(f"  ✓ Today earnings: {len(results)} companies from watchlist "
           f"({', '.join(r['ticker'] for r in results[:5])}{'...' if len(results) > 5 else ''})")
+    return results
+
+
+def fetch_moneydj_news() -> list[dict]:
+    """
+    抓取 MoneyDJ 即時財經新聞 RSS。
+    只取過去24小時內的新聞。
+    """
+    RSS_URLS = [
+        "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB010000",  # 國際財經
+        "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB020000",  # 台股新聞
+        "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB060000",  # 科技產業
+    ]
+
+    tz = pytz.timezone("Asia/Taipei")
+    cutoff = datetime.now(tz) - timedelta(hours=24)
+    results = []
+
+    for url in RSS_URLS:
+        try:
+            feed = feedparser.parse(url)
+            for entry in feed.entries[:10]:
+                # 解析發布時間
+                published = None
+                if hasattr(entry, "published_parsed") and entry.published_parsed:
+                    published = datetime.fromtimestamp(
+                        time.mktime(entry.published_parsed), tz=pytz.utc
+                    ).astimezone(tz)
+
+                # 只取24小時內
+                if published and published < cutoff:
+                    continue
+
+                results.append({
+                    "title": entry.get("title", ""),
+                    "summary": entry.get("summary", "")[:300],
+                    "link": entry.get("link", ""),
+                    "source": "MoneyDJ",
+                    "published": published.strftime("%Y-%m-%d %H:%M") if published else "",
+                })
+        except Exception as e:
+            print(f"  ✗ MoneyDJ RSS {url}: {e}")
+
+    print(f"  ✓ MoneyDJ: {len(results)} 條新聞（過去24小時）")
     return results
 
 

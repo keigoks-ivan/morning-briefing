@@ -46,6 +46,7 @@ SYSTEM_PROMPT = """
    研究機構：Gartner、IDC、McKinsey（公開報告）、Goldman Sachs Global Investment Research、JP Morgan Asset Management、Piper Sandler、Bernstein Research、BIS Quarterly Review
    學術研究：Duke University、MIT、Stanford、Harvard（限官方研究報告，非新聞稿）
    市場數據：Barchart（限選擇權和市場數據內容）
+   台灣財經媒體：MoneyDJ（台灣本地財經新聞，限台股、台灣產業、國際財經類內容）
 2. 每條新聞的 source 欄位必須填入白名單內的媒體名稱，如果來源不明或不在白名單內，該條新聞不得使用
 3. 數字和數據必須有明確的白名單來源支撐，不能使用來源不明的數字
 
@@ -309,7 +310,7 @@ USER_PROMPT_TEMPLATE = """
 """
 
 
-def build_news_text(raw_news: list[dict]) -> str:
+def build_news_text(raw_news: list[dict], moneydj_news: list[dict] | None = None) -> str:
     parts = []
     for item in raw_news:
         parts.append(f"## {item['query']}")
@@ -318,13 +319,20 @@ def build_news_text(raw_news: list[dict]) -> str:
         for src in item.get("sources", []):
             parts.append(f"來源：{src}")
         parts.append("")
+
+    if moneydj_news:
+        parts.append("## MoneyDJ 台灣財經即時新聞（過去24小時）")
+        for item in moneydj_news:
+            parts.append(f"標題：{item['title']}\n摘要：{item['summary']}\n來源：MoneyDJ {item['published']}")
+        parts.append("")
+
     return "\n".join(parts)
 
 
-def process_news(raw_news: list[dict], market_data: dict | None = None, today_earnings: list | None = None) -> dict:
+def process_news(raw_news: list[dict], market_data: dict | None = None, today_earnings: list | None = None, moneydj_news: list[dict] | None = None) -> dict:
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
-    news_text = build_news_text(raw_news)
+    news_text = build_news_text(raw_news, moneydj_news)
 
     market_context = ""
     if market_data:

@@ -21,7 +21,7 @@ try:
 except ImportError:
     pass  # 生產環境不需要 dotenv
 
-from news_fetcher import fetch_financial_news, fetch_market_data, fetch_today_earnings
+from news_fetcher import fetch_financial_news, fetch_market_data, fetch_today_earnings, fetch_moneydj_news
 from ai_processor import process_news
 from html_template import build_html
 from email_sender import send_email
@@ -37,11 +37,12 @@ def main() -> None:
     market_data = fetch_market_data()
     today_earnings = fetch_today_earnings()
     raw_news = fetch_financial_news()
-    print(f"      {len(raw_news)} queries completed, {len(today_earnings)} earnings confirmed")
+    moneydj_news = fetch_moneydj_news()
+    print(f"      {len(raw_news)} queries completed, {len(today_earnings)} earnings confirmed, {len(moneydj_news)} MoneyDJ news")
 
     # 2. AI 處理
     print("\n[2/4] Processing with Claude...")
-    data = process_news(raw_news, market_data, today_earnings)
+    data = process_news(raw_news, market_data, today_earnings, moneydj_news)
 
     # 3. 生成 HTML
     print("\n[3/4] Building HTML...")
