@@ -141,10 +141,26 @@ def _fetch_fear_greed() -> dict:
         return {"val": "—", "chg": "—", "dir": "neu"}
 
 
+def _download_symbols(symbols: list[str], period: str = "5d") -> dict:
+    """Download each symbol individually to avoid SQLite database locked errors."""
+    import yfinance as yf
+    cache = {}
+    for symbol in symbols:
+        try:
+            df = yf.download(
+                symbol, period=period, interval="1d",
+                progress=False, auto_adjust=True,
+            )
+            if df is not None and not df.empty:
+                closes = df["Close"].dropna()
+                cache[symbol] = closes
+        except Exception as e:
+            print(f"  ✗ yfinance {symbol}: {e}")
+    return cache
+
+
 def fetch_market_data() -> dict:
     try:
-        import yfinance as yf
-
         all_symbols = set()
         for t in FIXED_TICKERS:
             all_symbols.add(t[1])
@@ -153,14 +169,13 @@ def fetch_market_data() -> dict:
         # Also need ^TNX and ^IRX for 10Y-2Y spread
         all_symbols.update(["^TNX", "^IRX"])
 
-        tickers = yf.download(
-            list(all_symbols), period="5d", interval="1d",
-            progress=False, auto_adjust=True,
-        )
+        closes_cache = _download_symbols(list(all_symbols), period="5d")
 
         def get_close(symbol):
             try:
-                closes = tickers["Close"][symbol].dropna()
+                closes = closes_cache.get(symbol)
+                if closes is None:
+                    return None, None
                 if len(closes) >= 2:
                     return float(closes.iloc[-1]), float(closes.iloc[-2])
                 elif len(closes) == 1:
@@ -277,8 +292,6 @@ WEEKLY_MARKET_TICKERS = [
 def fetch_weekly_market_data() -> dict:
     """Fetch weekly market data using 7d daily data (first vs last weekday close)."""
     try:
-        import yfinance as yf
-
         all_symbols = set()
         for t in WEEKLY_MARKET_TICKERS:
             all_symbols.add(t[1])
@@ -286,15 +299,14 @@ def fetch_weekly_market_data() -> dict:
             all_symbols.add(t[1])
         all_symbols.update(["^TNX", "^IRX"])
 
-        tickers = yf.download(
-            list(all_symbols), period="7d", interval="1d",
-            progress=False, auto_adjust=True,
-        )
+        closes_cache = _download_symbols(list(all_symbols), period="7d")
 
         def get_week_vals(symbol):
             """Get first and last weekday close from 7d daily data."""
             try:
-                closes = tickers["Close"][symbol].dropna()
+                closes = closes_cache.get(symbol)
+                if closes is None:
+                    return None, None
                 # Filter to weekdays only (Mon=0 .. Fri=4)
                 weekday_closes = closes[closes.index.dayofweek < 5]
                 if len(weekday_closes) >= 2:

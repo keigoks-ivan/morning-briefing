@@ -414,15 +414,18 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
         dynamic_options=DYNAMIC_STATUS_OPTIONS,
     )
 
-    print("  → Calling Claude API...")
-    msg = client.messages.create(
+    print("  → Calling Claude API (streaming)...")
+    full_text = ""
+    with client.messages.stream(
         model="claude-sonnet-4-20250514",
         max_tokens=32000,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_prompt}],
-    )
+    ) as stream:
+        for text in stream.text_stream:
+            full_text += text
 
-    raw_text = msg.content[0].text.strip()
+    raw_text = full_text.strip()
 
     with open("/tmp/claude_raw.txt", "w") as f:
         f.write(raw_text)
