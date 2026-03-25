@@ -418,7 +418,7 @@ EARNINGS_WATCHLIST = [
     # 消費/零售
     "MCD", "SBUX", "NKE", "TGT", "LOW", "TJX", "ROST", "DLTR",
     # 媒體/電信
-    "DIS", "CMCSA", "T", "VZ", "TMUS", "CHTR", "PARA", "WBD",
+    "DIS", "CMCSA", "T", "VZ", "TMUS", "CHTR", "WBD",
     # 台灣/亞洲ADR
     "UMC", "ASX",
     # 國防/航太

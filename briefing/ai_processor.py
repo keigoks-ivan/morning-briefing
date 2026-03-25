@@ -66,6 +66,12 @@ SYSTEM_PROMPT = """
 - 每個區塊內的新聞同時按重要程度和時效排序：importance=high 且最新的排最前面，importance=high 但較早的排其次，importance=medium 且最新的排再其次
 - 如果一條新聞的 source_date 無法確認在過去24小時內，不得列入任何新聞類區塊
 
+JSON 格式規則：
+- 所有數值必須用英文格式，不要用中文單位（兆、億、萬）
+- 正確：$1420000000000 或 $1.42T 或 1420B
+- 錯誤：$1.42兆、$600億
+- 這樣可以避免 JSON 解析錯誤
+
 其他規則：
 - 只回傳 JSON，不要任何前置說明、後記或 markdown code block
 - 所有文字使用繁體中文，數字/公司名/技術術語保留英文
@@ -411,7 +417,7 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
     print("  → Calling Claude API...")
     msg = client.messages.create(
         model="claude-sonnet-4-20250514",
-        max_tokens=16000,
+        max_tokens=32000,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_prompt}],
     )
