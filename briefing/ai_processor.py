@@ -279,6 +279,22 @@ USER_PROMPT_TEMPLATE = """
     "summary": "今日機構異動整體方向（1句，如無訊號則空字串）"
   }},
 
+  "daily_deep_dive": [
+    {{
+      "theme": "主題名稱（如：半導體供應鏈、AI架構、全球流動性、能源市場、今日焦點）",
+      "theme_type": "semiconductor/ai_arch/liquidity/energy/spotlight",
+      "headline": "今日這個主題最重要的一句話（25字以內）",
+      "situation": "現況描述（3-4句，必須含具體數字和來源，描述今日最新狀態）",
+      "key_data": [
+        {{"metric": "指標名稱", "value": "具體數值", "change": "變化方向和幅度", "context": "這個數字的含義"}}
+      ],
+      "structural_signal": "這個主題今日透露的結構性訊號（2-3句，跨越單一新聞的洞察）",
+      "implication": "對投資決策的直接含義（2句，具體說明影響哪些標的或市場）",
+      "source": "主要來源媒體",
+      "source_date": "日期 YYYY-MM-DD"
+    }}
+  ],
+
   "today_events": [
     {{
       "time": "時間",
@@ -307,10 +323,19 @@ USER_PROMPT_TEMPLATE = """
 16. 所有新聞排除 ESG 相關內容
 17. source_date 格式統一為 YYYY-MM-DD
 18. implied_trends 引用的數字必須來自搜尋結果，不能推測
+19. daily_deep_dive 輸出 3-5 個主題，優先輸出今日有重要新發展的主題：
+    (1) 半導體供應鏈（semiconductor）：只在今日有具體庫存/產能/定價新數據時輸出
+    (2) AI模型與架構（ai_arch）：只在今日有新模型發布/重要研究/算力動態時輸出
+    (3) 全球流動性（liquidity）：只在今日有Fed動態/RRP變化/重要流動性數據時輸出
+    (4) 能源市場（energy）：只在今日有重要油價/LNG/OPEC動態時輸出
+    (5) 今日焦點（spotlight）：由Claude自行判斷今日最值得深挖的主題，可以是以上四個之外的任何主題
+    key_data 每個主題輸出 2-4 個具體指標，必須有實際數值。
+    如果某個主題今日沒有重要新發展，不要強行輸出，寧可少不要濫。
+    所有內容來自過去24小時，數字必須有可信來源支撐。
 """
 
 
-def build_news_text(raw_news: list[dict], moneydj_news: list[dict] | None = None) -> str:
+def build_news_text(raw_news: list[dict], moneydj_news: list[dict] | None = None, deep_dive_news: list[dict] | None = None) -> str:
     parts = []
     for item in raw_news:
         parts.append(f"## {item['query']}")
@@ -326,13 +351,23 @@ def build_news_text(raw_news: list[dict], moneydj_news: list[dict] | None = None
             parts.append(f"標題：{item['title']}\n摘要：{item['summary']}\n來源：MoneyDJ {item['published']}")
         parts.append("")
 
+    if deep_dive_news:
+        parts.append("## 深度聚焦搜尋結果（用於 daily_deep_dive 區塊）")
+        for item in deep_dive_news:
+            parts.append(f"### {item['query']}")
+            if item.get("answer"):
+                parts.append(item["answer"])
+            for src in item.get("sources", []):
+                parts.append(f"來源：{src}")
+            parts.append("")
+
     return "\n".join(parts)
 
 
-def process_news(raw_news: list[dict], market_data: dict | None = None, today_earnings: list | None = None, moneydj_news: list[dict] | None = None) -> dict:
+def process_news(raw_news: list[dict], market_data: dict | None = None, today_earnings: list | None = None, moneydj_news: list[dict] | None = None, deep_dive_news: list[dict] | None = None) -> dict:
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
-    news_text = build_news_text(raw_news, moneydj_news)
+    news_text = build_news_text(raw_news, moneydj_news, deep_dive_news)
 
     market_context = ""
     if market_data:
@@ -437,6 +472,7 @@ def _validate(data: dict) -> None:
     data.setdefault("implied_trends", [])
     data.setdefault("us_market_recap", {"has_events": False, "earnings": [], "other_events": [], "summary": ""})
     data.setdefault("smart_money", {"has_signals": False, "signals": [], "summary": ""})
+    data.setdefault("daily_deep_dive", [])
     data.setdefault("fun_fact", {})
     data.setdefault("today_events", [])
 

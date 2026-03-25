@@ -55,6 +55,14 @@ PERPLEXITY_QUERIES = [
     "Major international news today geopolitical developments regional conflicts diplomacy global affairs past 24 hours only most important first Sources: Bloomberg Reuters Financial Times BBC AP",
 ]
 
+DEEP_DIVE_QUERIES = [
+    "Semiconductor supply chain today: inventory levels fab utilization TSMC Samsung capacity pricing DRAM NAND HBM latest data Sources: Digitimes SemiAnalysis Bloomberg Reuters TrendForce",
+    "AI model architecture research today: training efficiency inference optimization new model releases benchmarks compute costs Sources: Bloomberg Reuters TechCrunch The Information Ars Technica",
+    "Global liquidity indicators today: Fed balance sheet overnight reverse repo RRP bank reserves SOFR NFCI financial conditions Sources: Federal Reserve Bloomberg Reuters FRED",
+    "Energy market today: oil price WTI Brent OPEC supply LNG natural gas inventory EIA data Sources: Bloomberg Reuters EIA IEA Financial Times",
+    "Most important industry development today that deserves deeper analysis: any major structural shift technology breakthrough regulatory change market dislocation Sources: Bloomberg Reuters FT WSJ",
+]
+
 
 # 第一層：固定12格
 FIXED_TICKERS = [
@@ -511,6 +519,52 @@ def fetch_moneydj_news() -> list[dict]:
             print(f"  ✗ MoneyDJ RSS {url}: {e}")
 
     print(f"  ✓ MoneyDJ: {len(results)} 條新聞（過去24小時）")
+    return results
+
+
+def fetch_deep_dive_news() -> list[dict]:
+    """使用 Perplexity 搜尋深度聚焦主題（max_tokens=1000）。"""
+    api_key = os.environ["PERPLEXITY_API_KEY"]
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    tz = pytz.timezone("Asia/Taipei")
+    today = datetime.now(tz).strftime("%Y-%m-%d")
+    results = []
+
+    for query in DEEP_DIVE_QUERIES:
+        try:
+            payload = {
+                "model": "sonar",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            f"Today is {today} Taiwan time (UTC+8). "
+                            "Only report news from the past 24 hours. No exceptions. "
+                            "Provide detailed data, specific numbers, and source names. "
+                            "Focus on structural developments, not surface-level summaries. "
+                            "Never include ESG, sustainability, or green energy related news."
+                        ),
+                    },
+                    {"role": "user", "content": query},
+                ],
+                "search_recency_filter": "day",
+                "return_citations": True,
+                "max_tokens": 1000,
+            }
+            resp = requests.post(
+                "https://api.perplexity.ai/chat/completions",
+                headers=headers, json=payload, timeout=30,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            answer = data["choices"][0]["message"]["content"]
+            citations = data.get("citations", [])
+            results.append({"query": query, "answer": answer, "sources": citations[:3]})
+            print(f"  ✓ [deep] {query[:55]}... ({len(citations)} sources)")
+        except Exception as e:
+            print(f"  ✗ [deep] {query[:55]}... — {e}")
+            results.append({"query": query, "answer": "", "sources": []})
+
     return results
 
 

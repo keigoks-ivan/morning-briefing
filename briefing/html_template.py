@@ -577,6 +577,84 @@ def _fun_fact(fact: dict) -> str:
 </div>'''
 
 
+DEEP_DIVE_COLOR = {
+    "semiconductor": "#378ADD",
+    "ai_arch": "#7F77DD",
+    "liquidity": "#1a7a4a",
+    "energy": "#854F0B",
+    "spotlight": "#C0392B",
+}
+
+
+def _daily_deep_dive(items: list) -> str:
+    if not items:
+        return ""
+    cards = ""
+    for item in items:
+        theme_type = item.get("theme_type", "spotlight")
+        color = DEEP_DIVE_COLOR.get(theme_type, "#C0392B")
+        theme = item.get("theme", "")
+        headline = item.get("headline", "")
+        situation = item.get("situation", "")
+        structural_signal = item.get("structural_signal", "")
+        implication = item.get("implication", "")
+        source_html = _source_line(item.get("source", ""), item.get("source_date", ""))
+
+        # key_data table
+        key_data = item.get("key_data", [])
+        kd_rows = ""
+        for kd in key_data:
+            kd_rows += f'''<tr>
+  <td style="padding:6px 10px;font-size:13px;color:#555;white-space:nowrap;">{kd.get("metric","")}</td>
+  <td style="padding:6px 10px;font-size:13px;font-weight:600;color:#222;">{kd.get("value","")}</td>
+  <td style="padding:6px 10px;font-size:13px;color:#555;">{kd.get("change","")}</td>
+  <td style="padding:6px 10px;font-size:13px;color:#888;">{kd.get("context","")}</td>
+</tr>'''
+        kd_html = ""
+        if kd_rows:
+            kd_html = f'''<table width="100%" cellpadding="0" cellspacing="0"
+  style="background:#f7f7f5;border-radius:4px;border-collapse:collapse;margin:10px 0;">
+  {kd_rows}
+</table>'''
+
+        signal_html = ""
+        if structural_signal:
+            signal_html = f'''<div style="border-left:3px solid #378ADD;padding:8px 12px;margin:10px 0;background:#f8fafd;">
+  <div style="font-size:12px;font-weight:500;color:#378ADD;margin-bottom:4px;">結構性訊號</div>
+  <div style="font-size:14px;color:#555;line-height:1.6;">{structural_signal}</div>
+</div>'''
+
+        impl_html = ""
+        if implication:
+            impl_html = f'''<div style="border-left:3px solid #1a7a4a;padding:8px 12px;margin:10px 0;background:#f5faf7;">
+  <div style="font-size:12px;font-weight:500;color:#1a7a4a;margin-bottom:4px;">投資含義</div>
+  <div style="font-size:14px;color:#555;line-height:1.6;">{implication}</div>
+</div>'''
+
+        cards += f'''
+<div style="border:1px solid #e8e8e8;border-radius:6px;padding:16px 18px;margin-bottom:14px;
+            border-left:4px solid {color};">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+    <span style="font-size:12px;font-weight:500;padding:2px 8px;border-radius:3px;
+                 color:#fff;background:{color};">{theme}</span>
+    <span style="font-size:16px;font-weight:600;color:#222;line-height:1.4;">{headline}</span>
+  </div>
+  <div style="font-size:14px;color:#555;line-height:1.65;">{situation}</div>
+  {kd_html}
+  {signal_html}
+  {impl_html}
+  {source_html}
+</div>'''
+
+    return f'''
+<div class="section">
+  <div class="section-label">每日深度聚焦</div>
+  <div style="border:1px solid #e0e0e0;border-radius:8px;padding:16px;background:#fafafa;">
+    {cards}
+  </div>
+</div>'''
+
+
 def _world_news(items: list) -> str:
     if not items:
         return ""
@@ -735,6 +813,7 @@ def build_html(data: dict) -> str:
 {_alert(data.get("alert",""))}
 {_market_strip(data.get("market_data", {}))}
 {_news_section("核心要聞", data.get("top_stories",[]))}
+{_daily_deep_dive(data.get("daily_deep_dive", []))}
 {_world_news(data.get("world_news", []))}
 {_news_section("總經動態", data.get("macro",[]))}
 {_geopolitical_section(data.get("geopolitical",[]))}
