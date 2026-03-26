@@ -152,7 +152,7 @@ def _download_symbols(symbols: list[str], period: str = "5d") -> dict:
                 progress=False, auto_adjust=True,
             )
             if df is not None and not df.empty:
-                closes = df["Close"].dropna()
+                closes = df["Close"].dropna().astype(float)
                 cache[symbol] = closes
         except Exception as e:
             print(f"  ✗ yfinance {symbol}: {e}")
@@ -177,9 +177,9 @@ def fetch_market_data() -> dict:
                 if closes is None:
                     return None, None
                 if len(closes) >= 2:
-                    return float(closes.iloc[-1]), float(closes.iloc[-2])
+                    return closes.iloc[-1].item(), closes.iloc[-2].item()
                 elif len(closes) == 1:
-                    return float(closes.iloc[-1]), None
+                    return closes.iloc[-1].item(), None
             except Exception:
                 pass
             return None, None
@@ -310,9 +310,9 @@ def fetch_weekly_market_data() -> dict:
                 # Filter to weekdays only (Mon=0 .. Fri=4)
                 weekday_closes = closes[closes.index.dayofweek < 5]
                 if len(weekday_closes) >= 2:
-                    return float(weekday_closes.iloc[0]), float(weekday_closes.iloc[-1])
+                    return weekday_closes.iloc[0].item(), weekday_closes.iloc[-1].item()
                 elif len(weekday_closes) == 1:
-                    return float(weekday_closes.iloc[0]), float(weekday_closes.iloc[0])
+                    return weekday_closes.iloc[0].item(), weekday_closes.iloc[0].item()
             except Exception:
                 pass
             return None, None
