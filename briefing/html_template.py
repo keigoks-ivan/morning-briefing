@@ -314,20 +314,32 @@ def _parse_chg_pct(chg_str: str) -> float | None:
 
 
 def _nyfang_tag(factors: list[dict], indices: list[dict]) -> str:
-    """Compare NYFANG vs NQ change and return a tag."""
-    nq_chg = nyfang_chg = None
+    """Compare NYFANG vs NDX spot change and return a tag."""
+    ndx_chg = nyfang_chg = None
     for it in indices:
-        if it.get("label", "") in ("NQ期貨", "NQ100"):
-            nq_chg = _parse_chg_pct(it.get("chg", ""))
+        if it.get("label", "") == "NDX現貨":
+            ndx_chg = _parse_chg_pct(it.get("chg", ""))
     for it in factors:
         if it.get("label", "") == "NYFANG":
             nyfang_chg = _parse_chg_pct(it.get("chg", ""))
-    if nq_chg is None or nyfang_chg is None:
+    if ndx_chg is None or nyfang_chg is None:
         return ""
-    if nq_chg < 0 and nyfang_chg < nq_chg:
+    if ndx_chg < 0 and nyfang_chg < ndx_chg:
         return '<div style="font-size:9px;color:#854F0B;font-weight:600;margin-top:2px;">科技巨頭領跌</div>'
-    if nq_chg < 0 and nyfang_chg > nq_chg:
+    if ndx_chg < 0 and nyfang_chg > ndx_chg:
         return '<div style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:2px;">巨頭相對抗跌</div>'
+    return ""
+
+
+def _rsp_spy_tag(factors: list[dict]) -> str:
+    """RSP/SPY ratio tag: up = market broadening, down = concentration."""
+    for it in factors:
+        if it.get("label", "") == "RSP/SPY":
+            chg = _parse_chg_pct(it.get("chg", ""))
+            if chg is not None and chg > 0:
+                return '<div style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:2px;">市場變寬</div>'
+            elif chg is not None and chg < 0:
+                return '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">市場集中</div>'
     return ""
 
 
@@ -385,11 +397,21 @@ def _market_strip(market_data: dict) -> str:
     factors = market_data.get("factors", [])
     sentiment = market_data.get("sentiment", [])
     move_index = market_data.get("move_index", {"val": "—", "interpretation": ""})
-    commodities = market_data.get("commodities", [])
+    commodities_raw = market_data.get("commodities", {})
+    if isinstance(commodities_raw, dict):
+        commodities_fixed = commodities_raw.get("fixed", [])
+        commodities_dynamic = commodities_raw.get("dynamic", [])
+    else:
+        commodities_fixed = commodities_raw
+        commodities_dynamic = []
     bonds = market_data.get("bonds", [])
     fx = market_data.get("fx", [])
     credit = market_data.get("credit", [])
     liquidity = market_data.get("liquidity", [])
+
+    # Separate fixed factors vs dynamic sectors
+    factors_fixed = [f for f in factors if not f.get("is_dynamic")]
+    factors_dynamic = [f for f in factors if f.get("is_dynamic")]
 
     # Separate Fear&Greed from sentiment list
     sent_no_fg = []
@@ -403,20 +425,21 @@ def _market_strip(market_data: dict) -> str:
     # VIX9D vs VIX tag — attach to VIX9D cell
     vix9d_extra = _vix9d_tag(sent_no_fg)
     sent_tags = _sentiment_extra_tags(sent_no_fg)
-    # Find VIX9D index and add the comparison tag
     for i, it in enumerate(sent_no_fg):
         if it.get("label", "") == "VIX9D":
             existing = sent_tags.get(i, "")
             sent_tags[i] = existing + vix9d_extra
             break
 
-    # NYFANG tag — attach to NYFANG cell
+    # NYFANG tag + RSP/SPY tag — attach to factor cells
     nyfang_extra = _nyfang_tag(factors, indices)
+    rsp_spy_extra = _rsp_spy_tag(factors)
     factor_tags = {}
-    for i, it in enumerate(factors):
+    for i, it in enumerate(factors_fixed):
         if it.get("label", "") == "NYFANG":
             factor_tags[i] = nyfang_extra
-            break
+        elif it.get("label", "") == "RSP/SPY":
+            factor_tags[i] = rsp_spy_extra
 
     # Sentiment cells
     sent_cells = ""
@@ -513,13 +536,15 @@ def _market_strip(market_data: dict) -> str:
     {_mkt_row(indices, extra_tags=idx_tags)}
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
     {_mkt_section_label("美股市場因子", "#7F77DD")}
-    {_mkt_row(factors, extra_tags=factor_tags)}
+    {_mkt_row(factors_fixed, extra_tags=factor_tags)}
+    {_mkt_row(factors_dynamic) if factors_dynamic else ""}
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
     {_mkt_section_label("市場情緒", "#BA7517")}
     <tr>{sent_cells}</tr>
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
     {_mkt_section_label("原物料", "#854F0B")}
-    {_mkt_row(commodities)}
+    {_mkt_row(commodities_fixed)}
+    {_mkt_row(commodities_dynamic) if commodities_dynamic else ""}
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
     <tr><td colspan="99" style="padding:12px 10px 6px 10px;">
       <div style="display:flex;align-items:center;gap:6px;">
@@ -600,13 +625,28 @@ def _market_pulse(pulse: dict) -> str:
   <tr>{risk_td}{opp_td}</tr>
 </table>'''
 
-    # Key level to watch
+    # Key level + historical analog + new pattern
     key_html = ""
     if key_level:
         key_html = f'''
 <div style="background:#FEF9E7;border-radius:4px;padding:8px 14px;margin-top:10px;
             font-size:13px;color:#856404;">
   <span style="font-weight:600;">關鍵價位：</span>{key_level}
+</div>'''
+
+    hist_analog = pulse.get("historical_analog", "")
+    new_pat = pulse.get("new_pattern", "")
+    analog_html = ""
+    if hist_analog or new_pat:
+        parts = []
+        if hist_analog:
+            parts.append(f'<span style="color:#534AB7;">歷史類比：</span>{hist_analog}')
+        if new_pat:
+            parts.append(f'<span style="color:#854F0B;">新模式：</span>{new_pat}')
+        analog_html = f'''
+<div style="font-size:12px;color:#555;line-height:1.5;margin-top:8px;padding-top:8px;
+            border-top:0.5px solid #e8e8e8;">
+  {"　｜　".join(parts)}
 </div>'''
 
     return f'''
@@ -622,6 +662,7 @@ def _market_pulse(pulse: dict) -> str:
     {sig_html}
     {bottom_html}
     {key_html}
+    {analog_html}
   </div>
 </div>'''
 

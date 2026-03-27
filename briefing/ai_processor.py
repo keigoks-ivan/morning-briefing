@@ -78,17 +78,19 @@ market_data 規則：
 - 如果 Perplexity 沒有搜到 MOVE Index，val 填 "—"
 
 market_pulse 分析規則：
+- 嚴禁使用 NQ期貨數值做分析，一律改用 NDX現貨
 - cross_asset_signals 輸出 2-3 個，每個必須是跨指標的組合觀察，不是單一指標的描述
-- 可分析的指標來源：股票指數、因子（含NYFANG vs NQ100對比）、情緒（VIX/VIX9D/SKEW/VVIX）、MOVE Index、原物料、債券、外匯、信貸（HYG/LQD比值）、流動性（RRP隔夜逆回購餘額/NFCI金融條件指數）
-- 優先找：指標之間的背離（如VIX高但SKEW低）、異常組合（如油價漲但能源股跌）、結構性分化（如HYG跌但LQD穩）、流動性變化（如RRP驟降暗示資金流向風險資產）
+- 三層推論框架：(1)背離識別：找出指標之間的異常組合 (2)雙軌機制推論：從背離推導可能的驅動機制 (3)情境推演：推導如果機制持續，下一步會怎樣
+- 可分析的指標來源：股票指數（NDX現貨）、因子（NYFANG vs NDX現貨、RSP/SPY市場寬度、MTUM動能、IWM小型股）、情緒（VIX/VIX9D/SKEW/VVIX）、MOVE Index、原物料、債券、外匯、信貸（HYG/LQD比值）、流動性（RRP/TGA/銀行準備金/NFCI + 綜合評分）
 - 每個 detail 必須引用至少兩個具體指標數字
-- dominant_theme 一句話概括今天所有指標共同指向的方向
-- hidden_risk 專門描述從數字組合中看到但不顯眼的潛在風險（2句）
-- hidden_opportunity 專門描述從指標背離、超賣、或市場錯誤定價中看到的潛在機會（2句）
-- key_level_to_watch 輸出今日最值得關注的一個關鍵價位或門檻
-- 語氣必須使用不確定性詞彙：可能、值得注意、暗示、或許、需要觀察
-- 嚴禁輸出顯而易見的觀察（如「VIX上升代表市場恐慌」）
-- 整體 250字以內
+- dominant_theme 必須有明確立場方向（如「流動性驅動的風險偏好回升」），不可模糊
+- hidden_risk / hidden_opportunity 各2句，不是顯而易見的觀察
+- key_level_to_watch 用 NDX現貨價位，不用 NQ期貨
+- historical_analog 點名具體時間段做類比
+- new_pattern 如果當前不符合歷史模式，說明可能的新範式
+- 語氣使用不確定性詞彙
+- 嚴禁輸出顯而易見的觀察
+- 整體 300字以內
 
 其他規則：
 - 只回傳 JSON，不要任何前置說明、後記或 markdown code block
@@ -131,10 +133,12 @@ USER_PROMPT_TEMPLATE = """
         "implication": "可能的走勢含義（1句，用「可能」「值得注意」等不確定性語氣）"
       }}
     ],
-    "dominant_theme": "今日市場主軸（1句，15字以內，概括今天所有指標共同指向的方向）",
+    "dominant_theme": "今日市場主軸（1句，15字以內，有明確立場方向）",
     "hidden_risk": "從指標背離或異常組合中發現的潛在風險（2句，不是顯而易見的觀察）",
     "hidden_opportunity": "從指標背離或超賣訊號中發現的潛在機會（2句，不是顯而易見的觀察）",
-    "key_level_to_watch": "今日最值得關注的一個關鍵價位或門檻（如：NQ100 若跌破 18000 或 VIX 若突破 25）"
+    "key_level_to_watch": "今日最值得關注的一個關鍵價位或門檻（用NDX現貨，不用NQ期貨）",
+    "historical_analog": "歷史類比（1句，點名具體時間段，如：類似2023年10月底的流動性轉折）",
+    "new_pattern": "新模式可能性（1句，如果當前組合不符合歷史模式，說明可能的新範式）"
   }},
 
   "us_market_recap": {{
@@ -545,7 +549,7 @@ def _validate(data: dict) -> None:
     data.setdefault("implied_trends", [])
     data.setdefault("us_market_recap", {"has_events": False, "earnings": [], "other_events": [], "summary": ""})
     data.setdefault("smart_money", {"has_signals": False, "signals": [], "summary": ""})
-    data.setdefault("market_pulse", {"cross_asset_signals": [], "dominant_theme": "", "hidden_risk": "", "hidden_opportunity": "", "key_level_to_watch": ""})
+    data.setdefault("market_pulse", {"cross_asset_signals": [], "dominant_theme": "", "hidden_risk": "", "hidden_opportunity": "", "key_level_to_watch": "", "historical_analog": "", "new_pattern": ""})
     data.setdefault("daily_deep_dive", [])
     data.setdefault("fun_fact", {})
     data.setdefault("today_events", [])

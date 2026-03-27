@@ -666,11 +666,21 @@ def _index_market_strip(market_data: dict) -> str:
     factors = market_data.get("factors", [])
     sentiment = market_data.get("sentiment", [])
     move_index = market_data.get("move_index", {"val": "—", "interpretation": ""})
-    commodities = market_data.get("commodities", [])
+    commodities_raw = market_data.get("commodities", {})
+    if isinstance(commodities_raw, dict):
+        commodities_fixed = commodities_raw.get("fixed", [])
+        commodities_dynamic = commodities_raw.get("dynamic", [])
+    else:
+        commodities_fixed = commodities_raw
+        commodities_dynamic = []
     bonds = market_data.get("bonds", [])
     fx = market_data.get("fx", [])
     credit = market_data.get("credit", [])
     liquidity = market_data.get("liquidity", [])
+
+    # Separate fixed factors vs dynamic sectors
+    factors_fixed = [f for f in factors if not f.get("is_dynamic")]
+    factors_dynamic = [f for f in factors if f.get("is_dynamic")]
 
     # Separate Fear&Greed from sentiment
     sent_no_fg = []
@@ -773,13 +783,15 @@ def _index_market_strip(market_data: dict) -> str:
     {_wk_row(indices)}
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
     {_wk_section_label("美股市場因子", "#7F77DD")}
-    {_wk_row(factors)}
+    {_wk_row(factors_fixed)}
+    {_wk_row(factors_dynamic) if factors_dynamic else ""}
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
     {_wk_section_label("市場情緒", "#BA7517")}
     <tr>{sent_cells}</tr>
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
     {_wk_section_label("原物料", "#854F0B")}
-    {_wk_row(commodities)}
+    {_wk_row(commodities_fixed)}
+    {_wk_row(commodities_dynamic) if commodities_dynamic else ""}
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
     <tr><td colspan="99" style="padding:12px 10px 6px 10px;">
       <div style="display:flex;align-items:center;gap:6px;">
@@ -859,6 +871,21 @@ def _index_market_pulse(pulse: dict) -> str:
   <span style="font-weight:600;">關鍵價位：</span>{key_level}
 </div>'''
 
+    hist_analog = pulse.get("historical_analog", "")
+    new_pat = pulse.get("new_pattern", "")
+    analog_html = ""
+    if hist_analog or new_pat:
+        parts = []
+        if hist_analog:
+            parts.append(f'<span style="color:#534AB7;">歷史類比：</span>{hist_analog}')
+        if new_pat:
+            parts.append(f'<span style="color:#854F0B;">新模式：</span>{new_pat}')
+        analog_html = f'''
+<div style="font-size:12px;color:#555;line-height:1.5;margin-top:8px;padding-top:8px;
+            border-top:0.5px solid #e8e8e8;">
+  {"　｜　".join(parts)}
+</div>'''
+
     return f'''
 <div style="margin-bottom:24px;">
   <div style="background:#f7f7f5;border-radius:8px;border:0.5px solid #e8e8e8;padding:14px 18px;">
@@ -872,6 +899,7 @@ def _index_market_pulse(pulse: dict) -> str:
     {sig_html}
     {bottom_html}
     {key_html}
+    {analog_html}
   </div>
 </div>'''
 

@@ -76,9 +76,13 @@ FIXED_TICKERS = {
     "vo":        {"ticker": "VO",        "label": "VO",       "prefix": "$", "type": "etf"},
     "btc":       {"ticker": "BTC-USD",   "label": "BTC",      "prefix": "$", "type": "crypto"},
     # 美股因子
-    "nyfang":    {"ticker": "^NYFANG",   "label": "NYFANG",   "prefix": "",  "type": "factor"},
+    "nyfang":    {"ticker": "^NFG",      "label": "NYFANG",   "prefix": "",  "type": "factor"},
     "vtv":       {"ticker": "VTV",       "label": "VTV 價值",  "prefix": "$", "type": "factor"},
     "vug":       {"ticker": "VUG",       "label": "VUG 成長",  "prefix": "$", "type": "factor"},
+    "rsp":       {"ticker": "RSP",       "label": "RSP",      "prefix": "$", "type": "factor"},
+    "spy":       {"ticker": "SPY",       "label": "SPY",      "prefix": "$", "type": "factor"},
+    "mtum":      {"ticker": "MTUM",      "label": "MTUM",     "prefix": "$", "type": "factor"},
+    "iwm":       {"ticker": "IWM",       "label": "IWM",      "prefix": "$", "type": "factor"},
     # 市場情緒
     "vix":       {"ticker": "^VIX",      "label": "VIX",      "prefix": "",  "type": "sentiment", "invert": True},
     "vix9d":     {"ticker": "^VIX9D",    "label": "VIX9D",    "prefix": "",  "type": "sentiment", "invert": True},
@@ -295,7 +299,7 @@ def fetch_market_data() -> dict:
         # Build items per category from FIXED_TICKERS
         category_keys = {
             "indices":     ["nq100", "ndx", "sp500", "sox", "twii", "dax", "vt", "vo", "btc"],
-            "factors":     ["nyfang", "vtv", "vug"],
+            "factors":     ["nyfang", "vtv", "vug", "mtum", "iwm"],
             "sentiment":   ["vix", "vix9d", "skew", "vvix"],
             "commodities": ["brent", "wti", "gold", "silver", "copper", "alum"],
             "bonds":       ["us10y"],
@@ -322,6 +326,32 @@ def fetch_market_data() -> dict:
                     "dir": direction(chg_raw, invert=invert),
                     "is_dynamic": False,
                 })
+
+        # RSP/SPY ratio — compute and insert into factors (replacing individual RSP/SPY)
+        rsp_today, rsp_prev = get_close("RSP")
+        spy_today, spy_prev = get_close("SPY")
+        # Remove individual RSP and SPY from factors list
+        result["factors"] = [f for f in result["factors"] if f["label"] not in ("RSP", "SPY")]
+        if rsp_today and spy_today and spy_today != 0:
+            ratio_today = rsp_today / spy_today
+            if rsp_prev and spy_prev and spy_prev != 0:
+                ratio_prev = rsp_prev / spy_prev
+                ratio_chg = (ratio_today - ratio_prev) / ratio_prev * 100
+                ratio_chg_str = f"{'▲' if ratio_chg > 0 else '▼'} {abs(ratio_chg):.2f}%"
+                ratio_dir = "pos" if ratio_chg > 0 else ("neg" if ratio_chg < 0 else "neu")
+            else:
+                ratio_chg_str, ratio_dir = "—", "neu"
+            rsp_spy_item = {
+                "label": "RSP/SPY",
+                "val": f"{ratio_today:.4f}",
+                "chg": ratio_chg_str,
+                "dir": ratio_dir,
+                "is_dynamic": False,
+            }
+        else:
+            rsp_spy_item = {"label": "RSP/SPY", "val": "—", "chg": "—", "dir": "neu", "is_dynamic": False}
+        # Insert after VUG (index 2)
+        result["factors"].insert(2, rsp_spy_item)
 
         # Sector ETFs — pick top 3 by abs change
         sector_items = []
@@ -359,9 +389,11 @@ def fetch_market_data() -> dict:
                 "_abs_chg": abs(chg_raw) if chg_raw is not None else 0,
             })
         commodity_pool.sort(key=lambda x: x.get("_abs_chg", 0), reverse=True)
+        dyn_commodities = []
         for c in commodity_pool[:2]:
             item = {k: v for k, v in c.items() if k != "_abs_chg"}
-            result["commodities"].append(item)
+            dyn_commodities.append(item)
+        result["commodities"] = {"fixed": result["commodities"], "dynamic": dyn_commodities}
 
         # Fear & Greed → sentiment
         fear_greed = _fetch_fear_greed()
@@ -512,7 +544,7 @@ def fetch_weekly_market_data() -> dict:
         # Build same category structure as daily
         category_keys = {
             "indices":     ["nq100", "ndx", "sp500", "sox", "twii", "dax", "vt", "vo", "btc"],
-            "factors":     ["nyfang", "vtv", "vug"],
+            "factors":     ["nyfang", "vtv", "vug", "mtum", "iwm"],
             "sentiment":   ["vix", "vix9d", "skew", "vvix"],
             "commodities": ["brent", "wti", "gold", "silver", "copper", "alum"],
             "bonds":       ["us10y"],
@@ -539,6 +571,24 @@ def fetch_weekly_market_data() -> dict:
                     "dir": direction(chg_raw, invert=invert),
                     "is_dynamic": False,
                 })
+
+        # RSP/SPY ratio for weekly
+        rsp_first, rsp_last = get_week_vals("RSP")
+        spy_first, spy_last = get_week_vals("SPY")
+        result["factors"] = [f for f in result["factors"] if f["label"] not in ("RSP", "SPY")]
+        if rsp_last and spy_last and spy_last != 0:
+            ratio_last = rsp_last / spy_last
+            if rsp_first and spy_first and spy_first != 0:
+                ratio_first = rsp_first / spy_first
+                ratio_chg = (ratio_last - ratio_first) / ratio_first * 100
+                ratio_chg_str = f"{'▲' if ratio_chg > 0 else '▼'} {abs(ratio_chg):.2f}%"
+                ratio_dir = "pos" if ratio_chg > 0 else ("neg" if ratio_chg < 0 else "neu")
+            else:
+                ratio_chg_str, ratio_dir = "—", "neu"
+            rsp_spy_item = {"label": "RSP/SPY", "val": f"{ratio_last:.4f}", "chg": ratio_chg_str, "dir": ratio_dir, "is_dynamic": False}
+        else:
+            rsp_spy_item = {"label": "RSP/SPY", "val": "—", "chg": "—", "dir": "neu", "is_dynamic": False}
+        result["factors"].insert(2, rsp_spy_item)
 
         # Sector ETFs top 3
         sector_items = []
@@ -609,14 +659,19 @@ def fetch_weekly_market_data() -> dict:
                 "is_dynamic": True, "_abs_chg": abs(chg_raw) if chg_raw is not None else 0,
             })
         commodity_pool.sort(key=lambda x: x.get("_abs_chg", 0), reverse=True)
+        dyn_commodities = []
         for c in commodity_pool[:2]:
             item = {k: v for k, v in c.items() if k != "_abs_chg"}
-            result["commodities"].append(item)
+            dyn_commodities.append(item)
+        result["commodities"] = {"fixed": result["commodities"], "dynamic": dyn_commodities}
 
         # For backwards compat with weekly_template, also provide flat "items" list
         items_flat = []
-        for cat in ["indices", "factors", "sentiment", "commodities", "bonds", "fx", "credit", "liquidity"]:
+        for cat in ["indices", "factors", "sentiment", "bonds", "fx", "credit", "liquidity"]:
             items_flat.extend(result[cat])
+        # Commodities is now a dict, flatten it
+        items_flat.extend(result["commodities"]["fixed"])
+        items_flat.extend(result["commodities"]["dynamic"])
 
         print(f"  ✓ Weekly market: NQ={result['indices'][0]['val']} SP={result['indices'][2]['val']} "
               f"BTC={result['indices'][8]['val']} F&G={fg_item['val']}")
