@@ -95,7 +95,10 @@ FIXED_TICKERS = {
     "copper":    {"ticker": "HG=F",      "label": "銅",        "prefix": "$", "type": "commodity"},
     "alum":      {"ticker": "ALI=F",     "label": "鋁",        "prefix": "$", "type": "commodity"},
     # 債券
+    "us2y":      {"ticker": "^IRX",      "label": "美2Y",     "prefix": "",  "type": "bond", "use_bps": True},
     "us10y":     {"ticker": "^TNX",      "label": "美10Y",    "prefix": "",  "type": "bond", "use_bps": True},
+    "us30y":     {"ticker": "^TYX",      "label": "美30Y",    "prefix": "",  "type": "bond", "use_bps": True},
+    "tlt":       {"ticker": "TLT",       "label": "TLT",      "prefix": "$", "type": "bond"},
     # 外匯
     "dxy":       {"ticker": "DX-Y.NYB",  "label": "DXY",      "prefix": "",  "type": "fx"},
     "jpyusd":    {"ticker": "JPY=X",     "label": "JPY/USD",  "prefix": "¥", "type": "fx"},
@@ -301,7 +304,7 @@ def fetch_market_data() -> dict:
             "factors":     ["nyfang", "vtv", "vug", "mtum", "iwm"],
             "sentiment":   ["vix", "vix9d", "skew", "vvix"],
             "commodities": ["brent", "wti", "gold", "silver", "copper", "alum"],
-            "bonds":       ["us10y"],
+            "bonds":       ["us2y", "us10y", "us30y", "tlt"],
             "fx":          ["dxy", "jpyusd"],
             "credit":      ["hyg", "lqd", "bkln"],
         }
@@ -404,6 +407,30 @@ def fetch_market_data() -> dict:
         }
         # Insert after VIX (index 1 in sentiment)
         result["sentiment"].insert(1, fg_item)
+
+        # 10Y-2Y spread
+        tnx_today, tnx_prev = get_close("^TNX")
+        irx_today, irx_prev = get_close("^IRX")
+        if tnx_today is not None and irx_today is not None:
+            spread_today = tnx_today - irx_today
+            if tnx_prev is not None and irx_prev is not None:
+                spread_prev = tnx_prev - irx_prev
+                spread_chg_bps = (spread_today - spread_prev) * 100
+                spread_chg_str = f"{'▲' if spread_chg_bps > 0 else '▼'} {abs(spread_chg_bps):.0f}bps"
+            else:
+                spread_chg_str = "—"
+                spread_chg_bps = 0
+            spread_item = {
+                "label": "10Y-2Y",
+                "val": f"{spread_today:.2f}%",
+                "chg": spread_chg_str,
+                "dir": "pos" if spread_today > 0 else "neg",
+                "is_dynamic": False,
+            }
+        else:
+            spread_item = {"label": "10Y-2Y", "val": "—", "chg": "—", "dir": "neu", "is_dynamic": False}
+        # Insert after us30y (index 2), before tlt (index 3)
+        result["bonds"].insert(3, spread_item)
 
         # HYG/LQD ratio
         hyg_today, hyg_prev = get_close("HYG")
@@ -546,7 +573,7 @@ def fetch_weekly_market_data() -> dict:
             "factors":     ["nyfang", "vtv", "vug", "mtum", "iwm"],
             "sentiment":   ["vix", "vix9d", "skew", "vvix"],
             "commodities": ["brent", "wti", "gold", "silver", "copper", "alum"],
-            "bonds":       ["us10y"],
+            "bonds":       ["us2y", "us10y", "us30y", "tlt"],
             "fx":          ["dxy", "jpyusd"],
             "credit":      ["hyg", "lqd", "bkln"],
         }
@@ -616,6 +643,23 @@ def fetch_weekly_market_data() -> dict:
             "dir": fear_greed.get("dir", "neu"),
         }
         result["sentiment"].insert(1, fg_item)
+
+        # 10Y-2Y spread (weekly)
+        tnx_first, tnx_last = get_week_vals("^TNX")
+        irx_first, irx_last = get_week_vals("^IRX")
+        if tnx_last is not None and irx_last is not None:
+            spread_last = tnx_last - irx_last
+            if tnx_first is not None and irx_first is not None:
+                spread_first = tnx_first - irx_first
+                spread_chg_bps = (spread_last - spread_first) * 100
+                spread_chg_str = f"{'▲' if spread_chg_bps > 0 else '▼'} {abs(spread_chg_bps):.0f}bps"
+            else:
+                spread_chg_str = "—"
+            spread_item = {"label": "10Y-2Y", "val": f"{spread_last:.2f}%", "chg": spread_chg_str,
+                           "dir": "pos" if spread_last > 0 else "neg", "is_dynamic": False}
+        else:
+            spread_item = {"label": "10Y-2Y", "val": "—", "chg": "—", "dir": "neu", "is_dynamic": False}
+        result["bonds"].insert(3, spread_item)
 
         # HYG/LQD ratio
         hyg_first, hyg_last = get_week_vals("HYG")

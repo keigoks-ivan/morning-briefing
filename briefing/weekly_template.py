@@ -727,7 +727,48 @@ def _index_market_strip(market_data: dict) -> str:
     sent_cells += _wk_move_cell(move_index)
     sent_cells += _wk_fg_cell(fg_item)
 
-    bond_cells = "".join(_wk_cell(it) for it in bonds)
+    # Bond cells with special 10Y-2Y spread styling
+    us2y_val = us10y_val = None
+    for it in bonds:
+        try:
+            v = float(it.get("val", "—").replace(",", "").replace("%", "").replace("$", ""))
+        except (ValueError, TypeError):
+            continue
+        if it.get("label", "") == "美2Y":
+            us2y_val = v
+        elif it.get("label", "") == "美10Y":
+            us10y_val = v
+    inversion_warning = ""
+    if us2y_val is not None and us10y_val is not None and us2y_val > us10y_val:
+        inversion_warning = ('<span style="font-size:9px;color:#C0392B;font-weight:600;'
+                             'margin-left:8px;">⚠ 殖利率倒掛</span>')
+    bond_cells = ""
+    for it in bonds:
+        label = it.get("label", "")
+        if label == "10Y-2Y":
+            val_str = it.get("val", "—")
+            try:
+                spread_num = float(val_str.replace("%", ""))
+            except (ValueError, TypeError):
+                spread_num = 0
+            if spread_num < -0.1:
+                val_color, tag = "#C0392B", '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">倒掛⚠</div>'
+            elif spread_num > 0.1:
+                val_color, tag = "#0F6E56", '<div style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:2px;">正常</div>'
+            else:
+                val_color, tag = "#854F0B", '<div style="font-size:9px;color:#854F0B;font-weight:600;margin-top:2px;">趨平</div>'
+            d = it.get("dir", "neu")
+            chg_color = WK_CHG_COLOR.get(d, "#888")
+            bond_cells += (f'<td style="padding:8px 10px;border-right:0.5px solid #f0f0f0;vertical-align:top;">'
+                           f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;'
+                           f'color:#888;margin-bottom:3px;">{label}</div>'
+                           f'<div style="font-size:18px;font-weight:500;color:{val_color};margin-bottom:2px;">'
+                           f'{val_str}</div>'
+                           f'<div style="font-size:12px;color:{chg_color};">{it.get("chg","—")}</div>'
+                           f'{tag}</td>')
+        else:
+            bond_cells += _wk_cell(it)
+
     fx_cells = "".join(_wk_cell(it) for it in fx)
     credit_cells = "".join(_wk_credit_cell(it) for it in credit)
 
@@ -797,6 +838,7 @@ def _index_market_strip(market_data: dict) -> str:
       <div style="display:flex;align-items:center;gap:6px;">
         <div style="width:3px;height:12px;background:#185FA5;border-radius:1px;"></div>
         <span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;color:#888;">債券</span>
+        {inversion_warning}
       </div></td></tr>
     <tr style="background:#EBF2FA;">{bond_cells}</tr>
     <tr><td colspan="99" style="padding:8px 10px 6px 10px;">
