@@ -317,7 +317,7 @@ def _nyfang_tag(factors: list[dict], indices: list[dict]) -> str:
     """Compare NYFANG vs NDX spot change and return a tag."""
     ndx_chg = nyfang_chg = None
     for it in indices:
-        if it.get("label", "") == "NDX現貨":
+        if it.get("label", "") == "NDX":
             ndx_chg = _parse_chg_pct(it.get("chg", ""))
     for it in factors:
         if it.get("label", "") == "NYFANG":
@@ -506,26 +506,6 @@ def _market_strip(market_data: dict) -> str:
     <tr>{liq_cells}</tr>
     {assess_bar}'''
 
-    # Build indices row with NQ/NDX special tags
-    idx_tags = {}
-    nq_chg_val = ndx_chg_val = None
-    for i, it in enumerate(indices):
-        label = it.get("label", "")
-        if label == "NQ期貨":
-            idx_tags[i] = '<span style="font-size:9px;color:#888;font-weight:600;position:absolute;top:4px;right:6px;">期貨</span>'
-            nq_chg_val = _parse_chg_pct(it.get("chg", ""))
-        elif label == "NDX現貨":
-            idx_tags[i] = '<span style="font-size:9px;color:#378ADD;font-weight:600;position:absolute;top:4px;right:6px;">現貨</span>'
-            ndx_chg_val = _parse_chg_pct(it.get("chg", ""))
-    # Check basis spread anomaly
-    if nq_chg_val is not None and ndx_chg_val is not None and abs(nq_chg_val - ndx_chg_val) > 0.5:
-        # Attach to NDX cell
-        for i, it in enumerate(indices):
-            if it.get("label", "") == "NDX現貨":
-                idx_tags[i] = (idx_tags.get(i, "") +
-                               '<div style="font-size:9px;color:#854F0B;font-weight:600;margin-top:2px;">基差異常</div>')
-                break
-
     return f'''
 <div class="section">
   <div class="section-label">市場即時數據</div>
@@ -533,7 +513,7 @@ def _market_strip(market_data: dict) -> str:
          style="background:#fff;border:0.5px solid #e8e8e8;border-radius:8px;
                 overflow:hidden;border-collapse:collapse;">
     {_mkt_section_label("股票指數", "#1B3A5C")}
-    {_mkt_row(indices, extra_tags=idx_tags)}
+    {_mkt_row(indices)}
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
     {_mkt_section_label("美股市場因子", "#7F77DD")}
     {_mkt_row(factors_fixed, extra_tags=factor_tags)}

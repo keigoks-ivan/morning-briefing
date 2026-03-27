@@ -78,14 +78,14 @@ market_data 規則：
 - 如果 Perplexity 沒有搜到 MOVE Index，val 填 "—"
 
 market_pulse 分析規則：
-- 嚴禁使用 NQ期貨數值做分析，一律改用 NDX現貨
+- 股票指數分析使用 NDX（^NDX）數值，這是美股前一日正式收盤價
 - cross_asset_signals 輸出 2-3 個，每個必須是跨指標的組合觀察，不是單一指標的描述
 - 三層推論框架：(1)背離識別：找出指標之間的異常組合 (2)雙軌機制推論：從背離推導可能的驅動機制 (3)情境推演：推導如果機制持續，下一步會怎樣
-- 可分析的指標來源：股票指數（NDX現貨）、因子（NYFANG vs NDX現貨、RSP/SPY市場寬度、MTUM動能、IWM小型股）、情緒（VIX/VIX9D/SKEW/VVIX）、MOVE Index、原物料、債券、外匯、信貸（HYG/LQD比值）、流動性（RRP/TGA/銀行準備金/NFCI + 綜合評分）
+- 可分析的指標來源：股票指數（NDX）、因子（NYFANG vs NDX、RSP/SPY市場寬度、MTUM動能、IWM小型股）、情緒（VIX/VIX9D/SKEW/VVIX）、MOVE Index、原物料、債券、外匯、信貸（HYG/LQD比值）、流動性（RRP/TGA/銀行準備金/NFCI + 綜合評分）
 - 每個 detail 必須引用至少兩個具體指標數字
 - dominant_theme 必須有明確立場方向（如「流動性驅動的風險偏好回升」），不可模糊
 - hidden_risk / hidden_opportunity 各2句，不是顯而易見的觀察
-- key_level_to_watch 用 NDX現貨價位，不用 NQ期貨
+- key_level_to_watch 用 NDX 價位
 - historical_analog 點名具體時間段做類比
 - new_pattern 如果當前不符合歷史模式，說明可能的新範式
 - 語氣使用不確定性詞彙
@@ -136,7 +136,7 @@ USER_PROMPT_TEMPLATE = """
     "dominant_theme": "今日市場主軸（1句，15字以內，有明確立場方向）",
     "hidden_risk": "從指標背離或異常組合中發現的潛在風險（2句，不是顯而易見的觀察）",
     "hidden_opportunity": "從指標背離或超賣訊號中發現的潛在機會（2句，不是顯而易見的觀察）",
-    "key_level_to_watch": "今日最值得關注的一個關鍵價位或門檻（用NDX現貨，不用NQ期貨）",
+    "key_level_to_watch": "今日最值得關注的一個關鍵價位或門檻（用NDX價位）",
     "historical_analog": "歷史類比（1句，點名具體時間段，如：類似2023年10月底的流動性轉折）",
     "new_pattern": "新模式可能性（1句，如果當前組合不符合歷史模式，說明可能的新範式）"
   }},
