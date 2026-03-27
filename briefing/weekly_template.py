@@ -553,6 +553,63 @@ def _index_market_strip(market_data: dict) -> str:
 </div>'''
 
 
+def _index_market_pulse(pulse: dict) -> str:
+    if not pulse:
+        return ""
+    observations = pulse.get("observations", [])
+    hidden_risk = pulse.get("hidden_risk", "")
+    hidden_opp = pulse.get("hidden_opportunity", "")
+    if not observations:
+        return ""
+
+    obs_html = ""
+    for i, obs in enumerate(observations):
+        separator = 'border-bottom:0.5px solid #e0e0e0;' if i < len(observations) - 1 else ''
+        obs_html += f'''
+<div style="padding:10px 0;{separator}">
+  <div style="font-size:15px;font-weight:600;color:#1B3A5C;margin-bottom:4px;">{obs.get("signal","")}</div>
+  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:4px;">{obs.get("detail","")}</div>
+  <div style="font-size:12px;color:#888;font-style:italic;line-height:1.5;">{obs.get("implication","")}</div>
+</div>'''
+
+    risk_cell = ""
+    if hidden_risk:
+        risk_cell = f'''<div style="border-left:3px solid #854F0B;padding:8px 12px;background:#fff;">
+  <div style="font-size:12px;font-weight:600;color:#854F0B;margin-bottom:4px;">潛在風險</div>
+  <div style="font-size:13px;color:#555;line-height:1.6;">{hidden_risk}</div>
+</div>'''
+    opp_cell = ""
+    if hidden_opp:
+        opp_cell = f'''<div style="border-left:3px solid #1a7a4a;padding:8px 12px;background:#fff;">
+  <div style="font-size:12px;font-weight:600;color:#1a7a4a;margin-bottom:4px;">潛在機會</div>
+  <div style="font-size:13px;color:#555;line-height:1.6;">{hidden_opp}</div>
+</div>'''
+
+    bottom_html = ""
+    if risk_cell or opp_cell:
+        bottom_html = f'''
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px;border-collapse:separate;border-spacing:8px 0;">
+  <tr>
+    <td width="50%" style="vertical-align:top;">{risk_cell}</td>
+    <td width="50%" style="vertical-align:top;">{opp_cell}</td>
+  </tr>
+</table>'''
+
+    return f'''
+<div style="margin-bottom:24px;">
+  <div style="background:#f7f7f5;border-radius:8px;border:0.5px solid #e8e8e8;padding:14px 18px;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;
+                margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid #e8e8e8;">
+      <span style="font-size:12px;letter-spacing:1.8px;text-transform:uppercase;
+                   font-weight:500;color:#888;">市場脈絡</span>
+      <span style="font-size:12px;color:#888;">跨指標訊號分析</span>
+    </div>
+    {obs_html}
+    {bottom_html}
+  </div>
+</div>'''
+
+
 def _index_theme_card(theme_key: str, data: dict, today: str) -> str:
     label = THEME_LABEL.get(theme_key, theme_key)
     summary = data.get("week_summary", "")
@@ -666,12 +723,14 @@ def build_weekly_index(
     start: str,
     end: str,
     weekly_dir: str,
+    market_pulse: dict | None = None,
 ) -> str:
     cards = "".join(
         _index_theme_card(key, theme_data.get(key, {}), today)
         for key in THEME_ORDER
     )
     archive = _index_archive(weekly_dir, today)
+    pulse_html = _index_market_pulse(market_pulse) if market_pulse else ""
 
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant">
@@ -694,6 +753,7 @@ def build_weekly_index(
   </div>
 </div>
 {_index_market_strip(market_data)}
+{pulse_html}
 {cards}
 {archive}
 <div style="font-size:12px;color:#aaa;border-top:1px solid #e8e8e8;padding-top:12px;margin-top:20px;">

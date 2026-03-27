@@ -20,6 +20,7 @@ import tempfile
 from datetime import datetime, timedelta
 import pytz
 import requests
+import anthropic
 
 try:
     from dotenv import load_dotenv
@@ -167,6 +168,7 @@ def publish_weekly_to_github(
     start: str,
     theme_data: dict[str, dict],
     market_data: dict,
+    market_pulse: dict | None = None,
 ) -> None:
     """Push weekly HTML files to financial-analysis-bot repo."""
     gh_pat = os.environ.get("GH_PAT", "")
@@ -202,6 +204,7 @@ def publish_weekly_to_github(
             start=start,
             end=today,
             weekly_dir=weekly_dir,
+            market_pulse=market_pulse,
         )
         with open(os.path.join(weekly_dir, "index.html"), "w", encoding="utf-8") as f:
             f.write(index_html)
@@ -243,6 +246,73 @@ def publish_weekly_to_github(
         raise
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def generate_weekly_market_pulse(market_data: dict) -> dict:
+    """Call Claude to generate weekly cross-indicator market pulse analysis."""
+    try:
+        client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+        def _fmt_items(items):
+            return ", ".join(f"{it['label']}: {it.get('val','—')} {it.get('chg','—')}" for it in items)
+
+        market_summary = []
+        for cat in ["indices", "factors", "sentiment", "commodities", "bonds", "fx", "credit"]:
+            items = market_data.get(cat, [])
+            if items:
+                market_summary.append(f"{cat}: {_fmt_items(items)}")
+        market_str = "\n".join(market_summary)
+
+        prompt = f"""根據以下週度市場數據，分析本週跨指標的訊號：
+{market_str}
+
+輸出 JSON：
+{{
+  "observations": [
+    {{
+      "signal": "週度訊號標題（15字以內）",
+      "detail": "具體說明（3-4句，引用週度漲跌數字，說明本週指標組合暗示什麼）",
+      "implication": "下週值得注意的走勢（1句）"
+    }}
+  ],
+  "hidden_risk": "從本週指標背離中看到的潛在風險（2句）",
+  "hidden_opportunity": "從本週超賣或背離中看到的潛在機會（2句）"
+}}
+
+規則：
+- observations 輸出 2-3 個週度跨指標組合觀察
+- 重點找本週出現的異常背離或結構性變化
+- 引用具體週漲跌數字
+- 語氣使用不確定性詞彙：可能、值得注意、暗示、或許、需要觀察
+- 嚴禁顯而易見的觀察
+- 只回傳 JSON，不要 markdown code block
+- 繁體中文，數字保留英文"""
+
+        print("  → Calling Claude for weekly market pulse...")
+        full_text = ""
+        with client.messages.stream(
+            model="claude-sonnet-4-20250514",
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}],
+        ) as stream:
+            for text in stream.text_stream:
+                full_text += text
+
+        raw = full_text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1]
+            raw = raw.rsplit("```", 1)[0].strip()
+        start_idx = raw.find("{")
+        end_idx = raw.rfind("}") + 1
+        if start_idx != -1 and end_idx > start_idx:
+            raw = raw[start_idx:end_idx]
+
+        result = json.loads(raw)
+        print(f"  ✓ Weekly pulse: {len(result.get('observations', []))} observations")
+        return result
+    except Exception as e:
+        print(f"  ✗ Weekly market pulse failed: {e}")
+        return {"observations": [], "hidden_risk": "", "hidden_opportunity": ""}
 
 
 def main() -> None:
@@ -296,13 +366,17 @@ def main() -> None:
     print(f"\n[Market] Fetching weekly market data...")
     weekly_market = fetch_weekly_market_data()
 
+    # Generate weekly market pulse
+    print(f"\n[Pulse] Generating weekly market pulse...")
+    weekly_pulse = generate_weekly_market_pulse(weekly_market)
+
     # Send email
     print(f"\n[Email] Sending weekly summary...")
     send_weekly_email(summaries, today, date_short)
 
     # Publish to GitHub
     print(f"\n[Publish] Publishing to financial-analysis-bot...")
-    publish_weekly_to_github(output_dir, today, start, theme_data, weekly_market)
+    publish_weekly_to_github(output_dir, today, start, theme_data, weekly_market, weekly_pulse)
 
     print("\n✓ Weekly report done.\n")
 
