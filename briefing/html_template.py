@@ -140,57 +140,142 @@ def _alert(text: str) -> str:
 </div>'''
 
 
-def _market_cell(item: dict) -> str:
-    """Render a single market data cell."""
-    color = SENTIMENT_COLOR.get(item.get("dir", "neu"), "#888")
-    label = item.get("label", "—")
-    is_dynamic = item.get("is_dynamic", False)
-    border_left = "border-left:3px solid #C0392B;" if is_dynamic else ""
-    dynamic_tag = '<div style="font-size:9px;color:#C0392B;font-weight:500;margin-top:2px;">今日波動</div>' if is_dynamic else ""
-    return f'''<td style="background:#fff;padding:10px 12px;border-right:1px solid #e8e8e8;
-                border-bottom:1px solid #e8e8e8;vertical-align:top;{border_left}">
-  <div style="font-size:10px;color:#888;margin-bottom:4px;">{label}</div>
-  <div style="font-size:16px;font-weight:600;color:#222;margin-bottom:2px;">{item.get("val","—")}</div>
-  <div style="font-size:12px;color:{color};">{item.get("chg","—")}</div>
-  {dynamic_tag}
-</td>'''
+MKT_CHG_COLOR = {"pos": "#0F6E56", "neg": "#C0392B", "neu": "#888"}
 
 
-def _market_row(items: list[dict]) -> str:
-    """Render a horizontal row of market cells."""
-    cells = "".join(_market_cell(it) for it in items)
-    return f'''<table width="100%" cellpadding="0" cellspacing="0"
-         style="border:1px solid #e8e8e8;border-radius:6px;overflow:hidden;border-collapse:collapse;">
-    <tr>{cells}</tr>
-  </table>'''
+def _mkt_cell(item: dict, extra_tag: str = "") -> str:
+    """Render one market data cell (table-based, email-safe)."""
+    d = item.get("dir", "neu")
+    color = MKT_CHG_COLOR.get(d, "#888")
+    is_dyn = item.get("is_dynamic", False)
+    dyn_html = ('<span style="font-size:9px;color:#C0392B;font-weight:600;'
+                'position:absolute;top:4px;right:6px;">動態</span>') if is_dyn else ""
+    return (f'<td style="padding:8px 10px;border-right:0.5px solid #f0f0f0;vertical-align:top;'
+            f'position:relative;">'
+            f'{dyn_html}'
+            f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;'
+            f'color:#888;margin-bottom:3px;">{item.get("label","—")}</div>'
+            f'<div style="font-size:18px;font-weight:500;color:#222;margin-bottom:2px;">'
+            f'{item.get("val","—")}</div>'
+            f'<div style="font-size:12px;color:{color};">{item.get("chg","—")}</div>'
+            f'{extra_tag}'
+            f'</td>')
 
 
-def _market_sub_label(text: str) -> str:
-    return f'<div style="font-size:11px;color:#888;font-weight:500;letter-spacing:1px;margin:10px 0 6px 0;">{text}</div>'
+def _mkt_row(items: list[dict], extra_tags: dict | None = None) -> str:
+    """Render a table row of market cells. extra_tags maps index → html tag string."""
+    cells = ""
+    for i, it in enumerate(items):
+        tag = (extra_tags or {}).get(i, "")
+        cells += _mkt_cell(it, extra_tag=tag)
+    return f'<tr>{cells}</tr>'
 
 
-def _move_index_card(move: dict) -> str:
-    """Render MOVE Index card."""
+def _mkt_section_label(text: str, color: str) -> str:
+    return (f'<tr><td colspan="99" style="padding:12px 10px 6px 10px;">'
+            f'<div style="display:flex;align-items:center;gap:6px;">'
+            f'<div style="width:3px;height:12px;background:{color};border-radius:1px;"></div>'
+            f'<span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;'
+            f'font-weight:600;color:#888;">{text}</span>'
+            f'</div></td></tr>')
+
+
+def _fg_cell(item: dict) -> str:
+    """Fear & Greed cell with conditional background."""
+    val_str = item.get("val", "—")
+    bg = "#fff"
+    try:
+        score = int(val_str)
+        if score <= 25:
+            bg = "#FFF0F0"
+        elif score <= 45:
+            bg = "#FFF8F0"
+        elif score <= 55:
+            bg = "#fff"
+        elif score <= 75:
+            bg = "#F0FFF4"
+        else:
+            bg = "#E8F8EE"
+    except (ValueError, TypeError):
+        pass
+    return (f'<td style="padding:8px 10px;border-right:0.5px solid #f0f0f0;vertical-align:top;'
+            f'background:{bg};">'
+            f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;'
+            f'color:#888;margin-bottom:3px;">Fear&Greed</div>'
+            f'<div style="font-size:18px;font-weight:500;color:#222;margin-bottom:2px;">'
+            f'{val_str}</div>'
+            f'<div style="font-size:12px;color:#888;">{item.get("chg","—")}</div>'
+            f'</td>')
+
+
+def _sentiment_extra_tags(items: list[dict]) -> dict:
+    """Build extra warning tags for sentiment row items by index."""
+    tags = {}
+    for i, it in enumerate(items):
+        label = it.get("label", "")
+        val_str = it.get("val", "—").replace(",", "")
+        try:
+            num = float(val_str)
+        except (ValueError, TypeError):
+            continue
+        if "SKEW" in label and num > 140:
+            tags[i] = '<div style="font-size:9px;color:#854F0B;font-weight:600;margin-top:2px;">尾部風險</div>'
+        elif "VVIX" in label and num > 120:
+            tags[i] = '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">高波動</div>'
+    return tags
+
+
+def _move_cell(move: dict) -> str:
+    """MOVE Index as a table cell."""
     val = move.get("val", "—")
-    interpretation = move.get("interpretation", "")
-    # Determine color based on numeric value
+    if val == "—":
+        return (f'<td style="padding:8px 10px;vertical-align:top;">'
+                f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;'
+                f'color:#888;margin-bottom:3px;">MOVE</div>'
+                f'<div style="font-size:18px;font-weight:500;color:#888;">—</div>'
+                f'</td>')
     color = "#888"
     try:
         num = float(str(val).replace(",", ""))
         if num > 120:
-            color = "#C0392B"  # red = high volatility
+            color = "#C0392B"
         elif num >= 80:
-            color = "#854F0B"  # orange = normal
+            color = "#854F0B"
         else:
-            color = "#1a7a4a"  # green = low volatility
+            color = "#0F6E56"
     except (ValueError, TypeError):
         pass
-    return f'''<div style="background:#fff;border:1px solid #e8e8e8;border-radius:6px;
-                padding:10px 14px;min-width:140px;display:inline-block;vertical-align:top;">
-  <div style="font-size:10px;color:#888;margin-bottom:4px;">MOVE Index</div>
-  <div style="font-size:20px;font-weight:700;color:{color};margin-bottom:2px;">{val}</div>
-  <div style="font-size:11px;color:#555;line-height:1.4;">{interpretation}</div>
-</div>'''
+    interp = move.get("interpretation", "")
+    interp_html = f'<div style="font-size:9px;color:#555;margin-top:2px;">{interp}</div>' if interp else ""
+    return (f'<td style="padding:8px 10px;vertical-align:top;">'
+            f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;'
+            f'color:#888;margin-bottom:3px;">MOVE</div>'
+            f'<div style="font-size:18px;font-weight:500;color:{color};">{val}</div>'
+            f'{interp_html}'
+            f'</td>')
+
+
+def _credit_cell(item: dict) -> str:
+    """Credit cell — HYG/LQD ratio gets special direction arrows."""
+    d = item.get("dir", "neu")
+    color = MKT_CHG_COLOR.get(d, "#888")
+    label = item.get("label", "—")
+    chg = item.get("chg", "—")
+    # HYG/LQD ratio: ↑ = spread narrowing (green), ↓ = spread widening (red)
+    if label == "HYG/LQD" and chg != "—":
+        if "▲" in chg:
+            chg = chg.replace("▲", "↑利差收窄")
+            color = "#0F6E56"
+        elif "▼" in chg:
+            chg = chg.replace("▼", "↓利差擴大")
+            color = "#C0392B"
+    return (f'<td style="padding:8px 10px;border-right:0.5px solid #f0f0f0;vertical-align:top;">'
+            f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;'
+            f'color:#888;margin-bottom:3px;">{label}</div>'
+            f'<div style="font-size:18px;font-weight:500;color:#222;margin-bottom:2px;">'
+            f'{item.get("val","—")}</div>'
+            f'<div style="font-size:12px;color:{color};">{chg}</div>'
+            f'</td>')
 
 
 def _market_strip(market_data: dict) -> str:
@@ -203,59 +288,61 @@ def _market_strip(market_data: dict) -> str:
     fx = market_data.get("fx", [])
     credit = market_data.get("credit", [])
 
-    # Row 1: 股票指數 (8 items)
-    row1_html = _market_sub_label("股票指數")
-    row1_html += _market_row(indices) if indices else ""
+    # Separate Fear&Greed from sentiment list (inserted at index 1 by fetcher)
+    sent_no_fg = []
+    fg_item = {"label": "Fear&Greed", "val": "—", "chg": "—", "dir": "neu"}
+    for it in sentiment:
+        if it.get("label", "") == "Fear&Greed":
+            fg_item = it
+        else:
+            sent_no_fg.append(it)
 
-    # Row 2: 美股市場因子 (VTV, VUG + 3 dynamic sectors)
-    row2_html = _market_sub_label("美股市場因子")
-    row2_html += _market_row(factors) if factors else ""
+    # Build sentiment extra tags (SKEW/VVIX warnings)
+    sent_tags = _sentiment_extra_tags(sent_no_fg)
 
-    # Row 3: 市場情緒 (VIX, Fear&Greed, SKEW, VVIX) + MOVE Index card
-    row3_html = _market_sub_label("市場情緒")
-    row3_html += f'''<div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
-  <div style="flex:1;min-width:0;">{_market_row(sentiment)}</div>
-  {_move_index_card(move_index)}
-</div>'''
+    # Sentiment cells: VIX, SKEW, VVIX + MOVE + Fear&Greed
+    sent_cells = ""
+    for i, it in enumerate(sent_no_fg):
+        tag = sent_tags.get(i, "")
+        sent_cells += _mkt_cell(it, extra_tag=tag)
+    sent_cells += _move_cell(move_index)
+    sent_cells += _fg_cell(fg_item)
 
-    # Row 4: 原物料
-    row4_html = _market_sub_label("原物料")
-    row4_html += _market_row(commodities) if commodities else ""
+    # Credit cells with special HYG/LQD rendering
+    credit_cells = "".join(_credit_cell(it) for it in credit)
 
-    # Row 5: 債券 / 外匯 / 信貸 — three groups side by side
-    row5_html = _market_sub_label("債券 / 外匯 / 信貸")
-    bond_cells = "".join(_market_cell(it) for it in bonds)
-    fx_cells = "".join(_market_cell(it) for it in fx)
-    credit_cells = "".join(_market_cell(it) for it in credit)
-    row5_html += f'''<div style="display:flex;gap:8px;flex-wrap:wrap;">
-  <div style="flex:1;min-width:0;">
-    <table width="100%" cellpadding="0" cellspacing="0"
-           style="border:1px solid #e8e8e8;border-radius:6px;overflow:hidden;border-collapse:collapse;">
-      <tr>{bond_cells}</tr>
-    </table>
-  </div>
-  <div style="flex:2;min-width:0;">
-    <table width="100%" cellpadding="0" cellspacing="0"
-           style="border:1px solid #e8e8e8;border-radius:6px;overflow:hidden;border-collapse:collapse;">
-      <tr>{fx_cells}</tr>
-    </table>
-  </div>
-  <div style="flex:3;min-width:0;">
-    <table width="100%" cellpadding="0" cellspacing="0"
-           style="border:1px solid #e8e8e8;border-radius:6px;overflow:hidden;border-collapse:collapse;">
-      <tr>{credit_cells}</tr>
-    </table>
-  </div>
-</div>'''
+    # Bond + FX + Credit in one row with vertical separators
+    bond_fx_credit_cells = ""
+    for it in bonds:
+        bond_fx_credit_cells += _mkt_cell(it)
+    # Vertical separator
+    bond_fx_credit_cells += '<td style="width:1px;background:#e0e0e0;padding:0;"></td>'
+    for it in fx:
+        bond_fx_credit_cells += _mkt_cell(it)
+    bond_fx_credit_cells += '<td style="width:1px;background:#e0e0e0;padding:0;"></td>'
+    bond_fx_credit_cells += credit_cells
 
     return f'''
 <div class="section">
   <div class="section-label">市場即時數據</div>
-  {row1_html}
-  {row2_html}
-  {row3_html}
-  {row4_html}
-  {row5_html}
+  <table width="100%" cellpadding="0" cellspacing="0"
+         style="background:#fff;border:0.5px solid #e8e8e8;border-radius:8px;
+                overflow:hidden;border-collapse:collapse;">
+    {_mkt_section_label("股票指數", "#1B3A5C")}
+    {_mkt_row(indices)}
+    <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
+    {_mkt_section_label("美股市場因子", "#7F77DD")}
+    {_mkt_row(factors)}
+    <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
+    {_mkt_section_label("市場情緒", "#BA7517")}
+    <tr>{sent_cells}</tr>
+    <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
+    {_mkt_section_label("原物料", "#854F0B")}
+    {_mkt_row(commodities)}
+    <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
+    {_mkt_section_label("債券 / 外匯 / 信貸", "#378ADD")}
+    <tr>{bond_fx_credit_cells}</tr>
+  </table>
 </div>'''
 
 

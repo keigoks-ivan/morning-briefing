@@ -502,54 +502,190 @@ BODY_RENDERERS = {
 
 # ──── Index page components ────
 
-def _index_market_cell(item: dict) -> str:
-    color = SENTIMENT_COLOR.get(item.get("dir", "neu"), "#888")
-    return f'''<td style="background:#fff;padding:10px 12px;border-right:1px solid #e8e8e8;
-                border-bottom:1px solid #e8e8e8;vertical-align:top;width:20%;">
-  <div style="font-size:11px;letter-spacing:0.8px;text-transform:uppercase;
-              color:#888;margin-bottom:4px;">{item.get("label","—")}</div>
-  <div style="font-size:17px;font-weight:500;color:#222;margin-bottom:2px;">{item.get("val","—")}</div>
-  <div style="font-size:13px;color:{color};">{item.get("chg","—")}</div>
-</td>'''
+WK_CHG_COLOR = {"pos": "#0F6E56", "neg": "#C0392B", "neu": "#888"}
 
 
-def _index_market_table(items: list[dict]) -> str:
-    cells = "".join(_index_market_cell(it) for it in items)
-    return f'''<table width="100%" cellpadding="0" cellspacing="0"
-         style="border:1px solid #e8e8e8;border-radius:6px;overflow:hidden;border-collapse:collapse;">
-    <tr>{cells}</tr>
-  </table>'''
+def _wk_cell(item: dict, extra_tag: str = "") -> str:
+    d = item.get("dir", "neu")
+    color = WK_CHG_COLOR.get(d, "#888")
+    is_dyn = item.get("is_dynamic", False)
+    dyn_html = ('<span style="font-size:9px;color:#C0392B;font-weight:600;'
+                'position:absolute;top:4px;right:6px;">動態</span>') if is_dyn else ""
+    return (f'<td style="padding:8px 10px;border-right:0.5px solid #f0f0f0;vertical-align:top;'
+            f'position:relative;">'
+            f'{dyn_html}'
+            f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;'
+            f'color:#888;margin-bottom:3px;">{item.get("label","—")}</div>'
+            f'<div style="font-size:18px;font-weight:500;color:#222;margin-bottom:2px;">'
+            f'{item.get("val","—")}</div>'
+            f'<div style="font-size:12px;color:{color};">{item.get("chg","—")}</div>'
+            f'{extra_tag}'
+            f'</td>')
+
+
+def _wk_row(items: list[dict]) -> str:
+    cells = "".join(_wk_cell(it) for it in items)
+    return f'<tr>{cells}</tr>'
+
+
+def _wk_section_label(text: str, color: str) -> str:
+    return (f'<tr><td colspan="99" style="padding:12px 10px 6px 10px;">'
+            f'<div style="display:flex;align-items:center;gap:6px;">'
+            f'<div style="width:3px;height:12px;background:{color};border-radius:1px;"></div>'
+            f'<span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;'
+            f'font-weight:600;color:#888;">{text}</span>'
+            f'</div></td></tr>')
+
+
+def _wk_fg_cell(item: dict) -> str:
+    val_str = item.get("val", "—")
+    bg = "#fff"
+    try:
+        score = int(val_str)
+        if score <= 25:
+            bg = "#FFF0F0"
+        elif score <= 45:
+            bg = "#FFF8F0"
+        elif score <= 55:
+            bg = "#fff"
+        elif score <= 75:
+            bg = "#F0FFF4"
+        else:
+            bg = "#E8F8EE"
+    except (ValueError, TypeError):
+        pass
+    return (f'<td style="padding:8px 10px;border-right:0.5px solid #f0f0f0;vertical-align:top;'
+            f'background:{bg};">'
+            f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;'
+            f'color:#888;margin-bottom:3px;">Fear&Greed</div>'
+            f'<div style="font-size:18px;font-weight:500;color:#222;margin-bottom:2px;">'
+            f'{val_str}</div>'
+            f'<div style="font-size:12px;color:#888;">{item.get("chg","—")}</div>'
+            f'</td>')
+
+
+def _wk_move_cell(move: dict) -> str:
+    val = move.get("val", "—")
+    if val == "—":
+        return (f'<td style="padding:8px 10px;vertical-align:top;">'
+                f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;'
+                f'color:#888;margin-bottom:3px;">MOVE</div>'
+                f'<div style="font-size:18px;font-weight:500;color:#888;">—</div>'
+                f'</td>')
+    color = "#888"
+    try:
+        num = float(str(val).replace(",", ""))
+        if num > 120:
+            color = "#C0392B"
+        elif num >= 80:
+            color = "#854F0B"
+        else:
+            color = "#0F6E56"
+    except (ValueError, TypeError):
+        pass
+    interp = move.get("interpretation", "")
+    interp_html = f'<div style="font-size:9px;color:#555;margin-top:2px;">{interp}</div>' if interp else ""
+    return (f'<td style="padding:8px 10px;vertical-align:top;">'
+            f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;'
+            f'color:#888;margin-bottom:3px;">MOVE</div>'
+            f'<div style="font-size:18px;font-weight:500;color:{color};">{val}</div>'
+            f'{interp_html}'
+            f'</td>')
+
+
+def _wk_credit_cell(item: dict) -> str:
+    d = item.get("dir", "neu")
+    color = WK_CHG_COLOR.get(d, "#888")
+    label = item.get("label", "—")
+    chg = item.get("chg", "—")
+    if label == "HYG/LQD" and chg != "—":
+        if "▲" in chg:
+            chg = chg.replace("▲", "↑利差收窄")
+            color = "#0F6E56"
+        elif "▼" in chg:
+            chg = chg.replace("▼", "↓利差擴大")
+            color = "#C0392B"
+    return (f'<td style="padding:8px 10px;border-right:0.5px solid #f0f0f0;vertical-align:top;">'
+            f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;'
+            f'color:#888;margin-bottom:3px;">{label}</div>'
+            f'<div style="font-size:18px;font-weight:500;color:#222;margin-bottom:2px;">'
+            f'{item.get("val","—")}</div>'
+            f'<div style="font-size:12px;color:{color};">{chg}</div>'
+            f'</td>')
 
 
 def _index_market_strip(market_data: dict) -> str:
-    items = market_data.get("items", [])
-    fear_greed = market_data.get("fear_greed", {"val": "—", "chg": "—", "dir": "neu"})
+    indices = market_data.get("indices", [])
+    factors = market_data.get("factors", [])
+    sentiment = market_data.get("sentiment", [])
+    move_index = market_data.get("move_index", {"val": "—", "interpretation": ""})
+    commodities = market_data.get("commodities", [])
+    bonds = market_data.get("bonds", [])
+    fx = market_data.get("fx", [])
+    credit = market_data.get("credit", [])
 
-    by_key = {it.get("key", ""): it for it in items}
-    def _g(key, fb="—"):
-        return by_key.get(key, {"label": fb, "val": "—", "chg": "—", "dir": "neu"})
+    # Separate Fear&Greed from sentiment
+    sent_no_fg = []
+    fg_item = {"label": "Fear&Greed", "val": "—", "chg": "—", "dir": "neu"}
+    for it in sentiment:
+        if it.get("label", "") == "Fear&Greed":
+            fg_item = it
+        else:
+            sent_no_fg.append(it)
 
-    row1 = [_g("nq100","NQ100"), _g("sp500","S&P500"), _g("sox","費半"),
-            _g("vix","VIX"), _g("twii","台灣加權")]
-    row2 = [_g("brent","Brent油"), _g("gold","黃金"), _g("silver","白銀"),
-            _g("copper","銅"), _g("dxy","DXY")]
-    fg_item = {"label": "Fear&Greed", "val": fear_greed.get("val","—"),
-               "chg": fear_greed.get("chg","—"), "dir": fear_greed.get("dir","neu")}
-    row3 = [_g("us10y","美10Y"), _g("btc","BTC"), fg_item]
-    # Add auto-selected dynamic items from weekly pool
-    for d in market_data.get("dynamic", [])[:2]:
-        row3.append(d)
+    # Sentiment extra tags
+    sent_tags = {}
+    for i, it in enumerate(sent_no_fg):
+        val_str = it.get("val", "—").replace(",", "")
+        try:
+            num = float(val_str)
+        except (ValueError, TypeError):
+            continue
+        if "SKEW" in it.get("label", "") and num > 140:
+            sent_tags[i] = '<div style="font-size:9px;color:#854F0B;font-weight:600;margin-top:2px;">尾部風險</div>'
+        elif "VVIX" in it.get("label", "") and num > 120:
+            sent_tags[i] = '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">高波動</div>'
+
+    sent_cells = ""
+    for i, it in enumerate(sent_no_fg):
+        sent_cells += _wk_cell(it, extra_tag=sent_tags.get(i, ""))
+    sent_cells += _wk_move_cell(move_index)
+    sent_cells += _wk_fg_cell(fg_item)
+
+    credit_cells = "".join(_wk_credit_cell(it) for it in credit)
+
+    bond_fx_credit_cells = ""
+    for it in bonds:
+        bond_fx_credit_cells += _wk_cell(it)
+    bond_fx_credit_cells += '<td style="width:1px;background:#e0e0e0;padding:0;"></td>'
+    for it in fx:
+        bond_fx_credit_cells += _wk_cell(it)
+    bond_fx_credit_cells += '<td style="width:1px;background:#e0e0e0;padding:0;"></td>'
+    bond_fx_credit_cells += credit_cells
 
     return f'''
 <div style="margin-bottom:24px;">
   <div style="font-size:13px;letter-spacing:1.8px;text-transform:uppercase;
               font-weight:500;color:#888;border-bottom:0.5px solid #e0e0e0;
               padding-bottom:5px;margin-bottom:14px;">市場週度數據</div>
-  {_index_market_table(row1)}
-  <div style="height:8px;"></div>
-  {_index_market_table(row2)}
-  <div style="height:8px;"></div>
-  {_index_market_table(row3)}
+  <table width="100%" cellpadding="0" cellspacing="0"
+         style="background:#fff;border:0.5px solid #e8e8e8;border-radius:8px;
+                overflow:hidden;border-collapse:collapse;">
+    {_wk_section_label("股票指數", "#1B3A5C")}
+    {_wk_row(indices)}
+    <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
+    {_wk_section_label("美股市場因子", "#7F77DD")}
+    {_wk_row(factors)}
+    <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
+    {_wk_section_label("市場情緒", "#BA7517")}
+    <tr>{sent_cells}</tr>
+    <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
+    {_wk_section_label("原物料", "#854F0B")}
+    {_wk_row(commodities)}
+    <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
+    {_wk_section_label("債券 / 外匯 / 信貸", "#378ADD")}
+    <tr>{bond_fx_credit_cells}</tr>
+  </table>
 </div>'''
 
 

@@ -34,7 +34,7 @@ from weekly_fetcher import (
 )
 from weekly_processor import process_weekly_theme
 from weekly_template import build_weekly_html, build_weekly_index
-from news_fetcher import fetch_weekly_market_data
+from news_fetcher import fetch_weekly_market_data, fetch_move_index
 
 
 THEME_ORDER = [
@@ -365,6 +365,15 @@ def main() -> None:
     # Fetch weekly market data for index page
     print(f"\n[Market] Fetching weekly market data...")
     weekly_market = fetch_weekly_market_data()
+    # Add MOVE Index from Perplexity
+    move_raw = fetch_move_index()
+    weekly_market["move_index"] = {"val": "—", "interpretation": ""}
+    if move_raw:
+        # Extract numeric value from Perplexity response
+        import re
+        nums = re.findall(r'\b(\d{2,3}(?:\.\d+)?)\b', move_raw)
+        if nums:
+            weekly_market["move_index"]["val"] = nums[0]
 
     # Generate weekly market pulse
     print(f"\n[Pulse] Generating weekly market pulse...")
