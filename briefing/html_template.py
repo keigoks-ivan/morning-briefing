@@ -798,62 +798,144 @@ def _daily_deep_dive(items: list) -> str:
         theme = item.get("theme", "")
         headline = item.get("headline", "")
         situation = item.get("situation", "")
+        deep_analysis = item.get("deep_analysis", "")
         structural_signal = item.get("structural_signal", "")
+        bull_case = item.get("bull_case", "")
+        bear_case = item.get("bear_case", "")
         implication = item.get("implication", "")
-        source_html = _source_line(item.get("source", ""), item.get("source_date", ""))
+        source = item.get("source", "")
+        source_date = item.get("source_date", "")
+        source_text = f"{source_date} · {source}" if source and source_date else (source_date or source)
 
-        # key_data table
-        key_data = item.get("key_data", [])
-        kd_rows = ""
-        for kd in key_data:
-            kd_rows += f'''<tr>
-  <td style="padding:6px 10px;font-size:13px;color:#555;white-space:nowrap;">{kd.get("metric","")}</td>
-  <td style="padding:6px 10px;font-size:13px;font-weight:600;color:#222;">{kd.get("value","")}</td>
-  <td style="padding:6px 10px;font-size:13px;color:#555;">{kd.get("change","")}</td>
-  <td style="padding:6px 10px;font-size:13px;color:#888;">{kd.get("context","")}</td>
-</tr>'''
-        kd_html = ""
-        if kd_rows:
-            kd_html = f'''<table width="100%" cellpadding="0" cellspacing="0"
-  style="background:#f7f7f5;border-radius:4px;border-collapse:collapse;margin:10px 0;">
-  {kd_rows}
-</table>'''
-
-        signal_html = ""
-        if structural_signal:
-            signal_html = f'''<div style="border-left:3px solid #378ADD;padding:8px 12px;margin:10px 0;background:#f8fafd;">
-  <div style="font-size:12px;font-weight:500;color:#378ADD;margin-bottom:4px;">結構性訊號</div>
-  <div style="font-size:14px;color:#555;line-height:1.6;">{structural_signal}</div>
+        # 1. Header: theme tag + headline + source
+        header_html = f'''
+<div style="display:flex;align-items:flex-start;gap:0;margin-bottom:14px;">
+  <div style="width:4px;background:{color};border-radius:2px;flex-shrink:0;min-height:40px;margin-right:12px;"></div>
+  <div style="flex:1;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;font-weight:600;padding:2px 8px;border-radius:3px;
+                     color:#fff;background:{color};white-space:nowrap;">{theme}</span>
+        <span style="font-size:18px;font-weight:600;color:#222;line-height:1.4;">{headline}</span>
+      </div>
+      <span style="font-size:11px;color:#aaa;white-space:nowrap;">{source_text}</span>
+    </div>
+  </div>
 </div>'''
 
+        # 2. Situation
+        sit_html = ""
+        if situation:
+            sit_html = f'''
+<div style="background:#F8F8F6;border-radius:6px;padding:12px 14px;margin-bottom:12px;">
+  <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;
+              color:#888;margin-bottom:6px;">現況</div>
+  <div style="font-size:14px;color:#555;line-height:1.8;">{situation}</div>
+</div>'''
+
+        # 3. Key data table
+        key_data = item.get("key_data", [])
+        kd_html = ""
+        if key_data:
+            kd_rows = ""
+            for kd in key_data:
+                change_str = kd.get("change", "")
+                is_pos = any(c in change_str for c in ["▲", "+", "上升", "增"])
+                is_neg = any(c in change_str for c in ["▼", "-", "下降", "減", "跌"])
+                val_bg = "#F0FFF4" if is_pos else ("#FFF0F0" if is_neg else "#fff")
+                kd_rows += (f'<tr>'
+                            f'<td style="padding:7px 10px;font-size:13px;color:#555;border-bottom:0.5px solid #f0f0f0;'
+                            f'white-space:nowrap;">{kd.get("metric","")}</td>'
+                            f'<td style="padding:7px 10px;font-size:16px;font-weight:600;color:#222;'
+                            f'border-bottom:0.5px solid #f0f0f0;background:{val_bg};">{kd.get("value","")}</td>'
+                            f'<td style="padding:7px 10px;font-size:13px;color:#555;'
+                            f'border-bottom:0.5px solid #f0f0f0;">{change_str}</td>'
+                            f'<td style="padding:7px 10px;font-size:12px;color:#888;'
+                            f'border-bottom:0.5px solid #f0f0f0;">{kd.get("context","")}</td>'
+                            f'</tr>')
+            kd_html = f'''
+<div style="margin-bottom:12px;">
+  <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;
+              color:#888;margin-bottom:6px;">關鍵數據</div>
+  <table width="100%" cellpadding="0" cellspacing="0"
+         style="border:0.5px solid #e8e8e8;border-radius:4px;border-collapse:collapse;overflow:hidden;">
+    {kd_rows}
+  </table>
+</div>'''
+
+        # 4. Deep analysis
+        analysis_html = ""
+        if deep_analysis:
+            analysis_html = f'''
+<div style="margin-bottom:12px;">
+  <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;
+              color:#1B3A5C;margin-bottom:6px;">深度分析</div>
+  <div style="border-left:3px solid #1B3A5C;padding:8px 12px;background:#f8fafd;">
+    <div style="font-size:14px;color:#555;line-height:1.8;">{deep_analysis}</div>
+  </div>
+</div>'''
+
+        # 5. Structural signal
+        signal_html = ""
+        if structural_signal:
+            signal_html = f'''
+<div style="margin-bottom:12px;">
+  <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;
+              color:#7F77DD;margin-bottom:6px;">結構性訊號</div>
+  <div style="border-left:3px solid #7F77DD;padding:8px 12px;">
+    <div style="font-size:13px;color:#555;line-height:1.7;font-style:italic;">{structural_signal}</div>
+  </div>
+</div>'''
+
+        # 6. Bull/Bear side by side
+        bull_bear_html = ""
+        if bull_case or bear_case:
+            bull_td = (f'<td width="50%" style="vertical-align:top;padding-right:5px;">'
+                       f'<div style="background:#F0FFF4;border-radius:4px;padding:10px 12px;">'
+                       f'<div style="font-size:10px;font-weight:600;color:#0F6E56;margin-bottom:4px;">'
+                       f'樂觀情境 ▲</div>'
+                       f'<div style="font-size:13px;color:#555;line-height:1.65;">{bull_case}</div>'
+                       f'</div></td>') if bull_case else '<td width="50%"></td>'
+            bear_td = (f'<td width="50%" style="vertical-align:top;padding-left:5px;">'
+                       f'<div style="background:#FFF0F0;border-radius:4px;padding:10px 12px;">'
+                       f'<div style="font-size:10px;font-weight:600;color:#C0392B;margin-bottom:4px;">'
+                       f'悲觀情境 ▼</div>'
+                       f'<div style="font-size:13px;color:#555;line-height:1.65;">{bear_case}</div>'
+                       f'</div></td>') if bear_case else '<td width="50%"></td>'
+            bull_bear_html = f'''
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-collapse:collapse;">
+  <tr>{bull_td}{bear_td}</tr>
+</table>'''
+
+        # 7. Implication
         impl_html = ""
         if implication:
-            impl_html = f'''<div style="border-left:3px solid #1a7a4a;padding:8px 12px;margin:10px 0;background:#f5faf7;">
-  <div style="font-size:12px;font-weight:500;color:#1a7a4a;margin-bottom:4px;">投資含義</div>
-  <div style="font-size:14px;color:#555;line-height:1.6;">{implication}</div>
+            impl_html = f'''
+<div style="background:#FEF9E7;border-radius:4px;border-left:3px solid #BA7517;padding:10px 12px;">
+  <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;
+              color:#BA7517;margin-bottom:4px;">投資含義</div>
+  <div style="font-size:14px;color:#555;line-height:1.7;">{implication}</div>
 </div>'''
 
         cards += f'''
-<div style="border:1px solid #e8e8e8;border-radius:6px;padding:16px 18px;margin-bottom:14px;
-            border-left:4px solid {color};">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-    <span style="font-size:12px;font-weight:500;padding:2px 8px;border-radius:3px;
-                 color:#fff;background:{color};">{theme}</span>
-    <span style="font-size:16px;font-weight:600;color:#222;line-height:1.4;">{headline}</span>
-  </div>
-  <div style="font-size:14px;color:#555;line-height:1.65;">{situation}</div>
+<div style="border:0.5px solid #e8e8e8;border-radius:8px;padding:18px 20px;margin-bottom:20px;
+            background:#fff;">
+  {header_html}
+  {sit_html}
   {kd_html}
+  {analysis_html}
   {signal_html}
+  {bull_bear_html}
   {impl_html}
-  {source_html}
 </div>'''
 
     return f'''
 <div class="section">
-  <div class="section-label">每日深度聚焦</div>
-  <div style="border:1px solid #e0e0e0;border-radius:8px;padding:16px;background:#fafafa;">
-    {cards}
+  <div class="section-label">每日深度聚焦
+    <span style="font-size:12px;color:#888;font-weight:400;letter-spacing:0;">
+      今日最值得深挖的兩個主題</span>
   </div>
+  {cards}
 </div>'''
 
 
