@@ -77,6 +77,16 @@ market_data 規則：
 - move_index.val 從 Perplexity 搜尋結果中提取真實數值
 - 如果 Perplexity 沒有搜到 MOVE Index，val 填 "—"
 
+market_pulse 分析規則：
+- observations 輸出 2-3 個，每個必須是跨指標的組合觀察，不是單一指標的描述
+- 優先找：指標之間的背離（如VIX高但SKEW低）、異常組合（如油價漲但能源股跌）、結構性分化（如HYG跌但LQD穩）
+- 每個 detail 必須引用至少兩個具體指標數字
+- hidden_risk 專門描述從數字組合中看到但不顯眼的潛在風險（2句）
+- hidden_opportunity 專門描述從指標背離、超賣、或市場錯誤定價中看到的潛在機會（2句）
+- 語氣必須使用不確定性詞彙：可能、值得注意、暗示、或許、需要觀察
+- 嚴禁輸出顯而易見的觀察（如「VIX上升代表市場恐慌」）
+- 整體 200字以內
+
 其他規則：
 - 只回傳 JSON，不要任何前置說明、後記或 markdown code block
 - 所有文字使用繁體中文，數字/公司名/技術術語保留英文
@@ -108,6 +118,18 @@ USER_PROMPT_TEMPLATE = """
     "bonds":      [{{"label":"","val":"","chg":"","dir":""}}],
     "fx":         [{{"label":"","val":"","chg":"","dir":""}}],
     "credit":     [{{"label":"","val":"","chg":"","dir":""}}]
+  }},
+
+  "market_pulse": {{
+    "observations": [
+      {{
+        "signal": "訊號標題（15字以內）",
+        "detail": "具體說明（2-3句，必須引用至少兩個指標的實際數字，說明它們組合起來暗示什麼）",
+        "implication": "可能的走勢含義（1句，用「可能」「值得注意」等不確定性語氣）"
+      }}
+    ],
+    "hidden_risk": "從指標背離或異常組合中發現的潛在風險（2句，不是顯而易見的觀察）",
+    "hidden_opportunity": "從指標背離或超賣訊號中發現的潛在機會（2句，不是顯而易見的觀察）"
   }},
 
   "us_market_recap": {{
@@ -499,6 +521,7 @@ def _validate(data: dict) -> None:
     data.setdefault("implied_trends", [])
     data.setdefault("us_market_recap", {"has_events": False, "earnings": [], "other_events": [], "summary": ""})
     data.setdefault("smart_money", {"has_signals": False, "signals": [], "summary": ""})
+    data.setdefault("market_pulse", {"observations": [], "hidden_risk": "", "hidden_opportunity": ""})
     data.setdefault("daily_deep_dive", [])
     data.setdefault("fun_fact", {})
     data.setdefault("today_events", [])
