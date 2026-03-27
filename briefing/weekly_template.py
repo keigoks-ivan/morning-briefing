@@ -717,16 +717,9 @@ def _index_market_strip(market_data: dict) -> str:
     sent_cells += _wk_move_cell(move_index)
     sent_cells += _wk_fg_cell(fg_item)
 
+    bond_cells = "".join(_wk_cell(it) for it in bonds)
+    fx_cells = "".join(_wk_cell(it) for it in fx)
     credit_cells = "".join(_wk_credit_cell(it) for it in credit)
-
-    bond_fx_credit_cells = ""
-    for it in bonds:
-        bond_fx_credit_cells += _wk_cell(it)
-    bond_fx_credit_cells += '<td style="width:1px;background:#e0e0e0;padding:0;"></td>'
-    for it in fx:
-        bond_fx_credit_cells += _wk_cell(it)
-    bond_fx_credit_cells += '<td style="width:1px;background:#e0e0e0;padding:0;"></td>'
-    bond_fx_credit_cells += credit_cells
 
     # Liquidity
     liq_cells = ""
@@ -735,12 +728,38 @@ def _index_market_strip(market_data: dict) -> str:
             liq_cells += _wk_nfci_cell(it)
         else:
             liq_cells += _wk_rrp_cell(it)
+
+    liq_assess = market_data.get("liquidity_assessment", {})
+    a_label = liq_assess.get("label", "—")
+    a_color = liq_assess.get("color", "neu")
+    a_score = liq_assess.get("score", 0)
+    a_signals = liq_assess.get("signals", [])
+    if a_color == "pos":
+        a_bg, a_tc, a_icon = "#E8F8EE", "#0F6E56", "✓"
+    elif a_color == "neg":
+        a_bg, a_tc, a_icon = "#FFF0F0", "#C0392B", "⚠"
+    else:
+        a_bg, a_tc, a_icon = "#f7f7f5", "#888", ""
+    sig_tags = " ".join(
+        f'<span style="font-size:9px;background:#fff;padding:1px 5px;border-radius:2px;'
+        f'color:#555;margin-left:4px;">{s}</span>' for s in a_signals
+    )
+    score_sign = f"+{a_score}" if a_score > 0 else str(a_score)
+    assess_bar = (f'<tr><td colspan="99" style="background:{a_bg};padding:8px 12px;">'
+                  f'<div style="display:flex;justify-content:space-between;align-items:center;">'
+                  f'<div><span style="font-size:13px;font-weight:600;color:{a_tc};">'
+                  f'{a_label} {a_icon}</span>{sig_tags}</div>'
+                  f'<span style="font-size:12px;font-weight:600;color:{a_tc};">'
+                  f'{score_sign}</span>'
+                  f'</div></td></tr>')
+
     liq_section = ""
     if liquidity:
         liq_section = f'''
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
     {_wk_section_label("流動性", "#1a7a4a")}
-    <tr>{liq_cells}</tr>'''
+    <tr>{liq_cells}</tr>
+    {assess_bar}'''
 
     return f'''
 <div style="margin-bottom:24px;">
@@ -762,8 +781,24 @@ def _index_market_strip(market_data: dict) -> str:
     {_wk_section_label("原物料", "#854F0B")}
     {_wk_row(commodities)}
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
-    {_wk_section_label("債券 / 外匯 / 信貸", "#378ADD")}
-    <tr>{bond_fx_credit_cells}</tr>
+    <tr><td colspan="99" style="padding:12px 10px 6px 10px;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="width:3px;height:12px;background:#185FA5;border-radius:1px;"></div>
+        <span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;color:#888;">債券</span>
+      </div></td></tr>
+    <tr style="background:#EBF2FA;">{bond_cells}</tr>
+    <tr><td colspan="99" style="padding:8px 10px 6px 10px;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="width:3px;height:12px;background:#534AB7;border-radius:1px;"></div>
+        <span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;color:#888;">外匯</span>
+      </div></td></tr>
+    <tr style="background:#F0EDF8;">{fx_cells}</tr>
+    <tr><td colspan="99" style="padding:8px 10px 6px 10px;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="width:3px;height:12px;background:#0F6E56;border-radius:1px;"></div>
+        <span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;color:#888;">信貸</span>
+      </div></td></tr>
+    <tr style="background:#E8F5EE;">{credit_cells}</tr>
     {liq_section}
   </table>
 </div>'''

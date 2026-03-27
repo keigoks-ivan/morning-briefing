@@ -426,20 +426,18 @@ def _market_strip(market_data: dict) -> str:
     sent_cells += _move_cell(move_index)
     sent_cells += _fg_cell(fg_item)
 
-    # Credit cells
+    # Bond row (blue bg)
+    bond_cells = "".join(
+        _mkt_cell(it) for it in bonds
+    )
+    # FX row (purple bg)
+    fx_cells = "".join(
+        _mkt_cell(it) for it in fx
+    )
+    # Credit row (green bg)
     credit_cells = "".join(_credit_cell(it) for it in credit)
 
-    # Bond + FX + Credit row
-    bond_fx_credit_cells = ""
-    for it in bonds:
-        bond_fx_credit_cells += _mkt_cell(it)
-    bond_fx_credit_cells += '<td style="width:1px;background:#e0e0e0;padding:0;"></td>'
-    for it in fx:
-        bond_fx_credit_cells += _mkt_cell(it)
-    bond_fx_credit_cells += '<td style="width:1px;background:#e0e0e0;padding:0;"></td>'
-    bond_fx_credit_cells += credit_cells
-
-    # Liquidity cells
+    # Liquidity cells + assessment bar
     liq_cells = ""
     for it in liquidity:
         if it.get("label", "") == "NFCI":
@@ -447,12 +445,43 @@ def _market_strip(market_data: dict) -> str:
         else:
             liq_cells += _rrp_cell(it)
 
+    liq_assess = market_data.get("liquidity_assessment", {})
+    assess_label = liq_assess.get("label", "—")
+    assess_color = liq_assess.get("color", "neu")
+    assess_score = liq_assess.get("score", 0)
+    assess_signals = liq_assess.get("signals", [])
+    if assess_color == "pos":
+        assess_bg = "#E8F8EE"
+        assess_text_color = "#0F6E56"
+        assess_icon = "✓"
+    elif assess_color == "neg":
+        assess_bg = "#FFF0F0"
+        assess_text_color = "#C0392B"
+        assess_icon = "⚠"
+    else:
+        assess_bg = "#f7f7f5"
+        assess_text_color = "#888"
+        assess_icon = ""
+    signal_tags = " ".join(
+        f'<span style="font-size:9px;background:#fff;padding:1px 5px;border-radius:2px;'
+        f'color:#555;margin-left:4px;">{s}</span>' for s in assess_signals
+    )
+    score_sign = f"+{assess_score}" if assess_score > 0 else str(assess_score)
+    assess_bar = (f'<tr><td colspan="99" style="background:{assess_bg};padding:8px 12px;">'
+                  f'<div style="display:flex;justify-content:space-between;align-items:center;">'
+                  f'<div><span style="font-size:13px;font-weight:600;color:{assess_text_color};">'
+                  f'{assess_label} {assess_icon}</span>{signal_tags}</div>'
+                  f'<span style="font-size:12px;font-weight:600;color:{assess_text_color};">'
+                  f'{score_sign}</span>'
+                  f'</div></td></tr>')
+
     liq_section = ""
     if liquidity:
         liq_section = f'''
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
     {_mkt_section_label("流動性", "#1a7a4a")}
-    <tr>{liq_cells}</tr>'''
+    <tr>{liq_cells}</tr>
+    {assess_bar}'''
 
     # Build indices row with NQ/NDX special tags
     idx_tags = {}
@@ -492,8 +521,24 @@ def _market_strip(market_data: dict) -> str:
     {_mkt_section_label("原物料", "#854F0B")}
     {_mkt_row(commodities)}
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
-    {_mkt_section_label("債券 / 外匯 / 信貸", "#378ADD")}
-    <tr>{bond_fx_credit_cells}</tr>
+    <tr><td colspan="99" style="padding:12px 10px 6px 10px;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="width:3px;height:12px;background:#185FA5;border-radius:1px;"></div>
+        <span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;color:#888;">債券</span>
+      </div></td></tr>
+    <tr style="background:#EBF2FA;">{bond_cells}</tr>
+    <tr><td colspan="99" style="padding:8px 10px 6px 10px;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="width:3px;height:12px;background:#534AB7;border-radius:1px;"></div>
+        <span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;color:#888;">外匯</span>
+      </div></td></tr>
+    <tr style="background:#F0EDF8;">{fx_cells}</tr>
+    <tr><td colspan="99" style="padding:8px 10px 6px 10px;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="width:3px;height:12px;background:#0F6E56;border-radius:1px;"></div>
+        <span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;color:#888;">信貸</span>
+      </div></td></tr>
+    <tr style="background:#E8F5EE;">{credit_cells}</tr>
     {liq_section}
   </table>
 </div>'''

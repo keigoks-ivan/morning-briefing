@@ -452,6 +452,12 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
         lines.append(f"【外匯】{fx_str}")
         lines.append(f"【信貸市場】{credit_str}")
         lines.append(f"【流動性】{liquidity_str}")
+        liq_assess = market_data.get("liquidity_assessment", {})
+        if liq_assess:
+            assess_label = liq_assess.get("label", "")
+            assess_score = liq_assess.get("score", 0)
+            assess_signals = ", ".join(liq_assess.get("signals", []))
+            lines.append(f"【流動性綜合】{assess_label}（評分：{assess_score}，訊號：{assess_signals}）")
 
         # Today's earnings from yfinance
         if today_earnings:
@@ -571,6 +577,7 @@ def _validate(data: dict) -> None:
     md.setdefault("fx", [])
     md.setdefault("credit", [])
     md.setdefault("liquidity", [])
+    md.setdefault("liquidity_assessment", {"label": "—", "color": "neu", "score": 0, "signals": []})
 
     rt = data.get("regional_tech", {})
     for region in ["taiwan", "japan", "us", "malaysia", "korea", "china", "europe"]:

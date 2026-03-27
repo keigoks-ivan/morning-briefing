@@ -86,9 +86,11 @@ FIXED_TICKERS = {
     "vvix":      {"ticker": "^VVIX",     "label": "VVIX",     "prefix": "",  "type": "sentiment", "invert": True},
     # 原物料
     "brent":     {"ticker": "BZ=F",      "label": "Brent油",  "prefix": "$", "type": "commodity"},
+    "wti":       {"ticker": "CL=F",      "label": "WTI油",    "prefix": "$", "type": "commodity"},
     "gold":      {"ticker": "GC=F",      "label": "黃金",      "prefix": "$", "type": "commodity"},
     "silver":    {"ticker": "SI=F",      "label": "白銀",      "prefix": "$", "type": "commodity"},
     "copper":    {"ticker": "HG=F",      "label": "銅",        "prefix": "$", "type": "commodity"},
+    "alum":      {"ticker": "ALI=F",     "label": "鋁",        "prefix": "$", "type": "commodity"},
     # 債券
     "us10y":     {"ticker": "^TNX",      "label": "美10Y",    "prefix": "",  "type": "bond", "use_bps": True},
     # 外匯
@@ -98,6 +100,12 @@ FIXED_TICKERS = {
     "hyg":       {"ticker": "HYG",       "label": "HYG",      "prefix": "$", "type": "credit"},
     "lqd":       {"ticker": "LQD",       "label": "LQD",      "prefix": "$", "type": "credit"},
     "bkln":      {"ticker": "BKLN",      "label": "BKLN",     "prefix": "$", "type": "credit"},
+}
+
+COMMODITY_POOL = {
+    "NG=F": "天然氣", "PA=F": "鈀金", "PL=F": "鉑金",
+    "ZW=F": "小麥", "ZC=F": "玉米", "ZS=F": "黃豆",
+    "CC=F": "可可", "KC=F": "咖啡", "SB=F": "糖",
 }
 
 SECTOR_ETFS = {
@@ -128,12 +136,15 @@ def _fetch_fear_greed() -> dict:
 
 
 def fetch_fred_data() -> dict:
-    """Fetch RRP and NFCI from FRED via CSV endpoint."""
+    """Fetch RRP, NFCI, TGA, and bank reserves from FRED via CSV endpoint."""
     result = {}
     fred_series = {
-        "rrp": "RRPONTSYD",
-        "nfci": "NFCI",
+        "rrp":      "RRPONTSYD",  # 隔夜逆回購餘額
+        "nfci":     "NFCI",       # 芝加哥Fed金融條件指數
+        "tga":      "WTREGEN",    # 財政部一般帳戶
+        "reserves": "WRESBAL",    # 銀行準備金
     }
+    LABELS = {"rrp": "RRP餘額", "nfci": "NFCI", "tga": "TGA", "reserves": "銀行準備金"}
     for key, series_id in fred_series.items():
         try:
             url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
@@ -148,20 +159,36 @@ def fetch_fred_data() -> dict:
                 latest = float(latest_val)
                 prev = float(prev_val)
                 change = latest - prev
-                if key == "rrp":
-                    result[key] = {
-                        "label": "RRP餘額",
-                        "val": f"${latest:.0f}B",
-                        "chg": f"{'▲' if change > 0 else '▼'} {abs(change):.0f}B",
-                        "dir": "neg" if change < 0 else "pos",
-                        "date": latest_date,
-                    }
-                else:
+                if key == "nfci":
                     result[key] = {
                         "label": "NFCI",
                         "val": f"{latest:.3f}",
                         "chg": f"{'▲' if change > 0 else '▼'} {abs(change):.3f}",
-                        "dir": "neg" if change > 0 else "pos",
+                        "dir": "neg" if change > 0 else "pos",  # NFCI上升=收緊=neg
+                        "date": latest_date,
+                    }
+                elif key == "tga":
+                    result[key] = {
+                        "label": "TGA",
+                        "val": f"${latest:.0f}B",
+                        "chg": f"{'▲' if change > 0 else '▼'} {abs(change):.0f}B",
+                        "dir": "pos" if change < 0 else "neg",  # TGA下降=政府花錢=流動性增加
+                        "date": latest_date,
+                    }
+                elif key == "reserves":
+                    result[key] = {
+                        "label": "銀行準備金",
+                        "val": f"${latest:.0f}B",
+                        "chg": f"{'▲' if change > 0 else '▼'} {abs(change):.0f}B",
+                        "dir": "pos" if change > 0 else "neg",  # 準備金增加=流動性充裕
+                        "date": latest_date,
+                    }
+                else:  # rrp
+                    result[key] = {
+                        "label": "RRP餘額",
+                        "val": f"${latest:.0f}B",
+                        "chg": f"{'▲' if change > 0 else '▼'} {abs(change):.0f}B",
+                        "dir": "pos" if change < 0 else "neg",  # RRP下降=流動性釋放
                         "date": latest_date,
                     }
                 print(f"  ✓ FRED {series_id}: {latest_val} ({latest_date})")
@@ -170,10 +197,35 @@ def fetch_fred_data() -> dict:
         except Exception as e:
             print(f"  ✗ FRED {series_id}: {e}")
             result[key] = {
-                "label": "RRP餘額" if key == "rrp" else "NFCI",
+                "label": LABELS.get(key, key),
                 "val": "—", "chg": "—", "dir": "neu", "date": "",
             }
     return result
+
+
+def assess_liquidity(fred: dict) -> dict:
+    """Assess overall liquidity from RRP, TGA, reserves, NFCI."""
+    score = 0
+    signals = []
+    for key, up_label, down_label in [
+        ("rrp", "RRP↑", "RRP↓"),
+        ("tga", "TGA↑", "TGA↓"),
+        ("reserves", "準備金↑", "準備金↓"),
+        ("nfci", "NFCI收緊", "NFCI改善"),
+    ]:
+        item = fred.get(key, {})
+        d = item.get("dir", "neu")
+        if d == "pos":
+            score += 1
+            signals.append(down_label if key in ("rrp", "tga") else up_label if key == "reserves" else down_label)
+        elif d == "neg":
+            score -= 1
+            signals.append(up_label if key in ("rrp", "tga") else down_label if key == "reserves" else up_label)
+    if score >= 2:
+        return {"label": "流動性寬鬆", "color": "pos", "score": score, "signals": signals}
+    elif score <= -2:
+        return {"label": "流動性收縮", "color": "neg", "score": score, "signals": signals}
+    return {"label": "流動性中性", "color": "neu", "score": score, "signals": signals}
 
 
 def _download_symbols(symbols: list[str], period: str = "5d") -> dict:
@@ -201,6 +253,8 @@ def fetch_market_data() -> dict:
         for info in FIXED_TICKERS.values():
             all_symbols.add(info["ticker"])
         for symbol in SECTOR_ETFS:
+            all_symbols.add(symbol)
+        for symbol in COMMODITY_POOL:
             all_symbols.add(symbol)
 
         closes_cache = _download_symbols(list(all_symbols), period="5d")
@@ -243,7 +297,7 @@ def fetch_market_data() -> dict:
             "indices":     ["nq100", "ndx", "sp500", "sox", "twii", "dax", "vt", "vo", "btc"],
             "factors":     ["nyfang", "vtv", "vug"],
             "sentiment":   ["vix", "vix9d", "skew", "vvix"],
-            "commodities": ["brent", "gold", "silver", "copper"],
+            "commodities": ["brent", "wti", "gold", "silver", "copper", "alum"],
             "bonds":       ["us10y"],
             "fx":          ["dxy", "jpyusd"],
             "credit":      ["hyg", "lqd", "bkln"],
@@ -289,6 +343,26 @@ def fetch_market_data() -> dict:
             top_sectors.append(item)
         result["factors"].extend(top_sectors)
 
+        # Dynamic commodities — top 2 by abs change from COMMODITY_POOL
+        commodity_pool = []
+        for symbol, label in COMMODITY_POOL.items():
+            today_v, prev_v = get_close(symbol)
+            if today_v is None:
+                continue
+            chg_str, chg_raw = fmt_chg_pct(today_v, prev_v)
+            commodity_pool.append({
+                "label": label,
+                "val": fmt_val(today_v, "$"),
+                "chg": chg_str,
+                "dir": direction(chg_raw),
+                "is_dynamic": True,
+                "_abs_chg": abs(chg_raw) if chg_raw is not None else 0,
+            })
+        commodity_pool.sort(key=lambda x: x.get("_abs_chg", 0), reverse=True)
+        for c in commodity_pool[:2]:
+            item = {k: v for k, v in c.items() if k != "_abs_chg"}
+            result["commodities"].append(item)
+
         # Fear & Greed → sentiment
         fear_greed = _fetch_fear_greed()
         fg_item = {
@@ -325,8 +399,14 @@ def fetch_market_data() -> dict:
 
         # Liquidity: fetch from FRED
         fred = fetch_fred_data()
-        result["liquidity"] = [fred.get("rrp", {"label": "RRP餘額", "val": "—", "chg": "—", "dir": "neu", "date": ""}),
-                                fred.get("nfci", {"label": "NFCI", "val": "—", "chg": "—", "dir": "neu", "date": ""})]
+        _empty = lambda lbl: {"label": lbl, "val": "—", "chg": "—", "dir": "neu", "date": ""}
+        result["liquidity"] = [
+            fred.get("rrp", _empty("RRP餘額")),
+            fred.get("tga", _empty("TGA")),
+            fred.get("reserves", _empty("銀行準備金")),
+            fred.get("nfci", _empty("NFCI")),
+        ]
+        result["liquidity_assessment"] = assess_liquidity(fred)
 
         print(f"  ✓ Market: NQ={result['indices'][0]['val']} SP={result['indices'][2]['val']} "
               f"VIX={result['sentiment'][0]['val']} BTC={result['indices'][8]['val']} "
@@ -390,6 +470,8 @@ def fetch_weekly_market_data() -> dict:
             all_symbols.add(info["ticker"])
         for symbol in SECTOR_ETFS:
             all_symbols.add(symbol)
+        for symbol in COMMODITY_POOL:
+            all_symbols.add(symbol)
 
         closes_cache = _download_symbols(list(all_symbols), period="7d")
 
@@ -432,7 +514,7 @@ def fetch_weekly_market_data() -> dict:
             "indices":     ["nq100", "ndx", "sp500", "sox", "twii", "dax", "vt", "vo", "btc"],
             "factors":     ["nyfang", "vtv", "vug"],
             "sentiment":   ["vix", "vix9d", "skew", "vvix"],
-            "commodities": ["brent", "gold", "silver", "copper"],
+            "commodities": ["brent", "wti", "gold", "silver", "copper", "alum"],
             "bonds":       ["us10y"],
             "fx":          ["dxy", "jpyusd"],
             "credit":      ["hyg", "lqd", "bkln"],
@@ -505,8 +587,31 @@ def fetch_weekly_market_data() -> dict:
 
         # Liquidity
         fred = fetch_fred_data()
-        result["liquidity"] = [fred.get("rrp", {"label": "RRP餘額", "val": "—", "chg": "—", "dir": "neu", "date": ""}),
-                                fred.get("nfci", {"label": "NFCI", "val": "—", "chg": "—", "dir": "neu", "date": ""})]
+        _empty = lambda lbl: {"label": lbl, "val": "—", "chg": "—", "dir": "neu", "date": ""}
+        result["liquidity"] = [
+            fred.get("rrp", _empty("RRP餘額")),
+            fred.get("tga", _empty("TGA")),
+            fred.get("reserves", _empty("銀行準備金")),
+            fred.get("nfci", _empty("NFCI")),
+        ]
+        result["liquidity_assessment"] = assess_liquidity(fred)
+
+        # Dynamic commodities for weekly
+        commodity_pool = []
+        for symbol, label in COMMODITY_POOL.items():
+            first, last = get_week_vals(symbol)
+            if last is None:
+                continue
+            chg_str, chg_raw = fmt_chg_pct(first, last)
+            commodity_pool.append({
+                "label": label, "val": fmt_val(last, "$"),
+                "chg": chg_str, "dir": direction(chg_raw),
+                "is_dynamic": True, "_abs_chg": abs(chg_raw) if chg_raw is not None else 0,
+            })
+        commodity_pool.sort(key=lambda x: x.get("_abs_chg", 0), reverse=True)
+        for c in commodity_pool[:2]:
+            item = {k: v for k, v in c.items() if k != "_abs_chg"}
+            result["commodities"].append(item)
 
         # For backwards compat with weekly_template, also provide flat "items" list
         items_flat = []
