@@ -76,7 +76,7 @@ FIXED_TICKERS = {
     "vo":        {"ticker": "VO",        "label": "VO",       "prefix": "$", "type": "etf"},
     "btc":       {"ticker": "BTC-USD",   "label": "BTC",      "prefix": "$", "type": "crypto"},
     # 美股因子
-    "nyfang":    {"ticker": "^NFG",      "label": "NYFANG",   "prefix": "",  "type": "factor"},
+    "nyfang":    {"ticker": "FNGS",      "label": "NYFANG",   "prefix": "",  "type": "factor"},
     "vtv":       {"ticker": "VTV",       "label": "VTV 價值",  "prefix": "$", "type": "factor"},
     "vug":       {"ticker": "VUG",       "label": "VUG 成長",  "prefix": "$", "type": "factor"},
     "rsp":       {"ticker": "RSP",       "label": "RSP",      "prefix": "$", "type": "factor"},

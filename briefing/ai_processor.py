@@ -434,7 +434,14 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
         top_sectors = ", ".join(f["label"] for f in dynamic_factors)
         sentiment_str = _fmt_items(market_data.get("sentiment", []))
         move_index_str = move_index_raw if move_index_raw else "無資料"
-        commodities_str = _fmt_items(market_data.get("commodities", []))
+        commodities_data = market_data.get("commodities", {})
+        if isinstance(commodities_data, dict):
+            all_commodities = commodities_data.get("fixed", []) + commodities_data.get("dynamic", [])
+        elif isinstance(commodities_data, list):
+            all_commodities = commodities_data
+        else:
+            all_commodities = []
+        commodities_str = _fmt_items(all_commodities)
         bonds_str = _fmt_items(market_data.get("bonds", []))
         fx_str = _fmt_items(market_data.get("fx", []))
         credit_str = _fmt_items(market_data.get("credit", []))
