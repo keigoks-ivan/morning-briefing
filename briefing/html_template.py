@@ -278,6 +278,108 @@ def _credit_cell(item: dict) -> str:
             f'</td>')
 
 
+def _vix9d_tag(sentiment: list[dict]) -> str:
+    """Compare VIX9D vs VIX and return a tag."""
+    vix_val = vix9d_val = None
+    for it in sentiment:
+        label = it.get("label", "")
+        try:
+            v = float(it.get("val", "—").replace(",", ""))
+        except (ValueError, TypeError):
+            continue
+        if label == "VIX":
+            vix_val = v
+        elif label == "VIX9D":
+            vix9d_val = v
+    if vix_val is None or vix9d_val is None:
+        return ""
+    diff = vix9d_val - vix_val
+    if abs(diff) < 1:
+        return ""
+    if diff < 0:
+        return '<div style="font-size:9px;color:#888;font-weight:600;margin-top:2px;">短期恐慌</div>'
+    return '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">持續風險</div>'
+
+
+def _nyfang_tag(factors: list[dict], indices: list[dict]) -> str:
+    """Compare NYFANG vs NQ100 change and return a tag."""
+    nq_chg = nyfang_chg = None
+    for it in indices:
+        if it.get("label", "") == "NQ100":
+            try:
+                s = it.get("chg", "")
+                nq_chg = float(s.replace("▲", "").replace("▼", "-").replace("%", "").strip())
+                if "▼" in s:
+                    nq_chg = -abs(nq_chg)
+            except (ValueError, TypeError):
+                pass
+    for it in factors:
+        if it.get("label", "") == "NYFANG":
+            try:
+                s = it.get("chg", "")
+                nyfang_chg = float(s.replace("▲", "").replace("▼", "-").replace("%", "").strip())
+                if "▼" in s:
+                    nyfang_chg = -abs(nyfang_chg)
+            except (ValueError, TypeError):
+                pass
+    if nq_chg is None or nyfang_chg is None:
+        return ""
+    if nq_chg < 0 and nyfang_chg < nq_chg:
+        return '<div style="font-size:9px;color:#854F0B;font-weight:600;margin-top:2px;">科技巨頭領跌</div>'
+    if nq_chg < 0 and nyfang_chg > nq_chg:
+        return '<div style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:2px;">巨頭相對抗跌</div>'
+    return ""
+
+
+def _nfci_cell(item: dict) -> str:
+    """NFCI cell with conditional background."""
+    val_str = item.get("val", "—")
+    bg = "#fff"
+    label_tag = ""
+    try:
+        num = float(val_str)
+        if num > 0.5:
+            bg = "#FFF0F0"
+            label_tag = '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">金融條件偏緊</div>'
+        elif num > 0:
+            bg = "#FFF8F0"
+            label_tag = '<div style="font-size:9px;color:#854F0B;font-weight:600;margin-top:2px;">略偏緊</div>'
+        elif num > -0.5:
+            bg = "#fff"
+        else:
+            bg = "#F0FFF4"
+            label_tag = '<div style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:2px;">金融條件寬鬆</div>'
+    except (ValueError, TypeError):
+        pass
+    d = item.get("dir", "neu")
+    color = MKT_CHG_COLOR.get(d, "#888")
+    date_str = item.get("date", "")
+    date_html = f'<div style="font-size:9px;color:#aaa;margin-top:1px;">{date_str}</div>' if date_str else ""
+    return (f'<td style="padding:8px 10px;border-right:0.5px solid #f0f0f0;vertical-align:top;'
+            f'background:{bg};">'
+            f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;'
+            f'color:#888;margin-bottom:3px;">{item.get("label","NFCI")}</div>'
+            f'<div style="font-size:18px;font-weight:500;color:#222;margin-bottom:2px;">{val_str}</div>'
+            f'<div style="font-size:12px;color:{color};">{item.get("chg","—")}</div>'
+            f'{label_tag}{date_html}'
+            f'</td>')
+
+
+def _rrp_cell(item: dict) -> str:
+    """RRP cell with date display."""
+    d = item.get("dir", "neu")
+    color = MKT_CHG_COLOR.get(d, "#888")
+    date_str = item.get("date", "")
+    date_html = f'<div style="font-size:9px;color:#aaa;margin-top:1px;">{date_str}</div>' if date_str else ""
+    return (f'<td style="padding:8px 10px;border-right:0.5px solid #f0f0f0;vertical-align:top;">'
+            f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;'
+            f'color:#888;margin-bottom:3px;">{item.get("label","RRP餘額")}</div>'
+            f'<div style="font-size:18px;font-weight:500;color:#222;margin-bottom:2px;">{item.get("val","—")}</div>'
+            f'<div style="font-size:12px;color:{color};">{item.get("chg","—")}</div>'
+            f'{date_html}'
+            f'</td>')
+
+
 def _market_strip(market_data: dict) -> str:
     indices = market_data.get("indices", [])
     factors = market_data.get("factors", [])
@@ -287,8 +389,9 @@ def _market_strip(market_data: dict) -> str:
     bonds = market_data.get("bonds", [])
     fx = market_data.get("fx", [])
     credit = market_data.get("credit", [])
+    liquidity = market_data.get("liquidity", [])
 
-    # Separate Fear&Greed from sentiment list (inserted at index 1 by fetcher)
+    # Separate Fear&Greed from sentiment list
     sent_no_fg = []
     fg_item = {"label": "Fear&Greed", "val": "—", "chg": "—", "dir": "neu"}
     for it in sentiment:
@@ -297,10 +400,25 @@ def _market_strip(market_data: dict) -> str:
         else:
             sent_no_fg.append(it)
 
-    # Build sentiment extra tags (SKEW/VVIX warnings)
+    # VIX9D vs VIX tag — attach to VIX9D cell
+    vix9d_extra = _vix9d_tag(sent_no_fg)
     sent_tags = _sentiment_extra_tags(sent_no_fg)
+    # Find VIX9D index and add the comparison tag
+    for i, it in enumerate(sent_no_fg):
+        if it.get("label", "") == "VIX9D":
+            existing = sent_tags.get(i, "")
+            sent_tags[i] = existing + vix9d_extra
+            break
 
-    # Sentiment cells: VIX, SKEW, VVIX + MOVE + Fear&Greed
+    # NYFANG tag — attach to NYFANG cell
+    nyfang_extra = _nyfang_tag(factors, indices)
+    factor_tags = {}
+    for i, it in enumerate(factors):
+        if it.get("label", "") == "NYFANG":
+            factor_tags[i] = nyfang_extra
+            break
+
+    # Sentiment cells
     sent_cells = ""
     for i, it in enumerate(sent_no_fg):
         tag = sent_tags.get(i, "")
@@ -308,19 +426,33 @@ def _market_strip(market_data: dict) -> str:
     sent_cells += _move_cell(move_index)
     sent_cells += _fg_cell(fg_item)
 
-    # Credit cells with special HYG/LQD rendering
+    # Credit cells
     credit_cells = "".join(_credit_cell(it) for it in credit)
 
-    # Bond + FX + Credit in one row with vertical separators
+    # Bond + FX + Credit row
     bond_fx_credit_cells = ""
     for it in bonds:
         bond_fx_credit_cells += _mkt_cell(it)
-    # Vertical separator
     bond_fx_credit_cells += '<td style="width:1px;background:#e0e0e0;padding:0;"></td>'
     for it in fx:
         bond_fx_credit_cells += _mkt_cell(it)
     bond_fx_credit_cells += '<td style="width:1px;background:#e0e0e0;padding:0;"></td>'
     bond_fx_credit_cells += credit_cells
+
+    # Liquidity cells
+    liq_cells = ""
+    for it in liquidity:
+        if it.get("label", "") == "NFCI":
+            liq_cells += _nfci_cell(it)
+        else:
+            liq_cells += _rrp_cell(it)
+
+    liq_section = ""
+    if liquidity:
+        liq_section = f'''
+    <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
+    {_mkt_section_label("流動性", "#1a7a4a")}
+    <tr>{liq_cells}</tr>'''
 
     return f'''
 <div class="section">
@@ -332,7 +464,7 @@ def _market_strip(market_data: dict) -> str:
     {_mkt_row(indices)}
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
     {_mkt_section_label("美股市場因子", "#7F77DD")}
-    {_mkt_row(factors)}
+    {_mkt_row(factors, extra_tags=factor_tags)}
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
     {_mkt_section_label("市場情緒", "#BA7517")}
     <tr>{sent_cells}</tr>
@@ -342,50 +474,75 @@ def _market_strip(market_data: dict) -> str:
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
     {_mkt_section_label("債券 / 外匯 / 信貸", "#378ADD")}
     <tr>{bond_fx_credit_cells}</tr>
+    {liq_section}
   </table>
 </div>'''
 
 
 def _market_pulse(pulse: dict) -> str:
-    observations = pulse.get("observations", [])
+    signals = pulse.get("cross_asset_signals", [])
+    dominant = pulse.get("dominant_theme", "")
     hidden_risk = pulse.get("hidden_risk", "")
     hidden_opp = pulse.get("hidden_opportunity", "")
-    if not observations:
+    key_level = pulse.get("key_level_to_watch", "")
+    if not signals and not dominant:
         return ""
 
-    obs_html = ""
-    for i, obs in enumerate(observations):
-        separator = 'border-bottom:0.5px solid #e0e0e0;' if i < len(observations) - 1 else ''
-        obs_html += f'''
-<div style="padding:10px 0;{separator}">
-  <div style="font-size:15px;font-weight:600;color:#1B3A5C;margin-bottom:4px;">{obs.get("signal","")}</div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:4px;">{obs.get("detail","")}</div>
-  <div style="font-size:12px;color:#888;font-style:italic;line-height:1.5;">{obs.get("implication","")}</div>
+    # Dominant theme banner
+    dom_html = ""
+    if dominant:
+        dom_html = f'''
+<div style="background:#1B3A5C;color:#fff;border-radius:4px;padding:8px 14px;margin-bottom:10px;
+            font-size:14px;font-weight:600;">
+  今日主軸：{dominant}
 </div>'''
 
-    # Bottom row: risk + opportunity side by side
-    risk_cell = ""
+    # Cross-asset signals
+    sig_html = ""
+    for i, sig in enumerate(signals):
+        separator = 'border-bottom:0.5px solid #e0e0e0;' if i < len(signals) - 1 else ''
+        sig_html += f'''
+<div style="padding:10px 0;{separator}">
+  <div style="font-size:15px;font-weight:600;color:#1B3A5C;margin-bottom:4px;">{sig.get("signal","")}</div>
+  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:4px;">{sig.get("detail","")}</div>
+  <div style="font-size:12px;color:#888;font-style:italic;line-height:1.5;">{sig.get("implication","")}</div>
+</div>'''
+
+    # Risk + Opportunity side by side
+    risk_td = ""
     if hidden_risk:
-        risk_cell = f'''<div style="border-left:3px solid #854F0B;padding:8px 12px;background:#fff;">
-  <div style="font-size:12px;font-weight:600;color:#854F0B;margin-bottom:4px;">潛在風險</div>
-  <div style="font-size:13px;color:#555;line-height:1.6;">{hidden_risk}</div>
-</div>'''
-    opp_cell = ""
+        risk_td = (f'<td width="50%" style="vertical-align:top;padding-right:5px;">'
+                   f'<div style="border-left:3px solid #854F0B;padding:8px 12px;background:#fff;">'
+                   f'<div style="font-size:12px;font-weight:600;color:#854F0B;margin-bottom:4px;">潛在風險</div>'
+                   f'<div style="font-size:13px;color:#555;line-height:1.6;">{hidden_risk}</div>'
+                   f'</div></td>')
+    else:
+        risk_td = '<td width="50%"></td>'
+    opp_td = ""
     if hidden_opp:
-        opp_cell = f'''<div style="border-left:3px solid #1a7a4a;padding:8px 12px;background:#fff;">
-  <div style="font-size:12px;font-weight:600;color:#1a7a4a;margin-bottom:4px;">潛在機會</div>
-  <div style="font-size:13px;color:#555;line-height:1.6;">{hidden_opp}</div>
-</div>'''
+        opp_td = (f'<td width="50%" style="vertical-align:top;padding-left:5px;">'
+                  f'<div style="border-left:3px solid #1a7a4a;padding:8px 12px;background:#fff;">'
+                  f'<div style="font-size:12px;font-weight:600;color:#1a7a4a;margin-bottom:4px;">潛在機會</div>'
+                  f'<div style="font-size:13px;color:#555;line-height:1.6;">{hidden_opp}</div>'
+                  f'</div></td>')
+    else:
+        opp_td = '<td width="50%"></td>'
 
     bottom_html = ""
-    if risk_cell or opp_cell:
+    if hidden_risk or hidden_opp:
         bottom_html = f'''
-<table width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px;border-collapse:separate;border-spacing:8px 0;">
-  <tr>
-    <td width="50%" style="vertical-align:top;">{risk_cell}</td>
-    <td width="50%" style="vertical-align:top;">{opp_cell}</td>
-  </tr>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px;border-collapse:collapse;">
+  <tr>{risk_td}{opp_td}</tr>
 </table>'''
+
+    # Key level to watch
+    key_html = ""
+    if key_level:
+        key_html = f'''
+<div style="background:#FEF9E7;border-radius:4px;padding:8px 14px;margin-top:10px;
+            font-size:13px;color:#856404;">
+  <span style="font-weight:600;">關鍵價位：</span>{key_level}
+</div>'''
 
     return f'''
 <div class="section">
@@ -396,8 +553,10 @@ def _market_pulse(pulse: dict) -> str:
                    font-weight:500;color:#888;">市場脈絡</span>
       <span style="font-size:12px;color:#888;">跨指標訊號分析</span>
     </div>
-    {obs_html}
+    {dom_html}
+    {sig_html}
     {bottom_html}
+    {key_html}
   </div>
 </div>'''
 

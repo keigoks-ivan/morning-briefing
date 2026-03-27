@@ -75,10 +75,12 @@ FIXED_TICKERS = {
     "vo":        {"ticker": "VO",        "label": "VO",       "prefix": "$", "type": "etf"},
     "btc":       {"ticker": "BTC-USD",   "label": "BTC",      "prefix": "$", "type": "crypto"},
     # 美股因子
+    "nyfang":    {"ticker": "^NYFANG",   "label": "NYFANG",   "prefix": "",  "type": "factor"},
     "vtv":       {"ticker": "VTV",       "label": "VTV 價值",  "prefix": "$", "type": "factor"},
     "vug":       {"ticker": "VUG",       "label": "VUG 成長",  "prefix": "$", "type": "factor"},
     # 市場情緒
     "vix":       {"ticker": "^VIX",      "label": "VIX",      "prefix": "",  "type": "sentiment", "invert": True},
+    "vix9d":     {"ticker": "^VIX9D",    "label": "VIX9D",    "prefix": "",  "type": "sentiment", "invert": True},
     "skew":      {"ticker": "^SKEW",     "label": "SKEW",     "prefix": "",  "type": "sentiment"},
     "vvix":      {"ticker": "^VVIX",     "label": "VVIX",     "prefix": "",  "type": "sentiment", "invert": True},
     # 原物料
@@ -122,6 +124,55 @@ def _fetch_fear_greed() -> dict:
     except Exception as e:
         print(f"  ✗ Fear & Greed failed: {e}")
         return {"val": "—", "chg": "—", "dir": "neu"}
+
+
+def fetch_fred_data() -> dict:
+    """Fetch RRP and NFCI from FRED via CSV endpoint."""
+    result = {}
+    fred_series = {
+        "rrp": "RRPONTSYD",
+        "nfci": "NFCI",
+    }
+    for key, series_id in fred_series.items():
+        try:
+            url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
+            resp = requests.get(url, timeout=15)
+            resp.raise_for_status()
+            lines = resp.text.strip().split("\n")
+            rows = [line.split(",") for line in lines[1:] if line.strip()]
+            rows = [(r[0], r[1]) for r in rows if len(r) >= 2 and r[1] not in ("", ".")]
+            if len(rows) >= 2:
+                latest_date, latest_val = rows[-1]
+                _prev_date, prev_val = rows[-2]
+                latest = float(latest_val)
+                prev = float(prev_val)
+                change = latest - prev
+                if key == "rrp":
+                    result[key] = {
+                        "label": "RRP餘額",
+                        "val": f"${latest:.0f}B",
+                        "chg": f"{'▲' if change > 0 else '▼'} {abs(change):.0f}B",
+                        "dir": "neg" if change < 0 else "pos",
+                        "date": latest_date,
+                    }
+                else:
+                    result[key] = {
+                        "label": "NFCI",
+                        "val": f"{latest:.3f}",
+                        "chg": f"{'▲' if change > 0 else '▼'} {abs(change):.3f}",
+                        "dir": "neg" if change > 0 else "pos",
+                        "date": latest_date,
+                    }
+                print(f"  ✓ FRED {series_id}: {latest_val} ({latest_date})")
+            else:
+                raise ValueError("not enough data points")
+        except Exception as e:
+            print(f"  ✗ FRED {series_id}: {e}")
+            result[key] = {
+                "label": "RRP餘額" if key == "rrp" else "NFCI",
+                "val": "—", "chg": "—", "dir": "neu", "date": "",
+            }
+    return result
 
 
 def _download_symbols(symbols: list[str], period: str = "5d") -> dict:
@@ -189,8 +240,8 @@ def fetch_market_data() -> dict:
         # Build items per category from FIXED_TICKERS
         category_keys = {
             "indices":     ["nq100", "sp500", "sox", "twii", "dax", "vt", "vo", "btc"],
-            "factors":     ["vtv", "vug"],
-            "sentiment":   ["vix", "skew", "vvix"],
+            "factors":     ["nyfang", "vtv", "vug"],
+            "sentiment":   ["vix", "vix9d", "skew", "vvix"],
             "commodities": ["brent", "gold", "silver", "copper"],
             "bonds":       ["us10y"],
             "fx":          ["dxy", "jpyusd"],
@@ -270,6 +321,11 @@ def fetch_market_data() -> dict:
             ratio_item = {"label": "HYG/LQD", "val": "—", "chg": "—", "dir": "neu"}
         # Insert HYG/LQD ratio after LQD (before BKLN)
         result["credit"].insert(2, ratio_item)
+
+        # Liquidity: fetch from FRED
+        fred = fetch_fred_data()
+        result["liquidity"] = [fred.get("rrp", {"label": "RRP餘額", "val": "—", "chg": "—", "dir": "neu", "date": ""}),
+                                fred.get("nfci", {"label": "NFCI", "val": "—", "chg": "—", "dir": "neu", "date": ""})]
 
         print(f"  ✓ Market: NQ={result['indices'][0]['val']} SP={result['indices'][1]['val']} "
               f"VIX={result['sentiment'][0]['val']} BTC={result['indices'][7]['val']} "
@@ -373,8 +429,8 @@ def fetch_weekly_market_data() -> dict:
         # Build same category structure as daily
         category_keys = {
             "indices":     ["nq100", "sp500", "sox", "twii", "dax", "vt", "vo", "btc"],
-            "factors":     ["vtv", "vug"],
-            "sentiment":   ["vix", "skew", "vvix"],
+            "factors":     ["nyfang", "vtv", "vug"],
+            "sentiment":   ["vix", "vix9d", "skew", "vvix"],
             "commodities": ["brent", "gold", "silver", "copper"],
             "bonds":       ["us10y"],
             "fx":          ["dxy", "jpyusd"],
@@ -446,9 +502,14 @@ def fetch_weekly_market_data() -> dict:
             ratio_item = {"label": "HYG/LQD", "val": "—", "chg": "—", "dir": "neu"}
         result["credit"].insert(2, ratio_item)
 
+        # Liquidity
+        fred = fetch_fred_data()
+        result["liquidity"] = [fred.get("rrp", {"label": "RRP餘額", "val": "—", "chg": "—", "dir": "neu", "date": ""}),
+                                fred.get("nfci", {"label": "NFCI", "val": "—", "chg": "—", "dir": "neu", "date": ""})]
+
         # For backwards compat with weekly_template, also provide flat "items" list
         items_flat = []
-        for cat in ["indices", "factors", "sentiment", "commodities", "bonds", "fx", "credit"]:
+        for cat in ["indices", "factors", "sentiment", "commodities", "bonds", "fx", "credit", "liquidity"]:
             items_flat.extend(result[cat])
 
         print(f"  ✓ Weekly market: NQ={result['indices'][0]['val']} SP={result['indices'][1]['val']} "

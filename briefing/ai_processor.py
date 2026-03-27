@@ -78,14 +78,17 @@ market_data 規則：
 - 如果 Perplexity 沒有搜到 MOVE Index，val 填 "—"
 
 market_pulse 分析規則：
-- observations 輸出 2-3 個，每個必須是跨指標的組合觀察，不是單一指標的描述
-- 優先找：指標之間的背離（如VIX高但SKEW低）、異常組合（如油價漲但能源股跌）、結構性分化（如HYG跌但LQD穩）
+- cross_asset_signals 輸出 2-3 個，每個必須是跨指標的組合觀察，不是單一指標的描述
+- 可分析的指標來源：股票指數、因子（含NYFANG vs NQ100對比）、情緒（VIX/VIX9D/SKEW/VVIX）、MOVE Index、原物料、債券、外匯、信貸（HYG/LQD比值）、流動性（RRP隔夜逆回購餘額/NFCI金融條件指數）
+- 優先找：指標之間的背離（如VIX高但SKEW低）、異常組合（如油價漲但能源股跌）、結構性分化（如HYG跌但LQD穩）、流動性變化（如RRP驟降暗示資金流向風險資產）
 - 每個 detail 必須引用至少兩個具體指標數字
+- dominant_theme 一句話概括今天所有指標共同指向的方向
 - hidden_risk 專門描述從數字組合中看到但不顯眼的潛在風險（2句）
 - hidden_opportunity 專門描述從指標背離、超賣、或市場錯誤定價中看到的潛在機會（2句）
+- key_level_to_watch 輸出今日最值得關注的一個關鍵價位或門檻
 - 語氣必須使用不確定性詞彙：可能、值得注意、暗示、或許、需要觀察
 - 嚴禁輸出顯而易見的觀察（如「VIX上升代表市場恐慌」）
-- 整體 200字以內
+- 整體 250字以內
 
 其他規則：
 - 只回傳 JSON，不要任何前置說明、後記或 markdown code block
@@ -121,15 +124,17 @@ USER_PROMPT_TEMPLATE = """
   }},
 
   "market_pulse": {{
-    "observations": [
+    "cross_asset_signals": [
       {{
         "signal": "訊號標題（15字以內）",
         "detail": "具體說明（2-3句，必須引用至少兩個指標的實際數字，說明它們組合起來暗示什麼）",
         "implication": "可能的走勢含義（1句，用「可能」「值得注意」等不確定性語氣）"
       }}
     ],
+    "dominant_theme": "今日市場主軸（1句，15字以內，概括今天所有指標共同指向的方向）",
     "hidden_risk": "從指標背離或異常組合中發現的潛在風險（2句，不是顯而易見的觀察）",
-    "hidden_opportunity": "從指標背離或超賣訊號中發現的潛在機會（2句，不是顯而易見的觀察）"
+    "hidden_opportunity": "從指標背離或超賣訊號中發現的潛在機會（2句，不是顯而易見的觀察）",
+    "key_level_to_watch": "今日最值得關注的一個關鍵價位或門檻（如：NQ100 若跌破 18000 或 VIX 若突破 25）"
   }},
 
   "us_market_recap": {{
@@ -430,6 +435,13 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
         fx_str = _fmt_items(market_data.get("fx", []))
         credit_str = _fmt_items(market_data.get("credit", []))
 
+        liquidity_items = market_data.get("liquidity", [])
+        liq_parts = []
+        for li in liquidity_items:
+            date_str = f"（{li['date']}）" if li.get("date") else ""
+            liq_parts.append(f"{li['label']}: {li.get('val','—')} {li.get('chg','—')}{date_str}")
+        liquidity_str = ", ".join(liq_parts) if liq_parts else "無資料"
+
         lines = []
         lines.append(f"【股票指數】{indices_str}")
         lines.append(f"【美股因子】{factors_str}（含今日波動最大 Sector：{top_sectors}）")
@@ -439,6 +451,7 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
         lines.append(f"【債券】{bonds_str}")
         lines.append(f"【外匯】{fx_str}")
         lines.append(f"【信貸市場】{credit_str}")
+        lines.append(f"【流動性】{liquidity_str}")
 
         # Today's earnings from yfinance
         if today_earnings:
@@ -526,7 +539,7 @@ def _validate(data: dict) -> None:
     data.setdefault("implied_trends", [])
     data.setdefault("us_market_recap", {"has_events": False, "earnings": [], "other_events": [], "summary": ""})
     data.setdefault("smart_money", {"has_signals": False, "signals": [], "summary": ""})
-    data.setdefault("market_pulse", {"observations": [], "hidden_risk": "", "hidden_opportunity": ""})
+    data.setdefault("market_pulse", {"cross_asset_signals": [], "dominant_theme": "", "hidden_risk": "", "hidden_opportunity": "", "key_level_to_watch": ""})
     data.setdefault("daily_deep_dive", [])
     data.setdefault("fun_fact", {})
     data.setdefault("today_events", [])
@@ -557,6 +570,7 @@ def _validate(data: dict) -> None:
     md.setdefault("bonds", [])
     md.setdefault("fx", [])
     md.setdefault("credit", [])
+    md.setdefault("liquidity", [])
 
     rt = data.get("regional_tech", {})
     for region in ["taiwan", "japan", "us", "malaysia", "korea", "china", "europe"]:
