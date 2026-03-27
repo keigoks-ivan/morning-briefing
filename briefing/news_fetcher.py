@@ -64,62 +64,45 @@ DEEP_DIVE_QUERIES = [
 ]
 
 
-# 第一層：固定12格
-FIXED_TICKERS = [
-    # (key,    symbol,      prefix, invert, label)
-    ("nq100",  "NQ=F",      "",  False, "NQ100"),
-    ("sp500",  "^GSPC",     "",  False, "S&P500"),
-    ("sox",    "^SOX",      "",  False, "費半"),
-    ("vix",    "^VIX",      "",  True,  "VIX"),
-    ("twii",   "^TWII",     "",  False, "台灣加權"),
-    ("brent",  "BZ=F",      "$", False, "Brent油"),
-    ("gold",   "GC=F",      "$", False, "黃金"),
-    ("silver", "SI=F",      "$", False, "白銀"),
-    ("copper", "HG=F",      "$", False, "銅"),
-    ("dxy",    "DX-Y.NYB",  "",  False, "DXY"),
-    ("us10y",  "^TNX",      "",  True,  "美10Y"),
-    ("btc",    "BTC-USD",   "$", False, "BTC"),
-]
-
-# 第三層：動態備選池
-# fmt: "pct" = 百分比漲跌, "bps" = 基點絕對變化
-DYNAMIC_POOL_TICKERS = [
-    # 利率/債券 (bps)
-    # key,        symbol,    prefix, invert, label,           fmt
-    ("us2y",      "^IRX",    "",  True,  "美2Y殖利率",      "bps"),
-    ("us30y",     "^TYX",    "",  True,  "美30Y殖利率",     "bps"),
-    # 10Y-2Y spread is computed separately
-    ("tlt",       "TLT",     "$", False, "TLT長債ETF",      "pct"),
-    ("hyg",       "HYG",     "$", False, "HYG高收益債",     "pct"),
-    ("lqd",       "LQD",     "$", False, "LQD投資級債",     "pct"),
+FIXED_TICKERS = {
+    # 股票指數
+    "nq100":     {"ticker": "NQ=F",      "label": "NQ100",    "prefix": "",  "type": "index"},
+    "sp500":     {"ticker": "^GSPC",     "label": "S&P500",   "prefix": "",  "type": "index"},
+    "sox":       {"ticker": "^SOX",      "label": "費半",      "prefix": "",  "type": "index"},
+    "twii":      {"ticker": "^TWII",     "label": "台灣加權",  "prefix": "",  "type": "index"},
+    "dax":       {"ticker": "^GDAXI",    "label": "歐洲DAX",  "prefix": "",  "type": "index"},
+    "vt":        {"ticker": "VT",        "label": "VT",       "prefix": "$", "type": "etf"},
+    "vo":        {"ticker": "VO",        "label": "VO",       "prefix": "$", "type": "etf"},
+    "btc":       {"ticker": "BTC-USD",   "label": "BTC",      "prefix": "$", "type": "crypto"},
+    # 美股因子
+    "vtv":       {"ticker": "VTV",       "label": "VTV 價值",  "prefix": "$", "type": "factor"},
+    "vug":       {"ticker": "VUG",       "label": "VUG 成長",  "prefix": "$", "type": "factor"},
+    # 市場情緒
+    "vix":       {"ticker": "^VIX",      "label": "VIX",      "prefix": "",  "type": "sentiment", "invert": True},
+    "skew":      {"ticker": "^SKEW",     "label": "SKEW",     "prefix": "",  "type": "sentiment"},
+    "vvix":      {"ticker": "^VVIX",     "label": "VVIX",     "prefix": "",  "type": "sentiment", "invert": True},
+    # 原物料
+    "brent":     {"ticker": "BZ=F",      "label": "Brent油",  "prefix": "$", "type": "commodity"},
+    "gold":      {"ticker": "GC=F",      "label": "黃金",      "prefix": "$", "type": "commodity"},
+    "silver":    {"ticker": "SI=F",      "label": "白銀",      "prefix": "$", "type": "commodity"},
+    "copper":    {"ticker": "HG=F",      "label": "銅",        "prefix": "$", "type": "commodity"},
+    # 債券
+    "us10y":     {"ticker": "^TNX",      "label": "美10Y",    "prefix": "",  "type": "bond", "use_bps": True},
     # 外匯
-    ("jpyusd",    "JPY=X",   "¥", False, "JPY/USD",         "pct"),
-    ("twdusd",    "TWD=X",   "",  False, "TWD/USD",         "pct"),
-    ("myrusd",    "MYR=X",   "",  False, "MYR/USD",         "pct"),
-    ("cnyusd",    "CNY=X",   "",  False, "CNY/USD",         "pct"),
-    ("eurusd",    "EURUSD=X","",  False, "EUR/USD",         "pct"),
-    ("krwusd",    "KRW=X",   "",  False, "KRW/USD",         "pct"),
-    # 股市
-    ("nikkei",    "^N225",   "",  False, "日經225",          "pct"),
-    ("hsi",       "^HSI",    "",  False, "恒生",             "pct"),
-    ("kospi",     "^KS11",   "",  False, "KOSPI",            "pct"),
-    ("dax",       "^GDAXI",  "",  False, "DAX",              "pct"),
-    ("rut",       "^RUT",    "",  False, "羅素2000",         "pct"),
-    ("kbe",       "KBE",     "$", False, "銀行股ETF",       "pct"),
-    ("soxx",      "SOXX",    "$", False, "半導體ETF",       "pct"),
-    # 大宗商品
-    ("wti",       "CL=F",    "$", False, "WTI油",            "pct"),
-    ("nat_gas",   "NG=F",    "$", False, "天然氣",           "pct"),
-    ("palladium", "PA=F",    "$", False, "鈀金",             "pct"),
-    ("platinum",  "PL=F",    "$", False, "鉑金",             "pct"),
-    ("wheat",     "ZW=F",    "$", False, "小麥",             "pct"),
-    # 加密
-    ("eth",       "ETH-USD", "$", False, "ETH",              "pct"),
-    ("sol",       "SOL-USD", "$", False, "SOL",              "pct"),
-    # 波動率
-    ("vvix",      "^VVIX",   "",  True,  "VVIX",             "pct"),
-    ("skew",      "^SKEW",   "",  False, "SKEW指數",        "pct"),
-]
+    "dxy":       {"ticker": "DX-Y.NYB",  "label": "DXY",      "prefix": "",  "type": "fx"},
+    "jpyusd":    {"ticker": "JPY=X",     "label": "JPY/USD",  "prefix": "¥", "type": "fx"},
+    # 信貸
+    "hyg":       {"ticker": "HYG",       "label": "HYG",      "prefix": "$", "type": "credit"},
+    "lqd":       {"ticker": "LQD",       "label": "LQD",      "prefix": "$", "type": "credit"},
+    "bkln":      {"ticker": "BKLN",      "label": "BKLN",     "prefix": "$", "type": "credit"},
+}
+
+SECTOR_ETFS = {
+    "XLE": "能源", "XLF": "金融", "XLK": "科技",
+    "XLV": "醫療", "XLI": "工業", "XLY": "非必需消費",
+    "XLP": "必需消費", "XLU": "公用事業", "XLB": "材料",
+    "XLRE": "房地產", "XLC": "通訊", "XBI": "生技",
+}
 
 
 def _fetch_fear_greed() -> dict:
@@ -161,13 +144,12 @@ def _download_symbols(symbols: list[str], period: str = "5d") -> dict:
 
 def fetch_market_data() -> dict:
     try:
+        # Collect all symbols to download
         all_symbols = set()
-        for t in FIXED_TICKERS:
-            all_symbols.add(t[1])
-        for t in DYNAMIC_POOL_TICKERS:
-            all_symbols.add(t[1])
-        # Also need ^TNX and ^IRX for 10Y-2Y spread
-        all_symbols.update(["^TNX", "^IRX"])
+        for info in FIXED_TICKERS.values():
+            all_symbols.add(info["ticker"])
+        for symbol in SECTOR_ETFS:
+            all_symbols.add(symbol)
 
         closes_cache = _download_symbols(list(all_symbols), period="5d")
 
@@ -204,110 +186,161 @@ def fetch_market_data() -> dict:
                 return "neu"
             return ("neg" if c > 0 else "pos") if invert else ("pos" if c > 0 else "neg")
 
-        # Build fixed items (all pct)
-        fixed = []
-        for key, symbol, prefix, invert, label in FIXED_TICKERS:
+        # Build items per category from FIXED_TICKERS
+        category_keys = {
+            "indices":     ["nq100", "sp500", "sox", "twii", "dax", "vt", "vo", "btc"],
+            "factors":     ["vtv", "vug"],
+            "sentiment":   ["vix", "skew", "vvix"],
+            "commodities": ["brent", "gold", "silver", "copper"],
+            "bonds":       ["us10y"],
+            "fx":          ["dxy", "jpyusd"],
+            "credit":      ["hyg", "lqd", "bkln"],
+        }
+
+        result = {cat: [] for cat in category_keys}
+
+        for cat, keys in category_keys.items():
+            for key in keys:
+                info = FIXED_TICKERS[key]
+                today_v, prev_v = get_close(info["ticker"])
+                invert = info.get("invert", False)
+                use_bps = info.get("use_bps", False)
+                if use_bps:
+                    chg_str, chg_raw = fmt_chg_bps(today_v, prev_v)
+                else:
+                    chg_str, chg_raw = fmt_chg_pct(today_v, prev_v)
+                result[cat].append({
+                    "label": info["label"],
+                    "val": fmt_val(today_v, info["prefix"]),
+                    "chg": chg_str,
+                    "dir": direction(chg_raw, invert=invert),
+                    "is_dynamic": False,
+                })
+
+        # Sector ETFs — pick top 3 by abs change
+        sector_items = []
+        for symbol, label in SECTOR_ETFS.items():
             today_v, prev_v = get_close(symbol)
             chg_str, chg_raw = fmt_chg_pct(today_v, prev_v)
-            fixed.append({
-                "label": label, "key": key,
-                "val": fmt_val(today_v, prefix),
+            sector_items.append({
+                "label": f"{symbol} {label}",
+                "val": fmt_val(today_v, "$"),
                 "chg": chg_str,
-                "dir": direction(chg_raw, invert=invert),
-            })
-
-        # Build dynamic pool items (pct or bps)
-        dynamic_pool = []
-        for key, symbol, prefix, invert, label, fmt in DYNAMIC_POOL_TICKERS:
-            today_v, prev_v = get_close(symbol)
-            if today_v is None:
-                continue  # skip failed tickers
-            if fmt == "bps":
-                chg_str, chg_raw = fmt_chg_bps(today_v, prev_v)
-            else:
-                chg_str, chg_raw = fmt_chg_pct(today_v, prev_v)
-            dynamic_pool.append({
-                "label": label, "key": key,
-                "val": fmt_val(today_v, prefix),
-                "chg": chg_str,
-                "dir": direction(chg_raw, invert=invert),
+                "dir": direction(chg_raw),
+                "is_dynamic": True,
                 "_abs_chg": abs(chg_raw) if chg_raw is not None else 0,
             })
+        sector_items.sort(key=lambda x: x.get("_abs_chg", 0), reverse=True)
+        top_sectors = []
+        for s in sector_items[:3]:
+            item = {k: v for k, v in s.items() if k != "_abs_chg"}
+            top_sectors.append(item)
+        result["factors"].extend(top_sectors)
 
-        # Add computed 10Y-2Y spread
-        tnx_today, tnx_prev = get_close("^TNX")
-        irx_today, irx_prev = get_close("^IRX")
-        if tnx_today is not None and irx_today is not None:
-            spread_today = tnx_today - irx_today
-            spread_prev = (tnx_prev - irx_prev) if (tnx_prev is not None and irx_prev is not None) else None
-            if spread_prev is not None:
-                diff_bps = (spread_today - spread_prev) * 100
-                chg_str = f"{'▲' if diff_bps > 0 else '▼'} {abs(diff_bps):.0f}bps"
-                d = "pos" if diff_bps > 0 else ("neg" if diff_bps < 0 else "neu")
-            else:
-                chg_str = "—"
-                d = "neu"
-                diff_bps = 0
-            dynamic_pool.append({
-                "label": "10Y-2Y利差", "key": "spread_10y2y",
-                "val": f"{spread_today:.2f}%",
-                "chg": chg_str, "dir": d,
-                "_abs_chg": abs(diff_bps) if diff_bps else 0,
-            })
-
+        # Fear & Greed → sentiment
         fear_greed = _fetch_fear_greed()
-
-        print(f"  ✓ Market: NQ={fixed[0]['val']} SP={fixed[1]['val']} "
-              f"VIX={fixed[3]['val']} BTC={fixed[11]['val']} "
-              f"F&G={fear_greed['val']} pool={len(dynamic_pool)}")
-
-        return {
-            "fixed": fixed,
-            "fear_greed": fear_greed,
-            "dynamic_pool": dynamic_pool,
+        fg_item = {
+            "label": "Fear&Greed",
+            "val": fear_greed.get("val", "—"),
+            "chg": fear_greed.get("chg", "—"),
+            "dir": fear_greed.get("dir", "neu"),
         }
+        # Insert after VIX (index 1 in sentiment)
+        result["sentiment"].insert(1, fg_item)
+
+        # HYG/LQD ratio
+        hyg_today, hyg_prev = get_close("HYG")
+        lqd_today, lqd_prev = get_close("LQD")
+        if hyg_today is not None and lqd_today is not None and lqd_today != 0:
+            ratio_today = hyg_today / lqd_today
+            if hyg_prev is not None and lqd_prev is not None and lqd_prev != 0:
+                ratio_prev = hyg_prev / lqd_prev
+                ratio_chg = (ratio_today - ratio_prev) / ratio_prev * 100
+                ratio_chg_str = f"{'▲' if ratio_chg > 0 else '▼'} {abs(ratio_chg):.2f}%"
+                ratio_dir = "pos" if ratio_chg > 0 else ("neg" if ratio_chg < 0 else "neu")
+            else:
+                ratio_chg_str, ratio_dir = "—", "neu"
+            ratio_item = {
+                "label": "HYG/LQD",
+                "val": f"{ratio_today:.4f}",
+                "chg": ratio_chg_str,
+                "dir": ratio_dir,
+            }
+        else:
+            ratio_item = {"label": "HYG/LQD", "val": "—", "chg": "—", "dir": "neu"}
+        # Insert HYG/LQD ratio after LQD (before BKLN)
+        result["credit"].insert(2, ratio_item)
+
+        print(f"  ✓ Market: NQ={result['indices'][0]['val']} SP={result['indices'][1]['val']} "
+              f"VIX={result['sentiment'][0]['val']} BTC={result['indices'][7]['val']} "
+              f"F&G={fg_item['val']} sectors={[s['label'] for s in top_sectors]}")
+
+        return result
     except Exception as e:
         print(f"  ✗ Market data failed: {e}")
+        import traceback
+        traceback.print_exc()
         return {}
 
 
-# 週報用固定 tickers（與日報相同的前11個 + BTC）
-WEEKLY_MARKET_TICKERS = [
-    # (key,    symbol,      prefix, invert, label)
-    ("nq100",  "NQ=F",      "",  False, "NQ100"),
-    ("sp500",  "^GSPC",     "",  False, "S&P500"),
-    ("sox",    "^SOX",      "",  False, "費半"),
-    ("vix",    "^VIX",      "",  True,  "VIX"),
-    ("twii",   "^TWII",     "",  False, "台灣加權"),
-    ("brent",  "BZ=F",      "$", False, "Brent油"),
-    ("gold",   "GC=F",      "$", False, "黃金"),
-    ("silver", "SI=F",      "$", False, "白銀"),
-    ("copper", "HG=F",      "$", False, "銅"),
-    ("dxy",    "DX-Y.NYB",  "",  False, "DXY"),
-    ("us10y",  "^TNX",      "",  True,  "美10Y"),
-    ("btc",    "BTC-USD",   "$", False, "BTC"),
-]
+def fetch_move_index() -> str:
+    """Fetch MOVE Index value via Perplexity search."""
+    api_key = os.environ.get("PERPLEXITY_API_KEY", "")
+    if not api_key:
+        print("  ✗ MOVE Index: no PERPLEXITY_API_KEY")
+        return ""
+    query = "MOVE Index current value today ICE BofA MOVE bond market volatility index latest reading Sources: Bloomberg Reuters ICE"
+    tz = pytz.timezone("Asia/Taipei")
+    today = datetime.now(tz).strftime("%Y-%m-%d")
+    try:
+        payload = {
+            "model": "sonar",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        f"Today is {today} Taiwan time (UTC+8). "
+                        "Return only the current MOVE Index numerical value and a brief context. "
+                        "Be concise."
+                    ),
+                },
+                {"role": "user", "content": query},
+            ],
+            "search_recency_filter": "day",
+            "return_citations": True,
+            "max_tokens": 300,
+        }
+        resp = requests.post(
+            "https://api.perplexity.ai/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json=payload, timeout=30,
+        )
+        resp.raise_for_status()
+        answer = resp.json()["choices"][0]["message"]["content"]
+        print(f"  ✓ MOVE Index: {answer[:80]}...")
+        return answer
+    except Exception as e:
+        print(f"  ✗ MOVE Index search failed: {e}")
+        return ""
 
 
+# 週報用：重用 FIXED_TICKERS，產生與日報相同分類結構
 def fetch_weekly_market_data() -> dict:
     """Fetch weekly market data using 7d daily data (first vs last weekday close)."""
     try:
         all_symbols = set()
-        for t in WEEKLY_MARKET_TICKERS:
-            all_symbols.add(t[1])
-        for t in DYNAMIC_POOL_TICKERS:
-            all_symbols.add(t[1])
-        all_symbols.update(["^TNX", "^IRX"])
+        for info in FIXED_TICKERS.values():
+            all_symbols.add(info["ticker"])
+        for symbol in SECTOR_ETFS:
+            all_symbols.add(symbol)
 
         closes_cache = _download_symbols(list(all_symbols), period="7d")
 
         def get_week_vals(symbol):
-            """Get first and last weekday close from 7d daily data."""
             try:
                 closes = closes_cache.get(symbol)
                 if closes is None:
                     return None, None
-                # Filter to weekdays only (Mon=0 .. Fri=4)
                 weekday_closes = closes[closes.index.dayofweek < 5]
                 if len(weekday_closes) >= 2:
                     return weekday_closes.iloc[0].item(), weekday_closes.iloc[-1].item()
@@ -337,72 +370,91 @@ def fetch_weekly_market_data() -> dict:
                 return "neu"
             return ("neg" if c > 0 else "pos") if invert else ("pos" if c > 0 else "neg")
 
-        # Fixed 12
-        fixed_keys = set()
-        items = []
-        for key, symbol, prefix, invert, label in WEEKLY_MARKET_TICKERS:
+        # Build same category structure as daily
+        category_keys = {
+            "indices":     ["nq100", "sp500", "sox", "twii", "dax", "vt", "vo", "btc"],
+            "factors":     ["vtv", "vug"],
+            "sentiment":   ["vix", "skew", "vvix"],
+            "commodities": ["brent", "gold", "silver", "copper"],
+            "bonds":       ["us10y"],
+            "fx":          ["dxy", "jpyusd"],
+            "credit":      ["hyg", "lqd", "bkln"],
+        }
+
+        result = {cat: [] for cat in category_keys}
+
+        for cat, keys in category_keys.items():
+            for key in keys:
+                info = FIXED_TICKERS[key]
+                first, last = get_week_vals(info["ticker"])
+                invert = info.get("invert", False)
+                use_bps = info.get("use_bps", False)
+                if use_bps:
+                    chg_str, chg_raw = fmt_chg_bps(first, last)
+                else:
+                    chg_str, chg_raw = fmt_chg_pct(first, last)
+                result[cat].append({
+                    "label": info["label"],
+                    "val": fmt_val(last, info["prefix"]),
+                    "chg": chg_str,
+                    "dir": direction(chg_raw, invert=invert),
+                    "is_dynamic": False,
+                })
+
+        # Sector ETFs top 3
+        sector_items = []
+        for symbol, label in SECTOR_ETFS.items():
             first, last = get_week_vals(symbol)
             chg_str, chg_raw = fmt_chg_pct(first, last)
-            items.append({
-                "label": label, "key": key,
-                "val": fmt_val(last, prefix),
+            sector_items.append({
+                "label": f"{symbol} {label}",
+                "val": fmt_val(last, "$"),
                 "chg": chg_str,
-                "dir": direction(chg_raw, invert=invert),
-            })
-            fixed_keys.add(key)
-
-        # Dynamic pool
-        pool = []
-        for key, symbol, prefix, invert, label, fmt in DYNAMIC_POOL_TICKERS:
-            if key in fixed_keys:
-                continue
-            first, last = get_week_vals(symbol)
-            if last is None:
-                continue
-            if fmt == "bps":
-                chg_str, chg_raw = fmt_chg_bps(first, last)
-            else:
-                chg_str, chg_raw = fmt_chg_pct(first, last)
-            pool.append({
-                "label": label, "key": key,
-                "val": fmt_val(last, prefix),
-                "chg": chg_str,
-                "dir": direction(chg_raw, invert=invert),
+                "dir": direction(chg_raw),
+                "is_dynamic": True,
                 "_abs_chg": abs(chg_raw) if chg_raw is not None else 0,
             })
+        sector_items.sort(key=lambda x: x.get("_abs_chg", 0), reverse=True)
+        for s in sector_items[:3]:
+            item = {k: v for k, v in s.items() if k != "_abs_chg"}
+            result["factors"].append(item)
 
-        # 10Y-2Y spread
-        tnx_first, tnx_last = get_week_vals("^TNX")
-        irx_first, irx_last = get_week_vals("^IRX")
-        if tnx_last is not None and irx_last is not None:
-            spread_last = tnx_last - irx_last
-            if tnx_first is not None and irx_first is not None:
-                spread_first = tnx_first - irx_first
-                diff_bps = (spread_last - spread_first) * 100
-                chg_str = f"{'▲' if diff_bps > 0 else '▼'} {abs(diff_bps):.0f}bps"
-                d = "pos" if diff_bps > 0 else ("neg" if diff_bps < 0 else "neu")
-            else:
-                chg_str, d, diff_bps = "—", "neu", 0
-            pool.append({
-                "label": "10Y-2Y利差", "key": "spread_10y2y",
-                "val": f"{spread_last:.2f}%", "chg": chg_str, "dir": d,
-                "_abs_chg": abs(diff_bps) if diff_bps else 0,
-            })
-
-        # Auto-select top 2 by abs change
-        pool.sort(key=lambda x: x.get("_abs_chg", 0), reverse=True)
-        top_dynamic = []
-        for p in pool[:2]:
-            item = {k: v for k, v in p.items() if k != "_abs_chg"}
-            top_dynamic.append(item)
-
+        # Fear & Greed
         fear_greed = _fetch_fear_greed()
+        fg_item = {
+            "label": "Fear&Greed",
+            "val": fear_greed.get("val", "—"),
+            "chg": fear_greed.get("chg", "—"),
+            "dir": fear_greed.get("dir", "neu"),
+        }
+        result["sentiment"].insert(1, fg_item)
 
-        print(f"  ✓ Weekly market: NQ={items[0]['val']} SP={items[1]['val']} "
-              f"BTC={items[11]['val']} F&G={fear_greed['val']} "
-              f"top_dyn={[d['label'] for d in top_dynamic]}")
+        # HYG/LQD ratio
+        hyg_first, hyg_last = get_week_vals("HYG")
+        lqd_first, lqd_last = get_week_vals("LQD")
+        if hyg_last is not None and lqd_last is not None and lqd_last != 0:
+            ratio_last = hyg_last / lqd_last
+            if hyg_first is not None and lqd_first is not None and lqd_first != 0:
+                ratio_first = hyg_first / lqd_first
+                ratio_chg = (ratio_last - ratio_first) / ratio_first * 100
+                ratio_chg_str = f"{'▲' if ratio_chg > 0 else '▼'} {abs(ratio_chg):.2f}%"
+                ratio_dir = "pos" if ratio_chg > 0 else ("neg" if ratio_chg < 0 else "neu")
+            else:
+                ratio_chg_str, ratio_dir = "—", "neu"
+            ratio_item = {"label": "HYG/LQD", "val": f"{ratio_last:.4f}", "chg": ratio_chg_str, "dir": ratio_dir}
+        else:
+            ratio_item = {"label": "HYG/LQD", "val": "—", "chg": "—", "dir": "neu"}
+        result["credit"].insert(2, ratio_item)
 
-        return {"items": items, "fear_greed": fear_greed, "dynamic": top_dynamic}
+        # For backwards compat with weekly_template, also provide flat "items" list
+        items_flat = []
+        for cat in ["indices", "factors", "sentiment", "commodities", "bonds", "fx", "credit"]:
+            items_flat.extend(result[cat])
+
+        print(f"  ✓ Weekly market: NQ={result['indices'][0]['val']} SP={result['indices'][1]['val']} "
+              f"BTC={result['indices'][7]['val']} F&G={fg_item['val']}")
+
+        return {**result, "items": items_flat, "fear_greed": fear_greed, "dynamic": []}
     except Exception as e:
         print(f"  ✗ Weekly market data failed: {e}")
         return {"items": [], "fear_greed": {"val": "—", "chg": "—", "dir": "neu"}, "dynamic": []}

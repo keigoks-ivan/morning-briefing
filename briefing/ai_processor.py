@@ -72,6 +72,11 @@ JSON 格式規則：
 - 錯誤：$1.42兆、$600億
 - 這樣可以避免 JSON 解析錯誤
 
+market_data 規則：
+- market_data 直接使用 market_context 提供的真實數字，不得修改
+- move_index.val 從 Perplexity 搜尋結果中提取真實數值
+- 如果 Perplexity 沒有搜到 MOVE Index，val 填 "—"
+
 其他規則：
 - 只回傳 JSON，不要任何前置說明、後記或 markdown code block
 - 所有文字使用繁體中文，數字/公司名/技術術語保留英文
@@ -95,9 +100,14 @@ USER_PROMPT_TEMPLATE = """
   "alert": "最高警示事件，一句話，如無重大事件則輸出空字串",
 
   "market_data": {{
-    "dynamic": [
-      {{"label": "動態格標籤", "val": "數值", "chg": "漲跌", "dir": "pos|neg|neu"}}
-    ]
+    "indices":    [{{"label":"","val":"","chg":"","dir":"","is_dynamic":false}}],
+    "factors":    [{{"label":"","val":"","chg":"","dir":"","is_dynamic":false}}],
+    "sentiment":  [{{"label":"","val":"","chg":"","dir":""}}],
+    "move_index": {{"val": "MOVE指數數值（從Perplexity）", "interpretation": "一句話解讀（偏高/正常/偏低）"}},
+    "commodities":[{{"label":"","val":"","chg":"","dir":""}}],
+    "bonds":      [{{"label":"","val":"","chg":"","dir":""}}],
+    "fx":         [{{"label":"","val":"","chg":"","dir":""}}],
+    "credit":     [{{"label":"","val":"","chg":"","dir":""}}]
   }},
 
   "us_market_recap": {{
@@ -370,30 +380,38 @@ def build_news_text(raw_news: list[dict], moneydj_news: list[dict] | None = None
     return "\n".join(parts)
 
 
-def process_news(raw_news: list[dict], market_data: dict | None = None, today_earnings: list | None = None, moneydj_news: list[dict] | None = None, deep_dive_news: list[dict] | None = None) -> dict:
+def process_news(raw_news: list[dict], market_data: dict | None = None, today_earnings: list | None = None, moneydj_news: list[dict] | None = None, deep_dive_news: list[dict] | None = None, move_index_raw: str = "") -> dict:
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
     news_text = build_news_text(raw_news, moneydj_news, deep_dive_news)
 
     market_context = ""
     if market_data:
+        def _fmt_items(items):
+            return ", ".join(f"{it['label']}: {it.get('val','—')} {it.get('chg','—')}" for it in items)
+
+        indices_str = _fmt_items(market_data.get("indices", []))
+        factors_list = market_data.get("factors", [])
+        static_factors = [f for f in factors_list if not f.get("is_dynamic")]
+        dynamic_factors = [f for f in factors_list if f.get("is_dynamic")]
+        factors_str = _fmt_items(static_factors)
+        top_sectors = ", ".join(f["label"] for f in dynamic_factors)
+        sentiment_str = _fmt_items(market_data.get("sentiment", []))
+        move_index_str = move_index_raw if move_index_raw else "無資料"
+        commodities_str = _fmt_items(market_data.get("commodities", []))
+        bonds_str = _fmt_items(market_data.get("bonds", []))
+        fx_str = _fmt_items(market_data.get("fx", []))
+        credit_str = _fmt_items(market_data.get("credit", []))
+
         lines = []
-        # Fixed 12
-        lines.append("【固定行情（12格）】")
-        for item in market_data.get("fixed", []):
-            lines.append(f"{item['label']}: {item.get('val','—')} {item.get('chg','—')}")
-        # Fear & Greed
-        fg = market_data.get("fear_greed", {})
-        lines.append(f"\n【CNN Fear & Greed Index】")
-        lines.append(f"Score: {fg.get('val','—')}  Rating: {fg.get('chg','—')}")
-        # Dynamic pool
-        lines.append(f"\n【動態備選池（從中選4個最重要的放入 market_data.dynamic）】")
-        for item in market_data.get("dynamic_pool", []):
-            lines.append(f"{item['label']}({item.get('key','')}): {item.get('val','—')} {item.get('chg','—')}")
-        lines.append("\n從 dynamic_pool 中選出今日最重要的 4 個動態格，")
-        lines.append("選擇標準：今日漲跌幅絕對值最大、或與當日重大新聞最相關、或能補充固定格沒有的市場視角，")
-        lines.append("確保選出的標的不與固定12格重複。")
-        lines.append("把選出的動態格放入 market_data.dynamic 陣列，每格包含 label/val/chg/dir。")
+        lines.append(f"【股票指數】{indices_str}")
+        lines.append(f"【美股因子】{factors_str}（含今日波動最大 Sector：{top_sectors}）")
+        lines.append(f"【市場情緒】{sentiment_str}")
+        lines.append(f"【MOVE Index】{move_index_str}（從Perplexity搜尋）")
+        lines.append(f"【原物料】{commodities_str}")
+        lines.append(f"【債券】{bonds_str}")
+        lines.append(f"【外匯】{fx_str}")
+        lines.append(f"【信貸市場】{credit_str}")
 
         # Today's earnings from yfinance
         if today_earnings:
@@ -447,10 +465,10 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
         raise
 
     if market_data:
-        # Preserve Claude's dynamic picks, merge with fetched data
-        claude_dynamic = data.get("market_data", {}).get("dynamic", [])
+        # Preserve Claude's move_index interpretation, merge with fetched data
+        claude_move = data.get("market_data", {}).get("move_index", {})
         data["market_data"] = market_data
-        data["market_data"]["dynamic"] = claude_dynamic
+        data["market_data"]["move_index"] = claude_move
 
     _validate(data)
 
@@ -503,10 +521,14 @@ def _validate(data: dict) -> None:
         trend["sub_items"] = trend["sub_items"][:3]
 
     md = data.get("market_data", {})
-    md.setdefault("fixed", [])
-    md.setdefault("fear_greed", {"val": "—", "chg": "—", "dir": "neu"})
-    md.setdefault("dynamic_pool", [])
-    md.setdefault("dynamic", [])
+    md.setdefault("indices", [])
+    md.setdefault("factors", [])
+    md.setdefault("sentiment", [])
+    md.setdefault("move_index", {"val": "—", "interpretation": ""})
+    md.setdefault("commodities", [])
+    md.setdefault("bonds", [])
+    md.setdefault("fx", [])
+    md.setdefault("credit", [])
 
     rt = data.get("regional_tech", {})
     for region in ["taiwan", "japan", "us", "malaysia", "korea", "china", "europe"]:

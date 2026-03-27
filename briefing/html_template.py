@@ -140,63 +140,122 @@ def _alert(text: str) -> str:
 </div>'''
 
 
-def _market_cell_from_item(item: dict) -> str:
+def _market_cell(item: dict) -> str:
+    """Render a single market data cell."""
     color = SENTIMENT_COLOR.get(item.get("dir", "neu"), "#888")
     label = item.get("label", "—")
+    is_dynamic = item.get("is_dynamic", False)
+    border_left = "border-left:3px solid #C0392B;" if is_dynamic else ""
+    dynamic_tag = '<div style="font-size:9px;color:#C0392B;font-weight:500;margin-top:2px;">今日波動</div>' if is_dynamic else ""
     return f'''<td style="background:#fff;padding:10px 12px;border-right:1px solid #e8e8e8;
-                border-bottom:1px solid #e8e8e8;vertical-align:top;width:20%;">
-  <div style="font-size:11px;letter-spacing:0.8px;text-transform:uppercase;
-              color:#888;margin-bottom:4px;">{label}</div>
-  <div style="font-size:17px;font-weight:500;color:#222;margin-bottom:2px;">{item.get("val","—")}</div>
-  <div style="font-size:13px;color:{color};">{item.get("chg","—")}</div>
+                border-bottom:1px solid #e8e8e8;vertical-align:top;{border_left}">
+  <div style="font-size:10px;color:#888;margin-bottom:4px;">{label}</div>
+  <div style="font-size:16px;font-weight:600;color:#222;margin-bottom:2px;">{item.get("val","—")}</div>
+  <div style="font-size:12px;color:{color};">{item.get("chg","—")}</div>
+  {dynamic_tag}
 </td>'''
 
 
-def _market_table(items: list[dict]) -> str:
-    cells = "".join(_market_cell_from_item(it) for it in items)
+def _market_row(items: list[dict]) -> str:
+    """Render a horizontal row of market cells."""
+    cells = "".join(_market_cell(it) for it in items)
     return f'''<table width="100%" cellpadding="0" cellspacing="0"
          style="border:1px solid #e8e8e8;border-radius:6px;overflow:hidden;border-collapse:collapse;">
     <tr>{cells}</tr>
   </table>'''
 
 
+def _market_sub_label(text: str) -> str:
+    return f'<div style="font-size:11px;color:#888;font-weight:500;letter-spacing:1px;margin:10px 0 6px 0;">{text}</div>'
+
+
+def _move_index_card(move: dict) -> str:
+    """Render MOVE Index card."""
+    val = move.get("val", "—")
+    interpretation = move.get("interpretation", "")
+    # Determine color based on numeric value
+    color = "#888"
+    try:
+        num = float(str(val).replace(",", ""))
+        if num > 120:
+            color = "#C0392B"  # red = high volatility
+        elif num >= 80:
+            color = "#854F0B"  # orange = normal
+        else:
+            color = "#1a7a4a"  # green = low volatility
+    except (ValueError, TypeError):
+        pass
+    return f'''<div style="background:#fff;border:1px solid #e8e8e8;border-radius:6px;
+                padding:10px 14px;min-width:140px;display:inline-block;vertical-align:top;">
+  <div style="font-size:10px;color:#888;margin-bottom:4px;">MOVE Index</div>
+  <div style="font-size:20px;font-weight:700;color:{color};margin-bottom:2px;">{val}</div>
+  <div style="font-size:11px;color:#555;line-height:1.4;">{interpretation}</div>
+</div>'''
+
+
 def _market_strip(market_data: dict) -> str:
-    fixed = market_data.get("fixed", [])
-    fear_greed = market_data.get("fear_greed", {"val": "—", "chg": "—", "dir": "neu"})
-    dynamic = market_data.get("dynamic", [])
+    indices = market_data.get("indices", [])
+    factors = market_data.get("factors", [])
+    sentiment = market_data.get("sentiment", [])
+    move_index = market_data.get("move_index", {"val": "—", "interpretation": ""})
+    commodities = market_data.get("commodities", [])
+    bonds = market_data.get("bonds", [])
+    fx = market_data.get("fx", [])
+    credit = market_data.get("credit", [])
 
-    # Build lookup by key for fixed items
-    fixed_by_key = {it.get("key", ""): it for it in fixed}
-    def _get(key, fallback_label="—"):
-        return fixed_by_key.get(key, {"label": fallback_label, "val": "—", "chg": "—", "dir": "neu"})
+    # Row 1: 股票指數 (8 items)
+    row1_html = _market_sub_label("股票指數")
+    row1_html += _market_row(indices) if indices else ""
 
-    # Row 1: NQ100, S&P 500, 費半, VIX, 台灣加權
-    row1 = [_get("nq100", "NQ100"), _get("sp500", "S&P500"), _get("sox", "費半"),
-            _get("vix", "VIX"), _get("twii", "台灣加權")]
+    # Row 2: 美股市場因子 (VTV, VUG + 3 dynamic sectors)
+    row2_html = _market_sub_label("美股市場因子")
+    row2_html += _market_row(factors) if factors else ""
 
-    # Row 2: Brent油, 黃金, 白銀, 銅, DXY
-    row2 = [_get("brent", "Brent油"), _get("gold", "黃金"), _get("silver", "白銀"),
-            _get("copper", "銅"), _get("dxy", "DXY")]
+    # Row 3: 市場情緒 (VIX, Fear&Greed, SKEW, VVIX) + MOVE Index card
+    row3_html = _market_sub_label("市場情緒")
+    row3_html += f'''<div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
+  <div style="flex:1;min-width:0;">{_market_row(sentiment)}</div>
+  {_move_index_card(move_index)}
+</div>'''
 
-    # Row 3: 美10Y, BTC, CNN Fear&Greed + dynamic (2-3)
-    fg_item = {"label": "Fear&Greed", "val": fear_greed.get("val", "—"),
-               "chg": fear_greed.get("chg", "—"), "dir": fear_greed.get("dir", "neu")}
-    row3_base = [_get("us10y", "美10Y"), _get("btc", "BTC"), fg_item]
-    # Add dynamic picks (up to 2 to fill 5 cells)
-    for d in dynamic[:2]:
-        row3_base.append(d)
-    # Pad to 5 if needed
-    while len(row3_base) < 5:
-        row3_base.append({"label": "—", "val": "—", "chg": "—", "dir": "neu"})
+    # Row 4: 原物料
+    row4_html = _market_sub_label("原物料")
+    row4_html += _market_row(commodities) if commodities else ""
+
+    # Row 5: 債券 / 外匯 / 信貸 — three groups side by side
+    row5_html = _market_sub_label("債券 / 外匯 / 信貸")
+    bond_cells = "".join(_market_cell(it) for it in bonds)
+    fx_cells = "".join(_market_cell(it) for it in fx)
+    credit_cells = "".join(_market_cell(it) for it in credit)
+    row5_html += f'''<div style="display:flex;gap:8px;flex-wrap:wrap;">
+  <div style="flex:1;min-width:0;">
+    <table width="100%" cellpadding="0" cellspacing="0"
+           style="border:1px solid #e8e8e8;border-radius:6px;overflow:hidden;border-collapse:collapse;">
+      <tr>{bond_cells}</tr>
+    </table>
+  </div>
+  <div style="flex:2;min-width:0;">
+    <table width="100%" cellpadding="0" cellspacing="0"
+           style="border:1px solid #e8e8e8;border-radius:6px;overflow:hidden;border-collapse:collapse;">
+      <tr>{fx_cells}</tr>
+    </table>
+  </div>
+  <div style="flex:3;min-width:0;">
+    <table width="100%" cellpadding="0" cellspacing="0"
+           style="border:1px solid #e8e8e8;border-radius:6px;overflow:hidden;border-collapse:collapse;">
+      <tr>{credit_cells}</tr>
+    </table>
+  </div>
+</div>'''
 
     return f'''
 <div class="section">
   <div class="section-label">市場即時數據</div>
-  {_market_table(row1)}
-  <div style="height:8px;"></div>
-  {_market_table(row2)}
-  <div style="height:8px;"></div>
-  {_market_table(row3_base)}
+  {row1_html}
+  {row2_html}
+  {row3_html}
+  {row4_html}
+  {row5_html}
 </div>'''
 
 
