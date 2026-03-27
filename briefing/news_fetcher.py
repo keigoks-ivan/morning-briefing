@@ -66,7 +66,8 @@ DEEP_DIVE_QUERIES = [
 
 FIXED_TICKERS = {
     # 股票指數
-    "nq100":     {"ticker": "NQ=F",      "label": "NQ100",    "prefix": "",  "type": "index"},
+    "nq100":     {"ticker": "NQ=F",      "label": "NQ期貨",   "prefix": "",  "type": "index"},
+    "ndx":       {"ticker": "^NDX",      "label": "NDX現貨",  "prefix": "",  "type": "index"},
     "sp500":     {"ticker": "^GSPC",     "label": "S&P500",   "prefix": "",  "type": "index"},
     "sox":       {"ticker": "^SOX",      "label": "費半",      "prefix": "",  "type": "index"},
     "twii":      {"ticker": "^TWII",     "label": "台灣加權",  "prefix": "",  "type": "index"},
@@ -239,7 +240,7 @@ def fetch_market_data() -> dict:
 
         # Build items per category from FIXED_TICKERS
         category_keys = {
-            "indices":     ["nq100", "sp500", "sox", "twii", "dax", "vt", "vo", "btc"],
+            "indices":     ["nq100", "ndx", "sp500", "sox", "twii", "dax", "vt", "vo", "btc"],
             "factors":     ["nyfang", "vtv", "vug"],
             "sentiment":   ["vix", "vix9d", "skew", "vvix"],
             "commodities": ["brent", "gold", "silver", "copper"],
@@ -327,8 +328,8 @@ def fetch_market_data() -> dict:
         result["liquidity"] = [fred.get("rrp", {"label": "RRP餘額", "val": "—", "chg": "—", "dir": "neu", "date": ""}),
                                 fred.get("nfci", {"label": "NFCI", "val": "—", "chg": "—", "dir": "neu", "date": ""})]
 
-        print(f"  ✓ Market: NQ={result['indices'][0]['val']} SP={result['indices'][1]['val']} "
-              f"VIX={result['sentiment'][0]['val']} BTC={result['indices'][7]['val']} "
+        print(f"  ✓ Market: NQ={result['indices'][0]['val']} SP={result['indices'][2]['val']} "
+              f"VIX={result['sentiment'][0]['val']} BTC={result['indices'][8]['val']} "
               f"F&G={fg_item['val']} sectors={[s['label'] for s in top_sectors]}")
 
         return result
@@ -428,7 +429,7 @@ def fetch_weekly_market_data() -> dict:
 
         # Build same category structure as daily
         category_keys = {
-            "indices":     ["nq100", "sp500", "sox", "twii", "dax", "vt", "vo", "btc"],
+            "indices":     ["nq100", "ndx", "sp500", "sox", "twii", "dax", "vt", "vo", "btc"],
             "factors":     ["nyfang", "vtv", "vug"],
             "sentiment":   ["vix", "vix9d", "skew", "vvix"],
             "commodities": ["brent", "gold", "silver", "copper"],
@@ -512,8 +513,8 @@ def fetch_weekly_market_data() -> dict:
         for cat in ["indices", "factors", "sentiment", "commodities", "bonds", "fx", "credit", "liquidity"]:
             items_flat.extend(result[cat])
 
-        print(f"  ✓ Weekly market: NQ={result['indices'][0]['val']} SP={result['indices'][1]['val']} "
-              f"BTC={result['indices'][7]['val']} F&G={fg_item['val']}")
+        print(f"  ✓ Weekly market: NQ={result['indices'][0]['val']} SP={result['indices'][2]['val']} "
+              f"BTC={result['indices'][8]['val']} F&G={fg_item['val']}")
 
         return {**result, "items": items_flat, "fear_greed": fear_greed, "dynamic": []}
     except Exception as e:
