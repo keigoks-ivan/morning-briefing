@@ -362,8 +362,8 @@ def fetch_market_data() -> dict:
             }
         else:
             rsp_spy_item = {"label": "RSP/SPY", "val": "—", "chg": "—", "dir": "neu", "is_dynamic": False}
-        # Insert after VUG (index 2)
-        result["factors"].insert(2, rsp_spy_item)
+        # Insert after MTUM (index 4: NYFANG, VTV, VUG, MTUM, → RSP/SPY)
+        result["factors"].append(rsp_spy_item)
 
         # IWM/SPY ratio — small-cap vs large-cap breadth
         iwm_today, iwm_prev, _ = get_close("IWM")
@@ -387,8 +387,8 @@ def fetch_market_data() -> dict:
             }
         else:
             iwm_spy_item = {"label": "IWM/SPY 小型", "val": "—", "chg": "—", "dir": "neu", "is_dynamic": False}
-        # Insert after RSP/SPY (index 3)
-        result["factors"].insert(3, iwm_spy_item)
+        # Insert after RSP/SPY (index 5: ..., RSP/SPY, → IWM/SPY)
+        result["factors"].append(iwm_spy_item)
 
         # Sector ETFs — pick top 3 by abs change
         sector_items = []
@@ -766,7 +766,26 @@ def fetch_weekly_market_data() -> dict:
             rsp_spy_item = {"label": "RSP/SPY", "val": f"{ratio_last:.4f}", "chg": ratio_chg_str, "dir": ratio_dir, "is_dynamic": False}
         else:
             rsp_spy_item = {"label": "RSP/SPY", "val": "—", "chg": "—", "dir": "neu", "is_dynamic": False}
-        result["factors"].insert(2, rsp_spy_item)
+        # Remove IWM from factors (replaced by ratio below)
+        result["factors"] = [f for f in result["factors"] if f["label"] != "IWM"]
+        # Append RSP/SPY after MTUM (NYFANG, VTV, VUG, MTUM, → RSP/SPY)
+        result["factors"].append(rsp_spy_item)
+
+        # IWM/SPY ratio for weekly
+        iwm_first, iwm_last = get_week_vals("IWM")
+        if iwm_last and spy_last and spy_last != 0:
+            iwm_spy_last = iwm_last / spy_last
+            if iwm_first and spy_first and spy_first != 0:
+                iwm_spy_first = iwm_first / spy_first
+                iwm_spy_chg = (iwm_spy_last - iwm_spy_first) / iwm_spy_first * 100
+                iwm_spy_chg_str = f"{'▲' if iwm_spy_chg > 0 else '▼'} {abs(iwm_spy_chg):.2f}%"
+                iwm_spy_dir = "pos" if iwm_spy_chg > 0 else ("neg" if iwm_spy_chg < 0 else "neu")
+            else:
+                iwm_spy_chg_str, iwm_spy_dir = "—", "neu"
+            iwm_spy_item = {"label": "IWM/SPY 小型", "val": f"{iwm_spy_last:.4f}", "chg": iwm_spy_chg_str, "dir": iwm_spy_dir, "is_dynamic": False}
+        else:
+            iwm_spy_item = {"label": "IWM/SPY 小型", "val": "—", "chg": "—", "dir": "neu", "is_dynamic": False}
+        result["factors"].append(iwm_spy_item)
 
         # Sector ETFs top 3
         sector_items = []
