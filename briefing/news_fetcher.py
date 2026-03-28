@@ -245,7 +245,11 @@ def _download_symbols(symbols: list[str], period: str = "5d") -> dict:
                 progress=False, auto_adjust=True,
             )
             if df is not None and not df.empty:
-                closes = df["Close"].dropna().astype(float)
+                close_col = df["Close"]
+                # yfinance may return multi-level columns; flatten to Series
+                if hasattr(close_col, "columns"):
+                    close_col = close_col.iloc[:, 0]
+                closes = close_col.dropna().astype(float)
                 cache[symbol] = closes
         except Exception as e:
             print(f"  ✗ yfinance {symbol}: {e}")

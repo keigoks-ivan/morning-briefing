@@ -250,7 +250,10 @@ def fetch_weekly_sentiment_history() -> tuple[dict, dict]:
                     progress=False, auto_adjust=True,
                 )
                 if df is not None and not df.empty:
-                    cache[symbol] = df["Close"].dropna().astype(float)
+                    close_col = df["Close"]
+                    if hasattr(close_col, "columns"):
+                        close_col = close_col.iloc[:, 0]
+                    cache[symbol] = close_col.dropna().astype(float)
             except Exception as e:
                 print(f"  ✗ weekly yf {symbol}: {e}")
 
