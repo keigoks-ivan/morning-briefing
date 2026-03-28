@@ -92,6 +92,44 @@ market_pulse 分析規則：
 - 嚴禁輸出顯而易見的觀察
 - 整體 300字以內
 
+sentiment_analysis 強化分析規則：
+
+【四部曲判斷邏輯】
+第一階段（暴風雨前）：VIX < 20 + SKEW > 135 + VVIX 平穩
+第二階段（崩盤啟動）：VIX > 30 且快速上升 + VVIX > 120 且飆升 + SKEW 急跌
+第三階段（落底訊號）：VIX > 40 或維持高檔 + VVIX 已見頂開始回落 + SKEW 低於115
+第四階段（反轉確立）：VIX 從高檔回落 + VVIX 回到 100 左右 + 股市反彈
+
+【Fear&Greed 整合】
+- Fear&Greed < 15 + VIX > 40 + VVIX 見頂回落 → 三重確認底部訊號
+- Fear&Greed > 70 + SKEW > 135 + VIX < 20 → 第一階段警示加強版
+
+【假底判斷：信貸交叉確認】
+- HYG 跌幅 < 1% 且 LQD 穩定 → 非系統性恐慌，可靠性「高」
+- HYG 跌幅 1-3% + LQD 略跌 → 信貸壓力中等，可靠性「中」
+- HYG 跌幅 > 3% + LQD 同步大跌 → 系統性信貸危機風險，四部曲可能失效，可靠性「低」
+
+【跨資產確認訊號】（需至少2個才算確認）
+- 黃金從跟股票一起跌轉為走強或穩定 → 流動性危機緩解
+- BTC 跌幅收窄或開始反彈 → 風險偏好最敏感指標率先反應
+- 日圓升值放緩（JPY/USD 不再快速升值）→ carry trade 平倉接近尾聲
+- DXY 見頂或走弱 → 美元流動性危機緩解
+
+【時間維度：vvix_reading 必須說明】
+- VVIX 是否已從高點回落（比昨日低/比前期高點低多少）
+- 還是剛剛見頂（今日才開始下滑）
+- 還是仍在上升（尚未見頂）
+
+【可靠性判斷矩陣】
+高：信貸穩定（HYG跌<1%）+ 至少2個跨資產確認 + 非金融危機環境
+中：信貸輕微壓力（HYG跌1-3%）或跨資產確認不足 或 有金融系統風險苗頭
+低：信貸嚴重惡化（HYG跌>3%）或 系統性危機環境（類2008）
+
+【one_line 要求】
+必須包含：當前階段 + 可靠性 + 最可能的下一步
+引用至少兩個指標的具體數值
+不能兩邊都說，不能說「需要觀察」作為結論
+
 殖利率曲線分析：
 - 10Y-2Y利差 < 0 = 倒掛，歷史上是衰退的6-18個月領先指標
 - 倒掛轉正（熊市陡峭化）往往比倒掛本身更危險，代表短端利率快速下降（Fed緊急降息）
@@ -350,6 +388,21 @@ USER_PROMPT_TEMPLATE = """
     }}
   ],
 
+  "sentiment_analysis": {{
+    "stage": "第一階段/第二階段/第三階段/第四階段/無明確訊號",
+    "stage_name": "暴風雨前的寧靜/崩盤啟動/落底訊號浮現/反轉確立/正常市場",
+    "vix_reading": "VIX解讀（1句，含數值）",
+    "vvix_reading": "VVIX解讀（1句，含數值，特別注意是否見頂回落）",
+    "skew_reading": "SKEW解讀（1句，含數值）",
+    "fear_greed_reading": "Fear&Greed補充解讀（1句，說明是否強化或矛盾主要訊號）",
+    "credit_check": "信貸市場交叉確認（1句，HYG/LQD狀態是否支持底部訊號）",
+    "cross_asset_confirm": "跨資產確認（1句，黃金/BTC/日圓是否有確認訊號）",
+    "key_divergence": "最重要的背離或一致性訊號（1句）",
+    "reliability": "高/中/低",
+    "reliability_reason": "可靠性判斷依據（1句）",
+    "one_line": "綜合判斷：現在市場狀態及未來最可能發展（1句，有明確立場）"
+  }},
+
   "today_events": [
     {{
       "time": "時間",
@@ -563,6 +616,20 @@ def _validate(data: dict) -> None:
     data.setdefault("smart_money", {"has_signals": False, "signals": [], "summary": ""})
     data.setdefault("market_pulse", {"cross_asset_signals": [], "dominant_theme": "", "hidden_risk": "", "hidden_opportunity": "", "key_level_to_watch": "", "historical_analog": "", "new_pattern": ""})
     data.setdefault("daily_deep_dive", [])
+    data.setdefault("sentiment_analysis", {
+        "stage": "無明確訊號",
+        "stage_name": "正常市場",
+        "vix_reading": "",
+        "vvix_reading": "",
+        "skew_reading": "",
+        "fear_greed_reading": "",
+        "credit_check": "",
+        "cross_asset_confirm": "",
+        "key_divergence": "",
+        "reliability": "中",
+        "reliability_reason": "",
+        "one_line": ""
+    })
     data.setdefault("fun_fact", {})
     data.setdefault("today_events", [])
 

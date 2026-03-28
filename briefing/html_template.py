@@ -691,6 +691,98 @@ def _market_pulse(pulse: dict) -> str:
 </div>'''
 
 
+def _sentiment_analysis(sa: dict) -> str:
+    """Render the sentiment_analysis block."""
+    if not sa or not sa.get("one_line"):
+        return ""
+
+    stage = sa.get("stage", "無明確訊號")
+    stage_name = sa.get("stage_name", "正常市場")
+    vix_reading = sa.get("vix_reading", "")
+    vvix_reading = sa.get("vvix_reading", "")
+    skew_reading = sa.get("skew_reading", "")
+    fg_reading = sa.get("fear_greed_reading", "")
+    credit_check = sa.get("credit_check", "")
+    cross_asset = sa.get("cross_asset_confirm", "")
+    key_div = sa.get("key_divergence", "")
+    reliability = sa.get("reliability", "中")
+    reliability_reason = sa.get("reliability_reason", "")
+    one_line = sa.get("one_line", "")
+
+    # Reliability color mapping
+    rel_colors = {
+        "高": {"bg": "#E8F8EE", "text": "#0F6E56", "dot": "#1a7a4a"},
+        "中": {"bg": "#FFF8F0", "text": "#854F0B", "dot": "#E67E22"},
+        "低": {"bg": "#FFF0F0", "text": "#C0392B", "dot": "#C0392B"},
+    }
+    rc = rel_colors.get(reliability, rel_colors["中"])
+
+    # Stage badge
+    stage_html = (f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
+                  f'<span style="font-size:13px;font-weight:600;color:#1B3A5C;background:#EBF2FA;'
+                  f'padding:3px 10px;border-radius:4px;">{stage}</span>'
+                  f'<span style="font-size:13px;color:#555;">{stage_name}</span></div>')
+
+    # Row 1: VIX / VVIX / SKEW readings
+    def _reading_cell(title_text, content):
+        return (f'<td width="33%" style="vertical-align:top;padding:8px 10px;">'
+                f'<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;'
+                f'color:#888;margin-bottom:4px;">{title_text}</div>'
+                f'<div style="font-size:13px;color:#333;line-height:1.5;">{content}</div></td>')
+
+    row1 = (f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
+            f'<tr>{_reading_cell("VIX 解讀", vix_reading)}'
+            f'{_reading_cell("VVIX 解讀", vvix_reading)}'
+            f'{_reading_cell("SKEW 解讀", skew_reading)}</tr></table>')
+
+    # Row 2: Fear&Greed / Credit / Cross-asset
+    row2 = (f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;'
+            f'margin-top:6px;border-top:0.5px solid #e8e8e8;">'
+            f'<tr>{_reading_cell("FEAR&GREED 補充", fg_reading)}'
+            f'{_reading_cell("信貸確認", credit_check)}'
+            f'{_reading_cell("跨資產確認", cross_asset)}</tr></table>')
+
+    # Key divergence
+    div_html = ""
+    if key_div:
+        div_html = (f'<div style="font-size:13px;color:#555;line-height:1.5;padding:8px 10px;'
+                    f'margin-top:6px;border-top:0.5px solid #e8e8e8;">'
+                    f'<span style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;'
+                    f'color:#888;">關鍵背離/一致性</span><br>{key_div}</div>')
+
+    # Reliability row
+    rel_html = (f'<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;'
+                f'margin-top:6px;border-top:0.5px solid #e8e8e8;">'
+                f'<span style="font-size:12px;font-weight:600;padding:2px 8px;border-radius:3px;'
+                f'background:{rc["bg"]};color:{rc["text"]};">可靠性：{reliability}</span>'
+                f'<span style="font-size:13px;color:#888;">{reliability_reason}</span></div>')
+
+    # One-line conclusion with reliability dot
+    one_html = (f'<div style="background:#1B3A5C;border-radius:4px;padding:10px 14px;margin-top:10px;'
+                f'display:flex;align-items:center;gap:10px;">'
+                f'<div style="width:10px;height:10px;border-radius:50%;background:{rc["dot"]};'
+                f'flex-shrink:0;"></div>'
+                f'<div style="font-size:14px;color:#fff;line-height:1.6;">{one_line}</div></div>')
+
+    return f'''
+<div class="section">
+  <div style="background:#f7f7f5;border-radius:8px;border:0.5px solid #e8e8e8;padding:14px 18px;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;
+                margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid #e8e8e8;">
+      <span style="font-size:12px;letter-spacing:1.8px;text-transform:uppercase;
+                   font-weight:500;color:#888;">情緒四部曲分析</span>
+      <span style="font-size:12px;color:#888;">VIX·VVIX·SKEW·信貸·跨資產</span>
+    </div>
+    {stage_html}
+    {row1}
+    {row2}
+    {div_html}
+    {rel_html}
+    {one_html}
+  </div>
+</div>'''
+
+
 def _news_section(title: str, items: list, tag_style_map: dict | None = None) -> str:
     if not items:
         return ""
@@ -1386,6 +1478,7 @@ def build_html(data: dict) -> str:
 {_alert(data.get("alert",""))}
 {_market_strip(data.get("market_data", {}))}
 {_market_pulse(data.get("market_pulse", {}))}
+{_sentiment_analysis(data.get("sentiment_analysis", {}))}
 {_news_section("核心要聞", data.get("top_stories",[]))}
 {_daily_deep_dive(data.get("daily_deep_dive", []))}
 {_world_news(data.get("world_news", []))}

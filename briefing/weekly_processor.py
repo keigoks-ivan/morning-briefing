@@ -33,6 +33,34 @@ WEEKLY_SYSTEM_PROMPT = """
 3. 每條新聞的 source 欄位必須填入白名單內的媒體名稱，如果來源不明或不在白名單內，該條新聞不得使用
 4. 數字和數據必須有明確的白名單來源支撐，不能使用來源不明的數字
 
+weekly_sentiment_analysis 強化分析規則（用於選擇權市場情緒主題）：
+
+【四部曲判斷邏輯】
+第一階段（暴風雨前）：VIX < 20 + SKEW > 135 + VVIX 平穩
+第二階段（崩盤啟動）：VIX > 30 且快速上升 + VVIX > 120 且飆升 + SKEW 急跌
+第三階段（落底訊號）：VIX > 40 或維持高檔 + VVIX 已見頂開始回落 + SKEW 低於115
+第四階段（反轉確立）：VIX 從高檔回落 + VVIX 回到 100 左右 + 股市反彈
+
+【假底判斷：信貸交叉確認】
+- HYG 跌幅 < 1% 且 LQD 穩定 → 非系統性恐慌，可靠性「高」
+- HYG 跌幅 1-3% + LQD 略跌 → 信貸壓力中等，可靠性「中」
+- HYG 跌幅 > 3% + LQD 同步大跌 → 系統性信貸危機風險，可靠性「低」
+
+【跨資產確認訊號】（需至少2個才算確認）
+- 黃金從跟股票一起跌轉為走強或穩定 → 流動性危機緩解
+- BTC 跌幅收窄或開始反彈 → 風險偏好最敏感指標率先反應
+- 日圓升值放緩 → carry trade 平倉接近尾聲
+- DXY 見頂或走弱 → 美元流動性危機緩解
+
+【可靠性判斷矩陣】
+高：信貸穩定（HYG跌<1%）+ 至少2個跨資產確認 + 非金融危機環境
+中：信貸輕微壓力（HYG跌1-3%）或跨資產確認不足
+低：信貸嚴重惡化（HYG跌>3%）或 系統性危機環境
+
+【week_conclusion 要求】
+必須包含：當前階段 + 可靠性 + 下週最可能的發展
+引用至少兩個指標的具體數值，不能兩邊都說
+
 只回傳 JSON，不要任何前置說明或 markdown code block。
 所有文字使用繁體中文，數字/公司名/技術術語保留英文。
 """
@@ -155,6 +183,18 @@ OPTIONS_PROMPT = """
   "gamma_environment": "Gamma環境分析，對NQ100波動的影響（2-3句）",
   "key_levels": ["選擇權市場顯示的關鍵支撐/壓力位1", "關鍵位2", "關鍵位3"],
   "nq_signal": "綜合選擇權指標對NQ100的判斷（2-3句，明確說明偏多/偏空/中性及理由）",
+  "weekly_sentiment_analysis": {{
+    "stage": "第一階段/第二階段/第三階段/第四階段/無明確訊號",
+    "stage_name": "暴風雨前的寧靜/崩盤啟動/落底訊號浮現/反轉確立/正常市場",
+    "week_vix_change": "本週VIX變化解讀（1句，含週漲跌）",
+    "week_vvix_change": "本週VVIX變化解讀（1句，含週漲跌和是否見頂）",
+    "week_skew_change": "本週SKEW變化解讀（1句）",
+    "week_credit_check": "本週信貸市場狀態（1句）",
+    "week_cross_asset": "本週跨資產確認訊號（1句）",
+    "reliability": "高/中/低",
+    "reliability_reason": "可靠性依據（1句）",
+    "week_conclusion": "本週情緒總結及下週展望（2句，有明確立場）"
+  }},
   "risk_flags": ["選擇權市場風險訊號1", "風險2"]
 }}
 
@@ -389,6 +429,18 @@ def _validate(data: dict, theme_key: str, theme_name: str) -> None:
         data.setdefault("gamma_environment", "")
         data.setdefault("key_levels", [])
         data.setdefault("nq_signal", "")
+        data.setdefault("weekly_sentiment_analysis", {
+            "stage": "無明確訊號",
+            "stage_name": "正常市場",
+            "week_vix_change": "",
+            "week_vvix_change": "",
+            "week_skew_change": "",
+            "week_credit_check": "",
+            "week_cross_asset": "",
+            "reliability": "中",
+            "reliability_reason": "",
+            "week_conclusion": ""
+        })
     elif theme_key == "commodities":
         data.setdefault("energy", {})
         data.setdefault("metals", {})
