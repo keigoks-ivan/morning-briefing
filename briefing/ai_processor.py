@@ -141,10 +141,41 @@ sentiment_analysis 強化分析規則：
 - 日圓升值放緩（JPY/USD 不再快速升值）→ carry trade 平倉接近尾聲
 - DXY 見頂或走弱 → 美元流動性危機緩解
 
-【時間維度：vvix_reading 必須說明】
-- VVIX 是否已從高點回落（比昨日低/比前期高點低多少）
-- 還是剛剛見頂（今日才開始下滑）
-- 還是仍在上升（尚未見頂）
+【時間維度判斷（使用5日歷史數據）】
+
+第三階段精確判斷：
+必要條件：
+1. VIX 今日值 > 35
+2. VVIX 已從高點連續回落 2天以上（vvix_peak_days_ago >= 2）
+3. SKEW < 120
+
+充分條件：
+4. VIX 今日值 > 40
+5. VVIX 較峰值回落超過 10%（vvix_peak_decline_pct > 10）
+6. Fear&Greed < 20
+
+滿足必要條件但不滿足充分條件：stage=第三階段，reliability=中
+同時滿足必要和充分條件：stage=第三階段，reliability=高
+
+第二階段 vs 第三階段區分：
+- vvix_peak_days_ago <= 1（今天或昨天才見頂）→ 第二階段
+- vvix_peak_days_ago >= 2（2天前已見頂）且 VIX 仍高 → 第三階段
+
+vvix_reading 格式：
+若 vvix_peak_days_ago >= 2：
+  「VVIX {今日值}，{vvix_trend}，{vvix_peak_days_ago}天前見頂於{vvix_peak_val}，較峰值已回落{vvix_peak_decline_pct}%」
+若 vvix_peak_days_ago <= 1：
+  「VVIX {今日值}，{vvix_trend}，剛於{vvix_peak_days_ago}天前見頂，第三階段條件尚未成熟」
+若 vvix_trend == 持續上升：
+  「VVIX {今日值}，持續上升尚未見頂，仍處第二階段加速期」
+
+【第二層趨勢加強分析】
+在 cross_asset_confirm 中必須整合第二層趨勢：
+- 黃金連續上升 + BTC 震盪或下降 → 避險需求主導，非風險偏好回升
+- 黃金連續下降 → 流動性危機（拋售一切），底部訊號可靠性下降
+- DXY 連續上升 + HYG 連續下降 → 美元強勢收緊全球流動性，壓力持續
+- RSP/SPY 連續收縮 + IWM/SPY 連續收縮 → 市場高度集中化，底部前通常需要寬化確認
+- BTC 連續上升 先於黃金和股票 → 風險偏好率先回升，底部訊號增強
 
 【可靠性判斷矩陣】
 高：信貸穩定（HYG跌<1%）+ 至少2個跨資產確認 + 非金融危機環境
@@ -584,6 +615,31 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
             assess_score = liq_assess.get("score", 0)
             assess_signals = ", ".join(liq_assess.get("signals", []))
             lines.append(f"【流動性綜合】{assess_label}（評分：{assess_score}，訊號：{assess_signals}）")
+
+        # Sentiment 5-day history context
+        sh = market_data.get("sentiment_history", {})
+        if sh:
+            def _fmt_5d(entries):
+                return " → ".join(f"{e['val']}" for e in entries) if entries else "—"
+            vix_trend = sh.get("vix_trend", "震盪")
+            vix_peak_days = sh.get("vix_peak_days_ago", 0)
+            vvix_trend = sh.get("vvix_trend", "震盪")
+            vvix_peak_days = sh.get("vvix_peak_days_ago", 0)
+            vvix_peak_v = sh.get("vvix_peak_val", 0)
+            vvix_decline = sh.get("vvix_peak_decline_pct", 0)
+            skew_trend = sh.get("skew_trend", "震盪")
+            lines.append(f"【情緒指標5日趨勢】")
+            lines.append(f"VIX 過去5日：{_fmt_5d(sh.get('vix_5d', []))}（趨勢：{vix_trend}，{vix_peak_days}天前見頂）")
+            lines.append(f"VVIX 過去5日：{_fmt_5d(sh.get('vvix_5d', []))}（趨勢：{vvix_trend}，{vvix_peak_days}天前見頂於{vvix_peak_v}，較峰值回落{vvix_decline:.1f}%）")
+            lines.append(f"SKEW 過去5日：{_fmt_5d(sh.get('skew_5d', []))}（趨勢：{skew_trend}）")
+
+        # Second layer trends context
+        slt = market_data.get("second_layer_trends", {})
+        if slt:
+            lines.append(f"【第二層指標趨勢方向】")
+            lines.append(f"HYG信貸：{slt.get('hyg_trend','震盪')} | DXY美元：{slt.get('dxy_trend','震盪')} | 美10Y：{slt.get('us10y_trend','震盪')}")
+            lines.append(f"黃金：{slt.get('gold_trend','震盪')} | BTC：{slt.get('btc_trend','震盪')}")
+            lines.append(f"RSP/SPY市場寬度：{slt.get('rsp_spy_trend','震盪')} | IWM/SPY小型股：{slt.get('iwm_spy_trend','震盪')}")
 
         # Today's earnings from yfinance
         if today_earnings:

@@ -263,7 +263,7 @@ def fetch_market_data() -> dict:
         for symbol in COMMODITY_POOL:
             all_symbols.add(symbol)
 
-        closes_cache = _download_symbols(list(all_symbols), period="5d")
+        closes_cache = _download_symbols(list(all_symbols), period="10d")
 
         def get_close(symbol):
             try:
@@ -490,6 +490,103 @@ def fetch_market_data() -> dict:
             fred.get("nfci", _empty("NFCI")),
         ]
         result["liquidity_assessment"] = assess_liquidity(fred)
+
+        # --- Sentiment 5-day history + trends ---
+        def _get_5d(symbol):
+            """Get last 5 daily closes as list of (date_str, val)."""
+            closes = closes_cache.get(symbol)
+            if closes is None or len(closes) < 2:
+                return []
+            recent = closes.iloc[-5:] if len(closes) >= 5 else closes
+            return [{"date": idx.strftime("%Y-%m-%d"), "val": round(v, 2)}
+                    for idx, v in zip(recent.index, recent.values)]
+
+        def _calc_trend(entries):
+            """Trend from last 3 entries: 持續上升 / 連續回落 / 震盪."""
+            if len(entries) < 3:
+                return "震盪"
+            v = [e["val"] for e in entries[-3:]]
+            if v[2] > v[1] > v[0]:
+                return "持續上升"
+            if v[2] < v[1] < v[0]:
+                return "連續回落"
+            return "震盪"
+
+        def _peak_info(entries):
+            """Return (days_ago, peak_val, decline_pct) from 5d entries."""
+            if not entries:
+                return 0, 0, 0
+            vals = [e["val"] for e in entries]
+            peak_val = max(vals)
+            peak_idx = vals.index(peak_val)
+            days_ago = len(vals) - 1 - peak_idx
+            current = vals[-1]
+            decline_pct = (peak_val - current) / peak_val * 100 if peak_val != 0 else 0
+            return days_ago, peak_val, round(decline_pct, 1)
+
+        vix_5d = _get_5d("^VIX")
+        vvix_5d = _get_5d("^VVIX")
+        skew_5d = _get_5d("^SKEW")
+        vix9d_5d = _get_5d("^VIX9D")
+
+        vvix_days_ago, vvix_peak_val, vvix_decline = _peak_info(vvix_5d)
+        vix_days_ago, _, _ = _peak_info(vix_5d)
+
+        result["sentiment_history"] = {
+            "vix_5d": vix_5d,
+            "vvix_5d": vvix_5d,
+            "skew_5d": skew_5d,
+            "vix9d_5d": vix9d_5d,
+            "vvix_trend": _calc_trend(vvix_5d),
+            "vvix_peak_days_ago": vvix_days_ago,
+            "vvix_peak_val": vvix_peak_val,
+            "vvix_peak_decline_pct": vvix_decline,
+            "vix_trend": _calc_trend(vix_5d),
+            "vix_peak_days_ago": vix_days_ago,
+            "skew_trend": _calc_trend(skew_5d),
+        }
+
+        # --- Second layer trends ---
+        def _simple_trend(symbol):
+            """Last 3 closes → 連續上升 / 連續下降 / 震盪."""
+            closes = closes_cache.get(symbol)
+            if closes is None or len(closes) < 3:
+                return "震盪"
+            v = [closes.iloc[i].item() for i in range(-3, 0)]
+            if v[2] > v[1] > v[0]:
+                return "連續上升"
+            if v[2] < v[1] < v[0]:
+                return "連續下降"
+            return "震盪"
+
+        def _ratio_trend(sym_a, sym_b):
+            """Ratio trend from last 3 closes of sym_a/sym_b."""
+            ca = closes_cache.get(sym_a)
+            cb = closes_cache.get(sym_b)
+            if ca is None or cb is None or len(ca) < 3 or len(cb) < 3:
+                return "震盪"
+            ratios = []
+            for i in range(-3, 0):
+                a_val = ca.iloc[i].item()
+                b_val = cb.iloc[i].item()
+                if b_val == 0:
+                    return "震盪"
+                ratios.append(a_val / b_val)
+            if ratios[2] > ratios[1] > ratios[0]:
+                return "連續擴大"
+            if ratios[2] < ratios[1] < ratios[0]:
+                return "連續收縮"
+            return "震盪"
+
+        result["second_layer_trends"] = {
+            "hyg_trend": _simple_trend("HYG"),
+            "dxy_trend": _simple_trend("DX-Y.NYB"),
+            "us10y_trend": _simple_trend("^TNX"),
+            "gold_trend": _simple_trend("GC=F"),
+            "btc_trend": _simple_trend("BTC-USD"),
+            "rsp_spy_trend": _ratio_trend("RSP", "SPY"),
+            "iwm_spy_trend": _ratio_trend("IWM", "SPY"),
+        }
 
         print(f"  ✓ Market: NDX={result['indices'][0]['val']} SP={result['indices'][1]['val']} "
               f"VIX={result['sentiment'][0]['val']} BTC={result['indices'][7]['val']} "
