@@ -1180,16 +1180,6 @@ def _earnings_preview(items: list) -> str:
 def _implied_trends(trends: list) -> str:
     if not trends:
         return ""
-    cards = "".join(f'''
-<div style="background:#fff;border-radius:6px;border:0.5px solid #e8e8e8;padding:14px 16px;">
-  <div style="font-family:Georgia,serif;font-size:24px;color:#222;line-height:1;margin-bottom:5px;">{t.get("num","")}</div>
-  <div style="font-size:15px;font-weight:500;color:#222;margin-bottom:5px;line-height:1.4;">{t.get("title","")}</div>
-  <div style="font-size:14px;color:#555;line-height:1.65;">{t.get("desc","")}</div>
-  <div style="border-top:0.5px solid #f0f0f0;margin-top:8px;padding-top:7px;
-              font-size:14px;color:#555;line-height:1.55;">
-    <span style="font-size:12px;font-weight:500;color:#888;">投資含義 ▸ </span>{t.get("implication","")}
-  </div>
-</div>''' for t in trends)
     return f'''
 <div class="section">
   <div style="background:#f7f7f5;border-radius:8px;border:0.5px solid #e8e8e8;padding:16px 18px;">
@@ -1197,11 +1187,11 @@ def _implied_trends(trends: list) -> str:
                 margin-bottom:14px;padding-bottom:8px;border-bottom:0.5px solid #e8e8e8;">
       <span style="font-size:12px;letter-spacing:1.8px;text-transform:uppercase;
                    font-weight:500;color:#888;">隱含趨勢分析</span>
-      <span style="font-size:13px;color:#888;">綜合今日所有新聞萃取的結構性訊號</span>
+      <span style="font-size:13px;color:#888;">整合所有數據萃取的結構性訊號</span>
     </div>
     <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:10px;">
       <tr>
-        <td width="50%" style="vertical-align:top;">{trends[0] and _trend_card(trends[0]) if len(trends)>0 else ""}</td>
+        <td width="50%" style="vertical-align:top;">{_trend_card(trends[0]) if len(trends)>0 else ""}</td>
         <td width="50%" style="vertical-align:top;">{_trend_card(trends[1]) if len(trends)>1 else ""}</td>
       </tr>
       <tr>
@@ -1214,14 +1204,58 @@ def _implied_trends(trends: list) -> str:
 
 
 def _trend_card(t: dict) -> str:
+    # Data sources tags
+    sources = t.get("data_sources", [])
+    src_tags = " ".join(
+        f'<span style="font-size:8px;background:#F0F0EE;padding:2px 6px;border-radius:3px;'
+        f'color:#555;">{s}</span>' for s in sources[:3]
+    )
+    src_html = f'<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;">{src_tags}</div>' if src_tags else ""
+
+    # Trend continuity
+    tc = t.get("trend_continuity", "")
+    tc_html = ""
+    if tc:
+        tc_html = (f'<div style="border-left:2px dashed #BA7517;padding-left:8px;margin-top:8px;">'
+                   f'<div style="font-size:10px;color:#888;">趨勢持續性：</div>'
+                   f'<div style="font-size:12px;color:#888;font-style:italic;line-height:1.5;">{tc}</div></div>')
+
+    # Historical analog + new factor side by side
+    hist = t.get("historical_analog", "")
+    nf = t.get("new_factor", "")
+    bottom_html = ""
+    if hist or nf:
+        hist_td = (f'<td width="50%" style="vertical-align:top;padding-right:5px;">'
+                   f'<div style="border-left:2px dashed #aaa;padding-left:8px;">'
+                   f'<div style="font-size:10px;color:#888;">歷史類比</div>'
+                   f'<div style="font-size:12px;color:#555;font-style:italic;line-height:1.5;">{hist}</div>'
+                   f'</div></td>') if hist else '<td width="50%"></td>'
+        nf_td = (f'<td width="50%" style="vertical-align:top;padding-left:5px;">'
+                 f'<div style="border-left:2px solid #BA7517;padding-left:8px;">'
+                 f'<div style="font-size:10px;color:#BA7517;">新模式因素</div>'
+                 f'<div style="font-size:12px;color:#555;line-height:1.5;">{nf}</div>'
+                 f'</div></td>') if nf else '<td width="50%"></td>'
+        bottom_html = (f'<table width="100%" cellpadding="0" cellspacing="0" '
+                       f'style="border-collapse:collapse;margin-top:8px;"><tr>{hist_td}{nf_td}</tr></table>')
+
+    # Implication
+    impl = t.get("implication", "")
+    impl_html = ""
+    if impl:
+        impl_html = (f'<div style="margin-top:8px;background:#FEF9E7;padding:8px 10px;border-radius:4px;">'
+                     f'<span style="font-size:10px;color:#854F0B;">投資含義 ▸ </span>'
+                     f'<span style="font-size:13px;color:#555;line-height:1.6;">{impl}</span></div>')
+
     return f'''<div style="background:#fff;border-radius:6px;border:0.5px solid #e8e8e8;padding:14px 16px;">
-  <div style="font-family:Georgia,serif;font-size:24px;color:#222;line-height:1;margin-bottom:5px;">{t.get("num","")}</div>
-  <div style="font-size:15px;font-weight:500;color:#222;margin-bottom:5px;line-height:1.4;">{t.get("title","")}</div>
-  <div style="font-size:14px;color:#555;line-height:1.65;">{t.get("desc","")}</div>
-  <div style="border-top:0.5px solid #f0f0f0;margin-top:8px;padding-top:7px;
-              font-size:14px;color:#555;line-height:1.55;">
-    <span style="font-size:12px;font-weight:500;color:#888;">投資含義 ▸ </span>{t.get("implication","")}
+  <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;">
+    <span style="font-family:Georgia,serif;font-size:28px;color:#222;line-height:1;">{t.get("num","")}</span>
+    <span style="font-size:15px;font-weight:500;color:#222;line-height:1.4;">{t.get("title","")}</span>
   </div>
+  {src_html}
+  {tc_html}
+  <div style="font-size:13px;color:#555;line-height:1.8;margin-top:8px;">{t.get("desc","")}</div>
+  {bottom_html}
+  {impl_html}
 </div>'''
 
 

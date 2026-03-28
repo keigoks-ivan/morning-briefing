@@ -40,7 +40,8 @@ def main() -> None:
     raw_news = fetch_financial_news()
     moneydj_news = fetch_moneydj_news()
     deep_dive_news = fetch_deep_dive_news()
-    print(f"      {len(raw_news)} queries completed, {len(today_earnings)} earnings confirmed, {len(moneydj_news)} MoneyDJ news, {len(deep_dive_news)} deep dive")
+    dd_count = len(deep_dive_news.get("fixed", [])) + len(deep_dive_news.get("dynamic", [])) if isinstance(deep_dive_news, dict) else len(deep_dive_news)
+    print(f"      {len(raw_news)} queries completed, {len(today_earnings)} earnings confirmed, {len(moneydj_news)} MoneyDJ news, {dd_count} deep dive")
 
     # 2. AI 處理
     print("\n[2/4] Processing with Claude...")

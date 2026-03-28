@@ -55,12 +55,9 @@ PERPLEXITY_QUERIES = [
     "Major international news today geopolitical developments regional conflicts diplomacy global affairs past 24 hours only most important first Sources: Bloomberg Reuters Financial Times BBC AP",
 ]
 
-DEEP_DIVE_QUERIES = [
+DEEP_DIVE_FIXED_QUERIES = [
     "Semiconductor supply chain today: inventory levels fab utilization TSMC Samsung capacity pricing DRAM NAND HBM latest data Sources: Digitimes SemiAnalysis Bloomberg Reuters TrendForce",
     "AI model architecture research today: training efficiency inference optimization new model releases benchmarks compute costs Sources: Bloomberg Reuters TechCrunch The Information Ars Technica",
-    "Global liquidity indicators today: Fed balance sheet overnight reverse repo RRP bank reserves SOFR NFCI financial conditions Sources: Federal Reserve Bloomberg Reuters FRED",
-    "Energy market today: oil price WTI Brent OPEC supply LNG natural gas inventory EIA data Sources: Bloomberg Reuters EIA IEA Financial Times",
-    "Most important industry development today that deserves deeper analysis: any major structural shift technology breakthrough regulatory change market dislocation Sources: Bloomberg Reuters FT WSJ",
 ]
 
 
@@ -1078,15 +1075,92 @@ def fetch_moneydj_news() -> list[dict]:
     return results
 
 
-def fetch_deep_dive_news() -> list[dict]:
-    """使用 Perplexity 搜尋深度聚焦主題（max_tokens=1000）。"""
+def _fetch_dynamic_deep_topics(api_key: str, today: str) -> list[dict]:
+    """Meta-query to find today's 3 most important topics, then deep-dive each."""
+    import re
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+
+    # Step 1: meta-query
+    try:
+        meta_payload = {
+            "model": "sonar",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": f"Today is {today}. You are a financial analyst identifying the most important market-moving topics."
+                },
+                {
+                    "role": "user",
+                    "content": ("What are the 3 most important market-moving topics today that deserve deeper analysis? "
+                                "List ONLY as: 1. [topic name] 2. [topic name] 3. [topic name]. "
+                                "Focus on: geopolitical events, economic data surprises, major company news, "
+                                "central bank signals, commodity shocks. Sources: Bloomberg Reuters FT WSJ")
+                }
+            ],
+            "search_recency_filter": "day",
+            "max_tokens": 200,
+        }
+        resp = requests.post("https://api.perplexity.ai/chat/completions",
+                             headers=headers, json=meta_payload, timeout=30)
+        resp.raise_for_status()
+        meta_text = resp.json()["choices"][0]["message"]["content"]
+        topics = re.findall(r'\d+\.\s*(.+?)(?=\d+\.|$)', meta_text, re.DOTALL)
+        topics = [t.strip().rstrip('.') for t in topics[:3] if t.strip()]
+        print(f"  ✓ [dynamic deep] topics: {topics}")
+    except Exception as e:
+        print(f"  ✗ [dynamic deep] meta-query failed: {e}")
+        return []
+
+    # Step 2: deep-dive each topic
+    results = []
+    for topic in topics:
+        try:
+            deep_payload = {
+                "model": "sonar",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (f"Today is {today} Taiwan time (UTC+8). "
+                                    "Provide deep analysis with specific data points. "
+                                    "Never include ESG, sustainability, or green energy related news.")
+                    },
+                    {
+                        "role": "user",
+                        "content": (f"Deep analysis of '{topic}' today: what happened, key data points and numbers, "
+                                    "market implications, expert views, what it means for investors. "
+                                    "Sources: Bloomberg Reuters FT WSJ CNBC")
+                    }
+                ],
+                "search_recency_filter": "day",
+                "return_citations": True,
+                "max_tokens": 1000,
+            }
+            r = requests.post("https://api.perplexity.ai/chat/completions",
+                              headers=headers, json=deep_payload, timeout=30)
+            r.raise_for_status()
+            data = r.json()
+            results.append({
+                "topic": topic,
+                "result": data["choices"][0]["message"]["content"],
+                "sources": data.get("citations", [])[:3],
+            })
+            print(f"  ✓ [dynamic deep] {topic[:40]}...")
+        except Exception as e:
+            print(f"  ✗ [dynamic deep] {topic}: {e}")
+
+    return results
+
+
+def fetch_deep_dive_news() -> dict:
+    """Fetch fixed + dynamic deep-dive topics. Returns dict with 'fixed' and 'dynamic' keys."""
     api_key = os.environ["PERPLEXITY_API_KEY"]
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     tz = pytz.timezone("Asia/Taipei")
     today = datetime.now(tz).strftime("%Y-%m-%d")
-    results = []
 
-    for query in DEEP_DIVE_QUERIES:
+    # Fixed queries
+    fixed_results = []
+    for query in DEEP_DIVE_FIXED_QUERIES:
         try:
             payload = {
                 "model": "sonar",
@@ -1115,13 +1189,16 @@ def fetch_deep_dive_news() -> list[dict]:
             data = resp.json()
             answer = data["choices"][0]["message"]["content"]
             citations = data.get("citations", [])
-            results.append({"query": query, "answer": answer, "sources": citations[:3]})
-            print(f"  ✓ [deep] {query[:55]}... ({len(citations)} sources)")
+            fixed_results.append({"query": query, "answer": answer, "sources": citations[:3]})
+            print(f"  ✓ [deep-fixed] {query[:55]}... ({len(citations)} sources)")
         except Exception as e:
-            print(f"  ✗ [deep] {query[:55]}... — {e}")
-            results.append({"query": query, "answer": "", "sources": []})
+            print(f"  ✗ [deep-fixed] {query[:55]}... — {e}")
+            fixed_results.append({"query": query, "answer": "", "sources": []})
 
-    return results
+    # Dynamic queries
+    dynamic_results = _fetch_dynamic_deep_topics(api_key, today)
+
+    return {"fixed": fixed_results, "dynamic": dynamic_results}
 
 
 def fetch_financial_news() -> list[dict]:
