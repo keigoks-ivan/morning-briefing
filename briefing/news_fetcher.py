@@ -266,17 +266,20 @@ def fetch_market_data() -> dict:
         closes_cache = _download_symbols(list(all_symbols), period="10d")
 
         def get_close(symbol):
+            """Return (latest_val, prev_val, data_date_str) using last valid trading day."""
             try:
                 closes = closes_cache.get(symbol)
                 if closes is None:
-                    return None, None
+                    return None, None, ""
                 if len(closes) >= 2:
-                    return closes.iloc[-1].item(), closes.iloc[-2].item()
+                    data_date = closes.index[-1].strftime("%Y-%m-%d")
+                    return closes.iloc[-1].item(), closes.iloc[-2].item(), data_date
                 elif len(closes) == 1:
-                    return closes.iloc[-1].item(), None
+                    data_date = closes.index[-1].strftime("%Y-%m-%d")
+                    return closes.iloc[-1].item(), None, data_date
             except Exception:
                 pass
-            return None, None
+            return None, None, ""
 
         def fmt_val(v, prefix=""):
             return f"{prefix}{v:,.2f}" if v is not None else "—"
@@ -310,11 +313,14 @@ def fetch_market_data() -> dict:
         }
 
         result = {cat: [] for cat in category_keys}
+        latest_data_date = ""
 
         for cat, keys in category_keys.items():
             for key in keys:
                 info = FIXED_TICKERS[key]
-                today_v, prev_v = get_close(info["ticker"])
+                today_v, prev_v, d_date = get_close(info["ticker"])
+                if d_date and not latest_data_date:
+                    latest_data_date = d_date
                 invert = info.get("invert", False)
                 use_bps = info.get("use_bps", False)
                 if use_bps:
@@ -330,8 +336,8 @@ def fetch_market_data() -> dict:
                 })
 
         # RSP/SPY ratio — compute and insert into factors (replacing individual RSP/SPY)
-        rsp_today, rsp_prev = get_close("RSP")
-        spy_today, spy_prev = get_close("SPY")
+        rsp_today, rsp_prev, _ = get_close("RSP")
+        spy_today, spy_prev, _ = get_close("SPY")
         # Remove individual RSP and SPY from factors list
         result["factors"] = [f for f in result["factors"] if f["label"] not in ("RSP", "SPY")]
         if rsp_today and spy_today and spy_today != 0:
@@ -356,7 +362,7 @@ def fetch_market_data() -> dict:
         result["factors"].insert(2, rsp_spy_item)
 
         # IWM/SPY ratio — small-cap vs large-cap breadth
-        iwm_today, iwm_prev = get_close("IWM")
+        iwm_today, iwm_prev, _ = get_close("IWM")
         # Remove individual IWM from factors list (SPY already removed above)
         result["factors"] = [f for f in result["factors"] if f["label"] != "IWM"]
         if iwm_today and spy_today and spy_today != 0:
@@ -383,7 +389,7 @@ def fetch_market_data() -> dict:
         # Sector ETFs — pick top 3 by abs change
         sector_items = []
         for symbol, label in SECTOR_ETFS.items():
-            today_v, prev_v = get_close(symbol)
+            today_v, prev_v, _ = get_close(symbol)
             chg_str, chg_raw = fmt_chg_pct(today_v, prev_v)
             sector_items.append({
                 "label": f"{symbol} {label}",
@@ -403,7 +409,7 @@ def fetch_market_data() -> dict:
         # Dynamic commodities — top 2 by abs change from COMMODITY_POOL
         commodity_pool = []
         for symbol, label in COMMODITY_POOL.items():
-            today_v, prev_v = get_close(symbol)
+            today_v, prev_v, _ = get_close(symbol)
             if today_v is None:
                 continue
             chg_str, chg_raw = fmt_chg_pct(today_v, prev_v)
@@ -434,8 +440,8 @@ def fetch_market_data() -> dict:
         result["sentiment"].insert(1, fg_item)
 
         # 10Y-2Y spread
-        tnx_today, tnx_prev = get_close("^TNX")
-        irx_today, irx_prev = get_close("^IRX")
+        tnx_today, tnx_prev, _ = get_close("^TNX")
+        irx_today, irx_prev, _ = get_close("^IRX")
         if tnx_today is not None and irx_today is not None:
             spread_today = tnx_today - irx_today
             if tnx_prev is not None and irx_prev is not None:
@@ -458,8 +464,8 @@ def fetch_market_data() -> dict:
         result["bonds"].insert(3, spread_item)
 
         # HYG/LQD ratio
-        hyg_today, hyg_prev = get_close("HYG")
-        lqd_today, lqd_prev = get_close("LQD")
+        hyg_today, hyg_prev, _ = get_close("HYG")
+        lqd_today, lqd_prev, _ = get_close("LQD")
         if hyg_today is not None and lqd_today is not None and lqd_today != 0:
             ratio_today = hyg_today / lqd_today
             if hyg_prev is not None and lqd_prev is not None and lqd_prev != 0:
@@ -588,9 +594,12 @@ def fetch_market_data() -> dict:
             "iwm_spy_trend": _ratio_trend("IWM", "SPY"),
         }
 
+        result["data_date"] = latest_data_date
+
         print(f"  ✓ Market: NDX={result['indices'][0]['val']} SP={result['indices'][1]['val']} "
               f"VIX={result['sentiment'][0]['val']} BTC={result['indices'][7]['val']} "
-              f"F&G={fg_item['val']} sectors={[s['label'] for s in top_sectors]}")
+              f"F&G={fg_item['val']} sectors={[s['label'] for s in top_sectors]} "
+              f"date={latest_data_date}")
 
         return result
     except Exception as e:
@@ -643,7 +652,7 @@ def fetch_move_index() -> str:
 
 # 週報用：重用 FIXED_TICKERS，產生與日報相同分類結構
 def fetch_weekly_market_data() -> dict:
-    """Fetch weekly market data using 7d daily data (first vs last weekday close)."""
+    """Fetch weekly market data using 14d daily data to find most recent complete trading week."""
     try:
         all_symbols = set()
         for info in FIXED_TICKERS.values():
@@ -653,18 +662,35 @@ def fetch_weekly_market_data() -> dict:
         for symbol in COMMODITY_POOL:
             all_symbols.add(symbol)
 
-        closes_cache = _download_symbols(list(all_symbols), period="7d")
+        closes_cache = _download_symbols(list(all_symbols), period="14d")
 
         def get_week_vals(symbol):
+            """Find first and last close of the most recent complete trading week (Mon-Fri)."""
             try:
                 closes = closes_cache.get(symbol)
                 if closes is None:
                     return None, None
                 weekday_closes = closes[closes.index.dayofweek < 5]
-                if len(weekday_closes) >= 2:
-                    return weekday_closes.iloc[0].item(), weekday_closes.iloc[-1].item()
-                elif len(weekday_closes) == 1:
-                    return weekday_closes.iloc[0].item(), weekday_closes.iloc[0].item()
+                if len(weekday_closes) < 2:
+                    if len(weekday_closes) == 1:
+                        return weekday_closes.iloc[0].item(), weekday_closes.iloc[0].item()
+                    return None, None
+                # Group by ISO week and find the most recent week with data
+                weeks = {}
+                for idx, val in zip(weekday_closes.index, weekday_closes.values):
+                    wk = idx.isocalendar()[1]
+                    yr = idx.year
+                    key = (yr, wk)
+                    if key not in weeks:
+                        weeks[key] = []
+                    weeks[key].append(val.item() if hasattr(val, 'item') else float(val))
+                # Sort by (year, week) descending, pick the most recent week with >=2 days
+                for key in sorted(weeks.keys(), reverse=True):
+                    vals = weeks[key]
+                    if len(vals) >= 2:
+                        return vals[0], vals[-1]
+                # Fallback: first and last of all available
+                return weekday_closes.iloc[0].item(), weekday_closes.iloc[-1].item()
             except Exception:
                 pass
             return None, None

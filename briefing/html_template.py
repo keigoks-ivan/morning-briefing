@@ -564,9 +564,24 @@ def _market_strip(market_data: dict) -> str:
     <tr>{liq_cells}</tr>
     {assess_bar}'''
 
+    # Data date notice for weekends/holidays
+    data_date = market_data.get("data_date", "")
+    date_notice = ""
+    if data_date:
+        from datetime import date as _date_cls
+        try:
+            parts = data_date.split("-")
+            d = _date_cls(int(parts[0]), int(parts[1]), int(parts[2]))
+            today = _date_cls.today()
+            if d < today:
+                date_notice = (f'<span style="font-size:11px;color:#888;font-weight:400;">'
+                               f'數據截至 {data_date}（最近交易日）</span>')
+        except (ValueError, IndexError):
+            pass
+
     return f'''
 <div class="section">
-  <div class="section-label">市場即時數據</div>
+  <div class="section-label">市場即時數據{date_notice}</div>
   <table width="100%" cellpadding="0" cellspacing="0"
          style="background:#fff;border:0.5px solid #e8e8e8;border-radius:8px;
                 overflow:hidden;border-collapse:collapse;">
