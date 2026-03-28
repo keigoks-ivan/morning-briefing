@@ -511,10 +511,15 @@ def _market_strip(market_data: dict) -> str:
                            f'{tag}</td>')
         else:
             bond_cells += _mkt_cell(it)
-    # FX row (purple bg)
-    fx_cells = "".join(
-        _mkt_cell(it) for it in fx
-    )
+    # FX row (purple bg) — dynamic FX get "今日波動" tag
+    fx_cells = ""
+    for it in fx:
+        if it.get("is_dynamic"):
+            dyn_tag = ('<div style="font-size:9px;color:#534AB7;font-weight:600;'
+                       'margin-top:2px;">今日波動</div>')
+            fx_cells += _mkt_cell(it, extra_tag=dyn_tag)
+        else:
+            fx_cells += _mkt_cell(it)
     # Credit row (green bg)
     credit_cells = "".join(_credit_cell(it) for it in credit)
 
@@ -611,7 +616,7 @@ def _market_strip(market_data: dict) -> str:
         <div style="width:3px;height:12px;background:#534AB7;border-radius:1px;"></div>
         <span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;color:#888;">外匯</span>
       </div></td></tr>
-    <tr style="background:#F0EDF8;">{fx_cells}</tr>
+    <tr style="background:#F7F5FF;">{fx_cells}</tr>
     <tr><td colspan="99" style="padding:8px 10px 6px 10px;">
       <div style="display:flex;align-items:center;gap:6px;">
         <div style="width:3px;height:12px;background:#0F6E56;border-radius:1px;"></div>

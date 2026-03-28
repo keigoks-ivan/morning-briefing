@@ -102,6 +102,7 @@ FIXED_TICKERS = {
     # 外匯
     "dxy":       {"ticker": "DX-Y.NYB",  "label": "DXY",      "prefix": "",  "type": "fx"},
     "jpyusd":    {"ticker": "JPY=X",     "label": "JPY/USD",  "prefix": "¥", "type": "fx"},
+    "twdusd":    {"ticker": "TWD=X",     "label": "USD/TWD",  "prefix": "NT$", "type": "fx"},
     # 信貸
     "hyg":       {"ticker": "HYG",       "label": "HYG",      "prefix": "$", "type": "credit"},
     "lqd":       {"ticker": "LQD",       "label": "LQD",      "prefix": "$", "type": "credit"},
@@ -112,6 +113,17 @@ COMMODITY_POOL = {
     "NG=F": "天然氣", "PA=F": "鈀金", "PL=F": "鉑金",
     "ZW=F": "小麥", "ZC=F": "玉米", "ZS=F": "黃豆",
     "CC=F": "可可", "KC=F": "咖啡", "SB=F": "糖",
+}
+
+FX_DYNAMIC_POOL = {
+    "MYR=X":    "MYR/USD",
+    "CNH=X":    "CNH/USD",
+    "KRW=X":    "KRW/USD",
+    "EURUSD=X": "EUR/USD",
+    "GBPUSD=X": "GBP/USD",
+    "AUD=X":    "AUD/USD",
+    "INR=X":    "INR/USD",
+    "SGD=X":    "SGD/USD",
 }
 
 SECTOR_ETFS = {
@@ -266,6 +278,8 @@ def fetch_market_data() -> dict:
             all_symbols.add(symbol)
         for symbol in COMMODITY_POOL:
             all_symbols.add(symbol)
+        for symbol in FX_DYNAMIC_POOL:
+            all_symbols.add(symbol)
 
         closes_cache = _download_symbols(list(all_symbols), period="10d")
 
@@ -312,7 +326,7 @@ def fetch_market_data() -> dict:
             "sentiment":   ["vix", "vix9d", "skew", "vvix"],
             "commodities": ["brent", "wti", "gold", "silver", "copper", "alum"],
             "bonds":       ["us2y", "us10y", "us30y", "tlt"],
-            "fx":          ["dxy", "jpyusd"],
+            "fx":          ["dxy", "jpyusd", "twdusd"],
             "credit":      ["hyg", "lqd", "bkln"],
         }
 
@@ -431,6 +445,26 @@ def fetch_market_data() -> dict:
             item = {k: v for k, v in c.items() if k != "_abs_chg"}
             dyn_commodities.append(item)
         result["commodities"] = {"fixed": result["commodities"], "dynamic": dyn_commodities}
+
+        # Dynamic FX — pick top 2 by abs change from FX_DYNAMIC_POOL
+        fx_pool = []
+        for symbol, label in FX_DYNAMIC_POOL.items():
+            today_v, prev_v, _ = get_close(symbol)
+            if today_v is None:
+                continue
+            chg_str, chg_raw = fmt_chg_pct(today_v, prev_v)
+            fx_pool.append({
+                "label": label,
+                "val": fmt_val(today_v),
+                "chg": chg_str,
+                "dir": direction(chg_raw),
+                "is_dynamic": True,
+                "_abs_chg": abs(chg_raw) if chg_raw is not None else 0,
+            })
+        fx_pool.sort(key=lambda x: x.get("_abs_chg", 0), reverse=True)
+        for f in fx_pool[:2]:
+            item = {k: v for k, v in f.items() if k != "_abs_chg"}
+            result["fx"].append(item)
 
         # Fear & Greed → sentiment
         fear_greed = _fetch_fear_greed()
@@ -665,6 +699,8 @@ def fetch_weekly_market_data() -> dict:
             all_symbols.add(symbol)
         for symbol in COMMODITY_POOL:
             all_symbols.add(symbol)
+        for symbol in FX_DYNAMIC_POOL:
+            all_symbols.add(symbol)
 
         closes_cache = _download_symbols(list(all_symbols), period="14d")
 
@@ -726,7 +762,7 @@ def fetch_weekly_market_data() -> dict:
             "sentiment":   ["vix", "vix9d", "skew", "vvix"],
             "commodities": ["brent", "wti", "gold", "silver", "copper", "alum"],
             "bonds":       ["us2y", "us10y", "us30y", "tlt"],
-            "fx":          ["dxy", "jpyusd"],
+            "fx":          ["dxy", "jpyusd", "twdusd"],
             "credit":      ["hyg", "lqd", "bkln"],
         }
 
@@ -804,6 +840,26 @@ def fetch_weekly_market_data() -> dict:
         for s in sector_items[:3]:
             item = {k: v for k, v in s.items() if k != "_abs_chg"}
             result["factors"].append(item)
+
+        # Dynamic FX for weekly — top 2 by abs weekly change
+        fx_pool = []
+        for symbol, label in FX_DYNAMIC_POOL.items():
+            first, last = get_week_vals(symbol)
+            if last is None:
+                continue
+            chg_str, chg_raw = fmt_chg_pct(first, last)
+            fx_pool.append({
+                "label": label,
+                "val": fmt_val(last),
+                "chg": chg_str,
+                "dir": direction(chg_raw),
+                "is_dynamic": True,
+                "_abs_chg": abs(chg_raw) if chg_raw is not None else 0,
+            })
+        fx_pool.sort(key=lambda x: x.get("_abs_chg", 0), reverse=True)
+        for f in fx_pool[:2]:
+            item = {k: v for k, v in f.items() if k != "_abs_chg"}
+            result["fx"].append(item)
 
         # Fear & Greed
         fear_greed = _fetch_fear_greed()
