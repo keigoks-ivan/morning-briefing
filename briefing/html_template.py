@@ -14,7 +14,7 @@ from datetime import datetime
 import pytz
 
 
-SENTIMENT_COLOR = {"pos": "#1a7a4a", "neg": "#C0392B", "neu": "#888780"}
+SENTIMENT_COLOR = {"pos": "#0F6E56", "neg": "#C0392B", "neu": "#888"}
 
 TAG_STYLE = {
     "macro": "background:#EBF2FA;color:#185FA5;",
@@ -66,8 +66,8 @@ REGION_LABEL = {
 
 REGION_COLOR = {
     "taiwan": "#185FA5", "japan": "#C0392B",
-    "us": "#1a7a4a", "malaysia": "#854F0B",
-    "korea": "#1a7a4a", "china": "#C0392B", "europe": "#534AB7",
+    "us": "#0F6E56", "malaysia": "#854F0B",
+    "korea": "#0F6E56", "china": "#C0392B", "europe": "#534AB7",
 }
 
 BASE_CSS = """
@@ -560,7 +560,7 @@ def _market_strip(market_data: dict) -> str:
     if liquidity:
         liq_section = f'''
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
-    {_mkt_section_label("流動性", "#1a7a4a")}
+    {_mkt_section_label("流動性", "#0F6E56")}
     <tr>{liq_cells}</tr>
     {assess_bar}'''
 
@@ -650,8 +650,8 @@ def _market_pulse(pulse: dict) -> str:
     opp_td = ""
     if hidden_opp:
         opp_td = (f'<td width="50%" style="vertical-align:top;padding-left:5px;">'
-                  f'<div style="border-left:3px solid #1a7a4a;padding:8px 12px;background:#fff;">'
-                  f'<div style="font-size:12px;font-weight:600;color:#1a7a4a;margin-bottom:4px;">潛在機會</div>'
+                  f'<div style="border-left:3px solid #0F6E56;padding:8px 12px;background:#fff;">'
+                  f'<div style="font-size:12px;font-weight:600;color:#0F6E56;margin-bottom:4px;">潛在機會</div>'
                   f'<div style="font-size:13px;color:#555;line-height:1.6;">{hidden_opp}</div>'
                   f'</div></td>')
     else:
@@ -772,7 +772,7 @@ def _sentiment_analysis(sa: dict) -> str:
 
     # Reliability color mapping
     rel_colors = {
-        "高": {"bg": "#E8F8EE", "text": "#0F6E56", "dot": "#1a7a4a"},
+        "高": {"bg": "#E8F8EE", "text": "#0F6E56", "dot": "#0F6E56"},
         "中": {"bg": "#FFF8F0", "text": "#854F0B", "dot": "#E67E22"},
         "低": {"bg": "#FFF0F0", "text": "#C0392B", "dot": "#C0392B"},
     }
@@ -1122,7 +1122,7 @@ def _earnings_preview(items: list) -> str:
 
         confirmed = e.get("yfinance_confirmed", False)
         if confirmed:
-            confirm_html = '<span style="font-size:11px;color:#1a7a4a;">● 已確認</span>'
+            confirm_html = '<span style="font-size:11px;color:#0F6E56;">● 已確認</span>'
         else:
             confirm_html = '<span style="font-size:11px;color:#aaa;">● 待確認</span>'
 
@@ -1224,7 +1224,7 @@ def _fun_fact(fact: dict) -> str:
 DEEP_DIVE_COLOR = {
     "semiconductor": "#378ADD",
     "ai_arch": "#7F77DD",
-    "liquidity": "#1a7a4a",
+    "liquidity": "#0F6E56",
     "energy": "#854F0B",
     "spotlight": "#C0392B",
 }
@@ -1453,7 +1453,7 @@ def _us_market_recap(recap: dict) -> str:
         bm_label = bm.upper() if bm else "—"
 
         move = e.get("after_hours_move", "")
-        move_color = "#1a7a4a" if "▲" in move or "+" in move else "#C0392B"
+        move_color = "#0F6E56" if "▲" in move or "+" in move else "#C0392B"
 
         earnings_html += f'''
 <div style="background:#fff;border:1px solid #e8e8e8;border-radius:6px;padding:14px 16px;margin-bottom:10px;">
