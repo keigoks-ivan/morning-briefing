@@ -228,6 +228,135 @@ def fetch_options_data() -> dict:
         }
 
 
+def fetch_weekly_sentiment_history() -> tuple[dict, dict]:
+    """Fetch 8-week sentiment history + second-layer weekly trends.
+
+    Returns (weekly_sentiment_history, second_layer_weekly_trends).
+    """
+    try:
+        import yfinance as yf
+
+        # Download all needed symbols with weekly interval
+        symbols = [
+            "^VIX", "^VVIX", "^SKEW", "^VIX9D",
+            "HYG", "DX-Y.NYB", "^TNX", "GC=F", "BTC-USD",
+            "RSP", "SPY", "IWM",
+        ]
+        cache = {}
+        for symbol in symbols:
+            try:
+                df = yf.download(
+                    symbol, period="60d", interval="1wk",
+                    progress=False, auto_adjust=True,
+                )
+                if df is not None and not df.empty:
+                    cache[symbol] = df["Close"].dropna().astype(float)
+            except Exception as e:
+                print(f"  ✗ weekly yf {symbol}: {e}")
+
+        def _get_8w(symbol):
+            closes = cache.get(symbol)
+            if closes is None or len(closes) < 2:
+                return []
+            recent = closes.iloc[-8:] if len(closes) >= 8 else closes
+            return [{"date": idx.strftime("%Y-%m-%d"), "val": round(v, 2)}
+                    for idx, v in zip(recent.index, recent.values)]
+
+        def _calc_weekly_trend(entries):
+            if len(entries) < 3:
+                return "震盪"
+            v = [e["val"] for e in entries]
+            v3 = v[-3:]
+            if v3[2] > v3[1] > v3[0]:
+                return "持續上升"
+            if v3[2] < v3[1] < v3[0]:
+                return "連續回落"
+            if len(v) >= 3 and v[-1] < v[-3]:
+                return "高位震盪後回落"
+            return "震盪"
+
+        def _peak_info(entries):
+            if not entries:
+                return 0, 0, 0
+            vals = [e["val"] for e in entries]
+            peak_val = max(vals)
+            peak_idx = vals.index(peak_val)
+            weeks_ago = len(vals) - 1 - peak_idx
+            current = vals[-1]
+            decline_pct = (peak_val - current) / peak_val * 100 if peak_val != 0 else 0
+            return weeks_ago, peak_val, round(decline_pct, 1)
+
+        vix_8w = _get_8w("^VIX")
+        vvix_8w = _get_8w("^VVIX")
+        skew_8w = _get_8w("^SKEW")
+        vix9d_8w = _get_8w("^VIX9D")
+
+        vvix_weeks_ago, vvix_peak_val, vvix_decline = _peak_info(vvix_8w)
+        vix_weeks_ago, _, _ = _peak_info(vix_8w)
+
+        sentiment_hist = {
+            "vix_8w": vix_8w,
+            "vvix_8w": vvix_8w,
+            "skew_8w": skew_8w,
+            "vix9d_8w": vix9d_8w,
+            "vvix_weekly_trend": _calc_weekly_trend(vvix_8w),
+            "vvix_peak_weeks_ago": vvix_weeks_ago,
+            "vvix_peak_val": vvix_peak_val,
+            "vvix_peak_decline_pct": vvix_decline,
+            "vix_weekly_trend": _calc_weekly_trend(vix_8w),
+            "vix_peak_weeks_ago": vix_weeks_ago,
+            "skew_weekly_trend": _calc_weekly_trend(skew_8w),
+        }
+
+        # Second-layer weekly trends
+        def _simple_weekly_trend(symbol):
+            closes = cache.get(symbol)
+            if closes is None or len(closes) < 3:
+                return "震盪"
+            v = [closes.iloc[i].item() for i in range(-3, 0)]
+            if v[2] > v[1] > v[0]:
+                return "連續上升"
+            if v[2] < v[1] < v[0]:
+                return "連續下降"
+            return "震盪"
+
+        def _ratio_weekly_trend(sym_a, sym_b):
+            ca = cache.get(sym_a)
+            cb = cache.get(sym_b)
+            if ca is None or cb is None or len(ca) < 3 or len(cb) < 3:
+                return "震盪"
+            ratios = []
+            for i in range(-3, 0):
+                a_val = ca.iloc[i].item()
+                b_val = cb.iloc[i].item()
+                if b_val == 0:
+                    return "震盪"
+                ratios.append(a_val / b_val)
+            if ratios[2] > ratios[1] > ratios[0]:
+                return "連續擴大"
+            if ratios[2] < ratios[1] < ratios[0]:
+                return "連續收縮"
+            return "震盪"
+
+        second_layer = {
+            "hyg_weekly_trend": _simple_weekly_trend("HYG"),
+            "dxy_weekly_trend": _simple_weekly_trend("DX-Y.NYB"),
+            "us10y_weekly_trend": _simple_weekly_trend("^TNX"),
+            "gold_weekly_trend": _simple_weekly_trend("GC=F"),
+            "btc_weekly_trend": _simple_weekly_trend("BTC-USD"),
+            "rsp_spy_weekly_trend": _ratio_weekly_trend("RSP", "SPY"),
+            "iwm_spy_weekly_trend": _ratio_weekly_trend("IWM", "SPY"),
+        }
+
+        print(f"  ✓ Weekly sentiment: VIX trend={sentiment_hist['vix_weekly_trend']} "
+              f"VVIX trend={sentiment_hist['vvix_weekly_trend']} "
+              f"peak {vvix_weeks_ago}w ago")
+        return sentiment_hist, second_layer
+    except Exception as e:
+        print(f"  ✗ Weekly sentiment history failed: {e}")
+        return {}, {}
+
+
 def fetch_credit_data() -> dict:
     """Fetch HYG, LQD weekly returns and ratio change via yfinance."""
     try:

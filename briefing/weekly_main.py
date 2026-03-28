@@ -70,14 +70,33 @@ def _fetch_extra_context(theme_key: str) -> str:
     """Fetch yfinance/FRED data for themes that need it."""
     if theme_key == "options":
         data = fetch_options_data()
-        return (
-            f"\n即時市場數據（以此為準）：\n"
-            f"VIX Spot: {data['vix_spot']}\n"
-            f"VIX 3M: {data['vix_3m']}\n"
-            f"Term Structure: {data['term_structure']}\n"
-            f"VVIX: {data['vvix']}\n"
-            f"QQQ Put/Call Ratio: {data['qqq_pc_ratio']}\n"
-        )
+        lines = [
+            f"\n即時市場數據（以此為準）：",
+            f"VIX Spot: {data['vix_spot']}",
+            f"VIX 3M: {data['vix_3m']}",
+            f"Term Structure: {data['term_structure']}",
+            f"VVIX: {data['vvix']}",
+            f"QQQ Put/Call Ratio: {data['qqq_pc_ratio']}",
+        ]
+        # Add weekly sentiment history
+        try:
+            from weekly_fetcher import fetch_weekly_sentiment_history
+            sh, slt = fetch_weekly_sentiment_history()
+            if sh:
+                def _fmt_8w(entries):
+                    return " → ".join(f"{e['val']}" for e in entries) if entries else "—"
+                lines.append(f"\n【情緒指標8週趨勢】")
+                lines.append(f"VIX 過去8週：{_fmt_8w(sh.get('vix_8w', []))}（週趨勢：{sh.get('vix_weekly_trend', '震盪')}，{sh.get('vix_peak_weeks_ago', 0)}週前見頂）")
+                lines.append(f"VVIX 過去8週：{_fmt_8w(sh.get('vvix_8w', []))}（週趨勢：{sh.get('vvix_weekly_trend', '震盪')}，{sh.get('vvix_peak_weeks_ago', 0)}週前見頂於{sh.get('vvix_peak_val', 0)}，較峰值回落{sh.get('vvix_peak_decline_pct', 0):.1f}%）")
+                lines.append(f"SKEW 過去8週：{_fmt_8w(sh.get('skew_8w', []))}（週趨勢：{sh.get('skew_weekly_trend', '震盪')}）")
+            if slt:
+                lines.append(f"\n【第二層指標週度趨勢方向】")
+                lines.append(f"HYG信貸：{slt.get('hyg_weekly_trend', '震盪')} | DXY美元：{slt.get('dxy_weekly_trend', '震盪')} | 美10Y：{slt.get('us10y_weekly_trend', '震盪')}")
+                lines.append(f"黃金：{slt.get('gold_weekly_trend', '震盪')} | BTC：{slt.get('btc_weekly_trend', '震盪')}")
+                lines.append(f"RSP/SPY市場寬度：{slt.get('rsp_spy_weekly_trend', '震盪')} | IWM/SPY小型股：{slt.get('iwm_spy_weekly_trend', '震盪')}")
+        except Exception as e:
+            print(f"  ✗ Weekly sentiment context failed: {e}")
+        return "\n".join(lines)
     elif theme_key == "credit":
         data = fetch_credit_data()
         return (
