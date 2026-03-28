@@ -9,6 +9,7 @@ import os
 import time
 import requests
 import feedparser
+import concurrent.futures
 from datetime import datetime, timedelta
 import pytz
 
@@ -1152,53 +1153,129 @@ def _fetch_dynamic_deep_topics(api_key: str, today: str) -> list[dict]:
 
 
 def fetch_deep_dive_news() -> dict:
-    """Fetch fixed + dynamic deep-dive topics. Returns dict with 'fixed' and 'dynamic' keys."""
+    """Fetch fixed + dynamic deep-dive topics in parallel. Returns dict with 'fixed' and 'dynamic' keys."""
+    import re
     api_key = os.environ["PERPLEXITY_API_KEY"]
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     tz = pytz.timezone("Asia/Taipei")
     today = datetime.now(tz).strftime("%Y-%m-%d")
 
-    # Fixed queries
-    fixed_results = []
-    for query in DEEP_DIVE_FIXED_QUERIES:
-        try:
-            payload = {
-                "model": "sonar",
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": (
-                            f"Today is {today} Taiwan time (UTC+8). "
-                            "Only report news from the past 24 hours. No exceptions. "
-                            "Provide detailed data, specific numbers, and source names. "
-                            "Focus on structural developments, not surface-level summaries. "
-                            "Never include ESG, sustainability, or green energy related news."
-                        ),
-                    },
-                    {"role": "user", "content": query},
-                ],
-                "search_recency_filter": "day",
-                "return_citations": True,
-                "max_tokens": 1000,
-            }
-            resp = requests.post(
-                "https://api.perplexity.ai/chat/completions",
-                headers=headers, json=payload, timeout=30,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            answer = data["choices"][0]["message"]["content"]
-            citations = data.get("citations", [])
-            fixed_results.append({"query": query, "answer": answer, "sources": citations[:3]})
-            print(f"  ✓ [deep-fixed] {query[:55]}... ({len(citations)} sources)")
-        except Exception as e:
-            print(f"  ✗ [deep-fixed] {query[:55]}... — {e}")
-            fixed_results.append({"query": query, "answer": "", "sources": []})
+    # Step 1: meta-query to find dynamic topics (must run first)
+    topics = []
+    try:
+        meta_payload = {
+            "model": "sonar",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": f"Today is {today}. You are a financial analyst identifying the most important market-moving topics."
+                },
+                {
+                    "role": "user",
+                    "content": ("What are the 3 most important market-moving topics today that deserve deeper analysis? "
+                                "List ONLY as: 1. [topic name] 2. [topic name] 3. [topic name]. "
+                                "Focus on: geopolitical events, economic data surprises, major company news, "
+                                "central bank signals, commodity shocks. Sources: Bloomberg Reuters FT WSJ")
+                }
+            ],
+            "search_recency_filter": "day",
+            "max_tokens": 200,
+        }
+        resp = requests.post("https://api.perplexity.ai/chat/completions",
+                             headers=headers, json=meta_payload, timeout=30)
+        resp.raise_for_status()
+        meta_text = resp.json()["choices"][0]["message"]["content"]
+        topics = re.findall(r'\d+\.\s*(.+?)(?=\d+\.|$)', meta_text, re.DOTALL)
+        topics = [t.strip().rstrip('.') for t in topics[:3] if t.strip()]
+        print(f"  ✓ [dynamic deep] topics: {topics}")
+    except Exception as e:
+        print(f"  ✗ [dynamic deep] meta-query failed: {e}")
 
+    # Step 2: run all fixed + dynamic deep queries in parallel
+    deep_system = (
+        f"Today is {today} Taiwan time (UTC+8). "
+        "Only report news from the past 24 hours. No exceptions. "
+        "Provide detailed data, specific numbers, and source names. "
+        "Focus on structural developments, not surface-level summaries. "
+        "Never include ESG, sustainability, or green energy related news."
+    )
+
+    # Build dynamic query strings
+    dynamic_queries = [
+        f"Deep analysis of '{topic}' today: what happened, key data points and numbers, "
+        "market implications, expert views, what it means for investors. "
+        "Sources: Bloomberg Reuters FT WSJ CNBC"
+        for topic in topics
+    ]
+
+    all_args = []
+    # Fixed queries
+    for q in DEEP_DIVE_FIXED_QUERIES:
+        all_args.append((q, headers, today, 1000, "deep-fixed"))
     # Dynamic queries
-    dynamic_results = _fetch_dynamic_deep_topics(api_key, today)
+    for q in dynamic_queries:
+        all_args.append((q, headers, today, 1000, "deep-dyn"))
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        all_results = list(executor.map(_perplexity_query, all_args))
+
+    # Split results back
+    n_fixed = len(DEEP_DIVE_FIXED_QUERIES)
+    fixed_results = all_results[:n_fixed]
+    dynamic_raw = all_results[n_fixed:]
+
+    # Convert dynamic results to topic format
+    dynamic_results = []
+    for i, topic in enumerate(topics):
+        if i < len(dynamic_raw):
+            r = dynamic_raw[i]
+            dynamic_results.append({
+                "topic": topic,
+                "result": r.get("answer", ""),
+                "sources": r.get("sources", []),
+            })
 
     return {"fixed": fixed_results, "dynamic": dynamic_results}
+
+
+def _perplexity_query(args: tuple) -> dict:
+    """Execute a single Perplexity API query. Used by ThreadPoolExecutor."""
+    query, headers, today, max_tokens, label = args
+    payload = {
+        "model": "sonar",
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    f"Today is {today} Taiwan time (UTC+8). "
+                    "Only report news from the past 24 hours. No exceptions. "
+                    "Sort results by BOTH recency AND importance: breaking news and high-impact events first, "
+                    "then other recent news. If no news from past 24 hours is available, say so explicitly. "
+                    "Never include news older than 24 hours even if no recent news is available. "
+                    "Always include specific numbers, dates, and source names. "
+                    "Never include ESG, sustainability, or green energy related news."
+                ),
+            },
+            {"role": "user", "content": query},
+        ],
+        "search_recency_filter": "day",
+        "return_citations": True,
+        "max_tokens": max_tokens,
+    }
+    try:
+        resp = requests.post(
+            "https://api.perplexity.ai/chat/completions",
+            headers=headers, json=payload, timeout=45,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        answer = data["choices"][0]["message"]["content"]
+        citations = data.get("citations", [])
+        print(f"  ✓ [{label}] {query[:50]}... ({len(citations)} sources)")
+        return {"query": query, "answer": answer, "sources": citations[:3]}
+    except Exception as e:
+        print(f"  ✗ [{label}] {query[:50]}...: {e}")
+        return {"query": query, "answer": "", "sources": []}
 
 
 def fetch_financial_news() -> list[dict]:
@@ -1206,43 +1283,9 @@ def fetch_financial_news() -> list[dict]:
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     tz = pytz.timezone("Asia/Taipei")
     today = datetime.now(tz).strftime("%Y-%m-%d")
-    results = []
 
-    for query in PERPLEXITY_QUERIES:
-        try:
-            payload = {
-                "model": "sonar",
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": (
-                            f"Today is {today} Taiwan time (UTC+8). "
-                            "Only report news from the past 24 hours. No exceptions. "
-                            "Sort results by BOTH recency AND importance: breaking news and high-impact events first, "
-                            "then other recent news. If no news from past 24 hours is available, say so explicitly. "
-                            "Never include news older than 24 hours even if no recent news is available. "
-                            "Always include specific numbers, dates, and source names. "
-                            "Never include ESG, sustainability, or green energy related news."
-                        ),
-                    },
-                    {"role": "user", "content": query},
-                ],
-                "search_recency_filter": "day",
-                "return_citations": True,
-                "max_tokens": 600,
-            }
-            resp = requests.post(
-                "https://api.perplexity.ai/chat/completions",
-                headers=headers, json=payload, timeout=30,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            answer = data["choices"][0]["message"]["content"]
-            citations = data.get("citations", [])
-            results.append({"query": query, "answer": answer, "sources": citations[:3]})
-            print(f"  ✓ {query[:55]}... ({len(citations)} sources)")
-        except Exception as e:
-            print(f"  ✗ {query[:55]}... — {e}")
-            results.append({"query": query, "answer": "", "sources": []})
+    args_list = [(q, headers, today, 600, "news") for q in PERPLEXITY_QUERIES]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        results = list(executor.map(_perplexity_query, args_list))
 
     return results
