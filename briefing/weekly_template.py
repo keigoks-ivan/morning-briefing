@@ -40,7 +40,7 @@ THEME_ORDER = [
     "macro", "commodities", "black_swan",
 ]
 
-SENTIMENT_COLOR = {"pos": "#1a7a4a", "neg": "#C0392B", "neu": "#888780"}
+SENTIMENT_COLOR = {"pos": "#0F6E56", "neg": "#C0392B", "neu": "#888"}
 
 
 def _get_week_range() -> tuple[str, str, str]:
@@ -167,8 +167,8 @@ def _deep_analysis(items: list) -> str:
     {evidence_items}
   </div>
   <div style="display:flex;gap:0;">
-    <div style="width:3px;background:#1a7a4a;border-radius:2px;flex-shrink:0;"></div>
-    <div style="padding:10px 14px;font-size:15px;color:#1a7a4a;line-height:1.7;flex:1;">
+    <div style="width:3px;background:#0F6E56;border-radius:2px;flex-shrink:0;"></div>
+    <div style="padding:10px 14px;font-size:15px;color:#0F6E56;line-height:1.7;flex:1;">
       <span style="font-weight:600;">投資含義：</span>{item.get("implication","")}
     </div>
   </div>
@@ -211,7 +211,7 @@ def _analyst_views(items: list) -> str:
     rows = ""
     for item in items:
         tc = item.get("target_change", "")
-        tc_html = f'<span style="color:#1a7a4a;font-weight:500;">{tc}</span>' if tc else "—"
+        tc_html = f'<span style="color:#0F6E56;font-weight:500;">{tc}</span>' if tc else "—"
         rows += f'''
 <tr style="border-bottom:1px solid #f0f0f0;">
   <td style="padding:12px 14px;font-size:15px;font-weight:500;color:#222;
@@ -295,7 +295,7 @@ def _body_earnings(data: dict) -> str:
     rows = ""
     for r in results:
         bm = r.get("beat_miss", "")
-        bm_color = "#1a7a4a" if bm == "beat" else ("#C0392B" if bm == "miss" else "#888")
+        bm_color = "#0F6E56" if bm == "beat" else ("#C0392B" if bm == "miss" else "#888")
         rows += f'''
 <tr style="border-bottom:1px solid #f0f0f0;">
   <td style="padding:10px 12px;font-weight:600;color:#222;font-size:15px;">{r.get("company","")} <span style="color:#888;font-weight:400;">({r.get("ticker","")})</span></td>
@@ -350,7 +350,7 @@ def _weekly_sentiment_block(wsa: dict) -> str:
     conclusion = wsa.get("week_conclusion", "")
 
     rel_colors = {
-        "高": {"bg": "#E8F8EE", "text": "#0F6E56", "dot": "#1a7a4a"},
+        "高": {"bg": "#E8F8EE", "text": "#0F6E56", "dot": "#0F6E56"},
         "中": {"bg": "#FFF8F0", "text": "#854F0B", "dot": "#E67E22"},
         "低": {"bg": "#FFF0F0", "text": "#C0392B", "dot": "#C0392B"},
     }
@@ -478,7 +478,7 @@ def _body_central_bank(data: dict) -> str:
             shift_color = "#C0392B"
         elif shift_val < 0:
             shift_label = f"偏鴿 {shift_val}"
-            shift_color = "#1a7a4a"
+            shift_color = "#0F6E56"
         else:
             shift_label = "中性 0"
             shift_color = "#888"
@@ -882,7 +882,7 @@ def _index_market_strip(market_data: dict) -> str:
     if liquidity:
         liq_section = f'''
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
-    {_wk_section_label("流動性", "#1a7a4a")}
+    {_wk_section_label("流動性", "#0F6E56")}
     <tr>{liq_cells}</tr>
     {assess_bar}'''
 
@@ -967,8 +967,8 @@ def _index_market_pulse(pulse: dict) -> str:
                f'<div style="font-size:13px;color:#555;line-height:1.6;">{hidden_risk}</div>'
                f'</div></td>') if hidden_risk else '<td width="50%"></td>'
     opp_td = (f'<td width="50%" style="vertical-align:top;padding-left:5px;">'
-              f'<div style="border-left:3px solid #1a7a4a;padding:8px 12px;background:#fff;">'
-              f'<div style="font-size:12px;font-weight:600;color:#1a7a4a;margin-bottom:4px;">潛在機會</div>'
+              f'<div style="border-left:3px solid #0F6E56;padding:8px 12px;background:#fff;">'
+              f'<div style="font-size:12px;font-weight:600;color:#0F6E56;margin-bottom:4px;">潛在機會</div>'
               f'<div style="font-size:13px;color:#555;line-height:1.6;">{hidden_opp}</div>'
               f'</div></td>') if hidden_opp else '<td width="50%"></td>'
 
