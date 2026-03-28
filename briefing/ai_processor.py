@@ -130,6 +130,20 @@ sentiment_analysis 強化分析規則：
 引用至少兩個指標的具體數值
 不能兩邊都說，不能說「需要觀察」作為結論
 
+index_factor_reading 分析規則：
+- 所有分析必須引用具體的漲跌幅數字
+- market_breadth 同時使用兩個寬度指標：
+  RSP/SPY 比值上升=等權重強於市值加權=市場變寬
+  IWM/SPY 比值上升=小型股強於大型股=風險偏好上升
+  兩個都上升=真正的市場變寬
+  兩個都下降=高度集中化，少數大型股主導
+  RSP/SPY上升但IWM/SPY下降=中型股強但小型股弱，部分寬化
+- style_rotation：VTV 跌幅 < VUG 跌幅=資金往價值股（防禦），VTV 跌幅 > VUG=追逐成長
+- sector_signal：說明今日波動最大的Sector反映的產業資金邏輯
+- nyfang_signal：NYFANG 跌幅 > NDX=科技巨頭領跌，NYFANG 跌幅 < NDX=巨頭相對抗跌
+- momentum_read：MTUM 跌幅 vs NDX，MTUM 抗跌=動能股仍被追捧，MTUM 領跌=動能瓦解
+- key_insight 必須有立場，不能兩邊都說，要說明今日美股最重要的結構性特徵
+
 殖利率曲線分析：
 - 10Y-2Y利差 < 0 = 倒掛，歷史上是衰退的6-18個月領先指標
 - 倒掛轉正（熊市陡峭化）往往比倒掛本身更危險，代表短端利率快速下降（Fed緊急降息）
@@ -388,6 +402,15 @@ USER_PROMPT_TEMPLATE = """
     }}
   ],
 
+  "index_factor_reading": {{
+    "market_breadth": "市場寬度解讀（1-2句，同時引用RSP/SPY比值變化和IWM/SPY比值變化，說明這波漲跌是廣泛還是集中）",
+    "style_rotation": "風格輪動訊號（1-2句，基於VTV/VUG漲跌幅差異，說明資金在價值和成長之間的移動方向）",
+    "sector_signal": "今日動態Sector的含義（1-2句，說明波動最大的Sector反映了什麼產業邏輯）",
+    "nyfang_signal": "科技巨頭訊號（1句，NYFANG vs NDX比較，說明科技巨頭是帶頭跌還是相對抗跌）",
+    "momentum_read": "動能訊號（1句，MTUM表現說明市場動能是否持續）",
+    "key_insight": "最重要的一句洞察（整合以上所有因子，說明今日美股結構性特徵，有明確立場）"
+  }},
+
   "sentiment_analysis": {{
     "stage": "第一階段/第二階段/第三階段/第四階段/無明確訊號",
     "stage_name": "暴風雨前的寧靜/崩盤啟動/落底訊號浮現/反轉確立/正常市場",
@@ -514,6 +537,14 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
         lines = []
         lines.append(f"【股票指數】{indices_str}")
         lines.append(f"【美股因子】{factors_str}（含今日波動最大 Sector：{top_sectors}）")
+        # Extract RSP/SPY and IWM/SPY for market breadth context
+        rsp_spy_val = rsp_spy_chg = iwm_spy_val = iwm_spy_chg = "—"
+        for f in static_factors:
+            if f.get("label") == "RSP/SPY":
+                rsp_spy_val, rsp_spy_chg = f.get("val", "—"), f.get("chg", "—")
+            elif f.get("label") == "IWM/SPY 小型":
+                iwm_spy_val, iwm_spy_chg = f.get("val", "—"), f.get("chg", "—")
+        lines.append(f"【市場寬度】RSP/SPY比值：{rsp_spy_val}（{rsp_spy_chg}），IWM/SPY比值：{iwm_spy_val}（{iwm_spy_chg}）")
         lines.append(f"【市場情緒】{sentiment_str}")
         lines.append(f"【MOVE Index】{move_index_str}（從Perplexity搜尋）")
         lines.append(f"【原物料】{commodities_str}")
@@ -616,6 +647,14 @@ def _validate(data: dict) -> None:
     data.setdefault("smart_money", {"has_signals": False, "signals": [], "summary": ""})
     data.setdefault("market_pulse", {"cross_asset_signals": [], "dominant_theme": "", "hidden_risk": "", "hidden_opportunity": "", "key_level_to_watch": "", "historical_analog": "", "new_pattern": ""})
     data.setdefault("daily_deep_dive", [])
+    data.setdefault("index_factor_reading", {
+        "market_breadth": "",
+        "style_rotation": "",
+        "sector_signal": "",
+        "nyfang_signal": "",
+        "momentum_read": "",
+        "key_insight": ""
+    })
     data.setdefault("sentiment_analysis", {
         "stage": "無明確訊號",
         "stage_name": "正常市場",

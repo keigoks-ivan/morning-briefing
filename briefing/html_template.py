@@ -343,6 +343,18 @@ def _rsp_spy_tag(factors: list[dict]) -> str:
     return ""
 
 
+def _iwm_spy_tag(factors: list[dict]) -> str:
+    """IWM/SPY ratio tag: up = risk-on small caps, down = large-cap dominance."""
+    for it in factors:
+        if it.get("label", "") == "IWM/SPY 小型":
+            chg = _parse_chg_pct(it.get("chg", ""))
+            if chg is not None and chg > 0:
+                return '<div style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:2px;">小型股強</div>'
+            elif chg is not None and chg < 0:
+                return '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">大型股主導</div>'
+    return ""
+
+
 def _nfci_cell(item: dict) -> str:
     """NFCI cell with conditional background."""
     val_str = item.get("val", "—")
@@ -431,15 +443,18 @@ def _market_strip(market_data: dict) -> str:
             sent_tags[i] = existing + vix9d_extra
             break
 
-    # NYFANG tag + RSP/SPY tag — attach to factor cells
+    # NYFANG tag + RSP/SPY tag + IWM/SPY tag — attach to factor cells
     nyfang_extra = _nyfang_tag(factors, indices)
     rsp_spy_extra = _rsp_spy_tag(factors)
+    iwm_spy_extra = _iwm_spy_tag(factors)
     factor_tags = {}
     for i, it in enumerate(factors_fixed):
         if it.get("label", "") == "NYFANG":
             factor_tags[i] = nyfang_extra
         elif it.get("label", "") == "RSP/SPY":
             factor_tags[i] = rsp_spy_extra
+        elif it.get("label", "") == "IWM/SPY 小型":
+            factor_tags[i] = iwm_spy_extra
 
     # Sentiment cells
     sent_cells = ""
@@ -687,6 +702,52 @@ def _market_pulse(pulse: dict) -> str:
     {bottom_html}
     {key_html}
     {analog_html}
+  </div>
+</div>'''
+
+
+def _index_factor_reading(ifr: dict) -> str:
+    """Render the index_factor_reading block."""
+    if not ifr:
+        return ""
+    # Check if all fields are empty
+    if not any(ifr.get(k) for k in ("market_breadth", "style_rotation", "sector_signal",
+                                     "nyfang_signal", "momentum_read", "key_insight")):
+        return ""
+
+    def _ifr_cell(title_text, content):
+        return (f'<td width="25%" style="vertical-align:top;padding:8px 10px;'
+                f'border-right:0.5px solid #EEE;">'
+                f'<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;'
+                f'color:#888;margin-bottom:4px;">{title_text}</div>'
+                f'<div style="font-size:13px;color:#333;line-height:1.6;">{content}</div></td>')
+
+    row1 = (f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
+            f'<tr>{_ifr_cell("市場寬度", ifr.get("market_breadth", ""))}'
+            f'{_ifr_cell("風格輪動", ifr.get("style_rotation", ""))}'
+            f'{_ifr_cell("SECTOR訊號", ifr.get("sector_signal", ""))}'
+            f'{_ifr_cell("科技巨頭", ifr.get("nyfang_signal", ""))}</tr></table>')
+
+    momentum = ifr.get("momentum_read", "")
+    mom_html = ""
+    if momentum:
+        mom_html = (f'<div style="padding-top:8px;border-top:0.5px solid #EEE;margin-top:8px;">'
+                    f'<span style="font-size:10px;color:#888;">動能 ▶ </span>'
+                    f'<span style="font-size:13px;color:#333;">{momentum}</span></div>')
+
+    key = ifr.get("key_insight", "")
+    key_html = ""
+    if key:
+        key_html = (f'<div style="background:#534AB7;border-radius:4px;padding:8px 12px;margin-top:8px;">'
+                    f'<div style="font-size:13px;font-weight:500;color:#fff;">▶ {key}</div></div>')
+
+    return f'''
+<div style="display:flex;gap:0;margin-top:8px;">
+  <div style="width:4px;background:#7F77DD;border-radius:2px 0 0 2px;flex-shrink:0;"></div>
+  <div style="background:#F8F7FE;border-radius:0 6px 6px 0;padding:10px 14px;flex:1;">
+    {row1}
+    {mom_html}
+    {key_html}
   </div>
 </div>'''
 
@@ -1477,6 +1538,7 @@ def build_html(data: dict) -> str:
 {_daily_summary(data.get("daily_summary",""))}
 {_alert(data.get("alert",""))}
 {_market_strip(data.get("market_data", {}))}
+{_index_factor_reading(data.get("index_factor_reading", {}))}
 {_market_pulse(data.get("market_pulse", {}))}
 {_sentiment_analysis(data.get("sentiment_analysis", {}))}
 {_news_section("核心要聞", data.get("top_stories",[]))}

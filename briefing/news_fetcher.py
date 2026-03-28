@@ -355,6 +355,31 @@ def fetch_market_data() -> dict:
         # Insert after VUG (index 2)
         result["factors"].insert(2, rsp_spy_item)
 
+        # IWM/SPY ratio — small-cap vs large-cap breadth
+        iwm_today, iwm_prev = get_close("IWM")
+        # Remove individual IWM from factors list (SPY already removed above)
+        result["factors"] = [f for f in result["factors"] if f["label"] != "IWM"]
+        if iwm_today and spy_today and spy_today != 0:
+            iwm_spy_today = iwm_today / spy_today
+            if iwm_prev and spy_prev and spy_prev != 0:
+                iwm_spy_prev = iwm_prev / spy_prev
+                iwm_spy_chg = (iwm_spy_today - iwm_spy_prev) / iwm_spy_prev * 100
+                iwm_spy_chg_str = f"{'▲' if iwm_spy_chg > 0 else '▼'} {abs(iwm_spy_chg):.2f}%"
+                iwm_spy_dir = "pos" if iwm_spy_chg > 0 else ("neg" if iwm_spy_chg < 0 else "neu")
+            else:
+                iwm_spy_chg_str, iwm_spy_dir = "—", "neu"
+            iwm_spy_item = {
+                "label": "IWM/SPY 小型",
+                "val": f"{iwm_spy_today:.4f}",
+                "chg": iwm_spy_chg_str,
+                "dir": iwm_spy_dir,
+                "is_dynamic": False,
+            }
+        else:
+            iwm_spy_item = {"label": "IWM/SPY 小型", "val": "—", "chg": "—", "dir": "neu", "is_dynamic": False}
+        # Insert after RSP/SPY (index 3)
+        result["factors"].insert(3, iwm_spy_item)
+
         # Sector ETFs — pick top 3 by abs change
         sector_items = []
         for symbol, label in SECTOR_ETFS.items():
