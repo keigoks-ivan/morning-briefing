@@ -62,3 +62,18 @@ fintech_crypto → startup_news → us_market_recap → smart_money
 ## 週報主題順序
 central_bank → liquidity → credit → options →
 ai_industry → semiconductor → earnings → macro → commodities → black_swan
+
+## 週報數據規則
+- 市場週度數據：period="14d", interval="1d"，找最近完整交易週（週一到週五）第一筆和最後一筆計算週漲跌
+- 情緒歷史：period="60d", interval="1wk" 抓8週週線
+- 週度第三階段判斷：vvix_peak_weeks_ago >= 2（比日報更嚴格）
+- VVIX 連續3週回落 = 強烈底部訊號
+- Fear&Greed 只顯示當週最新值，不計算週漲跌
+- FRED 數據顯示週變化，標注數據日期
+
+## 週報 vs 日報差異
+- 標題：「本週主軸」（不是「今日主軸」）
+- 漲跌：顯示週漲跌幅（不是日漲跌）
+- 情緒分析：weekly_sentiment_analysis，輸出 week_conclusion（2句）而非 one_line
+- 市場脈絡：weekly_market_pulse，cross_asset_signals 引用週度數據
+- 去重規則：與日報相同的優先順序
