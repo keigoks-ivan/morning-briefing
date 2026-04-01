@@ -1591,6 +1591,82 @@ def _today_events(events: list) -> str:
 </div>'''
 
 
+def _screener_picks(picks: dict) -> str:
+    if not picks:
+        return ""
+
+    directions = [
+        ("minervini", "Minervini 最佳組合", "#1B3A5C", "RS強勢 + VCP優良 + 接近突破點"),
+        ("momentum",  "排名上升最多",       "#0F6E56", "近期動能最強的新興領頭羊"),
+        ("vcp",       "VCP 形態最完美",     "#534AB7", "整理形態最乾淨，等待突破"),
+    ]
+
+    cards = ""
+    for key, title, color, subtitle in directions:
+        pick = picks.get(key)
+        if not pick:
+            continue
+
+        ticker = pick.get("Ticker", "")
+        rs = pick.get("RS_Score", 0) or 0
+        vcp = pick.get("Contraction_Score", 0) or 0
+        combined = pick.get("Combined_Score", 0) or 0
+        trend = pick.get("rs_trend", "")
+        price = pick.get("Price", 0) or 0
+        sector = pick.get("Sector", "")
+        vs_ma = pick.get("vs_200MA_pct")
+        rank = pick.get("Rank", 0)
+        rank_change = pick.get("Rank_Change_Str", "—")
+        reason = pick.get("reason", "")
+
+        trend_color = {"加速上升": "#0F6E56", "穩定維持": "#185FA5", "開始衰退": "#C0392B", "震盪": "#888"}.get(trend, "#888")
+        vs_ma_str = f"+{vs_ma:.1f}%" if vs_ma and vs_ma > 0 else (f"{vs_ma:.1f}%" if vs_ma else "—")
+        vs_ma_color = "#0F6E56" if vs_ma and vs_ma > 0 else "#C0392B"
+        rs_color = "#0F6E56" if rs >= 80 else "#BA7517"
+
+        cards += f"""
+        <table width="100%" style="border-collapse:collapse;border:0.5px solid #E8E8E8;border-radius:8px;overflow:hidden;margin-bottom:10px;">
+          <tr>
+            <td style="background:{color};padding:8px 12px;" colspan="2">
+              <div style="font-size:9px;color:rgba(255,255,255,0.7);letter-spacing:1px;text-transform:uppercase;">{subtitle}</div>
+              <div style="font-size:13px;font-weight:500;color:#fff;">{title}</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:12px;vertical-align:top;width:55%;">
+              <div style="font-size:22px;font-weight:500;color:#1B3A5C;margin-bottom:2px;">{ticker}</div>
+              <div style="font-size:11px;color:#888;margin-bottom:8px;">{sector} · 排名 #{rank} {rank_change}</div>
+              <div style="display:flex;gap:6px;margin-bottom:8px;">
+                <div style="background:#F8F9FC;border-radius:4px;padding:6px 10px;text-align:center;">
+                  <div style="font-size:9px;color:#888;">RS</div>
+                  <div style="font-size:16px;font-weight:500;color:{rs_color};">{rs:.0f}</div>
+                </div>
+                <div style="background:#F8F9FC;border-radius:4px;padding:6px 10px;text-align:center;">
+                  <div style="font-size:9px;color:#888;">VCP</div>
+                  <div style="font-size:16px;font-weight:500;color:#534AB7;">{vcp:.0f}</div>
+                </div>
+                <div style="background:#F8F9FC;border-radius:4px;padding:6px 10px;text-align:center;">
+                  <div style="font-size:9px;color:#888;">綜合</div>
+                  <div style="font-size:16px;font-weight:500;">{combined:.0f}</div>
+                </div>
+              </div>
+              <div style="font-size:11px;color:{trend_color};">RS Trend：{trend}</div>
+            </td>
+            <td style="padding:12px;vertical-align:top;border-left:0.5px solid #F0F0F0;">
+              <div style="font-size:15px;font-weight:500;margin-bottom:2px;">${price:.2f}</div>
+              <div style="font-size:11px;color:{vs_ma_color};margin-bottom:10px;">vs 200MA {vs_ma_str}</div>
+              <div style="font-size:11px;color:#444;background:#FAFAFA;border-left:3px solid {color};padding:8px;border-radius:0 4px 4px 0;line-height:1.7;">{reason}</div>
+            </td>
+          </tr>
+        </table>"""
+
+    return f"""
+    <div style="margin-bottom:16px;">
+      <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#666;font-weight:500;margin-bottom:10px;">今日精選 — 三個方向</div>
+      {cards}
+    </div>"""
+
+
 def _screener_top30(screener_result: dict) -> str:
     if not screener_result or not screener_result.get("top30"):
         return ""
@@ -1598,6 +1674,7 @@ def _screener_top30(screener_result: dict) -> str:
     top30 = screener_result["top30"]
     date = screener_result.get("date", "")
     total = screener_result.get("total_screened", 0)
+    picks_html = _screener_picks(screener_result.get("top_picks", {}))
 
     rows = ""
     for item in top30:
@@ -1648,6 +1725,7 @@ def _screener_top30(screener_result: dict) -> str:
         <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#666;font-weight:500;">RS + VCP SCREENER</span>
         <span style="font-size:10px;color:#BBB;margin-left:auto;">{date} · {total} 支篩選</span>
       </div>
+      {picks_html}
       <table width="100%" style="border-collapse:collapse;border:0.5px solid #E8E8E8;border-radius:8px;overflow:hidden;">
         <tr style="background:#1B3A5C;">
           <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">排名</th>

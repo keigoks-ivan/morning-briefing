@@ -8,7 +8,7 @@ import pytz
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from screener.screener import run_screener, TICKER_SECTOR
+from screener.screener import run_screener, pick_top_candidates, TICKER_SECTOR
 from screener.excel_exporter import export_to_excel
 
 
@@ -147,6 +147,11 @@ def main():
     with open(output_path, "rb") as f:
         excel_b64 = base64.b64encode(f.read()).decode()
 
+    # 今日精選
+    picks = pick_top_candidates(df)
+    pick_tickers = [v.get("Ticker", "") for v in picks.values() if v]
+    print(f"  今日精選：{', '.join(pick_tickers)}")
+
     # 儲存結果供日報使用
     top30 = df.head(30).to_dict(orient="records")
 
@@ -154,6 +159,7 @@ def main():
         "date": today,
         "total_screened": len(df),
         "top30": top30,
+        "top_picks": picks,
         "excel_b64": excel_b64,
         "excel_filename": f"RS_Screener_{today}.xlsx",
     }

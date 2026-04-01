@@ -511,6 +511,151 @@ def calc_contraction_score(data: dict, tickers: list[str]) -> dict:
 
     return results
 
+def pick_top_candidates(df: pd.DataFrame) -> dict:
+    """
+    三個方向各選1支最佳候選股
+    返回 {"minervini": {...}, "momentum": {...}, "vcp": {...}}
+    """
+    records = df.to_dict(orient="records")
+
+    # ── 方向一：Minervini 最佳組合 ──────────────────────────
+    minervini_conditions = [
+        lambda r: (
+            r.get("RS_Score", 0) >= 80 and
+            r.get("Contraction_Score", 0) >= 75 and
+            r.get("rs_trend") == "加速上升" and
+            (r.get("dist_from_high_pct") or 99) < 5 and
+            (r.get("volume_ratio") or r.get("Volume_Ratio_10d_60d") or 1) < 0.8
+        ),
+        lambda r: (
+            r.get("RS_Score", 0) >= 80 and
+            r.get("Contraction_Score", 0) >= 75 and
+            r.get("rs_trend") == "加速上升" and
+            (r.get("dist_from_high_pct") or 99) < 8
+        ),
+        lambda r: (
+            r.get("RS_Score", 0) >= 78 and
+            r.get("Contraction_Score", 0) >= 70 and
+            r.get("rs_trend") in ["加速上升", "穩定維持"]
+        ),
+        lambda r: (
+            r.get("RS_Score", 0) >= 75 and
+            r.get("Contraction_Score", 0) >= 65
+        ),
+        lambda r: r.get("Rank", 99) <= 5,
+    ]
+
+    minervini_pick = None
+    for condition in minervini_conditions:
+        candidates = [r for r in records if condition(r)]
+        if candidates:
+            candidates.sort(key=lambda r: r.get("Combined_Score", 0), reverse=True)
+            minervini_pick = candidates[0]
+            break
+
+    # ── 方向二：排名上升最多（動能最強）────────────────────
+    momentum_pick = None
+    ranked_up = [
+        r for r in records
+        if isinstance(r.get("Rank_Change"), (int, float)) and r["Rank_Change"] > 0
+        and r.get("RS_Score", 0) >= 65
+    ]
+    if ranked_up:
+        ranked_up.sort(key=lambda r: r.get("Rank_Change", 0), reverse=True)
+        momentum_pick = ranked_up[0]
+    else:
+        fallback = [r for r in records if r.get("rs_trend") == "加速上升" and r.get("Rank", 99) <= 20]
+        if fallback:
+            fallback.sort(key=lambda r: r.get("RS_Score", 0), reverse=True)
+            momentum_pick = fallback[0]
+        elif records:
+            momentum_pick = records[0]
+
+    # ── 方向三：VCP 形態最完美 ──────────────────────────────
+    vcp_pick = None
+    vcp_candidates = [
+        r for r in records
+        if r.get("Contraction_Score", 0) >= 70
+        and r.get("RS_Score", 0) >= 70
+    ]
+    if vcp_candidates:
+        vcp_candidates.sort(key=lambda r: (
+            r.get("Contraction_Score", 0) * 0.7 +
+            r.get("RS_Score", 0) * 0.3
+        ), reverse=True)
+        vcp_pick = vcp_candidates[0]
+    elif records:
+        vcp_pick = sorted(records, key=lambda r: r.get("Contraction_Score", 0), reverse=True)[0]
+
+    # 確保三個方向選不同的股票
+    used_tickers = set()
+    result = {}
+
+    for key, pick in [("minervini", minervini_pick), ("momentum", momentum_pick), ("vcp", vcp_pick)]:
+        if pick is None:
+            continue
+        ticker = pick.get("Ticker", "")
+        if ticker in used_tickers:
+            pool = {
+                "minervini": [r for r in records if r.get("RS_Score", 0) >= 75 and r.get("Contraction_Score", 0) >= 65],
+                "momentum":  sorted(records, key=lambda r: r.get("Rank_Change") or -99, reverse=True),
+                "vcp":       sorted(records, key=lambda r: r.get("Contraction_Score", 0), reverse=True),
+            }
+            for alt in pool.get(key, records):
+                if alt.get("Ticker") not in used_tickers:
+                    pick = alt
+                    ticker = alt.get("Ticker", "")
+                    break
+
+        used_tickers.add(ticker)
+        result[key] = {
+            **pick,
+            "reason": generate_pick_reason(pick),
+        }
+
+    return result
+
+
+def generate_pick_reason(pick: dict) -> str:
+    """產出一句話說明選股原因"""
+    rs = pick.get("RS_Score", 0) or 0
+    vcp = pick.get("Contraction_Score", 0) or 0
+    trend = pick.get("rs_trend", "")
+    dist = pick.get("dist_from_high_pct")
+    vol = pick.get("Volume_Ratio_10d_60d") or pick.get("volume_ratio")
+    vs_ma = pick.get("vs_200MA_pct")
+    pullbacks = pick.get("vcp_pullback_count", 0)
+    last_pb = pick.get("last_pullback_pct")
+    rank_change = pick.get("Rank_Change")
+    rising_lows = pick.get("rising_lows")
+
+    reasons = []
+    if rs >= 80:
+        reasons.append(f"RS {rs:.0f}")
+    if trend == "加速上升":
+        reasons.append("RS加速上升")
+    elif trend == "穩定維持":
+        reasons.append("RS穩定維持")
+    if vcp >= 75:
+        reasons.append(f"VCP {vcp:.0f}")
+    if pullbacks and pullbacks >= 2:
+        reasons.append(f"{pullbacks}次收縮")
+    if rising_lows:
+        reasons.append("底部抬高")
+    if last_pb and last_pb < 8:
+        reasons.append(f"末段回撤{last_pb:.1f}%")
+    if dist and dist < 5:
+        reasons.append(f"距前高{dist:.1f}%")
+    if vol and vol < 0.8:
+        reasons.append(f"量縮{vol:.2f}x")
+    if vs_ma and vs_ma > 0:
+        reasons.append(f"200MA+{vs_ma:.1f}%")
+    if rank_change and rank_change > 0:
+        reasons.append(f"排名↑{rank_change}")
+
+    return "、".join(reasons[:5]) if reasons else f"綜合分 {pick.get('Combined_Score', 0):.0f}"
+
+
 def calc_ma_position(data: dict, tickers: list[str]) -> dict:
     """計算距離200日均線的位置"""
     closes = data.get("Close", pd.DataFrame())
