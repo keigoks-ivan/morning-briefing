@@ -15,6 +15,8 @@ import os
 import sys
 import json
 import subprocess
+from datetime import datetime
+import pytz
 
 # 本機測試時載入 .env
 try:
@@ -45,23 +47,29 @@ def main() -> None:
     dd_count = len(deep_dive_news.get("fixed", [])) + len(deep_dive_news.get("dynamic", [])) if isinstance(deep_dive_news, dict) else len(deep_dive_news)
     print(f"      {len(raw_news)} queries completed, {len(today_earnings)} earnings confirmed, {len(moneydj_news)} MoneyDJ news, {dd_count} deep dive")
 
-    # 1.5 執行 Screener
+    # 1.5 執行 Screener（週末跳過）
+    tz = pytz.timezone("Asia/Taipei")
+    weekday = datetime.now(tz).weekday()  # 0=週一 6=週日
+
     screener_result = {}
-    try:
-        print("\n[Screener] 執行 RS+Contraction Screener...")
-        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        result = subprocess.run(
-            [sys.executable, os.path.join(repo_root, "screener", "main.py")],
-            capture_output=True, text=True, timeout=300,
-        )
-        if result.returncode == 0:
-            with open("/tmp/screener_result.json") as f:
-                screener_result = json.load(f)
-            print(f"      Screener: {screener_result.get('total_screened',0)} 支，Top 30 完成")
-        else:
-            print(f"      Screener 失敗: {result.stderr[:200]}")
-    except Exception as e:
-        print(f"      Screener 例外: {e}")
+    if weekday < 5:
+        try:
+            print("\n[Screener] 執行 RS+Contraction Screener...")
+            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            result = subprocess.run(
+                [sys.executable, os.path.join(repo_root, "screener", "main.py")],
+                capture_output=True, text=True, timeout=300,
+            )
+            if result.returncode == 0:
+                with open("/tmp/screener_result.json") as f:
+                    screener_result = json.load(f)
+                print(f"      Screener: {screener_result.get('total_screened',0)} 支，Top 30 完成")
+            else:
+                print(f"      Screener 失敗: {result.stderr[:200]}")
+        except Exception as e:
+            print(f"      Screener 例外: {e}")
+    else:
+        print("\n[Screener] 週末跳過")
 
     # 2. AI 處理
     print("\n[2/4] Processing with Claude...")

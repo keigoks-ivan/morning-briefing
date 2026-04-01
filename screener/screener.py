@@ -3,6 +3,9 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 import pytz
+import json
+import glob as glob_mod
+import os
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -69,6 +72,112 @@ WATCHLIST = [
 WATCHLIST = list(dict.fromkeys([t for t in WATCHLIST if t and len(t) <= 5]))
 
 BENCHMARK = "SPY"
+
+# ── 產業分類 ──────────────────────────────────────────────────
+_SECTOR_MAP = {
+    "Technology": [
+        "GOOG","NVDA","GLW","PLTR","TSLA","AVGO","AAPL","VRT","LITE","ANET",
+        "MSFT","META","AMD","INTC","ASML","AMAT","LRCX","KLAC","TSM","ARM",
+        "QCOM","MU","MRVL","WOLF","ON","MPWR","ENTG","ONTO","ACLS","COHU",
+        "TER","FORM","SNOW","CRM","NOW","ADBE","ORCL","IBM","UBER","LYFT",
+        "ABNB","DASH","CRWD","PANW","ZS","OKTA","NET","DDOG","MDB","GTLB",
+        "ESTC","HUBS","TTD","RBLX","U","PINS","SNAP","SHOP","XYZ",
+        "COIN","HOOD","SOFI","AFRM","UPST","LC","MSTR","SMCI","DELL","HPQ",
+        "HPE","CSCO","NTAP","PSTG","WDC","STX","NXPI","MCHP","ADI",
+        "TXN","LSCC","SLAB","ALGM","DIOD","SITM","AMBA","CRUS","SWKS",
+        "QRVO","MKSI","CEVA","HIMX","SIMO","CDNS",
+        "SNPS","MANH","VEEV","WDAY","INTU","ADSK","PTC","NTNX","DSGX","EPAM",
+        "GLOB","FLYW","PAYO","FOUR","GPN","FIS","FISV","MA","V","AXP",
+        "GOOGL",
+    ],
+    "Consumer": [
+        "AMZN","NFLX","DIS","CMCSA","T","VZ","TMUS","CHTR","WBD",
+        "NWSA","FOX","LYV","IMAX","AMC","CNK","CARG","OPEN",
+        "Z","EXPI","OPAD","MTH","DHI","LEN","PHM","TOL",
+        "NVR","TMHC","MHO","SKY","CVCO","WH","HLT","MAR","H",
+        "BKNG","EXPE","TRIP","PCLN","LMND","ROOT",
+        "HUM","CVS","DRVN","BROS","CAVA","SHAK","WING",
+        "TXRH","DRI","EAT","CMG","MCD","SBUX","YUM","QSR","JACK",
+        "PLAY","RRGB","CAKE","BLMN","BJRI","KRUS","YELP",
+        "WMT","COST","TGT","LOW","HD","ETSY","W","BBWI","VSCO",
+        "NKE","LULU","UAA","PVH","RL","CRI","COLM","VFC","GOOS",
+        "TJX","ROST","DLTR","DG","BJ","FIVE","OLLI","GRWG","BYND",
+        "MAPS","TLRY","CGC","ACB","CRON","SNDL",
+        "MO","PM","BTI","CARR","GE","HON","MMM",
+    ],
+    "Industrials": [
+        "CAT","DE","EMR","ETN","PH","ROK","ITW","DOV","IR","XYL",
+        "GNRC","CSGP","JBHT","CHRW","EXPD","XPO","ODFL","SAIA","WERN","KNX",
+        "ARCB","MRTN","HTLD","RUSHA","PCAR","CMI","ALSN","TRN","GATX",
+        "WAB","TT","LII","MAS","AOS","SWK","SNA","KMT","TDG",
+        "HEI","TDY","TXT","HXL","CW","KTOS","RCAT","LMT","RTX",
+        "NOC","GD","BA","HII","LHX","DRS","CACI","LDOS","SAIC","BAH",
+        "VIAV","CALX","ADTN","AAOI",
+        "COHR","IPGP","POET","CLFD","ATEN",
+        "ATNI","IDT","LUMN","SHEN",
+    ],
+    "Financials": [
+        "JPM","BAC","WFC","C","GS","MS","BLK","SCHW","ICE","CME",
+        "SPGI","MCO","BX","KKR","APO","ARES","CG","OWL","HLNE","STEP",
+        "AMG","VCTR","VIRT","MKTX","GFI","PIPR","SF","HLI",
+        "LPLA","RJF","SEIC","APAM","TROW","IVZ","BEN",
+        "IAU","GLD","SLV","PPLT","PALL","USO","UNG","DBO","BNO",
+    ],
+    "Energy": [
+        "XOM","CVX","COP","EOG","DVN","FANG","APA","OXY",
+        "SLB","HAL","BKR","PSX","VLO","MPC","DK","PARR","CAPL",
+    ],
+    "Healthcare": [
+        "LLY","JNJ","UNH","ABT","TMO","DHR","MDT","SYK","BSX","EW",
+        "ISRG","DXCM","PODD","TNDM","GKOS","SHPH","NVCR","TTOO",
+    ],
+    "Materials": [
+        "LIN","APD","ECL","SHW","PPG","NEM","FCX","AA",
+    ],
+}
+
+TICKER_SECTOR = {}
+for sector, tickers in _SECTOR_MAP.items():
+    for t in tickers:
+        if t not in TICKER_SECTOR:
+            TICKER_SECTOR[t] = sector
+
+
+def calc_rank_change(df: pd.DataFrame, today: str) -> pd.DataFrame:
+    """跟上次結果比較排名變化"""
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    history_dir = os.path.join(repo_root, "docs", "screener", "history")
+
+    history_files = sorted(glob_mod.glob(os.path.join(history_dir, "*.json")))
+    history_files = [f for f in history_files if today not in f]
+
+    if not history_files:
+        df["Rank_Change"] = None
+        df["Rank_Change_Str"] = "—"
+        return df
+
+    with open(history_files[-1]) as f:
+        prev = json.load(f)
+
+    prev_ranks = {item["Ticker"]: item["Rank"] for item in prev.get("data", [])}
+
+    def calc_change(row):
+        ticker = row["Ticker"]
+        curr_rank = row["Rank"]
+        if ticker not in prev_ranks:
+            return pd.Series([None, "新進"])
+        prev_rank = prev_ranks[ticker]
+        change = prev_rank - curr_rank
+        if change > 0:
+            return pd.Series([change, f"↑{change}"])
+        elif change < 0:
+            return pd.Series([change, f"↓{abs(change)}"])
+        else:
+            return pd.Series([0, "—"])
+
+    df[["Rank_Change", "Rank_Change_Str"]] = df.apply(calc_change, axis=1)
+    return df
+
 
 def fetch_data(tickers: list[str], period: str = "90d") -> dict:
     """批次下載所有 ticker 的日線數據"""
@@ -404,6 +513,7 @@ def run_screener() -> pd.DataFrame:
 
         rows.append({
             "Ticker": ticker,
+            "Sector": TICKER_SECTOR.get(ticker, "Other"),
             "RS_Score": rs["rs_score"],
             "rs_trend": rs.get("rs_trend", ""),
             "rs_1w": rs.get("rs_1w"),
@@ -430,6 +540,10 @@ def run_screener() -> pd.DataFrame:
     # 按 Combined Score 排序
     df = df.sort_values("Combined_Score", ascending=False).reset_index(drop=True)
     df.insert(0, "Rank", range(1, len(df) + 1))
+
+    # 計算排名變化
+    print("  計算排名變化...")
+    df = calc_rank_change(df, today)
 
     print(f"  ✓ 完成：{len(df)} 支有效標的")
     return df

@@ -1581,6 +1581,7 @@ def _screener_top30(screener_result: dict) -> str:
         con = item.get("Contraction_Score", 0)
         combined = item.get("Combined_Score", 0)
         vs_ma = item.get("vs_200MA_pct")
+        sector = item.get("Sector", "")
 
         # RS Score 顏色
         if rs >= 80:
@@ -1593,10 +1594,22 @@ def _screener_top30(screener_result: dict) -> str:
         vs_ma_str = f"+{vs_ma:.1f}%" if vs_ma and vs_ma > 0 else (f"{vs_ma:.1f}%" if vs_ma else "—")
         vs_ma_color = "#0F6E56" if vs_ma and vs_ma > 0 else "#C0392B"
 
+        # 排名變化
+        rank_str = item.get("Rank_Change_Str", "—")
+        if isinstance(rank_str, str) and rank_str.startswith("↑"):
+            rank_change_html = f'<span style="color:#0F6E56;font-size:11px;">{rank_str}</span>'
+        elif isinstance(rank_str, str) and rank_str.startswith("↓"):
+            rank_change_html = f'<span style="color:#C0392B;font-size:11px;">{rank_str}</span>'
+        elif rank_str == "新進":
+            rank_change_html = '<span style="background:#EBF2FA;color:#185FA5;font-size:9px;padding:1px 3px;border-radius:2px;">新進</span>'
+        else:
+            rank_change_html = '<span style="color:#BBB;">—</span>'
+
         rows += f"""
         <tr>
           <td style="text-align:center;padding:6px 8px;font-size:12px;color:#888;">{item.get('Rank','')}</td>
-          <td style="padding:6px 8px;font-size:13px;font-weight:500;color:#1B3A5C;">{item.get('Ticker','')}</td>
+          <td style="text-align:center;padding:6px 4px;">{rank_change_html}</td>
+          <td style="padding:6px 8px;font-size:13px;font-weight:500;color:#1B3A5C;">{item.get('Ticker','')}<br><span style="font-size:10px;color:#AAA;font-weight:400;">{sector}</span></td>
           <td style="text-align:center;padding:6px 8px;font-size:13px;font-weight:500;color:{rs_color};">{rs:.0f}</td>
           <td style="text-align:center;padding:6px 8px;font-size:13px;color:#534AB7;">{con:.0f}</td>
           <td style="text-align:center;padding:6px 8px;font-size:13px;font-weight:500;">{combined:.0f}</td>
@@ -1608,15 +1621,16 @@ def _screener_top30(screener_result: dict) -> str:
     <div style="margin:20px 0;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
         <div style="width:4px;height:14px;background:#1B3A5C;border-radius:2px;"></div>
-        <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#666;font-weight:500;">RS + CONTRACTION SCREENER</span>
+        <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#666;font-weight:500;">RS + VCP SCREENER</span>
         <span style="font-size:10px;color:#BBB;margin-left:auto;">{date} · {total} 支篩選</span>
       </div>
       <table width="100%" style="border-collapse:collapse;border:0.5px solid #E8E8E8;border-radius:8px;overflow:hidden;">
         <tr style="background:#1B3A5C;">
           <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">排名</th>
+          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">變化</th>
           <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:left;">代號</th>
           <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">RS</th>
-          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">收縮</th>
+          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">VCP</th>
           <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">綜合</th>
           <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">股價</th>
           <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">vs 200MA</th>
