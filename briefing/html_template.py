@@ -162,13 +162,37 @@ def _mkt_cell(item: dict, extra_tag: str = "") -> str:
             f'</td>')
 
 
-def _mkt_row(items: list[dict], extra_tags: dict | None = None) -> str:
-    """Render a table row of market cells. extra_tags maps index → html tag string."""
-    cells = ""
+def _mkt_row(items: list[dict], extra_tags: dict | None = None, max_per_row: int = 6) -> str:
+    """Render table rows of market cells, max_per_row items per <tr>."""
+    if not items:
+        return ""
+    html = ""
     for i, it in enumerate(items):
+        if i % max_per_row == 0:
+            if i > 0:
+                html += "</tr>"
+            html += "<tr>"
         tag = (extra_tags or {}).get(i, "")
-        cells += _mkt_cell(it, extra_tag=tag)
-    return f'<tr>{cells}</tr>'
+        html += _mkt_cell(it, extra_tag=tag)
+    html += "</tr>"
+    return html
+
+
+def _wrap_cells_in_rows(cells_html: str, max_per_row: int = 6) -> str:
+    """Split pre-built <td>...</td> cells into <tr> rows with max_per_row each."""
+    import re
+    tds = re.findall(r'<td.*?</td>', cells_html, re.DOTALL)
+    if not tds:
+        return ""
+    html = ""
+    for i, td in enumerate(tds):
+        if i % max_per_row == 0:
+            if i > 0:
+                html += "</tr>"
+            html += "<tr>"
+        html += td
+    html += "</tr>"
+    return html
 
 
 def _mkt_section_label(text: str, color: str) -> str:
@@ -598,7 +622,7 @@ def _market_strip(market_data: dict) -> str:
     {_mkt_row(factors_dynamic) if factors_dynamic else ""}
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
     {_mkt_section_label("市場情緒", "#BA7517")}
-    <tr>{sent_cells}</tr>
+    {_wrap_cells_in_rows(sent_cells, 6)}
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
     {_mkt_section_label("原物料", "#854F0B")}
     {_mkt_row(commodities_fixed)}
@@ -610,19 +634,19 @@ def _market_strip(market_data: dict) -> str:
         <span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;color:#888;">債券</span>
         {inversion_warning}
       </div></td></tr>
-    <tr style="background:#EBF2FA;">{bond_cells}</tr>
+    {_wrap_cells_in_rows(bond_cells, 6).replace('<tr>', '<tr style="background:#EBF2FA;">')}
     <tr><td colspan="99" style="padding:8px 10px 6px 10px;">
       <div style="display:flex;align-items:center;gap:6px;">
         <div style="width:3px;height:12px;background:#534AB7;border-radius:1px;"></div>
         <span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;color:#888;">外匯</span>
       </div></td></tr>
-    <tr style="background:#F7F5FF;">{fx_cells}</tr>
+    {_wrap_cells_in_rows(fx_cells, 6).replace('<tr>', '<tr style="background:#F7F5FF;">')}
     <tr><td colspan="99" style="padding:8px 10px 6px 10px;">
       <div style="display:flex;align-items:center;gap:6px;">
         <div style="width:3px;height:12px;background:#0F6E56;border-radius:1px;"></div>
         <span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;color:#888;">信貸</span>
       </div></td></tr>
-    <tr style="background:#E8F5EE;">{credit_cells}</tr>
+    {_wrap_cells_in_rows(credit_cells, 6).replace('<tr>', '<tr style="background:#E8F5EE;">')}
     {liq_section}
   </table>
 </div>'''
@@ -1665,9 +1689,12 @@ def _page_wrapper(page: str, date: str, content: str, title: str) -> str:
     tabs = ""
     for key, label, href in _TAB_PAGES:
         if key == page:
-            style = "display:inline-block;padding:10px 14px;font-size:12px;font-weight:500;color:#1B3A5C;border-bottom:2px solid #1B3A5C;text-decoration:none;white-space:nowrap;"
+            style = ("display:inline-block;padding:12px 18px;font-size:13px;font-weight:500;"
+                     "color:#1B3A5C;border-bottom:3px solid #1B3A5C;text-decoration:none;"
+                     "white-space:nowrap;background:#F0F4F8;")
         else:
-            style = "display:inline-block;padding:10px 14px;font-size:12px;color:#888;border-bottom:2px solid transparent;text-decoration:none;white-space:nowrap;"
+            style = ("display:inline-block;padding:12px 18px;font-size:13px;color:#666;"
+                     "border-bottom:3px solid transparent;text-decoration:none;white-space:nowrap;")
         tabs += f'<a href="{href}" style="{style}">{label}</a>'
 
     return f"""<!DOCTYPE html>
@@ -1680,22 +1707,22 @@ def _page_wrapper(page: str, date: str, content: str, title: str) -> str:
 * {{ box-sizing:border-box; margin:0; padding:0; }}
 body {{ font-family:Arial,sans-serif; max-width:800px; margin:0 auto; background:#fff; color:#333; }}
 a {{ color:inherit; }}
-.sticky-nav {{ position:sticky; top:0; z-index:100; background:#fff; border-bottom:0.5px solid #E8E8E8; }}
-.nav-tabs {{ display:flex; overflow-x:auto; padding:0 16px; -webkit-overflow-scrolling:touch; }}
+.sticky-nav {{ position:sticky; top:0; z-index:100; }}
+.nav-tabs {{ display:flex; overflow-x:auto; -webkit-overflow-scrolling:touch; }}
 .nav-tabs::-webkit-scrollbar {{ display:none; }}
 {BASE_CSS}
 </style>
 </head>
 <body>
 <div class="sticky-nav">
-  <div style="padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:0.5px solid #F0F0F0;">
+  <div style="background:#1B3A5C;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;">
     <div>
-      <div style="font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;">Morning Briefing</div>
-      <div style="font-size:16px;font-weight:500;color:#1B3A5C;">每日財經晨報</div>
+      <div style="font-size:9px;letter-spacing:2px;color:rgba(255,255,255,0.6);text-transform:uppercase;margin-bottom:2px;">Morning Briefing</div>
+      <div style="font-size:18px;font-weight:500;color:#fff;">每日財經晨報</div>
     </div>
-    <div style="font-size:11px;color:#888;">{date}</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.7);">{date}</div>
   </div>
-  <div class="nav-tabs">{tabs}</div>
+  <div style="background:#fff;border-bottom:1px solid #E8E8E8;display:flex;overflow-x:auto;padding:0 8px;-webkit-overflow-scrolling:touch;" class="nav-tabs">{tabs}</div>
 </div>
 <div style="padding:16px 16px 40px;">
 {content}
