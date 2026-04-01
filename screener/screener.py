@@ -6,7 +6,9 @@ import pytz
 import warnings
 warnings.filterwarnings('ignore')
 
-# ── Watchlist（396支）──────────────────────────────────────────
+# ── Watchlist ─────────────────────────────────────────────────
+# 2026-04-01 清理：移除 50 支已下市/被收購/改名 ticker
+# SQ→XYZ, PARA/WBA/JNPR/PXD/MRO 已被收購或下市
 WATCHLIST = [
     # Technology
     "GOOG","NVDA","GLW","PLTR","TSLA","AVGO","AAPL","VRT","LITE","ANET",
@@ -14,49 +16,49 @@ WATCHLIST = [
     "QCOM","MU","MRVL","WOLF","ON","MPWR","ENTG","ONTO","ACLS","COHU",
     "TER","FORM","SNOW","CRM","NOW","ADBE","ORCL","IBM","UBER","LYFT",
     "ABNB","DASH","CRWD","PANW","ZS","OKTA","NET","DDOG","MDB","GTLB",
-    "ESTC","CFLT","HUBS","TTD","RBLX","U","PINS","SNAP","SHOP","SQ",
+    "ESTC","HUBS","TTD","RBLX","U","PINS","SNAP","SHOP","XYZ",
     "COIN","HOOD","SOFI","AFRM","UPST","LC","MSTR","SMCI","DELL","HPQ",
-    "HPE","CSCO","JNPR","NTAP","PSTG","WDC","STX","NXPI","MCHP","ADI",
-    "TXN","LSCC","SLAB","ALGM","DIOD","SITM","AMBA","CRUS","MLNX","SWKS",
-    "QRVO","IPHI","IIVI","II","MKSI","CEVA","HIMX","SIMO","ANSS","CDNS",
+    "HPE","CSCO","NTAP","PSTG","WDC","STX","NXPI","MCHP","ADI",
+    "TXN","LSCC","SLAB","ALGM","DIOD","SITM","AMBA","CRUS","SWKS",
+    "QRVO","MKSI","CEVA","HIMX","SIMO","CDNS",
     "SNPS","MANH","VEEV","WDAY","INTU","ADSK","PTC","NTNX","DSGX","EPAM",
     "GLOB","FLYW","PAYO","FOUR","GPN","FIS","FISV","MA","V","AXP",
     # Consumer
-    "AMZN","NFLX","DIS","CMCSA","T","VZ","TMUS","CHTR","PARA","WBD",
-    "NWSA","FOX","LYV","WWE","EDR","IMAX","AMC","CNK","CARG","OPEN",
-    "Z","RDFN","EXPI","OPAD","HOUS","MTH","DHI","LEN","PHM","TOL",
-    "NVR","TMHC","MHO","SKY","CVCO","WH","HLT","MAR","H","WYNDM",
-    "ABNB","BKNG","EXPE","TRIP","PCLN","VRBO","AIRBNB","LMND","ROOT",
-    "OSCAR","HUM","CVS","WBA","RAD","DRVN","BROS","CAVA","SHAK","WING",
-    "TXRH","DRI","EAT","CMG","MCD","SBUX","YUM","QSR","JACK","DENN",
-    "PLAY","RRGB","CAKE","BLMN","RUTH","BJRI","KRUS","YELP","GRUB","DASH",
+    "AMZN","NFLX","DIS","CMCSA","T","VZ","TMUS","CHTR","WBD",
+    "NWSA","FOX","LYV","IMAX","AMC","CNK","CARG","OPEN",
+    "Z","EXPI","OPAD","MTH","DHI","LEN","PHM","TOL",
+    "NVR","TMHC","MHO","SKY","CVCO","WH","HLT","MAR","H",
+    "ABNB","BKNG","EXPE","TRIP","PCLN","LMND","ROOT",
+    "HUM","CVS","DRVN","BROS","CAVA","SHAK","WING",
+    "TXRH","DRI","EAT","CMG","MCD","SBUX","YUM","QSR","JACK",
+    "PLAY","RRGB","CAKE","BLMN","BJRI","KRUS","YELP","DASH",
     "WMT","COST","TGT","LOW","HD","AMZN","ETSY","W","BBWI","VSCO",
-    "NKE","LULU","UAA","PVH","RL","HBI","CRI","COLM","VFC","GOOS",
-    "TJX","ROST","DLTR","DG","BJ","FIVE","OLLI","PRTY","GRWG","BYND",
-    "TTCF","APPH","MAPS","TLRY","CGC","ACB","CRON","SNDL","APHA","HEXO",
-    "MO","PM","BTI","LO","SWMAY","VGR","CARR","GE","HON","MMM",
+    "NKE","LULU","UAA","PVH","RL","CRI","COLM","VFC","GOOS",
+    "TJX","ROST","DLTR","DG","BJ","FIVE","OLLI","GRWG","BYND",
+    "MAPS","TLRY","CGC","ACB","CRON","SNDL",
+    "MO","PM","BTI","CARR","GE","HON","MMM",
     # Industrials
     "CAT","DE","EMR","ETN","PH","ROK","ITW","DOV","IR","XYL",
     "GNRC","CSGP","JBHT","CHRW","EXPD","XPO","ODFL","SAIA","WERN","KNX",
-    "ARCB","MRTN","HTLD","USX","RUSHA","PCAR","CMI","ALSN","TRN","GATX",
-    "WAB","TT","LII","MAS","AOS","FBHS","SWK","SNA","KMT","TDG",
-    "HEI","TDY","TXT","HXL","SPR","CW","KTOS","RCAT","LMT","RTX",
+    "ARCB","MRTN","HTLD","RUSHA","PCAR","CMI","ALSN","TRN","GATX",
+    "WAB","TT","LII","MAS","AOS","SWK","SNA","KMT","TDG",
+    "HEI","TDY","TXT","HXL","CW","KTOS","RCAT","LMT","RTX",
     "NOC","GD","BA","HII","LHX","DRS","CACI","LDOS","SAIC","BAH",
-    "MANT","ICAD","SWIR","VIAV","CASA","CALX","ADTRAN","ADTN","INFN","AAOI",
-    "IIVI","COHR","LITE","IPGP","FNSR","OCLR","NPTN","POET","CLFD","ATEN",
-    "ATNI","IDT","LUMN","CNSL","SHEN","OTEL","NTELOS","NTLS","UTSTARCOM",
+    "VIAV","CALX","ADTN","AAOI",
+    "COHR","LITE","IPGP","POET","CLFD","ATEN",
+    "ATNI","IDT","LUMN","SHEN",
     # Financials
     "JPM","BAC","WFC","C","GS","MS","BLK","SCHW","ICE","CME",
     "SPGI","MCO","BX","KKR","APO","ARES","CG","OWL","HLNE","STEP",
-    "AMG","WDR","VCTR","VIRT","MKTX","BGCP","GFI","PIPR","SF","HLI",
-    "LPLA","RJF","SEIC","APAM","TROW","IVZ","BEN","WisdomTree","GBTC",
-    "IAU","GLD","SLV","PPLT","PALL","USO","UNG","DBO","BNO","OILK",
+    "AMG","VCTR","VIRT","MKTX","GFI","PIPR","SF","HLI",
+    "LPLA","RJF","SEIC","APAM","TROW","IVZ","BEN",
+    "IAU","GLD","SLV","PPLT","PALL","USO","UNG","DBO","BNO",
     # Energy
-    "XOM","CVX","COP","EOG","PXD","DVN","FANG","MRO","APA","OXY",
-    "SLB","HAL","BKR","PSX","VLO","MPC","DK","PARR","CVRR","CAPL",
+    "XOM","CVX","COP","EOG","DVN","FANG","APA","OXY",
+    "SLB","HAL","BKR","PSX","VLO","MPC","DK","PARR","CAPL",
     # Healthcare
     "LLY","JNJ","UNH","ABT","TMO","DHR","MDT","SYK","BSX","EW",
-    "ISRG","DXCM","PODD","TNDM","GKOS","SHPH","NVCR","TTOO","APEN",
+    "ISRG","DXCM","PODD","TNDM","GKOS","SHPH","NVCR","TTOO",
     # Communication
     "GOOGL","META","NFLX","DIS","CMCSA","T","VZ",
     # Materials

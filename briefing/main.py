@@ -46,17 +46,22 @@ def main() -> None:
     print(f"      {len(raw_news)} queries completed, {len(today_earnings)} earnings confirmed, {len(moneydj_news)} MoneyDJ news, {dd_count} deep dive")
 
     # 1.5 執行 Screener
-    print("\n[Screener] 執行 RS+Contraction Screener...")
-    screener_dir = os.path.join(os.path.dirname(__file__), "..", "screener")
-    subprocess.run([sys.executable, os.path.join(screener_dir, "main.py")], check=False)
-
     screener_result = {}
     try:
-        with open("/tmp/screener_result.json") as f:
-            screener_result = json.load(f)
-        print(f"      Screener: {screener_result.get('total_screened',0)} 支，Top 30 完成")
-    except Exception:
-        print("      Screener 結果讀取失敗，跳過")
+        print("\n[Screener] 執行 RS+Contraction Screener...")
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        result = subprocess.run(
+            [sys.executable, os.path.join(repo_root, "screener", "main.py")],
+            capture_output=True, text=True, timeout=300,
+        )
+        if result.returncode == 0:
+            with open("/tmp/screener_result.json") as f:
+                screener_result = json.load(f)
+            print(f"      Screener: {screener_result.get('total_screened',0)} 支，Top 30 完成")
+        else:
+            print(f"      Screener 失敗: {result.stderr[:200]}")
+    except Exception as e:
+        print(f"      Screener 例外: {e}")
 
     # 2. AI 處理
     print("\n[2/4] Processing with Claude...")
