@@ -1649,9 +1649,172 @@ def _footer() -> str:
 </div>'''
 
 
+_TAB_ACTIVE   = "padding:10px 16px;font-size:12px;font-weight:500;color:#1B3A5C;border-bottom:2px solid #1B3A5C;text-decoration:none;white-space:nowrap;"
+_TAB_INACTIVE = "padding:10px 16px;font-size:12px;color:#888;border-bottom:2px solid transparent;text-decoration:none;white-space:nowrap;"
+
+_TABS = [
+    ("index",    "市場數據"),
+    ("news",     "要聞・深度"),
+    ("geo",      "地緣・國際"),
+    ("tech",     "科技・AI"),
+    ("trends",   "新創・趨勢"),
+    ("misc",     "財報・冷知識"),
+    ("screener", "Screener"),
+]
+
+_PAGE_TITLES = {
+    "index": "市場數據", "news": "要聞・深度", "geo": "地緣・國際",
+    "tech": "科技・AI", "trends": "新創・趨勢", "misc": "財報・冷知識",
+    "screener": "Screener",
+}
+
+
+def _nav_bar(current_page: str, date_str: str) -> str:
+    """產出頂部 Tab 導航列"""
+    tab_links = ""
+    for page_id, label in _TABS:
+        fname = "index.html" if page_id == "index" else f"{page_id}.html"
+        style = _TAB_ACTIVE if page_id == current_page else _TAB_INACTIVE
+        tab_links += f'<a href="{fname}" style="{style}">{label}</a>\n    '
+
+    return f"""
+<div style="position:sticky;top:0;z-index:100;background:#fff;border-bottom:0.5px solid #E8E8E8;">
+  <div style="padding:10px 20px;display:flex;justify-content:space-between;align-items:center;">
+    <div>
+      <div style="font-size:10px;letter-spacing:2px;color:#888;text-transform:uppercase;">Morning Briefing</div>
+      <div style="font-size:18px;font-weight:500;color:#1B3A5C;">每日財經晨報</div>
+    </div>
+    <div style="text-align:right;font-size:12px;color:#888;">{date_str}</div>
+  </div>
+  <div style="display:flex;overflow-x:auto;padding:0 20px;gap:0;">
+    {tab_links}
+  </div>
+</div>"""
+
+
+def _page_wrapper(page_id: str, date_str: str, content: str) -> str:
+    """每個頁面的共同 HTML wrapper"""
+    title = _PAGE_TITLES.get(page_id, "晨報")
+    return f"""<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title} — 每日財經晨報 {date_str}</title>
+<style>
+* {{ box-sizing: border-box; margin: 0; padding: 0; }}
+body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background: #fff; color: #333; }}
+a {{ color: inherit; }}
+{BASE_CSS}
+</style>
+</head>
+<body>
+{_nav_bar(page_id, date_str)}
+<div style="padding: 0 20px 40px;">
+{content}
+</div>
+</body>
+</html>"""
+
+
+def build_index_html(data: dict, date_str: str) -> str:
+    """首頁：市場數據"""
+    content = f"""
+{_daily_summary(data.get("daily_summary",""))}
+{_alert(data.get("alert",""))}
+{_market_strip(data.get("market_data", {}))}
+{_index_factor_reading(data.get("index_factor_reading", {}))}
+{_sentiment_analysis(data.get("sentiment_analysis", {}))}
+{_market_pulse(data.get("market_pulse", {}))}
+"""
+    return _page_wrapper("index", date_str, content)
+
+
+def build_news_html(data: dict, date_str: str) -> str:
+    """要聞・深度"""
+    content = f"""
+{_news_section("核心要聞", data.get("top_stories",[]))}
+{_daily_deep_dive(data.get("daily_deep_dive", []))}
+"""
+    return _page_wrapper("news", date_str, content)
+
+
+def build_geo_html(data: dict, date_str: str) -> str:
+    """地緣・國際"""
+    content = f"""
+{_world_news(data.get("world_news", []))}
+{_geopolitical_section(data.get("geopolitical",[]))}
+{_news_section("總經動態", data.get("macro",[]))}
+"""
+    return _page_wrapper("geo", date_str, content)
+
+
+def build_tech_html(data: dict, date_str: str) -> str:
+    """科技・AI"""
+    ai_tag = {"macro": "background:#EBF2FA;color:#185FA5;", "tech": "background:#EAF3DE;color:#3B6D11;"}
+    ai_section = _news_section("AI 産業動態", data.get("ai_industry", []), ai_tag)
+    content = f"""
+{ai_section}
+{_regional_tech_section(data.get("regional_tech", {}))}
+{_fintech_crypto_section(data.get("fintech_crypto",[]))}
+"""
+    return _page_wrapper("tech", date_str, content)
+
+
+def build_trends_html(data: dict, date_str: str) -> str:
+    """新創・趨勢"""
+    content = f"""
+{_tech_trends(data.get("tech_trends",[]))}
+{_startup_news(data.get("startup_news",[]))}
+{_smart_money(data.get("smart_money", {}))}
+"""
+    return _page_wrapper("trends", date_str, content)
+
+
+def build_misc_html(data: dict, date_str: str) -> str:
+    """財報・冷知識"""
+    content = f"""
+{_us_market_recap(data.get("us_market_recap", {}))}
+{_earnings_preview(data.get("earnings_preview",[]))}
+{_implied_trends(data.get("implied_trends",[]))}
+{_fun_fact(data.get("fun_fact", {}))}
+{_today_events(data.get("today_events",[]))}
+"""
+    return _page_wrapper("misc", date_str, content)
+
+
+def build_screener_html(data: dict, screener_result: dict, date_str: str) -> str:
+    """Screener"""
+    sr = screener_result or {}
+    content = _screener_top30(sr)
+    return _page_wrapper("screener", date_str, content)
+
+
+def build_all_pages(data: dict, screener_result: dict = None) -> dict:
+    """產出所有頁面，回傳 {filename: html_content} dict"""
+    tz = pytz.timezone("Asia/Taipei")
+    date_str = datetime.now(tz).strftime("%Y年%m月%d日 %H:%M TST")
+    sr = screener_result or {}
+
+    return {
+        "index.html":    build_index_html(data, date_str),
+        "news.html":     build_news_html(data, date_str),
+        "geo.html":      build_geo_html(data, date_str),
+        "tech.html":     build_tech_html(data, date_str),
+        "trends.html":   build_trends_html(data, date_str),
+        "misc.html":     build_misc_html(data, date_str),
+        "screener.html": build_screener_html(data, sr, date_str),
+    }
+
+
 def build_html(data: dict, screener_result: dict = None) -> str:
+    """向後相容：產出單頁完整 HTML（供 Email 使用）"""
     tz  = pytz.timezone("Asia/Taipei")
     now = datetime.now(tz).strftime("%Y年%m月%d日 %H:%M TST")
+
+    ai_tag = {"macro": "background:#EBF2FA;color:#185FA5;", "tech": "background:#EAF3DE;color:#3B6D11;"}
+    ai_section = _news_section("AI 産業動態", data.get("ai_industry", []), ai_tag)
+    sr = screener_result or {}
 
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant">
@@ -1673,7 +1836,7 @@ def build_html(data: dict, screener_result: dict = None) -> str:
 {_world_news(data.get("world_news", []))}
 {_news_section("總經動態", data.get("macro",[]))}
 {_geopolitical_section(data.get("geopolitical",[]))}
-{_news_section("AI 産業動態", data.get("ai_industry",[]), {"macro":"background:#EBF2FA;color:#185FA5;","tech":"background:#EAF3DE;color:#3B6D11;"})}
+{ai_section}
 {_regional_tech_section(data.get("regional_tech", {}))}
 {_fintech_crypto_section(data.get("fintech_crypto",[]))}
 {_status_grid(data.get("system_status", {}))}
@@ -1685,7 +1848,7 @@ def build_html(data: dict, screener_result: dict = None) -> str:
 {_fun_fact(data.get("fun_fact", {}))}
 {_us_market_recap(data.get("us_market_recap", {}))}
 {_today_events(data.get("today_events",[]))}
-{_screener_top30(screener_result or {})}
+{_screener_top30(sr)}
 {_footer()}
 </body>
 </html>"""
