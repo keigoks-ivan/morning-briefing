@@ -365,7 +365,10 @@ def run_screener() -> pd.DataFrame:
 
     # 下載數據
     data = fetch_data(WATCHLIST)
-    if not data:
+    if isinstance(data, pd.DataFrame) and data.empty:
+        print("  ✗ 數據下載失敗")
+        return pd.DataFrame()
+    if isinstance(data, dict) and not data:
         print("  ✗ 數據下載失敗")
         return pd.DataFrame()
 
