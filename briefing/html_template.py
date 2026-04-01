@@ -1593,7 +1593,7 @@ def _today_events(events: list) -> str:
 
 def _screener_picks(picks: dict) -> str:
     if not picks:
-        return ""
+        return '<div style="font-size:12px;color:#888;margin-bottom:16px;">今日無符合條件的精選股票</div>'
 
     directions = [
         ("minervini", "Minervini 最佳組合", "#1B3A5C", "RS強勢 + VCP優良 + 接近突破點"),
@@ -1659,6 +1659,9 @@ def _screener_picks(picks: dict) -> str:
             </td>
           </tr>
         </table>"""
+
+    if not cards:
+        return '<div style="font-size:12px;color:#888;margin-bottom:16px;">今日無符合條件的精選股票</div>'
 
     return f"""
     <div style="margin-bottom:16px;">

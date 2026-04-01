@@ -518,7 +518,7 @@ def pick_top_candidates(df: pd.DataFrame) -> dict:
     """
     records = df.to_dict(orient="records")
 
-    # ── 方向一：Minervini 最佳組合 ──────────────────────────
+    # ── 方向一：Minervini 最佳組合（最低門檻 RS>=75, VCP>=65）
     minervini_conditions = [
         lambda r: (
             r.get("RS_Score", 0) >= 80 and
@@ -542,7 +542,6 @@ def pick_top_candidates(df: pd.DataFrame) -> dict:
             r.get("RS_Score", 0) >= 75 and
             r.get("Contraction_Score", 0) >= 65
         ),
-        lambda r: r.get("Rank", 99) <= 5,
     ]
 
     minervini_pick = None
@@ -553,7 +552,7 @@ def pick_top_candidates(df: pd.DataFrame) -> dict:
             minervini_pick = candidates[0]
             break
 
-    # ── 方向二：排名上升最多（動能最強）────────────────────
+    # ── 方向二：排名上升最多（必須有真實排名上升 + RS>=65）
     momentum_pick = None
     ranked_up = [
         r for r in records
@@ -563,19 +562,13 @@ def pick_top_candidates(df: pd.DataFrame) -> dict:
     if ranked_up:
         ranked_up.sort(key=lambda r: r.get("Rank_Change", 0), reverse=True)
         momentum_pick = ranked_up[0]
-    else:
-        fallback = [r for r in records if r.get("rs_trend") == "加速上升" and r.get("Rank", 99) <= 20]
-        if fallback:
-            fallback.sort(key=lambda r: r.get("RS_Score", 0), reverse=True)
-            momentum_pick = fallback[0]
-        elif records:
-            momentum_pick = records[0]
+    # 沒有排名上升的就不選（不 fallback）
 
-    # ── 方向三：VCP 形態最完美 ──────────────────────────────
+    # ── 方向三：VCP 形態最完美（最低門檻 VCP>=75, RS>=70）
     vcp_pick = None
     vcp_candidates = [
         r for r in records
-        if r.get("Contraction_Score", 0) >= 70
+        if r.get("Contraction_Score", 0) >= 75
         and r.get("RS_Score", 0) >= 70
     ]
     if vcp_candidates:
@@ -584,8 +577,7 @@ def pick_top_candidates(df: pd.DataFrame) -> dict:
             r.get("RS_Score", 0) * 0.3
         ), reverse=True)
         vcp_pick = vcp_candidates[0]
-    elif records:
-        vcp_pick = sorted(records, key=lambda r: r.get("Contraction_Score", 0), reverse=True)[0]
+    # 沒有符合門檻的就不選（不 fallback）
 
     # 確保三個方向選不同的股票
     used_tickers = set()
@@ -596,16 +588,21 @@ def pick_top_candidates(df: pd.DataFrame) -> dict:
             continue
         ticker = pick.get("Ticker", "")
         if ticker in used_tickers:
+            # 從同方向符合門檻的候選人中找不重複的
             pool = {
                 "minervini": [r for r in records if r.get("RS_Score", 0) >= 75 and r.get("Contraction_Score", 0) >= 65],
-                "momentum":  sorted(records, key=lambda r: r.get("Rank_Change") or -99, reverse=True),
-                "vcp":       sorted(records, key=lambda r: r.get("Contraction_Score", 0), reverse=True),
+                "momentum":  [r for r in ranked_up if r.get("Ticker") not in used_tickers],
+                "vcp":       [r for r in records if r.get("Contraction_Score", 0) >= 75 and r.get("RS_Score", 0) >= 70],
             }
-            for alt in pool.get(key, records):
+            found = False
+            for alt in pool.get(key, []):
                 if alt.get("Ticker") not in used_tickers:
                     pick = alt
                     ticker = alt.get("Ticker", "")
+                    found = True
                     break
+            if not found:
+                continue  # 找不到不重複的就跳過這個方向
 
         used_tickers.add(ticker)
         result[key] = {
