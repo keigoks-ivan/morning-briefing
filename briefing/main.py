@@ -75,11 +75,18 @@ def main() -> None:
     print("\n[2/4] Processing with Claude...")
     data = process_news(raw_news, market_data, today_earnings, moneydj_news, deep_dive_news, move_index_raw=move_index_raw)
 
-    # 3. 生成多頁 HTML
+    # 注入日期供多頁 builder 使用
+    tz_now = datetime.now(tz)
+    data["date"] = tz_now.strftime("%Y年%m月%d日 %H:%M TST")
+
+    # 3. 生成多頁 HTML + Email 用單頁
     print("\n[3/4] Building HTML pages...")
     pages = build_all_pages(data, screener_result=screener_result)
     total_size = sum(len(h) for h in pages.values())
     print(f"      {len(pages)} pages, total {total_size:,} chars")
+
+    email_html = build_html(data, screener_result=screener_result)
+    print(f"      Email HTML: {len(email_html):,} chars")
 
     # 3.5 存檔所有頁面（供 GitHub Pages 發布）
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -96,26 +103,24 @@ def main() -> None:
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, "briefing.html")
     with open(output_path, "w", encoding="utf-8") as f:
-        f.write(pages["index.html"])
-    print(f"      Saved index to {output_path}")
+        f.write(email_html)
+    print(f"      Saved to {output_path}")
 
-    # 4. 發送 Email（只寄首頁 + 導航連結）
+    # 4. 發送 Email（完整單頁 + 導航連結）
     print("\n[4/4] Sending email...")
-    email_html = pages["index.html"]
     nav_links = """
 <div style="margin:20px 0;padding:16px;background:#F8F9FC;border-radius:8px;text-align:center;">
-  <div style="font-size:11px;color:#888;margin-bottom:8px;">完整晨報請到網站查看</div>
+  <div style="font-size:11px;color:#888;margin-bottom:10px;">完整晨報請到網站查看</div>
   <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
-    <a href="https://research.investmquest.com/briefing/news.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:4px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">要聞・深度</a>
-    <a href="https://research.investmquest.com/briefing/geo.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:4px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">地緣・國際</a>
-    <a href="https://research.investmquest.com/briefing/tech.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:4px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">科技・AI</a>
-    <a href="https://research.investmquest.com/briefing/trends.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:4px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">新創・趨勢</a>
-    <a href="https://research.investmquest.com/briefing/misc.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:4px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">財報・冷知識</a>
-    <a href="https://research.investmquest.com/briefing/screener.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:4px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">Screener</a>
+    <a href="https://research.investmquest.com/briefing/news.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">要聞・深度</a>
+    <a href="https://research.investmquest.com/briefing/geo.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">地緣・國際</a>
+    <a href="https://research.investmquest.com/briefing/tech.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">科技・AI</a>
+    <a href="https://research.investmquest.com/briefing/trends.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">新創・趨勢</a>
+    <a href="https://research.investmquest.com/briefing/misc.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">財報・冷知識</a>
+    <a href="https://research.investmquest.com/briefing/screener.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">Screener</a>
   </div>
 </div>
 """
-    # 在 </body> 前插入導航連結
     email_with_nav = email_html.replace("</body>", nav_links + "</body>")
     send_email(email_with_nav, screener_result=screener_result)
 

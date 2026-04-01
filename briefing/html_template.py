@@ -1649,161 +1649,142 @@ def _footer() -> str:
 </div>'''
 
 
-_TAB_ACTIVE   = "padding:10px 16px;font-size:12px;font-weight:500;color:#1B3A5C;border-bottom:2px solid #1B3A5C;text-decoration:none;white-space:nowrap;"
-_TAB_INACTIVE = "padding:10px 16px;font-size:12px;color:#888;border-bottom:2px solid transparent;text-decoration:none;white-space:nowrap;"
-
-_TABS = [
-    ("index",    "市場數據"),
-    ("news",     "要聞・深度"),
-    ("geo",      "地緣・國際"),
-    ("tech",     "科技・AI"),
-    ("trends",   "新創・趨勢"),
-    ("misc",     "財報・冷知識"),
-    ("screener", "Screener"),
+_TAB_PAGES = [
+    ("index",    "市場數據",    "index.html"),
+    ("news",     "要聞・深度",  "news.html"),
+    ("geo",      "地緣・國際",  "geo.html"),
+    ("tech",     "科技・AI",    "tech.html"),
+    ("trends",   "新創・趨勢",  "trends.html"),
+    ("misc",     "財報・冷知識", "misc.html"),
+    ("screener", "Screener",    "screener.html"),
 ]
 
-_PAGE_TITLES = {
-    "index": "市場數據", "news": "要聞・深度", "geo": "地緣・國際",
-    "tech": "科技・AI", "trends": "新創・趨勢", "misc": "財報・冷知識",
-    "screener": "Screener",
-}
 
+def _page_wrapper(page: str, date: str, content: str, title: str) -> str:
+    """把內容包成完整 HTML 頁面，含 Tab 導航"""
+    tabs = ""
+    for key, label, href in _TAB_PAGES:
+        if key == page:
+            style = "display:inline-block;padding:10px 14px;font-size:12px;font-weight:500;color:#1B3A5C;border-bottom:2px solid #1B3A5C;text-decoration:none;white-space:nowrap;"
+        else:
+            style = "display:inline-block;padding:10px 14px;font-size:12px;color:#888;border-bottom:2px solid transparent;text-decoration:none;white-space:nowrap;"
+        tabs += f'<a href="{href}" style="{style}">{label}</a>'
 
-def _nav_bar(current_page: str, date_str: str) -> str:
-    """產出頂部 Tab 導航列"""
-    tab_links = ""
-    for page_id, label in _TABS:
-        fname = "index.html" if page_id == "index" else f"{page_id}.html"
-        style = _TAB_ACTIVE if page_id == current_page else _TAB_INACTIVE
-        tab_links += f'<a href="{fname}" style="{style}">{label}</a>\n    '
-
-    return f"""
-<div style="position:sticky;top:0;z-index:100;background:#fff;border-bottom:0.5px solid #E8E8E8;">
-  <div style="padding:10px 20px;display:flex;justify-content:space-between;align-items:center;">
-    <div>
-      <div style="font-size:10px;letter-spacing:2px;color:#888;text-transform:uppercase;">Morning Briefing</div>
-      <div style="font-size:18px;font-weight:500;color:#1B3A5C;">每日財經晨報</div>
-    </div>
-    <div style="text-align:right;font-size:12px;color:#888;">{date_str}</div>
-  </div>
-  <div style="display:flex;overflow-x:auto;padding:0 20px;gap:0;">
-    {tab_links}
-  </div>
-</div>"""
-
-
-def _page_wrapper(page_id: str, date_str: str, content: str) -> str:
-    """每個頁面的共同 HTML wrapper"""
-    title = _PAGE_TITLES.get(page_id, "晨報")
     return f"""<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{title} — 每日財經晨報 {date_str}</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{title} — 每日財經晨報 {date}</title>
 <style>
-* {{ box-sizing: border-box; margin: 0; padding: 0; }}
-body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background: #fff; color: #333; }}
-a {{ color: inherit; }}
+* {{ box-sizing:border-box; margin:0; padding:0; }}
+body {{ font-family:Arial,sans-serif; max-width:800px; margin:0 auto; background:#fff; color:#333; }}
+a {{ color:inherit; }}
+.sticky-nav {{ position:sticky; top:0; z-index:100; background:#fff; border-bottom:0.5px solid #E8E8E8; }}
+.nav-tabs {{ display:flex; overflow-x:auto; padding:0 16px; -webkit-overflow-scrolling:touch; }}
+.nav-tabs::-webkit-scrollbar {{ display:none; }}
 {BASE_CSS}
 </style>
 </head>
 <body>
-{_nav_bar(page_id, date_str)}
-<div style="padding: 0 20px 40px;">
+<div class="sticky-nav">
+  <div style="padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:0.5px solid #F0F0F0;">
+    <div>
+      <div style="font-size:9px;letter-spacing:2px;color:#888;text-transform:uppercase;">Morning Briefing</div>
+      <div style="font-size:16px;font-weight:500;color:#1B3A5C;">每日財經晨報</div>
+    </div>
+    <div style="font-size:11px;color:#888;">{date}</div>
+  </div>
+  <div class="nav-tabs">{tabs}</div>
+</div>
+<div style="padding:16px 16px 40px;">
 {content}
 </div>
 </body>
 </html>"""
 
 
-def build_index_html(data: dict, date_str: str) -> str:
+def build_index_html(data: dict) -> str:
     """首頁：市場數據"""
-    content = f"""
-{_daily_summary(data.get("daily_summary",""))}
-{_alert(data.get("alert",""))}
-{_market_strip(data.get("market_data", {}))}
-{_index_factor_reading(data.get("index_factor_reading", {}))}
-{_sentiment_analysis(data.get("sentiment_analysis", {}))}
-{_market_pulse(data.get("market_pulse", {}))}
-"""
-    return _page_wrapper("index", date_str, content)
+    date = data.get("date", "")
+    content = ""
+    if data.get("alert"):
+        content += _alert(data["alert"])
+    content += _market_strip(data.get("market_data", {}))
+    content += _index_factor_reading(data.get("index_factor_reading", {}))
+    content += _sentiment_analysis(data.get("sentiment_analysis", {}))
+    content += _market_pulse(data.get("market_pulse", {}))
+    return _page_wrapper("index", date, content, "市場數據")
 
 
-def build_news_html(data: dict, date_str: str) -> str:
+def build_news_html(data: dict) -> str:
     """要聞・深度"""
-    content = f"""
-{_news_section("核心要聞", data.get("top_stories",[]))}
-{_daily_deep_dive(data.get("daily_deep_dive", []))}
-"""
-    return _page_wrapper("news", date_str, content)
+    date = data.get("date", "")
+    content = _news_section("核心要聞", data.get("top_stories", []))
+    content += _daily_deep_dive(data.get("daily_deep_dive", []))
+    return _page_wrapper("news", date, content, "要聞・深度")
 
 
-def build_geo_html(data: dict, date_str: str) -> str:
+def build_geo_html(data: dict) -> str:
     """地緣・國際"""
-    content = f"""
-{_world_news(data.get("world_news", []))}
-{_geopolitical_section(data.get("geopolitical",[]))}
-{_news_section("總經動態", data.get("macro",[]))}
-"""
-    return _page_wrapper("geo", date_str, content)
+    date = data.get("date", "")
+    content = _world_news(data.get("world_news", []))
+    content += _geopolitical_section(data.get("geopolitical", []))
+    content += _news_section("總經動態", data.get("macro", []))
+    return _page_wrapper("geo", date, content, "地緣・國際")
 
 
-def build_tech_html(data: dict, date_str: str) -> str:
+def build_tech_html(data: dict) -> str:
     """科技・AI"""
+    date = data.get("date", "")
     ai_tag = {"macro": "background:#EBF2FA;color:#185FA5;", "tech": "background:#EAF3DE;color:#3B6D11;"}
-    ai_section = _news_section("AI 産業動態", data.get("ai_industry", []), ai_tag)
-    content = f"""
-{ai_section}
-{_regional_tech_section(data.get("regional_tech", {}))}
-{_fintech_crypto_section(data.get("fintech_crypto",[]))}
-"""
-    return _page_wrapper("tech", date_str, content)
+    content = _news_section("AI 産業動態", data.get("ai_industry", []), ai_tag)
+    content += _regional_tech_section(data.get("regional_tech", {}))
+    content += _fintech_crypto_section(data.get("fintech_crypto", []))
+    return _page_wrapper("tech", date, content, "科技・AI")
 
 
-def build_trends_html(data: dict, date_str: str) -> str:
+def build_trends_html(data: dict) -> str:
     """新創・趨勢"""
-    content = f"""
-{_tech_trends(data.get("tech_trends",[]))}
-{_startup_news(data.get("startup_news",[]))}
-{_smart_money(data.get("smart_money", {}))}
-"""
-    return _page_wrapper("trends", date_str, content)
+    date = data.get("date", "")
+    content = _tech_trends(data.get("tech_trends", []))
+    content += _startup_news(data.get("startup_news", []))
+    content += _smart_money(data.get("smart_money", {}))
+    return _page_wrapper("trends", date, content, "新創・趨勢")
 
 
-def build_misc_html(data: dict, date_str: str) -> str:
+def build_misc_html(data: dict) -> str:
     """財報・冷知識"""
-    content = f"""
-{_us_market_recap(data.get("us_market_recap", {}))}
-{_earnings_preview(data.get("earnings_preview",[]))}
-{_implied_trends(data.get("implied_trends",[]))}
-{_fun_fact(data.get("fun_fact", {}))}
-{_today_events(data.get("today_events",[]))}
-"""
-    return _page_wrapper("misc", date_str, content)
+    date = data.get("date", "")
+    content = _us_market_recap(data.get("us_market_recap", {}))
+    content += _earnings_preview(data.get("earnings_preview", []))
+    content += _implied_trends(data.get("implied_trends", []))
+    content += _fun_fact(data.get("fun_fact", {}))
+    content += _today_events(data.get("today_events", []))
+    return _page_wrapper("misc", date, content, "財報・冷知識")
 
 
-def build_screener_html(data: dict, screener_result: dict, date_str: str) -> str:
+def build_screener_html(data: dict, screener_result: dict = None) -> str:
     """Screener"""
+    date = data.get("date", "")
     sr = screener_result or {}
     content = _screener_top30(sr)
-    return _page_wrapper("screener", date_str, content)
+    if not content:
+        content = '<div style="padding:40px;text-align:center;color:#888;font-size:14px;">今日 Screener 數據尚未產出</div>'
+    return _page_wrapper("screener", date, content, "Screener")
 
 
 def build_all_pages(data: dict, screener_result: dict = None) -> dict:
     """產出所有頁面，回傳 {filename: html_content} dict"""
-    tz = pytz.timezone("Asia/Taipei")
-    date_str = datetime.now(tz).strftime("%Y年%m月%d日 %H:%M TST")
     sr = screener_result or {}
-
     return {
-        "index.html":    build_index_html(data, date_str),
-        "news.html":     build_news_html(data, date_str),
-        "geo.html":      build_geo_html(data, date_str),
-        "tech.html":     build_tech_html(data, date_str),
-        "trends.html":   build_trends_html(data, date_str),
-        "misc.html":     build_misc_html(data, date_str),
-        "screener.html": build_screener_html(data, sr, date_str),
+        "index.html":    build_index_html(data),
+        "news.html":     build_news_html(data),
+        "geo.html":      build_geo_html(data),
+        "tech.html":     build_tech_html(data),
+        "trends.html":   build_trends_html(data),
+        "misc.html":     build_misc_html(data),
+        "screener.html": build_screener_html(data, sr),
     }
 
 
