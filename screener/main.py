@@ -22,18 +22,18 @@ def publish_to_github_pages(df, today: str):
     history_dir = os.path.join(screener_dir, "history")
     os.makedirs(history_dir, exist_ok=True)
 
-    # 1. 儲存今日 JSON（供歷史比較用）
-    records = df[["Rank", "Ticker", "Sector", "RS_Score", "rs_trend", "Contraction_Score",
-                   "Combined_Score", "Price", "vs_200MA_pct",
-                   "Rank_Change", "Rank_Change_Str"]].to_dict(orient="records")
+    # 1. 儲存今日 JSON（全部排名，供歷史比較用）
+    all_records = df[["Rank", "Ticker", "Sector", "RS_Score", "rs_trend", "Contraction_Score",
+                       "Combined_Score", "Price", "vs_200MA_pct",
+                       "Rank_Change", "Rank_Change_Str"]].to_dict(orient="records")
 
     history_path = os.path.join(history_dir, f"{today}.json")
     with open(history_path, "w") as f:
-        json.dump({"date": today, "total": len(df), "data": records}, f)
+        json.dump({"date": today, "total": len(df), "data": all_records}, f)
 
     # 2. 更新 latest.json
     with open(os.path.join(screener_dir, "latest.json"), "w") as f:
-        json.dump({"date": today, "total": len(df), "data": records}, f)
+        json.dump({"date": today, "total": len(df), "data": all_records}, f)
 
     # 3. 產出 index.html
     top30 = df.head(30)

@@ -196,10 +196,10 @@ def calc_rank_change(df: pd.DataFrame, today: str) -> pd.DataFrame:
 
     def calc_change(row):
         ticker = row["Ticker"]
-        curr_rank = row["Rank"]
+        curr_rank = int(row["Rank"])
         if ticker not in prev_ranks:
             return pd.Series([None, "新進"])
-        prev_rank = prev_ranks[ticker]
+        prev_rank = int(prev_ranks[ticker])
         change = prev_rank - curr_rank
         if change > 0:
             return pd.Series([change, f"↑{change}"])
@@ -212,7 +212,7 @@ def calc_rank_change(df: pd.DataFrame, today: str) -> pd.DataFrame:
     return df
 
 
-def fetch_data(tickers: list[str], period: str = "90d") -> dict:
+def fetch_data(tickers: list[str], period: str = "300d") -> dict:
     """批次下載所有 ticker 的日線數據"""
     print(f"  下載 {len(tickers)} 支股票數據...")
     all_tickers = tickers + [BENCHMARK]
