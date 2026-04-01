@@ -10,7 +10,7 @@ from datetime import datetime
 import pytz
 
 
-def send_email(html_content: str) -> None:
+def send_email(html_content: str, screener_result: dict = None) -> None:
     tz  = pytz.timezone("Asia/Taipei")
     now = datetime.now(tz)
     date_str = now.strftime("%m/%d")
@@ -26,6 +26,15 @@ def send_email(html_content: str) -> None:
         "subject": subject,
         "html": html_content,
     }
+
+    # 加入 Excel 附件
+    if screener_result and screener_result.get("excel_b64"):
+        payload["attachments"] = [
+            {
+                "filename": screener_result.get("excel_filename", "screener.xlsx"),
+                "content": screener_result["excel_b64"],
+            }
+        ]
 
     response = requests.post(
         "https://api.resend.com/emails",

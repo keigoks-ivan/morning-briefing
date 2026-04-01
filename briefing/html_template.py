@@ -1567,6 +1567,65 @@ def _today_events(events: list) -> str:
 </div>'''
 
 
+def _screener_top30(screener_result: dict) -> str:
+    if not screener_result or not screener_result.get("top30"):
+        return ""
+
+    top30 = screener_result["top30"]
+    date = screener_result.get("date", "")
+    total = screener_result.get("total_screened", 0)
+
+    rows = ""
+    for item in top30:
+        rs = item.get("RS_Score", 0)
+        con = item.get("Contraction_Score", 0)
+        combined = item.get("Combined_Score", 0)
+        vs_ma = item.get("vs_200MA_pct")
+
+        # RS Score 顏色
+        if rs >= 80:
+            rs_color = "#0F6E56"
+        elif rs >= 60:
+            rs_color = "#BA7517"
+        else:
+            rs_color = "#C0392B"
+
+        vs_ma_str = f"+{vs_ma:.1f}%" if vs_ma and vs_ma > 0 else (f"{vs_ma:.1f}%" if vs_ma else "—")
+        vs_ma_color = "#0F6E56" if vs_ma and vs_ma > 0 else "#C0392B"
+
+        rows += f"""
+        <tr>
+          <td style="text-align:center;padding:6px 8px;font-size:12px;color:#888;">{item.get('Rank','')}</td>
+          <td style="padding:6px 8px;font-size:13px;font-weight:500;color:#1B3A5C;">{item.get('Ticker','')}</td>
+          <td style="text-align:center;padding:6px 8px;font-size:13px;font-weight:500;color:{rs_color};">{rs:.0f}</td>
+          <td style="text-align:center;padding:6px 8px;font-size:13px;color:#534AB7;">{con:.0f}</td>
+          <td style="text-align:center;padding:6px 8px;font-size:13px;font-weight:500;">{combined:.0f}</td>
+          <td style="text-align:center;padding:6px 8px;font-size:13px;">${item.get('Price',0):.2f}</td>
+          <td style="text-align:center;padding:6px 8px;font-size:12px;color:{vs_ma_color};">{vs_ma_str}</td>
+        </tr>"""
+
+    return f"""
+    <div style="margin:20px 0;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div style="width:4px;height:14px;background:#1B3A5C;border-radius:2px;"></div>
+        <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#666;font-weight:500;">RS + CONTRACTION SCREENER</span>
+        <span style="font-size:10px;color:#BBB;margin-left:auto;">{date} · {total} 支篩選</span>
+      </div>
+      <table width="100%" style="border-collapse:collapse;border:0.5px solid #E8E8E8;border-radius:8px;overflow:hidden;">
+        <tr style="background:#1B3A5C;">
+          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">排名</th>
+          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:left;">代號</th>
+          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">RS</th>
+          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">收縮</th>
+          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">綜合</th>
+          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">股價</th>
+          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">vs 200MA</th>
+        </tr>
+        {rows}
+      </table>
+    </div>"""
+
+
 def _footer() -> str:
     return '''
 <div style="font-size:12px;color:#aaa;border-top:0.5px solid #e8e8e8;
@@ -1576,7 +1635,7 @@ def _footer() -> str:
 </div>'''
 
 
-def build_html(data: dict) -> str:
+def build_html(data: dict, screener_result: dict = None) -> str:
     tz  = pytz.timezone("Asia/Taipei")
     now = datetime.now(tz).strftime("%Y年%m月%d日 %H:%M TST")
 
@@ -1612,6 +1671,7 @@ def build_html(data: dict) -> str:
 {_fun_fact(data.get("fun_fact", {}))}
 {_us_market_recap(data.get("us_market_recap", {}))}
 {_today_events(data.get("today_events",[]))}
+{_screener_top30(screener_result or {})}
 {_footer()}
 </body>
 </html>"""

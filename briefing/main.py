@@ -13,6 +13,8 @@ main.py
 
 import os
 import sys
+import json
+import subprocess
 
 # 本機測試時載入 .env
 try:
@@ -43,13 +45,26 @@ def main() -> None:
     dd_count = len(deep_dive_news.get("fixed", [])) + len(deep_dive_news.get("dynamic", [])) if isinstance(deep_dive_news, dict) else len(deep_dive_news)
     print(f"      {len(raw_news)} queries completed, {len(today_earnings)} earnings confirmed, {len(moneydj_news)} MoneyDJ news, {dd_count} deep dive")
 
+    # 1.5 執行 Screener
+    print("\n[Screener] 執行 RS+Contraction Screener...")
+    screener_dir = os.path.join(os.path.dirname(__file__), "..", "screener")
+    subprocess.run([sys.executable, os.path.join(screener_dir, "main.py")], check=False)
+
+    screener_result = {}
+    try:
+        with open("/tmp/screener_result.json") as f:
+            screener_result = json.load(f)
+        print(f"      Screener: {screener_result.get('total_screened',0)} 支，Top 30 完成")
+    except Exception:
+        print("      Screener 結果讀取失敗，跳過")
+
     # 2. AI 處理
     print("\n[2/4] Processing with Claude...")
     data = process_news(raw_news, market_data, today_earnings, moneydj_news, deep_dive_news, move_index_raw=move_index_raw)
 
     # 3. 生成 HTML
     print("\n[3/4] Building HTML...")
-    html = build_html(data)
+    html = build_html(data, screener_result=screener_result)
     print(f"      HTML size: {len(html):,} chars")
 
     # 3.5 存檔 HTML（供 GitHub Pages 發布）
@@ -62,7 +77,7 @@ def main() -> None:
 
     # 4. 發送 Email
     print("\n[4/4] Sending email...")
-    send_email(html)
+    send_email(html, screener_result=screener_result)
 
     print("\n✓ Done.\n")
 
