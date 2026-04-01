@@ -9,10 +9,8 @@ import os
 import warnings
 warnings.filterwarnings('ignore')
 
-# ── Watchlist ─────────────────────────────────────────────────
-# 2026-04-01 清理：移除 50 支已下市/被收購/改名 ticker
-# SQ→XYZ, PARA/WBA/JNPR/PXD/MRO 已被收購或下市
-WATCHLIST = [
+# ── 內建 Watchlist（備用，當 Excel 不存在時使用）────────────────
+_WATCHLIST_FALLBACK = [
     # Technology
     "GOOG","NVDA","GLW","PLTR","TSLA","AVGO","AAPL","VRT","LITE","ANET",
     "MSFT","META","AMD","INTC","ASML","AMAT","LRCX","KLAC","TSM","ARM",
@@ -67,14 +65,10 @@ WATCHLIST = [
     # Materials
     "LIN","APD","ECL","SHW","PPG","NEM","FCX","AA",
 ]
+_WATCHLIST_FALLBACK = list(dict.fromkeys([t for t in _WATCHLIST_FALLBACK if t and len(t) <= 5]))
 
-# 去重
-WATCHLIST = list(dict.fromkeys([t for t in WATCHLIST if t and len(t) <= 5]))
-
-BENCHMARK = "SPY"
-
-# ── 產業分類 ──────────────────────────────────────────────────
-_SECTOR_MAP = {
+# 內建產業分類（備用）
+_SECTOR_FALLBACK = {
     "Technology": [
         "GOOG","NVDA","GLW","PLTR","TSLA","AVGO","AAPL","VRT","LITE","ANET",
         "MSFT","META","AMD","INTC","ASML","AMAT","LRCX","KLAC","TSM","ARM",
@@ -136,11 +130,50 @@ _SECTOR_MAP = {
     ],
 }
 
-TICKER_SECTOR = {}
-for sector, tickers in _SECTOR_MAP.items():
-    for t in tickers:
-        if t not in TICKER_SECTOR:
-            TICKER_SECTOR[t] = sector
+_TICKER_SECTOR_FALLBACK = {}
+for _sector, _tickers in _SECTOR_FALLBACK.items():
+    for _t in _tickers:
+        if _t not in _TICKER_SECTOR_FALLBACK:
+            _TICKER_SECTOR_FALLBACK[_t] = _sector
+
+BENCHMARK = "SPY"
+
+
+# ── Watchlist 載入（Excel 優先，內建備用）─────────────────────
+def load_watchlist():
+    """從 Watchlist_Tickers_CIK.xlsx 讀取 watchlist + sector，找不到時用內建清單"""
+    # 搜尋 Excel 檔案（repo 根目錄或 screener/ 目錄）
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for candidate in [
+        os.path.join(repo_root, "Watchlist_Tickers_CIK.xlsx"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "Watchlist_Tickers_CIK.xlsx"),
+    ]:
+        if os.path.exists(candidate):
+            try:
+                import openpyxl
+                wb = openpyxl.load_workbook(candidate)
+                ws = wb.active
+                tickers = []
+                sector_map = {}
+                for row in list(ws.iter_rows(values_only=True))[3:]:
+                    if not row[0] or row[0] == "Ticker":
+                        continue
+                    ticker = str(row[0]).strip()
+                    sector = str(row[3]).strip() if len(row) > 3 and row[3] else "Unknown"
+                    tickers.append(ticker)
+                    sector_map[ticker] = sector
+                tickers = list(dict.fromkeys([t for t in tickers if t and len(t) <= 5]))
+                print(f"  ✓ Watchlist 從 Excel 讀取：{len(tickers)} 支（{candidate}）")
+                return tickers, sector_map
+            except Exception as e:
+                print(f"  ✗ Excel 讀取失敗: {e}")
+                break
+
+    print(f"  ℹ Excel 不存在，使用內建清單：{len(_WATCHLIST_FALLBACK)} 支")
+    return _WATCHLIST_FALLBACK, _TICKER_SECTOR_FALLBACK
+
+
+WATCHLIST, TICKER_SECTOR = load_watchlist()
 
 
 def calc_rank_change(df: pd.DataFrame, today: str) -> pd.DataFrame:
