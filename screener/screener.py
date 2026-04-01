@@ -88,54 +88,96 @@ def fetch_data(tickers: list[str], period: str = "90d") -> dict:
         return {}
 
 def calc_rs_score(data: dict, tickers: list[str]) -> dict:
-    """計算 RS Score：個股63日漲跌幅 vs SPY 的百分位排名"""
+    """計算 RS Persistence Score：三時間維度加權 + 趨勢加分"""
     closes = data.get("Close", pd.DataFrame())
-    if closes.empty:
+    if closes.empty or BENCHMARK not in closes.columns:
         return {}
 
-    results = {}
-
-    # 計算 SPY 63日漲跌幅
-    if BENCHMARK not in closes.columns:
+    spy = closes[BENCHMARK].dropna()
+    if len(spy) < 63:
         return {}
 
-    spy_closes = closes[BENCHMARK].dropna()
-    if len(spy_closes) < 63:
-        return {}
+    # SPY 各時間段漲跌幅
+    spy_ret = {
+        "1w":  (spy.iloc[-1] - spy.iloc[-5])  / spy.iloc[-5]  * 100 if len(spy) >= 5  else None,
+        "4w":  (spy.iloc[-1] - spy.iloc[-21]) / spy.iloc[-21] * 100 if len(spy) >= 21 else None,
+        "13w": (spy.iloc[-1] - spy.iloc[-63]) / spy.iloc[-63] * 100 if len(spy) >= 63 else None,
+    }
 
-    spy_return_63d = (spy_closes.iloc[-1] - spy_closes.iloc[-63]) / spy_closes.iloc[-63] * 100
+    # 計算所有股票的各時段漲跌幅
+    all_returns = {"1w": {}, "4w": {}, "13w": {}}
 
-    # 計算每支股票的63日漲跌幅
-    returns_63d = {}
     for ticker in tickers:
         if ticker not in closes.columns:
             continue
-        ticker_closes = closes[ticker].dropna()
-        if len(ticker_closes) < 63:
-            continue
-        ret = (ticker_closes.iloc[-1] - ticker_closes.iloc[-63]) / ticker_closes.iloc[-63] * 100
-        returns_63d[ticker] = ret
+        c = closes[ticker].dropna()
 
-    if not returns_63d:
-        return {}
+        if len(c) >= 5:
+            all_returns["1w"][ticker]  = (c.iloc[-1] - c.iloc[-5])  / c.iloc[-5]  * 100
+        if len(c) >= 21:
+            all_returns["4w"][ticker]  = (c.iloc[-1] - c.iloc[-21]) / c.iloc[-21] * 100
+        if len(c) >= 63:
+            all_returns["13w"][ticker] = (c.iloc[-1] - c.iloc[-63]) / c.iloc[-63] * 100
 
     # 計算百分位排名
-    all_returns = list(returns_63d.values())
-    for ticker, ret in returns_63d.items():
-        percentile = sum(1 for r in all_returns if r <= ret) / len(all_returns) * 100
+    def percentile_rank(val, all_vals):
+        vals = list(all_vals.values())
+        return sum(1 for v in vals if v <= val) / len(vals) * 100 if vals else 50
+
+    results = {}
+    for ticker in tickers:
+        rs_scores = {}
+        for period in ["1w", "4w", "13w"]:
+            if ticker in all_returns[period]:
+                rs_scores[period] = round(percentile_rank(
+                    all_returns[period][ticker], all_returns[period]
+                ), 1)
+
+        if "13w" not in rs_scores:
+            continue
+
+        # RS Persistence Score（加權平均）
+        rs_1w  = rs_scores.get("1w",  rs_scores["13w"])
+        rs_4w  = rs_scores.get("4w",  rs_scores["13w"])
+        rs_13w = rs_scores["13w"]
+
+        persistence = rs_1w * 0.2 + rs_4w * 0.3 + rs_13w * 0.5
+
+        # RS 趨勢方向
+        if rs_1w > rs_4w > rs_13w:
+            rs_trend = "加速上升"
+            trend_bonus = 5
+        elif rs_1w >= rs_4w >= rs_13w:
+            rs_trend = "穩定維持"
+            trend_bonus = 2
+        elif rs_1w < rs_4w < rs_13w:
+            rs_trend = "開始衰退"
+            trend_bonus = -5
+        else:
+            rs_trend = "震盪"
+            trend_bonus = 0
+
+        final_rs = min(100, persistence + trend_bonus)
+
         results[ticker] = {
-            "return_63d": round(ret, 2),
-            "rs_score": round(percentile, 1),
-            "vs_spy_63d": round(ret - spy_return_63d, 2),
+            "rs_score": round(final_rs, 1),
+            "rs_1w": rs_1w,
+            "rs_4w": rs_4w,
+            "rs_13w": rs_13w,
+            "rs_trend": rs_trend,
+            "return_63d": round(all_returns["13w"].get(ticker, 0), 2),
+            "vs_spy_63d": round(
+                all_returns["13w"].get(ticker, 0) - (spy_ret["13w"] or 0), 2
+            ),
         }
 
     return results
 
 def calc_contraction_score(data: dict, tickers: list[str]) -> dict:
-    """計算 Contraction Score：ATR收縮 + 價格區間緊縮 + 成交量萎縮"""
-    closes = data.get("Close", pd.DataFrame())
-    highs  = data.get("High",  pd.DataFrame())
-    lows   = data.get("Low",   pd.DataFrame())
+    """計算 VCP Score：局部高低點回撤序列 + ATR 收縮"""
+    closes  = data.get("Close",  pd.DataFrame())
+    highs   = data.get("High",   pd.DataFrame())
+    lows    = data.get("Low",    pd.DataFrame())
     volumes = data.get("Volume", pd.DataFrame())
 
     if closes.empty:
@@ -153,53 +195,136 @@ def calc_contraction_score(data: dict, tickers: list[str]) -> dict:
             l = lows[ticker].dropna()
             v = volumes[ticker].dropna()
 
-            if len(c) < 30:
+            if len(c) < 60:
                 continue
 
-            # 1. ATR 收縮：近10日 ATR vs 近60日 ATR
+            # ── 1. 找局部高低點（近90日）────────────────────────
+            window = min(len(c), 90)
+            c_w = c.iloc[-window:]
+            h_w = h.iloc[-window:]
+            l_w = l.iloc[-window:]
+            v_w = v.iloc[-window:]
+
+            # 用滾動視窗找局部高點（5日視窗）
+            local_highs = []
+            for i in range(5, len(c_w) - 5):
+                if h_w.iloc[i] == h_w.iloc[i-5:i+6].max():
+                    local_highs.append((i, float(h_w.iloc[i])))
+
+            local_lows = []
+            for i in range(5, len(c_w) - 5):
+                if l_w.iloc[i] == l_w.iloc[i-5:i+6].min():
+                    local_lows.append((i, float(l_w.iloc[i])))
+
+            # ── 2. 計算回撤序列 ──────────────────────────────────
+            pullbacks = []
+            for i in range(len(local_highs) - 1):
+                high_idx, high_val = local_highs[i]
+                # 找這個高點之後的最低點
+                subsequent_lows = [(idx, val) for idx, val in local_lows if idx > high_idx]
+                if not subsequent_lows:
+                    continue
+                low_idx, low_val = min(subsequent_lows, key=lambda x: x[1])
+
+                pullback_pct = (high_val - low_val) / high_val * 100
+                avg_vol_pullback = float(v_w.iloc[high_idx:low_idx+1].mean()) if low_idx > high_idx else 0
+
+                pullbacks.append({
+                    "high_idx": high_idx,
+                    "low_idx": low_idx,
+                    "high": high_val,
+                    "low": low_val,
+                    "pullback_pct": pullback_pct,
+                    "avg_vol": avg_vol_pullback,
+                })
+
+            # ── 3. VCP 評分 ──────────────────────────────────────
+            vcp_score = 50  # 基礎分
+
+            # 評分項目1：收縮次數（2-4次最理想）
+            n_pullbacks = len(pullbacks)
+            if 2 <= n_pullbacks <= 4:
+                vcp_score += 15
+            elif n_pullbacks == 1:
+                vcp_score += 5
+            elif n_pullbacks > 4:
+                vcp_score += 8
+
+            # 評分項目2：回撤幅度遞減（後一次 < 前一次）
+            if len(pullbacks) >= 2:
+                decreasing_pullbacks = all(
+                    pullbacks[i+1]["pullback_pct"] < pullbacks[i]["pullback_pct"]
+                    for i in range(len(pullbacks)-1)
+                )
+                if decreasing_pullbacks:
+                    vcp_score += 15
+
+                # 最後一次回撤幅度
+                last_pullback = pullbacks[-1]["pullback_pct"]
+                if last_pullback < 5:
+                    vcp_score += 15  # 非常緊縮
+                elif last_pullback < 8:
+                    vcp_score += 10
+                elif last_pullback < 12:
+                    vcp_score += 5
+
+            # 評分項目3：成交量遞減
+            if len(pullbacks) >= 2:
+                decreasing_vol = all(
+                    pullbacks[i+1]["avg_vol"] < pullbacks[i]["avg_vol"]
+                    for i in range(len(pullbacks)-1)
+                )
+                if decreasing_vol:
+                    vcp_score += 10
+
+            # 評分項目4：目前距離前期高點的距離（越近越好）
+            dist_from_high = None
+            if local_highs:
+                recent_high = max(local_highs, key=lambda x: x[0])[1]
+                current_price = float(c_w.iloc[-1])
+                dist_from_high = (recent_high - current_price) / recent_high * 100
+
+                if dist_from_high < 3:
+                    vcp_score += 15  # 接近突破點
+                elif dist_from_high < 5:
+                    vcp_score += 10
+                elif dist_from_high < 10:
+                    vcp_score += 5
+                else:
+                    vcp_score -= 5
+
+            # 評分項目5：ATR 收縮（輔助確認）
             tr = pd.concat([
                 h - l,
                 (h - c.shift(1)).abs(),
                 (l - c.shift(1)).abs(),
             ], axis=1).max(axis=1)
-
             atr_10 = tr.iloc[-10:].mean()
             atr_60 = tr.iloc[-60:].mean()
+            atr_ratio = atr_10 / atr_60 if atr_60 > 0 else 1
+            if atr_ratio < 0.6:
+                vcp_score += 10
+            elif atr_ratio < 0.8:
+                vcp_score += 5
 
-            if atr_60 == 0:
-                continue
+            vcp_score = max(0, min(100, vcp_score))
 
-            atr_ratio = atr_10 / atr_60  # 越小越收縮
-            atr_score = max(0, min(100, (1 - atr_ratio) * 100 + 50))
-
-            # 2. 價格區間緊縮：近10日高低點範圍 vs 近30日
-            range_10 = (h.iloc[-10:].max() - l.iloc[-10:].min()) / c.iloc[-1] * 100
-            range_30 = (h.iloc[-30:].max() - l.iloc[-30:].min()) / c.iloc[-1] * 100
-
-            if range_30 == 0:
-                continue
-
-            range_ratio = range_10 / range_30  # 越小越收縮
-            range_score = max(0, min(100, (1 - range_ratio) * 100 + 50))
-
-            # 3. 成交量萎縮：近10日均量 vs 近60日均量
-            vol_10 = v.iloc[-10:].mean()
-            vol_60 = v.iloc[-60:].mean()
-
-            if vol_60 == 0:
-                continue
-
-            vol_ratio = vol_10 / vol_60  # 越小越萎縮
-            vol_score = max(0, min(100, (1 - vol_ratio) * 100 + 50))
-
-            # 綜合 Contraction Score（ATR 50% + 區間 30% + 成交量 20%）
-            contraction_score = atr_score * 0.5 + range_score * 0.3 + vol_score * 0.2
+            # 收縮次數和最後回撤幅度
+            last_pullback_pct = pullbacks[-1]["pullback_pct"] if pullbacks else None
+            dist_from_high_pct = dist_from_high
 
             results[ticker] = {
-                "contraction_score": round(contraction_score, 1),
+                "contraction_score": round(vcp_score, 1),
+                "vcp_pullback_count": n_pullbacks,
+                "last_pullback_pct": round(last_pullback_pct, 1) if last_pullback_pct else None,
+                "dist_from_high_pct": round(dist_from_high_pct, 1) if dist_from_high_pct else None,
                 "atr_contraction": round((1 - atr_ratio) * 100, 1),
-                "price_range_pct": round(range_10, 2),
-                "volume_ratio": round(vol_10 / vol_60, 2),
+                "price_range_pct": round(
+                    (h_w.iloc[-10:].max() - l_w.iloc[-10:].min()) / float(c_w.iloc[-1]) * 100, 2
+                ),
+                "volume_ratio": round(
+                    float(v.iloc[-10:].mean()) / float(v.iloc[-60:].mean()), 2
+                ) if float(v.iloc[-60:].mean()) > 0 else 1.0,
             }
 
         except Exception:
@@ -275,15 +400,22 @@ def run_screener() -> pd.DataFrame:
         rows.append({
             "Ticker": ticker,
             "RS_Score": rs["rs_score"],
+            "rs_trend": rs.get("rs_trend", ""),
+            "rs_1w": rs.get("rs_1w"),
+            "rs_4w": rs.get("rs_4w"),
+            "rs_13w": rs.get("rs_13w"),
             "Contraction_Score": con["contraction_score"],
+            "vcp_pullback_count": con.get("vcp_pullback_count"),
+            "last_pullback_pct": con.get("last_pullback_pct"),
+            "dist_from_high_pct": con.get("dist_from_high_pct"),
             "Combined_Score": round(combined, 1),
             "Price": price,
             "Return_63d": rs["return_63d"],
             "vs_SPY_63d": rs["vs_spy_63d"],
             "vs_200MA_pct": vs_200ma,
             "ATR_Contraction_pct": con["atr_contraction"],
-            "Price_Range_10d_pct": con["price_range_pct"],
-            "Volume_Ratio_10d_60d": con["volume_ratio"],
+            "Price_Range_10d_pct": con.get("price_range_pct"),
+            "Volume_Ratio_10d_60d": con.get("volume_ratio"),
         })
 
     df = pd.DataFrame(rows)
