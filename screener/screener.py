@@ -318,7 +318,13 @@ def calc_rs_score(data: dict, tickers: list[str]) -> dict:
     return results
 
 def calc_contraction_score(data: dict, tickers: list[str]) -> dict:
-    """計算 VCP Score：局部高低點回撤序列 + ATR 收縮"""
+    """
+    升級版 VCP 演算法，修復四個問題：
+    1. 假回撤過濾（回撤 < 3% 不算、高點間距 < 10日不算）
+    2. 底部抬高檢查（每次回撤低點要比上次高）
+    3. 趨勢過濾（股價 > 150MA > 200MA）
+    4. 逐次回撤的量能比較（不是整體均量）
+    """
     closes  = data.get("Close",  pd.DataFrame())
     highs   = data.get("High",   pd.DataFrame())
     lows    = data.get("Low",    pd.DataFrame())
@@ -339,39 +345,59 @@ def calc_contraction_score(data: dict, tickers: list[str]) -> dict:
             l = lows[ticker].dropna()
             v = volumes[ticker].dropna()
 
-            if len(c) < 60:
+            if len(c) < 150:
                 continue
 
-            # ── 1. 找局部高低點（近90日）────────────────────────
+            # ── 趨勢過濾：股價 > 150MA > 200MA ──────────────
+            ma150 = c.iloc[-150:].mean()
+            ma200 = c.iloc[-200:].mean() if len(c) >= 200 else c.mean()
+            current_price = float(c.iloc[-1])
+
+            trend_ok = current_price > ma150 > ma200
+            trend_score = 20 if trend_ok else 0
+
+            # ── 找局部高點（近90日，11日視窗）────────────────
             window = min(len(c), 90)
             c_w = c.iloc[-window:]
             h_w = h.iloc[-window:]
             l_w = l.iloc[-window:]
             v_w = v.iloc[-window:]
 
-            # 用滾動視窗找局部高點（5日視窗）
             local_highs = []
-            for i in range(5, len(c_w) - 5):
-                if h_w.iloc[i] == h_w.iloc[i-5:i+6].max():
+            for i in range(10, len(c_w) - 5):
+                if float(h_w.iloc[i]) == float(h_w.iloc[i-10:i+6].max()):
                     local_highs.append((i, float(h_w.iloc[i])))
 
-            local_lows = []
-            for i in range(5, len(c_w) - 5):
-                if l_w.iloc[i] == l_w.iloc[i-5:i+6].min():
-                    local_lows.append((i, float(l_w.iloc[i])))
+            # 合併太近的高點（間距 < 10日只保留較高的）
+            filtered_highs = []
+            for idx, val in local_highs:
+                if filtered_highs and idx - filtered_highs[-1][0] < 10:
+                    if val > filtered_highs[-1][1]:
+                        filtered_highs[-1] = (idx, val)
+                else:
+                    filtered_highs.append((idx, val))
+            local_highs = filtered_highs
 
-            # ── 2. 計算回撤序列 ──────────────────────────────────
+            # ── 建立回撤序列（兩高點之間找最低點）────────────
             pullbacks = []
             for i in range(len(local_highs) - 1):
                 high_idx, high_val = local_highs[i]
-                # 找這個高點之後的最低點
-                subsequent_lows = [(idx, val) for idx, val in local_lows if idx > high_idx]
-                if not subsequent_lows:
+                next_high_idx = local_highs[i+1][0]
+
+                segment_lows = l_w.iloc[high_idx:next_high_idx]
+                if segment_lows.empty:
                     continue
-                low_idx, low_val = min(subsequent_lows, key=lambda x: x[1])
+
+                low_val = float(segment_lows.min())
+                low_idx = high_idx + int(segment_lows.values.argmin())
 
                 pullback_pct = (high_val - low_val) / high_val * 100
-                avg_vol_pullback = float(v_w.iloc[high_idx:low_idx+1].mean()) if low_idx > high_idx else 0
+
+                # 回撤 < 3% 不算有效收縮
+                if pullback_pct < 3:
+                    continue
+
+                avg_vol = float(v_w.iloc[high_idx:low_idx+1].mean()) if low_idx > high_idx else float(v_w.iloc[high_idx])
 
                 pullbacks.append({
                     "high_idx": high_idx,
@@ -379,57 +405,68 @@ def calc_contraction_score(data: dict, tickers: list[str]) -> dict:
                     "high": high_val,
                     "low": low_val,
                     "pullback_pct": pullback_pct,
-                    "avg_vol": avg_vol_pullback,
+                    "avg_vol": avg_vol,
                 })
 
-            # ── 3. VCP 評分 ──────────────────────────────────────
-            vcp_score = 50  # 基礎分
+            # ── VCP 評分 ──────────────────────────────────────
+            vcp_score = trend_score
 
-            # 評分項目1：收縮次數（2-4次最理想）
             n_pullbacks = len(pullbacks)
-            if 2 <= n_pullbacks <= 4:
-                vcp_score += 15
-            elif n_pullbacks == 1:
-                vcp_score += 5
-            elif n_pullbacks > 4:
-                vcp_score += 8
 
-            # 評分項目2：回撤幅度遞減（後一次 < 前一次）
-            if len(pullbacks) >= 2:
+            # 評分1：有效收縮次數（2-4次最理想）
+            if 2 <= n_pullbacks <= 4:
+                vcp_score += 20
+            elif n_pullbacks == 1:
+                vcp_score += 8
+            elif n_pullbacks > 4:
+                vcp_score += 10
+
+            rising_lows = None
+            if n_pullbacks >= 2:
+                # 評分2：回撤幅度遞減
+                pullback_pcts = [p["pullback_pct"] for p in pullbacks]
                 decreasing_pullbacks = all(
-                    pullbacks[i+1]["pullback_pct"] < pullbacks[i]["pullback_pct"]
-                    for i in range(len(pullbacks)-1)
+                    pullback_pcts[i+1] < pullback_pcts[i]
+                    for i in range(len(pullback_pcts)-1)
                 )
                 if decreasing_pullbacks:
                     vcp_score += 15
 
-                # 最後一次回撤幅度
-                last_pullback = pullbacks[-1]["pullback_pct"]
-                if last_pullback < 5:
-                    vcp_score += 15  # 非常緊縮
-                elif last_pullback < 8:
-                    vcp_score += 10
-                elif last_pullback < 12:
-                    vcp_score += 5
+                # 評分2b：底部抬高檢查
+                lows_list = [p["low"] for p in pullbacks]
+                rising_lows = all(
+                    lows_list[i+1] > lows_list[i]
+                    for i in range(len(lows_list)-1)
+                )
+                if rising_lows:
+                    vcp_score += 15
 
-            # 評分項目3：成交量遞減
-            if len(pullbacks) >= 2:
+                # 評分2c：逐次回撤量能遞減
+                vols = [p["avg_vol"] for p in pullbacks]
                 decreasing_vol = all(
-                    pullbacks[i+1]["avg_vol"] < pullbacks[i]["avg_vol"]
-                    for i in range(len(pullbacks)-1)
+                    vols[i+1] < vols[i]
+                    for i in range(len(vols)-1)
                 )
                 if decreasing_vol:
                     vcp_score += 10
 
-            # 評分項目4：目前距離前期高點的距離（越近越好）
+            # 評分3：最後一次回撤幅度
+            if pullbacks:
+                last_pb = pullbacks[-1]["pullback_pct"]
+                if last_pb < 4:
+                    vcp_score += 15
+                elif last_pb < 6:
+                    vcp_score += 10
+                elif last_pb < 10:
+                    vcp_score += 5
+
+            # 評分4：距前期高點距離
             dist_from_high = None
             if local_highs:
                 recent_high = max(local_highs, key=lambda x: x[0])[1]
-                current_price = float(c_w.iloc[-1])
                 dist_from_high = (recent_high - current_price) / recent_high * 100
-
                 if dist_from_high < 3:
-                    vcp_score += 15  # 接近突破點
+                    vcp_score += 15
                 elif dist_from_high < 5:
                     vcp_score += 10
                 elif dist_from_high < 10:
@@ -437,7 +474,7 @@ def calc_contraction_score(data: dict, tickers: list[str]) -> dict:
                 else:
                     vcp_score -= 5
 
-            # 評分項目5：ATR 收縮（輔助確認）
+            # ATR 收縮輔助確認
             tr = pd.concat([
                 h - l,
                 (h - c.shift(1)).abs(),
@@ -446,25 +483,23 @@ def calc_contraction_score(data: dict, tickers: list[str]) -> dict:
             atr_10 = tr.iloc[-10:].mean()
             atr_60 = tr.iloc[-60:].mean()
             atr_ratio = atr_10 / atr_60 if atr_60 > 0 else 1
-            if atr_ratio < 0.6:
+            if atr_ratio < 0.5:
                 vcp_score += 10
-            elif atr_ratio < 0.8:
+            elif atr_ratio < 0.7:
                 vcp_score += 5
 
             vcp_score = max(0, min(100, vcp_score))
 
-            # 收縮次數和最後回撤幅度
-            last_pullback_pct = pullbacks[-1]["pullback_pct"] if pullbacks else None
-            dist_from_high_pct = dist_from_high
-
             results[ticker] = {
                 "contraction_score": round(vcp_score, 1),
                 "vcp_pullback_count": n_pullbacks,
-                "last_pullback_pct": round(last_pullback_pct, 1) if last_pullback_pct else None,
-                "dist_from_high_pct": round(dist_from_high_pct, 1) if dist_from_high_pct else None,
+                "last_pullback_pct": round(pullbacks[-1]["pullback_pct"], 1) if pullbacks else None,
+                "dist_from_high_pct": round(dist_from_high, 1) if dist_from_high is not None else None,
+                "rising_lows": rising_lows,
+                "trend_ok": trend_ok,
                 "atr_contraction": round((1 - atr_ratio) * 100, 1),
                 "price_range_pct": round(
-                    (h_w.iloc[-10:].max() - l_w.iloc[-10:].min()) / float(c_w.iloc[-1]) * 100, 2
+                    (h_w.iloc[-10:].max() - l_w.iloc[-10:].min()) / current_price * 100, 2
                 ),
                 "volume_ratio": round(
                     float(v.iloc[-10:].mean()) / float(v.iloc[-60:].mean()), 2
