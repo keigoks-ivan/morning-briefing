@@ -1756,12 +1756,12 @@ def _footer() -> str:
 
 _TAB_PAGES = [
     ("index",    "市場數據",    "index.html"),
+    ("screener", "Screener",    "screener.html"),
     ("news",     "要聞・深度",  "news.html"),
     ("geo",      "地緣・國際",  "geo.html"),
     ("tech",     "科技・AI",    "tech.html"),
     ("trends",   "新創・趨勢",  "trends.html"),
     ("misc",     "財報・冷知識", "misc.html"),
-    ("screener", "Screener",    "screener.html"),
 ]
 
 
