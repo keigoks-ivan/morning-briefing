@@ -1755,13 +1755,14 @@ def _footer() -> str:
 
 
 _TAB_PAGES = [
-    ("index",    "市場數據",    "index.html"),
-    ("screener", "Screener",    "screener.html"),
-    ("news",     "要聞・深度",  "news.html"),
-    ("geo",      "地緣・國際",  "geo.html"),
-    ("tech",     "科技・AI",    "tech.html"),
-    ("trends",   "新創・趨勢",  "trends.html"),
-    ("misc",     "財報・冷知識", "misc.html"),
+    ("index",        "市場數據",    "index.html"),
+    ("screener",     "Screener",    "screener.html"),
+    ("tw_screener",  "台股",        "tw_screener.html"),
+    ("news",         "要聞・深度",  "news.html"),
+    ("geo",          "地緣・國際",  "geo.html"),
+    ("tech",         "科技・AI",    "tech.html"),
+    ("trends",       "新創・趨勢",  "trends.html"),
+    ("misc",         "財報・冷知識", "misc.html"),
 ]
 
 
@@ -2014,17 +2015,108 @@ def build_screener_html(data: dict, screener_result: dict = None) -> str:
     return _page_wrapper("screener", date, content, "Screener")
 
 
+def _tw_screener_top30(screener_result: dict) -> str:
+    """台股 Screener Top 30 表格"""
+    tw_top30 = screener_result.get("tw_top30", [])
+    if not tw_top30:
+        return '<div style="padding:40px;text-align:center;color:#888;font-size:14px;">今日台股 Screener 數據尚未產出</div>'
+
+    tw_total = screener_result.get("tw_total", 0)
+    date = screener_result.get("date", "")
+
+    # 精選
+    tw_picks = screener_result.get("tw_picks", {})
+    picks_html = _screener_picks(tw_picks) if tw_picks else ""
+
+    rows = ""
+    for item in tw_top30:
+        rs = item.get("RS_Score", 0)
+        con = item.get("Contraction_Score", 0)
+        combined = item.get("Combined_Score", 0)
+        vs_ma = item.get("vs_200MA_pct")
+        etf = item.get("ETF", "")
+        name = item.get("Name", "")
+
+        rs_color = "#0F6E56" if rs >= 80 else "#BA7517" if rs >= 60 else "#C0392B"
+        vs_ma_str = f"+{vs_ma:.1f}%" if vs_ma and vs_ma > 0 else (f"{vs_ma:.1f}%" if vs_ma else "—")
+        vs_ma_color = "#0F6E56" if vs_ma and vs_ma > 0 else "#C0392B"
+
+        rank_str = item.get("Rank_Change_Str", "—")
+        if isinstance(rank_str, str) and rank_str.startswith("↑"):
+            rank_change_html = f'<span style="color:#0F6E56;font-size:11px;">{rank_str}</span>'
+        elif isinstance(rank_str, str) and rank_str.startswith("↓"):
+            rank_change_html = f'<span style="color:#C0392B;font-size:11px;">{rank_str}</span>'
+        elif rank_str == "新進":
+            rank_change_html = '<span style="background:#EBF2FA;color:#185FA5;font-size:9px;padding:1px 3px;border-radius:2px;">新進</span>'
+        else:
+            rank_change_html = '<span style="color:#BBB;">—</span>'
+
+        # ETF 標籤顏色
+        etf_color = {"0050": "#C0392B", "0051": "#185FA5", "富櫃50": "#0F6E56"}.get(etf, "#888")
+
+        rows += f"""
+        <tr>
+          <td style="text-align:center;padding:6px 8px;font-size:12px;color:#888;">{item.get('Rank','')}</td>
+          <td style="text-align:center;padding:6px 4px;">{rank_change_html}</td>
+          <td style="padding:6px 8px;font-size:13px;font-weight:500;color:#1B3A5C;">{name}<br><span style="font-size:10px;color:#AAA;font-weight:400;">{item.get('Ticker','')}</span></td>
+          <td style="text-align:center;padding:6px 4px;"><span style="font-size:9px;color:{etf_color};border:0.5px solid {etf_color};padding:1px 3px;border-radius:2px;">{etf}</span></td>
+          <td style="text-align:center;padding:6px 8px;font-size:13px;font-weight:500;color:{rs_color};">{rs:.0f}</td>
+          <td style="text-align:center;padding:6px 8px;font-size:13px;color:#534AB7;">{con:.0f}</td>
+          <td style="text-align:center;padding:6px 8px;font-size:13px;font-weight:500;">{combined:.0f}</td>
+          <td style="text-align:center;padding:6px 8px;font-size:13px;">NT${item.get('Price',0):,.1f}</td>
+          <td style="text-align:center;padding:6px 8px;font-size:12px;color:{vs_ma_color};">{vs_ma_str}</td>
+        </tr>"""
+
+    return f"""
+    <div style="margin:20px 0;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div style="width:4px;height:14px;background:#C0392B;border-radius:2px;"></div>
+        <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#666;font-weight:500;">台股 RS + VCP SCREENER</span>
+        <span style="font-size:10px;color:#BBB;margin-left:auto;">{date} · {tw_total} 支篩選 · Pool: 0050+0051+富櫃50</span>
+      </div>
+      {picks_html}
+      <table width="100%" style="border-collapse:collapse;border:0.5px solid #E8E8E8;border-radius:8px;overflow:hidden;">
+        <tr style="background:#C0392B;">
+          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">排名</th>
+          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">變化</th>
+          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:left;">名稱</th>
+          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">ETF</th>
+          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">RS</th>
+          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">VCP</th>
+          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">綜合</th>
+          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">股價</th>
+          <th style="padding:8px;font-size:10px;color:#fff;font-weight:500;text-align:center;">vs 200MA</th>
+        </tr>
+        {rows}
+      </table>
+      <div style="font-size:10px;color:#BBB;margin-top:6px;">
+        <span style="color:#C0392B;">■</span> 0050 &nbsp;
+        <span style="color:#185FA5;">■</span> 0051 &nbsp;
+        <span style="color:#0F6E56;">■</span> 富櫃50
+      </div>
+    </div>"""
+
+
+def build_tw_screener_html(data: dict, screener_result: dict = None) -> str:
+    """台股 Screener 頁面"""
+    date = data.get("date", "")
+    sr = screener_result or {}
+    content = _tw_screener_top30(sr)
+    return _page_wrapper("tw_screener", date, content, "台股 Screener")
+
+
 def build_all_pages(data: dict, screener_result: dict = None) -> dict:
     """產出所有頁面，回傳 {filename: html_content} dict"""
     sr = screener_result or {}
     return {
-        "index.html":    build_index_html(data),
-        "news.html":     build_news_html(data),
-        "geo.html":      build_geo_html(data),
-        "tech.html":     build_tech_html(data),
-        "trends.html":   build_trends_html(data),
-        "misc.html":     build_misc_html(data),
-        "screener.html": build_screener_html(data, sr),
+        "index.html":        build_index_html(data),
+        "news.html":         build_news_html(data),
+        "geo.html":          build_geo_html(data),
+        "tech.html":         build_tech_html(data),
+        "trends.html":       build_trends_html(data),
+        "misc.html":         build_misc_html(data),
+        "screener.html":     build_screener_html(data, sr),
+        "tw_screener.html":  build_tw_screener_html(data, sr),
     }
 
 

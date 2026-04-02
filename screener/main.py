@@ -9,6 +9,7 @@ import pytz
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from screener.screener import run_screener, pick_top_candidates, TICKER_SECTOR, run_sector_screener, run_global_screener
+from screener.tw_screener import run_tw_screener
 from screener.excel_exporter import export_to_excel
 
 
@@ -153,6 +154,12 @@ def main():
     global_ranking = run_global_screener()
     print(f"  ✓ Global: {len(global_ranking)} 個")
 
+    # 台股 Screener
+    print("\n[TW Screener] 執行台股 RS + VCP 排名...")
+    tw_df, tw_picks = run_tw_screener()
+    tw_top30 = tw_df.head(30).to_dict(orient="records") if not tw_df.empty else []
+    print(f"  ✓ TW: {len(tw_df)} 支")
+
     # 輸出 Excel（含 Sector & Global sheets）
     output_path = f"/tmp/RS_Screener_{today}.xlsx"
     export_to_excel(df, output_path, sector_ranking=sector_ranking, global_ranking=global_ranking)
@@ -171,6 +178,9 @@ def main():
         "top_picks": picks,
         "sector_ranking": sector_ranking,
         "global_ranking": global_ranking,
+        "tw_top30": tw_top30,
+        "tw_picks": tw_picks,
+        "tw_total": len(tw_df),
         "excel_b64": excel_b64,
         "excel_filename": f"RS_Screener_{today}.xlsx",
     }
