@@ -758,6 +758,164 @@ def run_screener() -> pd.DataFrame:
     print(f"  ✓ 完成：{len(df)} 支有效標的")
     return df
 
+
+# ── 美股類股 RS 排名 ──────────────────────────────────────────
+US_SECTORS = {
+    "VTV":  "價值因子",
+    "VUG":  "成長因子",
+    "MTUM": "動能因子",
+    "IWM":  "小型股",
+    "RSP":  "等權重",
+    "XLE":  "能源",
+    "XLF":  "金融",
+    "XLK":  "科技",
+    "XLV":  "醫療",
+    "XLI":  "工業",
+    "XLY":  "非必需消費",
+    "XLP":  "必需消費",
+    "XLU":  "公用事業",
+    "XLB":  "材料",
+    "XLRE": "房地產",
+    "XLC":  "通訊",
+    "XBI":  "生技",
+}
+US_SECTOR_BENCHMARK = "SPY"
+
+# ── 全球指數 RS 排名 ──────────────────────────────────────────
+GLOBAL_INDICES = {
+    "^GSPC":      "美國",
+    "^GSPTSE":    "加拿大",
+    "^FTSE":      "英國",
+    "^GDAXI":     "德國",
+    "^FCHI":      "法國",
+    "^SSMI":      "瑞士",
+    "^IBEX":      "西班牙",
+    "FTSEMIB.MI": "義大利",
+    "^BVSP":      "巴西",
+    "^MXX":       "墨西哥",
+    "^HSI":       "香港",
+    "000001.SS":  "中國",
+    "^TWII":      "台灣",
+    "^KS11":      "韓國",
+    "^N225":      "日本",
+    "^STI":       "新加坡",
+    "^KLSE":      "馬來西亞",
+    "^BSESN":     "印度",
+    "^AXJO":      "澳洲",
+    "^NZ50":      "紐西蘭",
+    "^TA125.TA":  "以色列",
+    "UAE":        "杜拜",
+    "^JKSE":      "印尼",
+    "PSEI.PS":    "菲律賓",
+    "^SET.BK":    "泰國",
+    "VNM":        "越南",
+    "EPOL":       "波蘭",
+}
+GLOBAL_BENCHMARK = "VT"
+
+
+def calc_rs_ranking(tickers_dict: dict, benchmark_ticker: str, period: str = "300d") -> list[dict]:
+    """
+    計算一組 ticker 相對於 benchmark 的 RS Score 並排名
+    tickers_dict: {ticker: 顯示名稱}
+    回傳：按 RS Score 排序的 list
+    """
+    all_tickers = list(tickers_dict.keys()) + [benchmark_ticker]
+
+    try:
+        data = yf.download(
+            all_tickers, period=period, interval="1d",
+            progress=False, auto_adjust=True, threads=True
+        )
+        closes = data["Close"] if "Close" in data else data
+    except Exception as e:
+        print(f"  ✗ 數據下載失敗: {e}")
+        return []
+
+    if benchmark_ticker not in closes.columns:
+        return []
+
+    bm = closes[benchmark_ticker].dropna()
+    bm_ret = {}
+    for days, key in [(5, "1w"), (21, "4w"), (63, "13w")]:
+        if len(bm) >= days:
+            bm_ret[key] = (bm.iloc[-1] - bm.iloc[-days]) / bm.iloc[-days] * 100
+
+    if "13w" not in bm_ret:
+        return []
+
+    # 計算每個 ticker 的漲跌幅
+    all_returns = {"1w": {}, "4w": {}, "13w": {}}
+    for ticker in tickers_dict.keys():
+        if ticker not in closes.columns:
+            continue
+        c = closes[ticker].dropna()
+        for days, key in [(5, "1w"), (21, "4w"), (63, "13w")]:
+            if len(c) >= days:
+                all_returns[key][ticker] = (c.iloc[-1] - c.iloc[-days]) / c.iloc[-days] * 100
+
+    # 百分位排名
+    def pct_rank(val, all_vals):
+        vals = list(all_vals.values())
+        return round(sum(1 for v in vals if v <= val) / len(vals) * 100, 1) if vals else 50
+
+    results = []
+    for ticker, name in tickers_dict.items():
+        if ticker not in all_returns.get("13w", {}):
+            continue
+
+        rs_1w = pct_rank(all_returns["1w"].get(ticker, 0), all_returns["1w"]) if all_returns["1w"] else 50
+        rs_4w = pct_rank(all_returns["4w"].get(ticker, 0), all_returns["4w"]) if all_returns["4w"] else 50
+        rs_13w = pct_rank(all_returns["13w"][ticker], all_returns["13w"])
+
+        persistence = rs_1w * 0.2 + rs_4w * 0.3 + rs_13w * 0.5
+
+        if rs_1w > rs_4w > rs_13w:
+            trend = "加速上升"; bonus = 5
+        elif rs_1w >= rs_4w >= rs_13w:
+            trend = "穩定維持"; bonus = 2
+        elif rs_1w < rs_4w < rs_13w:
+            trend = "開始衰退"; bonus = -5
+        else:
+            trend = "震盪"; bonus = 0
+
+        final_rs = min(100, persistence + bonus)
+
+        c = closes[ticker].dropna()
+        price = round(float(c.iloc[-1]), 2) if len(c) > 0 else 0
+        ret_13w = round(float(all_returns["13w"][ticker]), 2)
+        vs_bm = round(ret_13w - float(bm_ret["13w"]), 2)
+
+        results.append({
+            "ticker": ticker,
+            "name": name,
+            "rs_score": round(final_rs, 1),
+            "rs_1w": rs_1w,
+            "rs_4w": rs_4w,
+            "rs_13w": rs_13w,
+            "rs_trend": trend,
+            "return_13w": ret_13w,
+            "vs_benchmark": vs_bm,
+            "price": price,
+        })
+
+    results.sort(key=lambda x: x["rs_score"], reverse=True)
+    for i, r in enumerate(results):
+        r["rank"] = i + 1
+
+    return results
+
+
+def run_sector_screener() -> list[dict]:
+    print("  [Sector] 計算美股類股 RS 排名...")
+    return calc_rs_ranking(US_SECTORS, US_SECTOR_BENCHMARK)
+
+
+def run_global_screener() -> list[dict]:
+    print("  [Global] 計算全球指數 RS 排名...")
+    return calc_rs_ranking(GLOBAL_INDICES, GLOBAL_BENCHMARK)
+
+
 if __name__ == "__main__":
     df = run_screener()
     if not df.empty:

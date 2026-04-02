@@ -1872,6 +1872,136 @@ def build_misc_html(data: dict) -> str:
     return _page_wrapper("misc", date, content, "財報・冷知識")
 
 
+def _sector_ranking(sector_ranking: list) -> str:
+    """美股類股 RS 排名表格"""
+    if not sector_ranking:
+        return ""
+
+    rows = ""
+    for item in sector_ranking:
+        rs = item.get("rs_score", 0)
+        rs_color = "#0F6E56" if rs >= 80 else "#BA7517" if rs >= 60 else "#C0392B"
+
+        trend = item.get("rs_trend", "")
+        trend_color = {"加速上升": "#0F6E56", "穩定維持": "#185FA5", "開始衰退": "#C0392B", "震盪": "#888888"}.get(trend, "#888")
+
+        vs_bm = item.get("vs_benchmark", 0)
+        vs_str = f"+{vs_bm:.1f}%" if vs_bm > 0 else f"{vs_bm:.1f}%"
+        vs_color = "#0F6E56" if vs_bm > 0 else "#C0392B"
+
+        rows += f"""
+        <tr>
+          <td style="text-align:center;padding:5px 6px;font-size:12px;color:#888;">{item.get('rank','')}</td>
+          <td style="padding:5px 8px;font-size:13px;font-weight:500;color:#1B3A5C;">{item.get('name','')}</td>
+          <td style="text-align:center;padding:5px 6px;font-size:12px;color:#999;">{item.get('ticker','')}</td>
+          <td style="text-align:center;padding:5px 6px;font-size:13px;font-weight:500;color:{rs_color};">{rs:.0f}</td>
+          <td style="text-align:center;padding:5px 6px;font-size:12px;color:{trend_color};">{trend}</td>
+          <td style="text-align:center;padding:5px 6px;font-size:12px;">{item.get('rs_1w',0):.0f}</td>
+          <td style="text-align:center;padding:5px 6px;font-size:12px;">{item.get('rs_4w',0):.0f}</td>
+          <td style="text-align:center;padding:5px 6px;font-size:12px;">{item.get('rs_13w',0):.0f}</td>
+          <td style="text-align:center;padding:5px 6px;font-size:12px;color:{vs_color};">{vs_str}</td>
+        </tr>"""
+
+    return f"""
+    <div style="margin:24px 0;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div style="width:4px;height:14px;background:#7F77DD;border-radius:2px;"></div>
+        <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#666;font-weight:500;">美股類股 RS 排名</span>
+        <span style="font-size:10px;color:#BBB;margin-left:auto;">Benchmark: SPY</span>
+      </div>
+      <table width="100%" style="border-collapse:collapse;border:0.5px solid #E8E8E8;border-radius:8px;overflow:hidden;">
+        <tr style="background:#7F77DD;">
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">排名</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:left;">名稱</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">Ticker</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">RS</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">Trend</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">1w</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">4w</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">13w</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">vs SPY</th>
+        </tr>
+        {rows}
+      </table>
+    </div>"""
+
+
+def _global_ranking(global_ranking: list) -> str:
+    """全球指數 RS 排名表格，按地區分組"""
+    if not global_ranking:
+        return ""
+
+    REGIONS = {
+        "美洲": ["美國", "加拿大", "巴西", "墨西哥"],
+        "歐洲": ["英國", "德國", "法國", "瑞士", "西班牙", "義大利", "波蘭", "以色列"],
+        "亞太": ["日本", "中國", "香港", "台灣", "韓國", "印度", "澳洲", "紐西蘭",
+                 "新加坡", "馬來西亞", "印尼", "菲律賓", "泰國", "越南"],
+        "中東": ["杜拜"],
+    }
+
+    # 建立 name→item 快速查找
+    by_name = {item["name"]: item for item in global_ranking}
+
+    rows = ""
+    for region, markets in REGIONS.items():
+        # 地區標籤行
+        rows += f"""
+        <tr>
+          <td colspan="9" style="padding:6px 8px;font-size:10px;font-weight:600;color:#666;background:#F5F5FA;letter-spacing:1px;">{region}</td>
+        </tr>"""
+
+        for market_name in markets:
+            item = by_name.get(market_name)
+            if not item:
+                continue
+
+            rs = item.get("rs_score", 0)
+            rs_color = "#0F6E56" if rs >= 80 else "#BA7517" if rs >= 60 else "#C0392B"
+
+            trend = item.get("rs_trend", "")
+            trend_color = {"加速上升": "#0F6E56", "穩定維持": "#185FA5", "開始衰退": "#C0392B", "震盪": "#888888"}.get(trend, "#888")
+
+            vs_bm = item.get("vs_benchmark", 0)
+            vs_str = f"+{vs_bm:.1f}%" if vs_bm > 0 else f"{vs_bm:.1f}%"
+            vs_color = "#0F6E56" if vs_bm > 0 else "#C0392B"
+
+            rows += f"""
+        <tr>
+          <td style="text-align:center;padding:5px 6px;font-size:12px;color:#888;">{item.get('rank','')}</td>
+          <td style="padding:5px 8px;font-size:13px;font-weight:500;color:#1B3A5C;">{market_name}<br><span style="font-size:10px;color:#AAA;font-weight:400;">{item.get('ticker','')}</span></td>
+          <td style="text-align:center;padding:5px 6px;font-size:13px;font-weight:500;color:{rs_color};">{rs:.0f}</td>
+          <td style="text-align:center;padding:5px 6px;font-size:12px;color:{trend_color};">{trend}</td>
+          <td style="text-align:center;padding:5px 6px;font-size:12px;">{item.get('rs_1w',0):.0f}</td>
+          <td style="text-align:center;padding:5px 6px;font-size:12px;">{item.get('rs_4w',0):.0f}</td>
+          <td style="text-align:center;padding:5px 6px;font-size:12px;">{item.get('rs_13w',0):.0f}</td>
+          <td style="text-align:center;padding:5px 6px;font-size:12px;">{item.get('return_13w',0):.1f}%</td>
+          <td style="text-align:center;padding:5px 6px;font-size:12px;color:{vs_color};">{vs_str}</td>
+        </tr>"""
+
+    return f"""
+    <div style="margin:24px 0;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div style="width:4px;height:14px;background:#085041;border-radius:2px;"></div>
+        <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#666;font-weight:500;">全球指數 RS 排名</span>
+        <span style="font-size:10px;color:#BBB;margin-left:auto;">Benchmark: VT</span>
+      </div>
+      <table width="100%" style="border-collapse:collapse;border:0.5px solid #E8E8E8;border-radius:8px;overflow:hidden;">
+        <tr style="background:#085041;">
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">排名</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:left;">市場</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">RS</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">Trend</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">1w</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">4w</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">13w</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">13w Ret</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">vs VT</th>
+        </tr>
+        {rows}
+      </table>
+    </div>"""
+
+
 def build_screener_html(data: dict, screener_result: dict = None) -> str:
     """Screener"""
     date = data.get("date", "")
@@ -1879,6 +2009,8 @@ def build_screener_html(data: dict, screener_result: dict = None) -> str:
     content = _screener_top30(sr)
     if not content:
         content = '<div style="padding:40px;text-align:center;color:#888;font-size:14px;">今日 Screener 數據尚未產出</div>'
+    content += _sector_ranking(sr.get("sector_ranking", []))
+    content += _global_ranking(sr.get("global_ranking", []))
     return _page_wrapper("screener", date, content, "Screener")
 
 

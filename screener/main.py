@@ -8,7 +8,7 @@ import pytz
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from screener.screener import run_screener, pick_top_candidates, TICKER_SECTOR
+from screener.screener import run_screener, pick_top_candidates, TICKER_SECTOR, run_sector_screener, run_global_screener
 from screener.excel_exporter import export_to_excel
 
 
@@ -139,18 +139,27 @@ def main():
         print("✗ Screener 無結果，跳過")
         return
 
-    # 輸出 Excel
-    output_path = f"/tmp/RS_Screener_{today}.xlsx"
-    export_to_excel(df, output_path)
-
-    # 讀取 Excel 轉 base64
-    with open(output_path, "rb") as f:
-        excel_b64 = base64.b64encode(f.read()).decode()
-
     # 今日精選
     picks = pick_top_candidates(df)
     pick_tickers = [v.get("Ticker", "") for v in picks.values() if v]
     print(f"  今日精選：{', '.join(pick_tickers)}")
+
+    # Sector & Global RS 排名
+    print("\n[Sector Screener] 執行美股類股 RS 排名...")
+    sector_ranking = run_sector_screener()
+    print(f"  ✓ Sector: {len(sector_ranking)} 個")
+
+    print("[Global Screener] 執行全球指數 RS 排名...")
+    global_ranking = run_global_screener()
+    print(f"  ✓ Global: {len(global_ranking)} 個")
+
+    # 輸出 Excel（含 Sector & Global sheets）
+    output_path = f"/tmp/RS_Screener_{today}.xlsx"
+    export_to_excel(df, output_path, sector_ranking=sector_ranking, global_ranking=global_ranking)
+
+    # 讀取 Excel 轉 base64
+    with open(output_path, "rb") as f:
+        excel_b64 = base64.b64encode(f.read()).decode()
 
     # 儲存結果供日報使用
     top30 = df.head(30).to_dict(orient="records")
@@ -160,6 +169,8 @@ def main():
         "total_screened": len(df),
         "top30": top30,
         "top_picks": picks,
+        "sector_ranking": sector_ranking,
+        "global_ranking": global_ranking,
         "excel_b64": excel_b64,
         "excel_filename": f"RS_Screener_{today}.xlsx",
     }

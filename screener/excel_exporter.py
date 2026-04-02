@@ -16,7 +16,19 @@ RS_TREND_COLORS = {
     "震盪":     "888888",
 }
 
-def export_to_excel(df: pd.DataFrame, output_path: str) -> str:
+GLOBAL_REGION_MAP = {
+    "美國": "美洲", "加拿大": "美洲", "巴西": "美洲", "墨西哥": "美洲",
+    "英國": "歐洲", "德國": "歐洲", "法國": "歐洲", "瑞士": "歐洲",
+    "西班牙": "歐洲", "義大利": "歐洲", "波蘭": "歐洲", "以色列": "歐洲",
+    "日本": "亞太", "中國": "亞太", "香港": "亞太", "台灣": "亞太",
+    "韓國": "亞太", "印度": "亞太", "澳洲": "亞太", "紐西蘭": "亞太",
+    "新加坡": "亞太", "馬來西亞": "亞太", "印尼": "亞太", "菲律賓": "亞太",
+    "泰國": "亞太", "越南": "亞太",
+    "杜拜": "中東",
+}
+
+
+def export_to_excel(df: pd.DataFrame, output_path: str, sector_ranking: list = None, global_ranking: list = None) -> str:
     """把 Screener 結果輸出成格式化 Excel"""
 
     tz = pytz.timezone("Asia/Taipei")
@@ -164,7 +176,106 @@ def export_to_excel(df: pd.DataFrame, output_path: str) -> str:
 
     ws2.freeze_panes = "A2"
 
-    # ── Sheet 3：說明 ──────────────────────────────────────────
+    # ── Sheet 3：美股類股 RS ─────────────────────────────────────
+    if sector_ranking:
+        ws_sec = wb.create_sheet("美股類股 RS")
+        sec_headers = ["排名", "名稱", "Ticker", "RS Score", "RS Trend", "RS 1w", "RS 4w", "RS 13w", "vs SPY 13w%", "股價"]
+        sec_widths = [6, 12, 8, 10, 12, 8, 8, 8, 12, 10]
+
+        sec_fill = PatternFill(start_color="7F77DD", end_color="7F77DD", fill_type="solid")
+        for col_idx, h in enumerate(sec_headers, 1):
+            cell = ws_sec.cell(row=1, column=col_idx, value=h)
+            cell.fill = sec_fill
+            cell.font = Font(color="FFFFFF", bold=True, size=11)
+            cell.alignment = Alignment(horizontal="center")
+
+        for row_idx, item in enumerate(sector_ranking, 2):
+            vals = [
+                item.get("rank"), item.get("name"), item.get("ticker"),
+                item.get("rs_score"), item.get("rs_trend"),
+                item.get("rs_1w"), item.get("rs_4w"), item.get("rs_13w"),
+                item.get("vs_benchmark"), item.get("price"),
+            ]
+            for col_idx, val in enumerate(vals, 1):
+                cell = ws_sec.cell(row=row_idx, column=col_idx, value=val)
+                cell.alignment = Alignment(horizontal="center")
+                if col_idx == 4:  # RS Score
+                    cell.number_format = '0.0'
+                elif col_idx == 10:  # 股價
+                    cell.number_format = '$#,##0.00'
+                elif col_idx in (6, 7, 8):  # RS 1w/4w/13w
+                    cell.number_format = '0.0'
+                elif col_idx == 9:  # vs SPY
+                    cell.number_format = '0.00"%"'
+                if col_idx == 5 and val:  # RS Trend
+                    trend_color = RS_TREND_COLORS.get(str(val), "888888")
+                    cell.font = Font(color=trend_color, bold=True)
+                if row_idx % 2 == 1:
+                    cell.fill = PatternFill(start_color="F5F5FC", end_color="F5F5FC", fill_type="solid")
+
+        sec_last = len(sector_ranking) + 1
+        ws_sec.conditional_formatting.add(
+            f"D2:D{sec_last}",
+            ColorScaleRule(
+                start_type="min", start_color="C0392B",
+                mid_type="percentile", mid_value=50, mid_color="FFFFFF",
+                end_type="max", end_color="0F6E56",
+            )
+        )
+        for i, w in enumerate(sec_widths, 1):
+            ws_sec.column_dimensions[get_column_letter(i)].width = w
+        ws_sec.freeze_panes = "A2"
+
+    # ── Sheet 4：全球指數 RS ──────────────────────────────────────
+    if global_ranking:
+        ws_glb = wb.create_sheet("全球指數 RS")
+        glb_headers = ["排名", "地區", "市場", "Ticker", "RS Score", "RS Trend", "RS 1w", "RS 4w", "RS 13w", "vs VT 13w%"]
+        glb_widths = [6, 8, 10, 12, 10, 12, 8, 8, 8, 12]
+
+        glb_fill = PatternFill(start_color="085041", end_color="085041", fill_type="solid")
+        for col_idx, h in enumerate(glb_headers, 1):
+            cell = ws_glb.cell(row=1, column=col_idx, value=h)
+            cell.fill = glb_fill
+            cell.font = Font(color="FFFFFF", bold=True, size=11)
+            cell.alignment = Alignment(horizontal="center")
+
+        for row_idx, item in enumerate(global_ranking, 2):
+            region = GLOBAL_REGION_MAP.get(item.get("name", ""), "其他")
+            vals = [
+                item.get("rank"), region, item.get("name"), item.get("ticker"),
+                item.get("rs_score"), item.get("rs_trend"),
+                item.get("rs_1w"), item.get("rs_4w"), item.get("rs_13w"),
+                item.get("vs_benchmark"),
+            ]
+            for col_idx, val in enumerate(vals, 1):
+                cell = ws_glb.cell(row=row_idx, column=col_idx, value=val)
+                cell.alignment = Alignment(horizontal="center")
+                if col_idx == 5:  # RS Score
+                    cell.number_format = '0.0'
+                elif col_idx in (7, 8, 9):  # RS 1w/4w/13w
+                    cell.number_format = '0.0'
+                elif col_idx == 10:  # vs VT
+                    cell.number_format = '0.00"%"'
+                if col_idx == 6 and val:  # RS Trend
+                    trend_color = RS_TREND_COLORS.get(str(val), "888888")
+                    cell.font = Font(color=trend_color, bold=True)
+                if row_idx % 2 == 1:
+                    cell.fill = PatternFill(start_color="E8F0ED", end_color="E8F0ED", fill_type="solid")
+
+        glb_last = len(global_ranking) + 1
+        ws_glb.conditional_formatting.add(
+            f"E2:E{glb_last}",
+            ColorScaleRule(
+                start_type="min", start_color="C0392B",
+                mid_type="percentile", mid_value=50, mid_color="FFFFFF",
+                end_type="max", end_color="0F6E56",
+            )
+        )
+        for i, w in enumerate(glb_widths, 1):
+            ws_glb.column_dimensions[get_column_letter(i)].width = w
+        ws_glb.freeze_panes = "A2"
+
+    # ── Sheet 說明 ─────────────────────────────────────────────
     ws3 = wb.create_sheet("說明")
 
     explanation = [
