@@ -1862,14 +1862,155 @@ def build_trends_html(data: dict) -> str:
     return _page_wrapper("trends", date, content, "新創・趨勢")
 
 
-def build_misc_html(data: dict) -> str:
-    """財報・冷知識"""
+def _trading_system_card(system: dict) -> str:
+    if not system:
+        return ""
+
+    name = system.get("name", "")
+    sys_id = system.get("id", "")
+    designer = system.get("designer", "")
+    year = system.get("year", "")
+    category = system.get("category", "")
+    source = system.get("source", "")
+    origin = system.get("origin_story", "")
+    core_logic = system.get("core_logic", "")
+    key_decisions = system.get("key_design_decisions", [])
+    perf = system.get("performance", {})
+    risks = system.get("risks", [])
+    contradiction = system.get("internal_contradiction", "")
+    modern = system.get("modern_applicability", {})
+    psychology = system.get("psychology", "")
+    applicability = system.get("today_applicability", {})
+
+    verdict = applicability.get("verdict", "— 暫無評估")
+    verdict_reason = applicability.get("verdict_reason", "")
+    analysis = applicability.get("analysis", "")
+    key_metrics = applicability.get("key_metrics", "")
+
+    if "✓" in verdict:
+        verdict_color, verdict_bg, verdict_border = "#0F6E56", "#E1F5EE", "#0F6E56"
+    elif "⚠" in verdict:
+        verdict_color, verdict_bg, verdict_border = "#BA7517", "#FAEEDA", "#BA7517"
+    elif "✕" in verdict:
+        verdict_color, verdict_bg, verdict_border = "#C0392B", "#FCEBEB", "#C0392B"
+    else:
+        verdict_color, verdict_bg, verdict_border = "#888", "#F5F5F5", "#888"
+
+    risk_html = ""
+    risk_colors = {"極高": "#C0392B", "高": "#C0392B", "中": "#BA7517", "低": "#0F6E56"}
+    for risk in risks[:3]:
+        color = risk_colors.get(risk.get("level", "中"), "#888")
+        risk_html += f"""
+        <div style="display:flex;gap:10px;margin-bottom:10px;">
+          <div style="width:6px;height:6px;border-radius:50%;background:{color};flex-shrink:0;margin-top:7px;"></div>
+          <div style="font-size:13px;line-height:1.65;">
+            <strong>{risk.get('level','')} · {risk.get('type','')}</strong><br>
+            <span style="color:#888;font-size:12px;">{risk.get('description','')}</span>
+          </div>
+        </div>"""
+
+    decisions_html = ""
+    for d in key_decisions[:4]:
+        decisions_html += f'<div style="display:flex;gap:8px;margin-bottom:6px;font-size:13px;"><span style="color:#1B3A5C;flex-shrink:0;">▸</span><span>{d}</span></div>'
+
+    perf_html = ""
+    if perf:
+        perf_html = f"""
+    <table width="100%" style="border-collapse:collapse;margin-bottom:16px;">
+      <tr>
+        <td style="background:#F8F9FC;border-radius:8px;padding:10px 12px;text-align:center;width:33%;">
+          <div style="font-size:10px;color:#888;margin-bottom:3px;">歷史勝率</div>
+          <div style="font-size:14px;font-weight:500;">{perf.get('win_rate','—')}</div>
+        </td>
+        <td style="width:8px;"></td>
+        <td style="background:#F8F9FC;border-radius:8px;padding:10px 12px;text-align:center;width:33%;">
+          <div style="font-size:10px;color:#888;margin-bottom:3px;">最大回撤</div>
+          <div style="font-size:14px;font-weight:500;">{perf.get('max_drawdown','—')}</div>
+        </td>
+        <td style="width:8px;"></td>
+        <td style="background:#F8F9FC;border-radius:8px;padding:10px 12px;text-align:center;width:33%;">
+          <div style="font-size:10px;color:#888;margin-bottom:3px;">歷史年化</div>
+          <div style="font-size:14px;font-weight:500;">{perf.get('annualized_return','—')}</div>
+        </td>
+      </tr>
+    </table>"""
+
+    return f"""
+    <div style="margin:20px 0;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <div style="width:4px;height:14px;background:#1B3A5C;border-radius:2px;"></div>
+        <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#888;font-weight:500;">今日交易系統 · {sys_id} of 50</span>
+      </div>
+
+      <div style="border:0.5px solid #E8E8E8;border-radius:12px;overflow:hidden;">
+
+        <div style="background:#1B3A5C;padding:16px 20px;">
+          <div style="font-size:10px;letter-spacing:1px;color:rgba(255,255,255,0.5);text-transform:uppercase;margin-bottom:4px;">{category}</div>
+          <div style="font-size:22px;font-weight:500;color:#fff;margin-bottom:4px;">{name}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.6);">{designer} · {year} · {source}</div>
+        </div>
+
+        <div style="padding:20px;">
+
+          <div style="margin-bottom:20px;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">系統起源</div>
+            <div style="font-size:13px;line-height:1.85;">{origin}</div>
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">核心設計邏輯</div>
+            <div style="font-size:13px;line-height:1.85;margin-bottom:12px;">{core_logic}</div>
+            {decisions_html}
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">績效特徵</div>
+            {perf_html}
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">三層風險解構</div>
+            {risk_html}
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">系統的內在矛盾</div>
+            <div style="background:#FCEBEB;border-left:3px solid #C0392B;border-radius:0 6px 6px 0;padding:10px 14px;font-size:13px;line-height:1.75;color:#791F1F;">{contradiction}</div>
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">現代市場適用性（2026年版本建議）</div>
+            <div style="background:#E6F1FB;border-left:3px solid #185FA5;border-radius:0 6px 6px 0;padding:10px 14px;font-size:13px;line-height:1.75;color:#0C447C;">{modern.get('recommendation_2026','')}</div>
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">心理特質要求</div>
+            <div style="font-size:13px;line-height:1.85;color:#888;">{psychology}</div>
+          </div>
+
+          <div>
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">今日市場適用性</div>
+            <div style="background:{verdict_bg};border-left:3px solid {verdict_border};border-radius:0 6px 6px 0;padding:12px 16px;">
+              <div style="font-size:13px;font-weight:500;color:{verdict_color};margin-bottom:4px;">{verdict} · {verdict_reason}</div>
+              <div style="font-size:13px;color:{verdict_color};line-height:1.75;margin-bottom:6px;">{analysis}</div>
+              <div style="font-size:11px;color:{verdict_color};opacity:0.8;">監控指標：{key_metrics}</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>"""
+
+
+def build_misc_html(data: dict, today_system: dict = None) -> str:
+    """財報"""
     date = data.get("date", "")
     content = _us_market_recap(data.get("us_market_recap", {}))
     content += _earnings_preview(data.get("earnings_preview", []))
     # content += _implied_trends(data.get("implied_trends", []))  # 已停用
     content += _fun_fact(data.get("fun_fact", {}))
     content += _today_events(data.get("today_events", []))
+    content += _trading_system_card(today_system or {})
     return _page_wrapper("misc", date, content, "財報")
 
 
@@ -2105,7 +2246,7 @@ def build_tw_screener_html(data: dict, screener_result: dict = None) -> str:
     return _page_wrapper("tw_screener", date, content, "台股 Screener")
 
 
-def build_all_pages(data: dict, screener_result: dict = None) -> dict:
+def build_all_pages(data: dict, screener_result: dict = None, today_system: dict = None) -> dict:
     """產出所有頁面，回傳 {filename: html_content} dict"""
     sr = screener_result or {}
     return {
@@ -2114,7 +2255,7 @@ def build_all_pages(data: dict, screener_result: dict = None) -> dict:
         "geo.html":          build_geo_html(data),
         "tech.html":         build_tech_html(data),
         "trends.html":       build_trends_html(data),
-        "misc.html":         build_misc_html(data),
+        "misc.html":         build_misc_html(data, today_system=today_system),
         "screener.html":     build_screener_html(data, sr),
         "tw_screener.html":  build_tw_screener_html(data, sr),
     }

@@ -29,6 +29,7 @@ from news_fetcher import fetch_financial_news, fetch_market_data, fetch_today_ea
 from ai_processor import process_news
 from html_template import build_html, build_all_pages
 from email_sender import send_email
+from trading_system_of_day import get_today_system, generate_applicability
 
 
 def main() -> None:
@@ -71,6 +72,18 @@ def main() -> None:
     else:
         print("\n[Screener] 週末跳過")
 
+    # 1.6 今日交易系統
+    print("\n[交易系統] 選出今日系統...")
+    today_system = get_today_system()
+    if today_system:
+        print(f"  今日系統：{today_system.get('name', '')} ({today_system.get('id', '')})")
+        applicability = generate_applicability(today_system, market_data)
+        today_system["today_applicability"] = applicability
+        print(f"  適用性評估：{applicability.get('verdict', '—')}")
+    else:
+        today_system = {}
+        print("  ✗ 今日交易系統讀取失敗")
+
     # 2. AI 處理
     print("\n[2/4] Processing with Claude...")
     data = process_news(raw_news, market_data, today_earnings, moneydj_news, deep_dive_news, move_index_raw=move_index_raw)
@@ -81,7 +94,7 @@ def main() -> None:
 
     # 3. 生成多頁 HTML + Email 用單頁
     print("\n[3/4] Building HTML pages...")
-    pages = build_all_pages(data, screener_result=screener_result)
+    pages = build_all_pages(data, screener_result=screener_result, today_system=today_system)
     total_size = sum(len(h) for h in pages.values())
     print(f"      {len(pages)} pages, total {total_size:,} chars")
 
