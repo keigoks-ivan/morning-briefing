@@ -1755,14 +1755,14 @@ def _footer() -> str:
 
 
 _TAB_PAGES = [
-    ("index",        "市場數據",    "index.html"),
-    ("screener",     "Screener",    "screener.html"),
-    ("tw_screener",  "台股",        "tw_screener.html"),
-    ("news",         "要聞・深度",  "news.html"),
-    ("geo",          "地緣・國際",  "geo.html"),
-    ("tech",         "科技・AI",    "tech.html"),
-    ("trends",       "新創・趨勢",  "trends.html"),
-    ("misc",         "財報・冷知識", "misc.html"),
+    ("index",        "市場數據",   "index.html"),
+    ("screener",     "Screener",   "screener.html"),
+    ("tw_screener",  "台股",       "tw_screener.html"),
+    ("news",         "要聞・深度", "news.html"),
+    ("geo",          "地緣・國際", "geo.html"),
+    ("tech",         "科技・AI",   "tech.html"),
+    ("trends",       "新創・趨勢", "trends.html"),
+    ("misc",         "財報",       "misc.html"),
 ]
 
 
@@ -1771,11 +1771,11 @@ def _page_wrapper(page: str, date: str, content: str, title: str) -> str:
     tabs = ""
     for key, label, href in _TAB_PAGES:
         if key == page:
-            style = ("display:inline-block;padding:12px 18px;font-size:13px;font-weight:500;"
+            style = ("display:inline-block;padding:10px 12px;font-size:12px;font-weight:500;"
                      "color:#1B3A5C;border-bottom:3px solid #1B3A5C;text-decoration:none;"
                      "white-space:nowrap;background:#F0F4F8;")
         else:
-            style = ("display:inline-block;padding:12px 18px;font-size:13px;color:#666;"
+            style = ("display:inline-block;padding:10px 12px;font-size:12px;color:#666;"
                      "border-bottom:3px solid transparent;text-decoration:none;white-space:nowrap;")
         tabs += f'<a href="{href}" style="{style}">{label}</a>'
 
@@ -1867,10 +1867,10 @@ def build_misc_html(data: dict) -> str:
     date = data.get("date", "")
     content = _us_market_recap(data.get("us_market_recap", {}))
     content += _earnings_preview(data.get("earnings_preview", []))
-    content += _implied_trends(data.get("implied_trends", []))
+    # content += _implied_trends(data.get("implied_trends", []))  # 暫停顯示
     content += _fun_fact(data.get("fun_fact", {}))
     content += _today_events(data.get("today_events", []))
-    return _page_wrapper("misc", date, content, "財報・冷知識")
+    return _page_wrapper("misc", date, content, "財報")
 
 
 def _sector_ranking(sector_ranking: list) -> str:
