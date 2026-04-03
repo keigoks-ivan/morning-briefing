@@ -411,18 +411,7 @@ USER_PROMPT_TEMPLATE = """
     }}
   ],
 
-  "implied_trends": [
-    {{
-      "num": "①②③④",
-      "title": "結構性訊號標題（20字以內，要有觀點）",
-      "data_sources": ["數據點1（含具體數字）", "數據點2", "數據點3"],
-      "trend_continuity": "這個訊號是否已持續多日（必須引用 sentiment_history 或 second_layer_trends 的實際趨勢數據）",
-      "desc": "3-4句深度分析，整合多個數據來源，說明為什麼這是結構性訊號而非日常噪音",
-      "historical_analog": "歷史上類似訊號出現在何時（點名具體時間段），後續如何演變（1句）",
-      "new_factor": "這次可能不同於歷史的因素（1句，考慮AI時代/新政策工具/結構性變化）",
-      "implication": "對未來2週到3個月最可能的影響（2句，對應具體市場、產業或標的）"
-    }}
-  ],
+  "implied_trends": [],
 
   "fun_fact": {{
     "title": "今日財經冷知識標題（20字以內）",
@@ -507,23 +496,14 @@ USER_PROMPT_TEMPLATE = """
 8. tech_trends 輸出 5–6 條，sub_items 固定 3 個
 9. startup_news 輸出 4–5 條
 10. earnings_preview 只輸出今日（美股當日）即將發布但尚未公布數字的財報，不要輸出已經發布的財報，不要輸出非今日的財報，yfinance 確認的優先列出且 yfinance_confirmed=true，Perplexity 搜尋到的作為補充且 yfinance_confirmed=false，如今日無重要財報則輸出空陣列。earnings_preview 和 us_market_recap 嚴格互斥：earnings_preview 是今日即將發布但尚未公布數字的財報，us_market_recap 是已經公布數字的昨日財報結果，同一家公司不得同時出現在兩個區塊。
-11. implied_trends 升級規則：
-    - 固定輸出 4 個，每個必須有至少3個不同來源的數據支撐
-    - 是整份晨報最高層次的分析，時間視野2週到3個月
-    - 找「正在發生但還沒被市場充分定價的結構性轉變」
-    - 分析框架：整合所有數據 → 識別多來源同方向訊號 → 中長期含義推論
-    - trend_continuity 必須引用 sentiment_history 或 second_layer_trends 的實際趨勢字串
-    - 4個訊號涵蓋不同維度：至少一個情緒/流動性、一個產業/科技、一個宏觀
-    - 嚴禁輸出顯而易見或當天新聞直接可見的訊號
-    - desc 必須說明為什麼這是「結構性」而非「短期」
-    - implication 必須有明確立場和具體標的/市場
+11. implied_trends：已停用，直接輸出空陣列 []
 12. today_events 只輸出未來24小時內即將發生的真實行程，按時間由早到晚排序，不要列已經發生的事件，不要編造
 13. us_market_recap 嚴格規則：只輸出已經發生且已公布結果的財報和事件，時間範圍為台灣時間昨日 16:00 至今日 05:55 之間實際發生的事件。盤前（pre-market）財報只在財報數字已公布後才列入，不得列入「預計今日發布」的財報。如果財報只是「預計今日發布」但尚未公布數字，不得列入 us_market_recap，應列入 earnings_preview。has_events=false 優先於輸出不確定的事件。所有條目按時間由早到晚排序（盤前→盤中→盤後），session 欄位標注對應時段。
 14. smart_money 只輸出今日被可信來源報導的真實異常機構成交或選擇權活動，最多輸出 3 條最重要的，沒有可信來源支撐的不要輸出，has_signals=false 時 signals 輸出空陣列
 15. world_news 固定輸出 3 條，著重國際情勢和區域發展，全球範圍皆可，優先選過去24小時內最重要且與金融市場或地緣政治有潛在關聯的事件，importance=high 的優先排前，同級別按 source_date 最新優先，嚴禁與 top_stories、geopolitical、macro 等其他區塊的新聞重複
 16. 所有新聞排除 ESG 相關內容
 17. source_date 格式統一為 YYYY-MM-DD
-18. implied_trends 引用的數字必須來自搜尋結果，不能推測
+18. （implied_trends 已停用）
 19. daily_deep_dive 動態主題規則：
     - 固定輸出 2 個主題，不多不少
     - 可選範圍：固定查詢（半導體、AI架構）+ 動態查詢（今日最重要的3個主題）共5個
@@ -758,7 +738,7 @@ def _validate(data: dict) -> None:
     data.setdefault("tech_trends", [])
     data.setdefault("startup_news", [])
     data.setdefault("earnings_preview", [])
-    data.setdefault("implied_trends", [])
+    data["implied_trends"] = []  # 已停用，強制清空
     data.setdefault("us_market_recap", {"has_events": False, "earnings": [], "other_events": [], "summary": ""})
     data.setdefault("smart_money", {"has_signals": False, "signals": [], "summary": ""})
     data.setdefault("market_pulse", {"cross_asset_signals": [], "dominant_theme": "", "hidden_risk": "", "hidden_opportunity": "", "key_level_to_watch": "", "historical_analog": "", "new_pattern": ""})
@@ -794,10 +774,7 @@ def _validate(data: dict) -> None:
     ss["fixed"]   = ss["fixed"][:3]
     ss["dynamic"] = ss["dynamic"][:3]
 
-    data["implied_trends"] = data["implied_trends"][:4]
-    nums = ["①", "②", "③", "④"]
-    for i, t in enumerate(data["implied_trends"]):
-        t["num"] = nums[i]
+    # implied_trends 已停用，不再處理
 
     for trend in data.get("tech_trends", []):
         trend.setdefault("sub_items", [])

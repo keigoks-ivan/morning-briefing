@@ -1867,7 +1867,7 @@ def build_misc_html(data: dict) -> str:
     date = data.get("date", "")
     content = _us_market_recap(data.get("us_market_recap", {}))
     content += _earnings_preview(data.get("earnings_preview", []))
-    # content += _implied_trends(data.get("implied_trends", []))  # 暫停顯示
+    # content += _implied_trends(data.get("implied_trends", []))  # 已停用
     content += _fun_fact(data.get("fun_fact", {}))
     content += _today_events(data.get("today_events", []))
     return _page_wrapper("misc", date, content, "財報")
