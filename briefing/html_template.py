@@ -1709,11 +1709,31 @@ def _screener_top30(screener_result: dict) -> str:
         else:
             rank_change_html = '<span style="color:#BBB;">—</span>'
 
+        # 基本面小字
+        fund_parts = []
+        eps_cagr = item.get("eps_cagr_2y")
+        fcf_m = item.get("fcf_margin")
+        roic_val = item.get("roic")
+        roic_src = item.get("roic_source", "")
+
+        if eps_cagr is not None:
+            fc = "#0F6E56" if eps_cagr >= 15 else ("#BA7517" if eps_cagr >= 5 else "#C0392B")
+            fund_parts.append(f'<span style="color:{fc};font-weight:500;">EPS 2Y {eps_cagr:+.1f}%</span>')
+        if fcf_m is not None:
+            fc = "#0F6E56" if fcf_m >= 15 else ("#BA7517" if fcf_m >= 5 else "#C0392B")
+            fund_parts.append(f'<span style="color:{fc};font-weight:500;">FCF {fcf_m:.1f}%</span>')
+        if roic_val is not None:
+            fc = "#0F6E56" if roic_val >= 15 else ("#BA7517" if roic_val >= 5 else "#C0392B")
+            fund_parts.append(f'<span style="color:{fc};font-weight:500;">{roic_src} {roic_val:.1f}%</span>')
+
+        fund_html = ' <span style="color:#ccc;">·</span> '.join(fund_parts)
+        fund_line = f'<div style="font-size:11px;margin-top:3px;line-height:1.5;">{fund_html}</div>' if fund_html else ""
+
         rows += f"""
         <tr>
           <td style="text-align:center;padding:6px 8px;font-size:12px;color:#888;">{item.get('Rank','')}</td>
           <td style="text-align:center;padding:6px 4px;">{rank_change_html}</td>
-          <td style="padding:6px 8px;font-size:13px;font-weight:500;color:#1B3A5C;">{item.get('Ticker','')}<br><span style="font-size:10px;color:#AAA;font-weight:400;">{sector}</span></td>
+          <td style="padding:6px 8px;"><span style="font-size:13px;font-weight:500;color:#1B3A5C;">{item.get('Ticker','')}</span><br><span style="font-size:10px;color:#AAA;">{sector}</span>{fund_line}</td>
           <td style="text-align:center;padding:6px 8px;font-size:13px;font-weight:500;color:{rs_color};">{rs:.0f}</td>
           <td style="text-align:center;padding:6px 8px;font-size:13px;color:#534AB7;">{con:.0f}</td>
           <td style="text-align:center;padding:6px 8px;font-size:13px;font-weight:500;">{combined:.0f}</td>

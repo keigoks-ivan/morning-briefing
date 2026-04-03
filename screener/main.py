@@ -8,7 +8,7 @@ import pytz
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from screener.screener import run_screener, pick_top_candidates, TICKER_SECTOR, run_sector_screener, run_global_screener
+from screener.screener import run_screener, pick_top_candidates, fetch_fundamentals, TICKER_SECTOR, run_sector_screener, run_global_screener
 from screener.tw_screener import run_tw_screener
 from screener.excel_exporter import export_to_excel
 
@@ -168,8 +168,16 @@ def main():
     with open(output_path, "rb") as f:
         excel_b64 = base64.b64encode(f.read()).decode()
 
-    # 儲存結果供日報使用
+    # 查詢 Top 30 基本面數據
+    top30_tickers = df.head(30)["Ticker"].tolist()
+    print("\n[基本面] 查詢 Top 30 基本面數據...")
+    fundamentals = fetch_fundamentals(top30_tickers)
+
+    # 儲存結果供日報使用（合併基本面數據）
     top30 = df.head(30).to_dict(orient="records")
+    for item in top30:
+        fund = fundamentals.get(item["Ticker"], {})
+        item.update(fund)
 
     result = {
         "date": today,

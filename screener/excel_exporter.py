@@ -142,12 +142,20 @@ def export_to_excel(df: pd.DataFrame, output_path: str, sector_ranking: list = N
     # 凍結首行
     ws.freeze_panes = "A2"
 
-    # ── Sheet 2：Top 30 精選 ───────────────────────────────────
+    # ── Sheet 2：Top 30 精選（含基本面）────────────────────────
     ws2 = wb.create_sheet("Top 30")
+
+    top30_headers = list(headers) + [
+        "EPS TTM", "EPS Fwd", "EPS CAGR 2Y%", "FCF Margin%", "ROIC%", "Op Margin%", "Rev Growth%"
+    ]
+    top30_df_cols = list(df_cols) + [
+        "eps_ttm", "eps_fwd", "eps_cagr_2y", "fcf_margin", "roic", "op_margin", "rev_growth"
+    ]
+    top30_widths = list(col_widths) + [10, 10, 14, 12, 10, 12, 12]
 
     top30_fill = PatternFill(start_color="0F6E56", end_color="0F6E56", fill_type="solid")
 
-    for col_idx, header in enumerate(headers, 1):
+    for col_idx, header in enumerate(top30_headers, 1):
         cell = ws2.cell(row=1, column=col_idx, value=header)
         cell.fill = top30_fill
         cell.font = Font(color="FFFFFF", bold=True, size=11)
@@ -155,7 +163,7 @@ def export_to_excel(df: pd.DataFrame, output_path: str, sector_ranking: list = N
 
     for row_idx, row in df.head(30).iterrows():
         excel_row = row_idx + 2
-        for col_idx, col in enumerate(df_cols, 1):
+        for col_idx, col in enumerate(top30_df_cols, 1):
             val = row.get(col, None)
             cell = ws2.cell(row=excel_row, column=col_idx, value=val)
             cell.alignment = Alignment(horizontal="center")
@@ -163,15 +171,30 @@ def export_to_excel(df: pd.DataFrame, output_path: str, sector_ranking: list = N
                 cell.number_format = '$#,##0.00'
             elif col in ["RS_Score", "Contraction_Score", "Combined_Score", "rs_1w", "rs_4w", "rs_13w"]:
                 cell.number_format = '0.0'
-            elif col in ["vs_200MA_pct", "ATR_Contraction_pct", "last_pullback_pct", "dist_from_high_pct"]:
+            elif col in ["vs_200MA_pct", "ATR_Contraction_pct", "last_pullback_pct", "dist_from_high_pct",
+                          "eps_cagr_2y", "fcf_margin", "roic", "op_margin", "rev_growth"]:
                 cell.number_format = '0.0"%"'
+            elif col in ["eps_ttm", "eps_fwd"]:
+                cell.number_format = '0.00'
             elif col == "Volume_Ratio_10d_60d":
                 cell.number_format = '0.00"x"'
             if col == "rs_trend" and val:
                 trend_color = RS_TREND_COLORS.get(str(val), "888888")
                 cell.font = Font(color=trend_color, bold=True)
+            # ROIC / FCF 填色
+            if col in ("roic", "fcf_margin") and val is not None:
+                try:
+                    v = float(val)
+                    if v > 20:
+                        cell.fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
+                    elif v >= 10:
+                        cell.fill = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
+                    elif v < 0:
+                        cell.fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")
+                except (ValueError, TypeError):
+                    pass
 
-    for i, width in enumerate(col_widths, 1):
+    for i, width in enumerate(top30_widths, 1):
         ws2.column_dimensions[get_column_letter(i)].width = width
 
     ws2.freeze_panes = "A2"

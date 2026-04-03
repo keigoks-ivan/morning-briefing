@@ -653,6 +653,76 @@ def generate_pick_reason(pick: dict) -> str:
     return "、".join(reasons[:5]) if reasons else f"綜合分 {pick.get('Combined_Score', 0):.0f}"
 
 
+def fetch_fundamentals(tickers: list) -> dict:
+    """對 Top 30 股票單獨查詢基本面數據"""
+    results = {}
+    print(f"  [基本面] 查詢 {len(tickers)} 支股票...")
+
+    for ticker in tickers:
+        try:
+            t = yf.Ticker(ticker)
+            info = t.info
+
+            fwd_eps = info.get("forwardEps")
+            trail_eps = info.get("trailingEps")
+
+            eps_next_yr = None
+            try:
+                est = t.earnings_estimate
+                if est is not None and not est.empty:
+                    if "+1y" in est.index:
+                        v = est.loc["+1y", "avg"] if "avg" in est.columns else None
+                        eps_next_yr = round(float(v), 2) if v is not None and not pd.isna(v) else None
+            except Exception:
+                pass
+
+            # EPS 2年真正 CAGR：trailingEps → +1Y 預估，(next/trail)^0.5 - 1
+            eps_cagr_2y = None
+            if trail_eps and eps_next_yr and trail_eps > 0 and eps_next_yr > 0:
+                eps_cagr_2y = round(((eps_next_yr / trail_eps) ** 0.5 - 1) * 100, 1)
+
+            fcf = info.get("freeCashflow")
+            rev = info.get("totalRevenue")
+            fcf_margin = round(fcf / rev * 100, 1) if fcf and rev and rev > 0 else None
+
+            roe = info.get("returnOnEquity")
+            roa = info.get("returnOnAssets")
+            roic_approx, roic_source = None, None
+            if roe is not None:
+                roic_approx, roic_source = round(roe * 100, 1), "ROE"
+            elif roa is not None:
+                roic_approx, roic_source = round(roa * 100, 1), "ROA"
+
+            op_margin = info.get("operatingMargins")
+            op_margin_pct = round(op_margin * 100, 1) if op_margin is not None else None
+
+            gross_margin = info.get("grossMargins")
+            gross_margin_pct = round(gross_margin * 100, 1) if gross_margin is not None else None
+
+            rev_growth = info.get("revenueGrowth")
+            rev_growth_pct = round(rev_growth * 100, 1) if rev_growth is not None else None
+
+            results[ticker] = {
+                "eps_ttm": round(trail_eps, 2) if trail_eps is not None else None,
+                "eps_fwd": round(fwd_eps, 2) if fwd_eps is not None else None,
+                "eps_next_yr": eps_next_yr,
+                "eps_cagr_2y": eps_cagr_2y,
+                "fcf_margin": fcf_margin,
+                "roic": roic_approx,
+                "roic_source": roic_source,
+                "op_margin": op_margin_pct,
+                "gross_margin": gross_margin_pct,
+                "rev_growth": rev_growth_pct,
+            }
+            print(f"    ✓ {ticker}: EPS CAGR 2Y={eps_cagr_2y}% FCF={fcf_margin}% ROIC={roic_approx}%")
+
+        except Exception as e:
+            print(f"    ✗ {ticker}: {e}")
+            results[ticker] = {}
+
+    return results
+
+
 def calc_ma_position(data: dict, tickers: list[str]) -> dict:
     """計算距離200日均線的位置"""
     closes = data.get("Close", pd.DataFrame())
