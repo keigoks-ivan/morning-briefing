@@ -17,7 +17,22 @@
       "Bash(/tmp/gh_install/gh_2.88.1_macOS_arm64/bin/gh auth:*)",
       "Bash(git init:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(GH=/tmp/gh_install/gh_2.88.1_macOS_arm64/bin/gh)",
+      "Bash($GH repo:*)",
+      "Bash($GH secret:*)",
+      "Bash(/tmp/gh_install/gh_2.88.1_macOS_arm64/bin/gh secret:*)",
+      "Bash(git:*)",
+      "Bash(/tmp/gh_install/gh_2.88.1_macOS_arm64/bin/gh workflow:*)",
+      "Bash(/tmp/gh_install/gh_2.88.1_macOS_arm64/bin/gh run:*)",
+      "Bash(/tmp/gh_install/gh_2.88.1_macOS_arm64/bin/gh repo:*)",
+      "Bash(/tmp/gh_install/gh_2.88.1_macOS_arm64/bin/gh api:*)",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Bash(done)",
+      "Bash($GH api:*)",
+      "Bash(sed -n '50,60p' /Users/ivanchang/Desktop/morning-briefing/morning-briefing/context.md)",
+      "Bash(sed -n '15,20p' /Users/ivanchang/Desktop/morning-briefing/morning-briefing/CHANGELOG.md)"
     ]
   }
 }

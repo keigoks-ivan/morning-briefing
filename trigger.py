@@ -1,6 +1,8 @@
 import os
 import requests
 import sys
+from datetime import datetime
+import pytz
 
 def trigger_workflow(workflow_filename: str) -> bool:
     token = os.environ["GH_PAT"]
@@ -27,5 +29,10 @@ def trigger_workflow(workflow_filename: str) -> bool:
         return False
 
 if __name__ == "__main__":
+    tz = pytz.timezone("Asia/Taipei")
+    weekday = datetime.now(tz).weekday()  # 0=週一 6=週日
+    if weekday == 6:  # 台灣週日不跑日報
+        print("✗ 台灣週日，跳過日報")
+        sys.exit(0)
     success = trigger_workflow("daily_briefing.yml")
     sys.exit(0 if success else 1)

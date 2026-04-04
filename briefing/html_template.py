@@ -102,6 +102,46 @@ def _importance_badge(importance: str) -> str:
     return ""
 
 
+INVESTMENT_QUOTES = [
+    ("投資最重要的事，是避免永久性資本損失。", "Howard Marks"),
+    ("價格是你付出的，價值是你得到的。", "Warren Buffett"),
+    ("市場短期是投票機，長期是體重機。", "Benjamin Graham"),
+    ("風險來自於你不知道自己在做什麼。", "Warren Buffett"),
+    ("在別人恐懼時貪婪，在別人貪婪時恐懼。", "Warren Buffett"),
+    ("複利是世界第八大奇蹟。", "Albert Einstein"),
+    ("不要預測市場，要為各種情境做好準備。", "Howard Marks"),
+    ("好公司不等於好股票，關鍵是價格。", "Peter Lynch"),
+    ("持有現金是讓你在機會來臨時有能力行動。", "Charlie Munger"),
+    ("投資的第一條規則：不要虧錢。第二條：不要忘記第一條。", "Warren Buffett"),
+    ("分散投資是無知者的保護，但對於知道自己在做什麼的人則無意義。", "Warren Buffett"),
+    ("市場先生是你的僕人，不是你的嚮導。", "Benjamin Graham"),
+    ("耐心是投資人最被低估的美德。", "Charlie Munger"),
+    ("你不需要做很多事情是對的，你只需要避免做錯事。", "Charlie Munger"),
+    ("在牛市中賺錢很容易，但在熊市中保住本金才是功夫。", "Howard Marks"),
+    ("偉大的投資機會來自於優秀的公司陷入暫時的困境。", "Peter Lynch"),
+    ("知道自己不知道什麼，比假裝什麼都知道更有價值。", "Howard Marks"),
+    ("股票市場是把錢從急躁者轉移到有耐心者手中的裝置。", "Warren Buffett"),
+    ("第一步是理解周期在哪裡，第二步是知道該怎麼應對。", "Howard Marks"),
+    ("最危險的投資話語是：這次不一樣。", "John Templeton"),
+]
+
+def _quote_of_day(date_str: str) -> str:
+    """根據日期輪換顯示投資智慧語句"""
+    import hashlib
+    idx = int(hashlib.md5(date_str.encode()).hexdigest(), 16) % len(INVESTMENT_QUOTES)
+    quote, author = INVESTMENT_QUOTES[idx]
+    return f'''
+<div style="border-left:3px solid #1B3A5C;padding:8px 14px;margin-bottom:16px;
+            background:#F8FAFC;border-radius:0 4px 4px 0;">
+  <div style="font-size:13px;color:#444;font-style:italic;line-height:1.6;">
+    「{quote}」
+  </div>
+  <div style="font-size:11px;color:#888;margin-top:4px;text-align:right;">
+    — {author}
+  </div>
+</div>'''
+
+
 def _masthead(now_str: str) -> str:
     return f'''
 <div style="border-bottom:2px solid #1B3A5C;padding-bottom:12px;
@@ -2478,6 +2518,7 @@ def build_html(data: dict, screener_result: dict = None) -> str:
 </head>
 <body>
 {_masthead(now)}
+{_quote_of_day(now[:10])}
 {_daily_summary(data.get("daily_summary",""))}
 {_alert(data.get("alert",""))}
 {_market_strip(data.get("market_data", {}))}
