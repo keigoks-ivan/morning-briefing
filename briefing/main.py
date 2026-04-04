@@ -48,13 +48,13 @@ def main() -> None:
     dd_count = len(deep_dive_news.get("fixed", [])) + len(deep_dive_news.get("dynamic", [])) if isinstance(deep_dive_news, dict) else len(deep_dive_news)
     print(f"      {len(raw_news)} queries completed, {len(today_earnings)} earnings confirmed, {len(moneydj_news)} MoneyDJ news, {dd_count} deep dive")
 
-    # 1.5 執行 Screener（只有週日跳過）
-    # 台灣週六 05:55 的數據是美股週五收盤，仍有效
+    # 1.5 執行 Screener（台灣週二~週六才跑，對應美股前一交易日）
+    # 週日(6)、週一(0)跳過：週六、週日美股休市，無新數據
     tz = pytz.timezone("Asia/Taipei")
     weekday = datetime.now(tz).weekday()  # 0=週一 6=週日
 
     screener_result = {}
-    if weekday != 6:  # 週一~週六都跑，只有週日跳過
+    if weekday in (1, 2, 3, 4, 5):  # 台灣週二~週六
         try:
             print("\n[Screener] 執行 RS+Contraction Screener...")
             repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -71,7 +71,7 @@ def main() -> None:
         except Exception as e:
             print(f"      Screener 例外: {e}")
     else:
-        print("\n[Screener] 週末跳過")
+        print("\n[Screener] 今日非交易日（台灣週日或週一），跳過")
 
     # 1.6 今日交易系統
     print("\n[交易系統] 選出今日系統...")
