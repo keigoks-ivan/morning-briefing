@@ -1782,6 +1782,7 @@ _TAB_PAGES = [
     ("geo",          "地緣・國際", "geo.html"),
     ("tech",         "科技・AI",   "tech.html"),
     ("trends",       "新創・趨勢", "trends.html"),
+    ("startup",      "創業",       "startup.html"),
     ("misc",         "財報",       "misc.html"),
 ]
 
@@ -1880,6 +1881,183 @@ def build_trends_html(data: dict) -> str:
     content += _startup_news(data.get("startup_news", []))
     content += _smart_money(data.get("smart_money", {}))
     return _page_wrapper("trends", date, content, "新創・趨勢")
+
+
+_FRAMEWORK_COLORS = {
+    "產品與市場": "#1B3A5C",
+    "成長與牽引力": "#0F6E56",
+    "競爭與護城河": "#854F0B",
+    "融資與資本": "#534AB7",
+    "組織與執行": "#185FA5",
+    "心理與決策": "#A32D2D",
+}
+
+
+def _startup_dashboard(data: dict) -> str:
+    """創業環境儀表板，從現有 market_data 生成"""
+    md = data.get("market_data", {})
+    if not md:
+        return ""
+
+    # HYG 信貸
+    hyg_item = None
+    for it in md.get("credit", []):
+        if "HYG" in it.get("label", ""):
+            hyg_item = it
+            break
+    hyg_chg = hyg_item.get("chg", "—") if hyg_item else "—"
+    hyg_dir = hyg_item.get("dir", "neu") if hyg_item else "neu"
+    hyg_color = "#0F6E56" if hyg_dir == "pos" else ("#C0392B" if hyg_dir == "neg" else "#BA7517")
+    hyg_label = "寬鬆" if hyg_dir == "pos" else ("收緊" if hyg_dir == "neg" else "中性")
+
+    # 10Y 利率
+    tnx_item = None
+    for it in md.get("bonds", []):
+        if it.get("label", "") == "美10Y":
+            tnx_item = it
+            break
+    tnx_val = tnx_item.get("val", "—") if tnx_item else "—"
+
+    # Fear & Greed
+    fg_item = None
+    for it in md.get("sentiment", []):
+        if it.get("label", "") == "Fear&Greed":
+            fg_item = it
+            break
+    fg_val = fg_item.get("val", "—") if fg_item else "—"
+
+    return f"""
+    <div style="margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <div style="width:4px;height:14px;background:#1B3A5C;border-radius:2px;"></div>
+        <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#888;font-weight:500;">創業環境儀表板</span>
+      </div>
+      <table width="100%" style="border-collapse:collapse;border:0.5px solid #E8E8E8;border-radius:8px;overflow:hidden;">
+        <tr>
+          <td style="padding:12px 16px;width:33%;border-right:0.5px solid #F0F0F0;">
+            <div style="font-size:10px;color:#888;margin-bottom:4px;">風險資金環境</div>
+            <div style="font-size:16px;font-weight:500;color:{hyg_color};">{hyg_label}</div>
+            <div style="font-size:11px;color:#888;">HYG {hyg_chg}</div>
+          </td>
+          <td style="padding:12px 16px;width:33%;border-right:0.5px solid #F0F0F0;">
+            <div style="font-size:10px;color:#888;margin-bottom:4px;">估值壓力</div>
+            <div style="font-size:16px;font-weight:500;">{tnx_val}%</div>
+            <div style="font-size:11px;color:#888;">10Y 殖利率</div>
+          </td>
+          <td style="padding:12px 16px;width:33%;">
+            <div style="font-size:10px;color:#888;margin-bottom:4px;">市場情緒</div>
+            <div style="font-size:16px;font-weight:500;">{fg_val}</div>
+            <div style="font-size:11px;color:#888;">Fear & Greed</div>
+          </td>
+        </tr>
+      </table>
+    </div>"""
+
+
+def _startup_framework_card(framework: dict) -> str:
+    if not framework:
+        return ""
+
+    name = framework.get("name", "")
+    fw_id = framework.get("id", "")
+    designer = framework.get("designer", "")
+    year = framework.get("year", "")
+    category = framework.get("category", "")
+    source = framework.get("source", "")
+    origin = framework.get("origin_story", "")
+    core_logic = framework.get("core_logic", "")
+    key_insights = framework.get("key_insights", [])
+    practical = framework.get("practical_application", {})
+    contradiction = framework.get("internal_contradiction", "")
+    modern = framework.get("modern_applicability", {})
+    for_early = framework.get("for_early_stage", "")
+    daily_app = framework.get("today_application", "")
+    applicability = framework.get("today_applicability", {})
+
+    color = _FRAMEWORK_COLORS.get(category, "#1B3A5C")
+
+    app_text = applicability.get("application", daily_app)
+    key_action = applicability.get("key_action", "")
+
+    # Key insights
+    insights_html = ""
+    for ins in key_insights[:4]:
+        insights_html += f'<div style="display:flex;gap:8px;margin-bottom:6px;font-size:13px;"><span style="color:{color};flex-shrink:0;">▸</span><span>{ins}</span></div>'
+
+    # Practical do/avoid
+    do_text = practical.get("do", "")
+    avoid_text = practical.get("avoid", "")
+    practical_html = ""
+    if do_text:
+        practical_html += f'<div style="font-size:13px;line-height:1.75;margin-bottom:8px;"><span style="color:#0F6E56;font-weight:500;">✓ 該做：</span>{do_text}</div>'
+    if avoid_text:
+        practical_html += f'<div style="font-size:13px;line-height:1.75;"><span style="color:#C0392B;font-weight:500;">✕ 避免：</span>{avoid_text}</div>'
+
+    return f"""
+    <div style="margin:20px 0;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <div style="width:4px;height:14px;background:{color};border-radius:2px;"></div>
+        <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#888;font-weight:500;">今日創業框架 · {fw_id} of 50</span>
+      </div>
+
+      <div style="border:0.5px solid #E8E8E8;border-radius:12px;overflow:hidden;">
+
+        <div style="background:{color};padding:16px 20px;">
+          <div style="font-size:10px;letter-spacing:1px;color:rgba(255,255,255,0.5);text-transform:uppercase;margin-bottom:4px;">{category}</div>
+          <div style="font-size:22px;font-weight:500;color:#fff;margin-bottom:4px;">{name}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.6);">{designer} · {year} · {source}</div>
+        </div>
+
+        <div style="padding:20px;">
+
+          <div style="margin-bottom:20px;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">起源故事</div>
+            <div style="font-size:13px;line-height:1.85;">{origin}</div>
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">核心邏輯</div>
+            <div style="font-size:13px;line-height:1.85;margin-bottom:12px;">{core_logic}</div>
+            {insights_html}
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">實戰應用</div>
+            {practical_html}
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">框架的內在矛盾</div>
+            <div style="background:#FCEBEB;border-left:3px solid #C0392B;border-radius:0 6px 6px 0;padding:10px 14px;font-size:13px;line-height:1.75;color:#791F1F;">{contradiction}</div>
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">2026 年版本建議</div>
+            <div style="background:#E6F1FB;border-left:3px solid #185FA5;border-radius:0 6px 6px 0;padding:10px 14px;font-size:13px;line-height:1.75;color:#0C447C;">{modern.get('recommendation_2026','')}</div>
+          </div>
+
+          <div>
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">今日如何應用</div>
+            <div style="background:#E1F5EE;border-left:3px solid #0F6E56;border-radius:0 6px 6px 0;padding:12px 16px;margin-bottom:12px;">
+              <div style="font-size:13px;line-height:1.75;color:#0A5C42;">{app_text}</div>
+            </div>
+            <div style="background:#0F6E56;border-radius:8px;padding:14px 18px;text-align:center;">
+              <div style="font-size:10px;color:rgba(255,255,255,0.6);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">今日行動</div>
+              <div style="font-size:15px;font-weight:500;color:#fff;line-height:1.6;">{key_action}</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>"""
+
+
+def build_startup_html(data: dict, today_framework: dict = None) -> str:
+    """創業頁面"""
+    date = data.get("date", "")
+    content = _startup_dashboard(data)
+    content += _startup_framework_card(today_framework or {})
+    return _page_wrapper("startup", date, content, "創業")
 
 
 def _trading_system_card(system: dict) -> str:
@@ -2266,7 +2444,7 @@ def build_tw_screener_html(data: dict, screener_result: dict = None) -> str:
     return _page_wrapper("tw_screener", date, content, "台股 Screener")
 
 
-def build_all_pages(data: dict, screener_result: dict = None, today_system: dict = None) -> dict:
+def build_all_pages(data: dict, screener_result: dict = None, today_system: dict = None, today_framework: dict = None) -> dict:
     """產出所有頁面，回傳 {filename: html_content} dict"""
     sr = screener_result or {}
     return {
@@ -2275,6 +2453,7 @@ def build_all_pages(data: dict, screener_result: dict = None, today_system: dict
         "geo.html":          build_geo_html(data),
         "tech.html":         build_tech_html(data),
         "trends.html":       build_trends_html(data),
+        "startup.html":      build_startup_html(data, today_framework=today_framework),
         "misc.html":         build_misc_html(data, today_system=today_system),
         "screener.html":     build_screener_html(data, sr),
         "tw_screener.html":  build_tw_screener_html(data, sr),

@@ -4,8 +4,10 @@
 main.py → 日報主流程，串接所有模組
 news_fetcher.py → Perplexity 查詢 + yfinance 行情 + FRED 流動性
 ai_processor.py → Claude API streaming，輸出 JSON，含 _validate 預設值
-html_template.py → JSON → HTML，所有區塊渲染函式
+html_template.py → JSON → HTML，所有區塊渲染函式（含多頁 tab 導航）
 email_sender.py → Resend API 寄信
+trading_system_of_day.py → 每日交易系統（50天輪替，data/trading_systems.json）
+startup_framework_of_day.py → 每日創業框架（50天輪替，data/startup_frameworks.json）
 weekly_main.py → 週報主流程
 weekly_fetcher.py → 週報 Perplexity 查詢
 weekly_processor.py → 週報 Claude 分析

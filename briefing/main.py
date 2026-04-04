@@ -30,6 +30,7 @@ from ai_processor import process_news
 from html_template import build_html, build_all_pages
 from email_sender import send_email
 from trading_system_of_day import get_today_system, generate_applicability
+from startup_framework_of_day import get_today_framework, generate_framework_applicability
 
 
 def main() -> None:
@@ -85,6 +86,18 @@ def main() -> None:
         today_system = {}
         print("  ✗ 今日交易系統讀取失敗")
 
+    # 1.7 今日創業框架
+    print("\n[創業框架] 選出今日框架...")
+    today_framework = get_today_framework()
+    if today_framework:
+        print(f"  今日框架：{today_framework.get('name', '')} ({today_framework.get('id', '')})")
+        framework_applicability = generate_framework_applicability(today_framework, market_data)
+        today_framework["today_applicability"] = framework_applicability
+        print(f"  今日行動：{framework_applicability.get('key_action', '—')}")
+    else:
+        today_framework = {}
+        print("  ✗ 今日創業框架讀取失敗")
+
     # 2. AI 處理
     print("\n[2/4] Processing with Claude...")
     data = process_news(raw_news, market_data, today_earnings, moneydj_news, deep_dive_news, move_index_raw=move_index_raw)
@@ -95,7 +108,7 @@ def main() -> None:
 
     # 3. 生成多頁 HTML + Email 用單頁
     print("\n[3/4] Building HTML pages...")
-    pages = build_all_pages(data, screener_result=screener_result, today_system=today_system)
+    pages = build_all_pages(data, screener_result=screener_result, today_system=today_system, today_framework=today_framework)
     total_size = sum(len(h) for h in pages.values())
     print(f"      {len(pages)} pages, total {total_size:,} chars")
 
