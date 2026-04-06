@@ -1,8 +1,7 @@
 import os
 import requests
 import sys
-from datetime import datetime
-import pytz
+from datetime import datetime, timezone, timedelta
 
 def trigger_workflow(workflow_filename: str) -> bool:
     token = os.environ["GH_PAT"]
@@ -29,7 +28,7 @@ def trigger_workflow(workflow_filename: str) -> bool:
         return False
 
 if __name__ == "__main__":
-    tz = pytz.timezone("Asia/Taipei")
+    tz = timezone(timedelta(hours=8))  # Asia/Taipei = UTC+8
     weekday = datetime.now(tz).weekday()  # 0=週一 6=週日
     if weekday == 6:  # 台灣週日不跑日報
         print("✗ 台灣週日，跳過日報")
