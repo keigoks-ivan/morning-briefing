@@ -2311,6 +2311,14 @@ def _sector_ranking(sector_ranking: list) -> str:
         vs_str = f"+{vs_bm:.1f}%" if vs_bm > 0 else f"{vs_bm:.1f}%"
         vs_color = "#0F6E56" if vs_bm > 0 else "#C0392B"
 
+        pe = item.get("pe")
+        pe_str = f"{pe:.1f}" if pe else "—"
+        div_y = item.get("div_yield")
+        div_str = f"{div_y:.2f}%" if div_y else "—"
+        beta = item.get("beta")
+        beta_str = f"{beta:.2f}" if beta else "—"
+        beta_color = "#C0392B" if beta and beta > 1.2 else ("#0F6E56" if beta and beta < 0.8 else "#666")
+
         rows += f"""
         <tr>
           <td style="text-align:center;padding:5px 6px;font-size:12px;color:#888;">{item.get('rank','')}</td>
@@ -2318,10 +2326,10 @@ def _sector_ranking(sector_ranking: list) -> str:
           <td style="text-align:center;padding:5px 6px;font-size:12px;color:#999;">{item.get('ticker','')}</td>
           <td style="text-align:center;padding:5px 6px;font-size:13px;font-weight:500;color:{rs_color};">{rs:.0f}</td>
           <td style="text-align:center;padding:5px 6px;font-size:12px;color:{trend_color};">{trend}</td>
-          <td style="text-align:center;padding:5px 6px;font-size:12px;">{item.get('rs_1w',0):.0f}</td>
-          <td style="text-align:center;padding:5px 6px;font-size:12px;">{item.get('rs_4w',0):.0f}</td>
-          <td style="text-align:center;padding:5px 6px;font-size:12px;">{item.get('rs_13w',0):.0f}</td>
           <td style="text-align:center;padding:5px 6px;font-size:12px;color:{vs_color};">{vs_str}</td>
+          <td style="text-align:center;padding:5px 6px;font-size:12px;">{pe_str}</td>
+          <td style="text-align:center;padding:5px 6px;font-size:12px;">{div_str}</td>
+          <td style="text-align:center;padding:5px 6px;font-size:12px;color:{beta_color};">{beta_str}</td>
         </tr>"""
 
     return f"""
@@ -2338,10 +2346,10 @@ def _sector_ranking(sector_ranking: list) -> str:
           <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">Ticker</th>
           <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">RS</th>
           <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">Trend</th>
-          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">1w</th>
-          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">4w</th>
-          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">13w</th>
           <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">vs SPY</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">PE</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">殖利率</th>
+          <th style="padding:7px;font-size:10px;color:#fff;font-weight:500;text-align:center;">Beta</th>
         </tr>
         {rows}
       </table>

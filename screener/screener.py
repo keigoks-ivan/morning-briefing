@@ -1042,9 +1042,25 @@ def calc_rs_ranking(tickers_dict: dict, benchmark_ticker: str, period: str = "30
     return results
 
 
+def _fetch_etf_fundamentals(results: list[dict]) -> None:
+    """為 ETF 結果加入 PE、殖利率、Beta"""
+    for item in results:
+        ticker = item.get("ticker", "")
+        try:
+            info = yf.Ticker(ticker).info
+            item["pe"] = round(info["trailingPE"], 1) if info.get("trailingPE") else None
+            item["div_yield"] = round(info["dividendYield"], 2) if info.get("dividendYield") else None
+            item["beta"] = round(info["beta3Year"], 2) if info.get("beta3Year") else None
+        except Exception:
+            item["pe"] = item["div_yield"] = item["beta"] = None
+
+
 def run_sector_screener() -> list[dict]:
     print("  [Sector] 計算美股類股 RS 排名...")
-    return calc_rs_ranking(US_SECTORS, US_SECTOR_BENCHMARK)
+    results = calc_rs_ranking(US_SECTORS, US_SECTOR_BENCHMARK)
+    print("  [Sector] 查詢 ETF 基本面 (PE/Yield/Beta)...")
+    _fetch_etf_fundamentals(results)
+    return results
 
 
 def run_global_screener() -> list[dict]:
