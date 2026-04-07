@@ -7,7 +7,8 @@ Claude API（分析區塊）+ Gemini API（新聞區塊）並行生成結構化 
 import os
 import json
 import anthropic
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
@@ -661,11 +662,7 @@ def _call_gemini(news_text: str, earnings_context: str) -> dict:
         print("  ⚠ GEMINI_API_KEY not set, skipping Gemini call")
         return {}
 
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(
-        "gemini-2.0-flash",
-        system_instruction=GEMINI_SYSTEM_PROMPT,
-    )
+    client = genai.Client(api_key=api_key)
 
     user_prompt = GEMINI_USER_PROMPT_TEMPLATE.format(
         news_text=news_text,
@@ -673,9 +670,11 @@ def _call_gemini(news_text: str, earnings_context: str) -> dict:
     )
 
     print("  → [Gemini] Calling API (news sections)...")
-    response = model.generate_content(
-        user_prompt,
-        generation_config=genai.GenerationConfig(
+    response = client.models.generate_content(
+        model="gemini-2.5-flash-preview-04-17",
+        contents=user_prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=GEMINI_SYSTEM_PROMPT,
             max_output_tokens=16000,
             temperature=0.3,
         ),
@@ -686,8 +685,8 @@ def _call_gemini(news_text: str, earnings_context: str) -> dict:
     usage = response.usage_metadata
     in_tok = usage.prompt_token_count
     out_tok = usage.candidates_token_count
-    # Gemini Flash 2.0: input $0.10/MTok, output $0.40/MTok
-    cost = in_tok / 1_000_000 * 0.10 + out_tok / 1_000_000 * 0.40
+    # Gemini 2.5 Flash Preview: input $0.15/MTok, output $0.60/MTok (thinking off)
+    cost = in_tok / 1_000_000 * 0.15 + out_tok / 1_000_000 * 0.60
     print(f"  → [Gemini] tokens: in={in_tok:,} out={out_tok:,} cost=${cost:.4f}")
 
     with open("/tmp/gemini_raw.txt", "w") as f:
