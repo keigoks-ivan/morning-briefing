@@ -213,12 +213,23 @@ GEMINI_USER_PROMPT_TEMPLATE = """
   }}}}
 }}}}
 
-注意：
-1. top_stories 15 條，macro 4-6 條，ai_industry 4-6 條，regional_tech 每地區 2-3 條
-2. fintech_crypto 3-5 條，geopolitical 3-5 條，startup_news 4-5 條，world_news 固定 3 條
-3. earnings_preview 只輸出今日尚未公布的，us_market_recap 只輸出已公布的，嚴格互斥
-4. today_events 只輸出未來24小時真實行程
-5. 再次提醒：全部使用繁體中文，發現任何簡體字請立即修正為繁體
+【最低數量要求 — 每個區塊必須達到以下數量，不得少於最低值】
+- top_stories：必須 15 條（這是最重要的區塊，不可少於 15 條）
+- macro：必須 4-6 條
+- ai_industry：必須 4-6 條
+- regional_tech：每個地區必須 2-3 條（共7個地區）
+- fintech_crypto：必須 3-5 條
+- geopolitical：必須 3-5 條
+- startup_news：必須 4-5 條
+- world_news：必須 3 條
+- today_events：2-5 個真實行程
+- fun_fact：必須有 title + content + connection
+
+如果某個區塊條目數低於最低值，你的輸出就是失敗的。請確保每個區塊都達到要求。
+
+其他規則：
+- earnings_preview 只輸出今日尚未公布的，us_market_recap 只輸出已公布的，嚴格互斥
+- 全部使用繁體中文，發現任何簡體字請立即修正為繁體
 """
 
 # ═══════════════════════════════════════════════════════════════
