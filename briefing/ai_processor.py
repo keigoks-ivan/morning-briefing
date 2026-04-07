@@ -684,6 +684,17 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
     ) as stream:
         for text in stream.text_stream:
             full_text += text
+        final_msg = stream.get_final_message()
+
+    # Token usage & cost log
+    usage = final_msg.usage
+    input_tok = usage.input_tokens
+    output_tok = usage.output_tokens
+    cost_input = input_tok / 1_000_000 * 3
+    cost_output = output_tok / 1_000_000 * 15
+    cost_total = cost_input + cost_output
+    print(f"  → Token usage: input={input_tok:,} output={output_tok:,} total={input_tok+output_tok:,}")
+    print(f"  → Cost: input=${cost_input:.4f} + output=${cost_output:.4f} = ${cost_total:.4f}")
 
     raw_text = full_text.strip()
 
