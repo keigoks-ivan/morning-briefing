@@ -169,9 +169,9 @@ def main():
     with open(output_path, "rb") as f:
         excel_b64 = base64.b64encode(f.read()).decode()
 
-    # 查詢 Top 30 基本面數據
+    # 查詢 Top 30 基本面數據（美股）
     top30_tickers = df.head(30)["Ticker"].tolist()
-    print("\n[基本面] 查詢 Top 30 基本面數據...")
+    print("\n[基本面] 查詢美股 Top 30 基本面數據...")
     fundamentals = fetch_fundamentals(top30_tickers)
 
     # 儲存結果供日報使用（合併基本面數據）
@@ -179,6 +179,15 @@ def main():
     for item in top30:
         fund = fundamentals.get(item["Ticker"], {})
         item.update(fund)
+
+    # 查詢 Top 30 基本面數據（台股）
+    if tw_top30:
+        tw_top30_tickers = [item["Ticker"] for item in tw_top30]
+        print("\n[基本面] 查詢台股 Top 30 基本面數據...")
+        tw_fundamentals = fetch_fundamentals(tw_top30_tickers)
+        for item in tw_top30:
+            fund = tw_fundamentals.get(item["Ticker"], {})
+            item.update(fund)
 
     result = {
         "date": today,

@@ -2433,11 +2433,29 @@ def _tw_screener_top30(screener_result: dict) -> str:
         # ETF 標籤顏色
         etf_color = {"0050": "#C0392B", "0051": "#185FA5", "富櫃50": "#0F6E56"}.get(etf, "#888")
 
+        # 基本面小字
+        tw_fund_parts = []
+        tw_eps_cagr = item.get("eps_cagr_2y")
+        tw_fcf_m = item.get("fcf_margin")
+        tw_roic_val = item.get("roic")
+        tw_roic_src = item.get("roic_source", "")
+        if tw_eps_cagr is not None:
+            fc = "#0F6E56" if tw_eps_cagr >= 15 else ("#BA7517" if tw_eps_cagr >= 5 else "#C0392B")
+            tw_fund_parts.append(f'<span style="color:{fc};font-weight:500;">EPS 2Y {tw_eps_cagr:+.1f}%</span>')
+        if tw_fcf_m is not None:
+            fc = "#0F6E56" if tw_fcf_m >= 10 else ("#BA7517" if tw_fcf_m >= 5 else "#C0392B")
+            tw_fund_parts.append(f'<span style="color:{fc};font-weight:500;">FCF {tw_fcf_m:.1f}%</span>')
+        if tw_roic_val is not None:
+            fc = "#0F6E56" if tw_roic_val >= 15 else ("#BA7517" if tw_roic_val >= 5 else "#C0392B")
+            tw_fund_parts.append(f'<span style="color:{fc};font-weight:500;">{tw_roic_src} {tw_roic_val:.1f}%</span>')
+        tw_fund_html = ' <span style="color:#ccc;">·</span> '.join(tw_fund_parts)
+        tw_fund_line = f'<div style="font-size:11px;margin-top:3px;line-height:1.5;">{tw_fund_html}</div>' if tw_fund_html else ""
+
         rows += f"""
         <tr>
           <td style="text-align:center;padding:6px 8px;font-size:12px;color:#888;">{item.get('Rank','')}</td>
           <td style="text-align:center;padding:6px 4px;">{rank_change_html}</td>
-          <td style="padding:6px 8px;font-size:13px;font-weight:500;color:#1B3A5C;">{name}<br><span style="font-size:10px;color:#AAA;font-weight:400;">{item.get('Ticker','')}</span></td>
+          <td style="padding:6px 8px;font-size:13px;font-weight:500;color:#1B3A5C;">{name}<br><span style="font-size:10px;color:#AAA;font-weight:400;">{item.get('Ticker','')}</span>{tw_fund_line}</td>
           <td style="text-align:center;padding:6px 4px;"><span style="font-size:9px;color:{etf_color};border:0.5px solid {etf_color};padding:1px 3px;border-radius:2px;">{etf}</span></td>
           <td style="text-align:center;padding:6px 8px;font-size:13px;font-weight:500;color:{rs_color};">{rs:.0f}</td>
           <td style="text-align:center;padding:6px 8px;font-size:13px;color:#534AB7;">{con:.0f}</td>
