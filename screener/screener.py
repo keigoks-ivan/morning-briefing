@@ -685,13 +685,30 @@ def fetch_fundamentals(tickers: list) -> dict:
             rev = info.get("totalRevenue")
             fcf_margin = round(fcf / rev * 100, 1) if fcf and rev and rev > 0 else None
 
-            roe = info.get("returnOnEquity")
-            roa = info.get("returnOnAssets")
-            roic_approx, roic_source = None, None
-            if roe is not None:
-                roic_approx, roic_source = round(roe * 100, 1), "ROE"
-            elif roa is not None:
-                roic_approx, roic_source = round(roa * 100, 1), "ROA"
+            # ROIC = NOPAT / Invested Capital
+            roic_val, roic_source = None, None
+            op_income = info.get("operatingIncome")
+            total_debt = info.get("totalDebt", 0) or 0
+            total_equity = info.get("totalStockholderEquity", 0) or 0
+            cash = info.get("cash", 0) or info.get("totalCash", 0) or 0
+            tax_rate = info.get("effectiveTaxRate")
+
+            if op_income is not None and (total_debt + total_equity) > 0:
+                effective_tax = tax_rate if tax_rate is not None else 0.21
+                nopat = op_income * (1 - effective_tax)
+                invested_capital = total_equity + total_debt - cash
+                if invested_capital > 0:
+                    roic_val = round(nopat / invested_capital * 100, 1)
+                    roic_source = "ROIC"
+
+            # Fallback: ROE → ROA
+            if roic_val is None:
+                roe = info.get("returnOnEquity")
+                roa = info.get("returnOnAssets")
+                if roe is not None:
+                    roic_val, roic_source = round(roe * 100, 1), "ROE"
+                elif roa is not None:
+                    roic_val, roic_source = round(roa * 100, 1), "ROA"
 
             op_margin = info.get("operatingMargins")
             op_margin_pct = round(op_margin * 100, 1) if op_margin is not None else None
@@ -708,13 +725,13 @@ def fetch_fundamentals(tickers: list) -> dict:
                 "eps_next_yr": eps_next_yr,
                 "eps_cagr_2y": eps_cagr_2y,
                 "fcf_margin": fcf_margin,
-                "roic": roic_approx,
+                "roic": roic_val,
                 "roic_source": roic_source,
                 "op_margin": op_margin_pct,
                 "gross_margin": gross_margin_pct,
                 "rev_growth": rev_growth_pct,
             }
-            print(f"    ✓ {ticker}: EPS CAGR 2Y={eps_cagr_2y}% FCF={fcf_margin}% ROIC={roic_approx}%")
+            print(f"    ✓ {ticker}: EPS CAGR 2Y={eps_cagr_2y}% FCF={fcf_margin}% {roic_source}={roic_val}%")
 
         except Exception as e:
             print(f"    ✗ {ticker}: {e}")
