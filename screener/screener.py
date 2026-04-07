@@ -732,21 +732,23 @@ def fetch_fundamentals(tickers: list) -> dict:
             rev = info.get("totalRevenue")
             fcf_margin = round(fcf / rev * 100, 1) if fcf and rev and rev > 0 else None
 
-            # ROIC = NOPAT / Invested Capital
+            # ROIC = NOPAT / Invested Capital（從財報取，.info 已無這些欄位）
             roic_val, roic_source = None, None
-            op_income = info.get("operatingIncome")
-            total_debt = info.get("totalDebt", 0) or 0
-            total_equity = info.get("totalStockholderEquity", 0) or 0
-            cash = info.get("cash", 0) or info.get("totalCash", 0) or 0
-            tax_rate = info.get("effectiveTaxRate")
+            try:
+                inc = t.income_stmt
+                bs = t.balance_sheet
+                if not inc.empty and not bs.empty:
+                    op_income = float(inc.loc["Operating Income"].iloc[0]) if "Operating Income" in inc.index else None
+                    invested_cap = float(bs.loc["Invested Capital"].iloc[0]) if "Invested Capital" in bs.index else None
+                    tax_row = inc.loc["Tax Rate For Calcs"].iloc[0] if "Tax Rate For Calcs" in inc.index else None
+                    effective_tax = float(tax_row) if tax_row is not None else 0.21
 
-            if op_income is not None and (total_debt + total_equity) > 0:
-                effective_tax = tax_rate if tax_rate is not None else 0.21
-                nopat = op_income * (1 - effective_tax)
-                invested_capital = total_equity + total_debt - cash
-                if invested_capital > 0:
-                    roic_val = round(nopat / invested_capital * 100, 1)
-                    roic_source = "ROIC"
+                    if op_income is not None and invested_cap and invested_cap > 0:
+                        nopat = op_income * (1 - effective_tax)
+                        roic_val = round(nopat / invested_cap * 100, 1)
+                        roic_source = "ROIC"
+            except Exception:
+                pass
 
             # Fallback: ROE → ROA
             if roic_val is None:
