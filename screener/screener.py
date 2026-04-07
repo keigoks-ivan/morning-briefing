@@ -231,8 +231,42 @@ def fetch_data(tickers: list[str], period: str = "300d") -> dict:
         print(f"  ✗ 下載失敗: {e}")
         return {}
 
+def _load_prev_rs() -> dict:
+    """讀取前一天的平滑 RS 數據，供 EMA 使用"""
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    history_dir = os.path.join(repo_root, "docs", "screener", "history")
+
+    tz = pytz.timezone("Asia/Taipei")
+    today = datetime.now(tz).strftime("%Y-%m-%d")
+
+    history_files = sorted(glob_mod.glob(os.path.join(history_dir, "*.json")))
+    history_files = [f for f in history_files if today not in f]
+
+    if not history_files:
+        return {}
+
+    try:
+        with open(history_files[-1]) as f:
+            prev = json.load(f)
+        return {
+            item["Ticker"]: {
+                "rs_1w": item.get("rs_1w"),
+                "rs_4w": item.get("rs_4w"),
+                "rs_13w": item.get("rs_13w"),
+            }
+            for item in prev.get("data", [])
+            if item.get("rs_1w") is not None
+        }
+    except Exception:
+        return {}
+
+
+# EMA 平滑係數：today_smooth = prev_smooth × (1 - α) + today_raw × α
+RS_EMA_ALPHA = 0.2
+
+
 def calc_rs_score(data: dict, tickers: list[str]) -> dict:
-    """計算 RS Persistence Score：三時間維度加權 + 趨勢加分"""
+    """計算 RS Persistence Score：三時間維度加權 + 趨勢加分 + EMA 平滑"""
     closes = data.get("Close", pd.DataFrame())
     if closes.empty or BENCHMARK not in closes.columns:
         return {}
@@ -268,26 +302,39 @@ def calc_rs_score(data: dict, tickers: list[str]) -> dict:
         vals = list(all_vals.values())
         return sum(1 for v in vals if v <= val) / len(vals) * 100 if vals else 50
 
+    # 讀取前一天的平滑值
+    prev_rs = _load_prev_rs()
+    alpha = RS_EMA_ALPHA
+
     results = {}
     for ticker in tickers:
-        rs_scores = {}
+        rs_raw = {}
         for period in ["1w", "4w", "13w"]:
             if ticker in all_returns[period]:
-                rs_scores[period] = round(percentile_rank(
+                rs_raw[period] = round(percentile_rank(
                     all_returns[period][ticker], all_returns[period]
                 ), 1)
 
-        if "13w" not in rs_scores:
+        if "13w" not in rs_raw:
             continue
 
-        # RS Persistence Score（加權平均）
-        rs_1w  = rs_scores.get("1w",  rs_scores["13w"])
-        rs_4w  = rs_scores.get("4w",  rs_scores["13w"])
-        rs_13w = rs_scores["13w"]
+        raw_1w  = rs_raw.get("1w",  rs_raw["13w"])
+        raw_4w  = rs_raw.get("4w",  rs_raw["13w"])
+        raw_13w = rs_raw["13w"]
 
+        # EMA 平滑：有前一天數據就做衰減，沒有就用原始值
+        prev = prev_rs.get(ticker)
+        if prev and prev.get("rs_1w") is not None:
+            rs_1w  = round(prev["rs_1w"]  * (1 - alpha) + raw_1w  * alpha, 1)
+            rs_4w  = round(prev["rs_4w"]  * (1 - alpha) + raw_4w  * alpha, 1)
+            rs_13w = round(prev["rs_13w"] * (1 - alpha) + raw_13w * alpha, 1)
+        else:
+            rs_1w, rs_4w, rs_13w = raw_1w, raw_4w, raw_13w
+
+        # RS Persistence Score（加權平均）
         persistence = rs_1w * 0.2 + rs_4w * 0.3 + rs_13w * 0.5
 
-        # RS 趨勢方向
+        # RS 趨勢方向（用平滑後的值判斷）
         if rs_1w > rs_4w > rs_13w:
             rs_trend = "加速上升"
             trend_bonus = 5

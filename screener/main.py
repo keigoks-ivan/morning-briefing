@@ -24,7 +24,8 @@ def publish_to_github_pages(df, today: str):
     os.makedirs(history_dir, exist_ok=True)
 
     # 1. 儲存今日 JSON（全部排名，供歷史比較用）
-    all_records = df[["Rank", "Ticker", "Sector", "RS_Score", "rs_trend", "Contraction_Score",
+    all_records = df[["Rank", "Ticker", "Sector", "RS_Score", "rs_1w", "rs_4w", "rs_13w",
+                       "rs_trend", "Contraction_Score",
                        "Combined_Score", "Price", "vs_200MA_pct",
                        "Rank_Change", "Rank_Change_Str"]].to_dict(orient="records")
 

@@ -275,6 +275,13 @@ def run_tw_screener() -> tuple:
     if "13w" not in bm_ret:
         return pd.DataFrame(), {}
 
+    # 準備歷史目錄（EMA + 排名變化都需要）
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    history_dir = os.path.join(repo_root, "docs", "screener", "tw_history")
+    os.makedirs(history_dir, exist_ok=True)
+    history_files = sorted(glob.glob(os.path.join(history_dir, "*.json")))
+    history_files = [f for f in history_files if today not in f]
+
     all_returns = {"1w": {}, "4w": {}, "13w": {}}
     for ticker in WATCHLIST:
         if ticker not in closes.columns:
@@ -288,14 +295,40 @@ def run_tw_screener() -> tuple:
         vals = list(all_vals.values())
         return round(sum(1 for v in vals if v <= val) / len(vals) * 100, 1) if vals else 50
 
+    # 讀取前一天平滑值（EMA）
+    prev_rs = {}
+    if history_files:
+        try:
+            with open(history_files[-1]) as _f:
+                _prev = json.load(_f)
+            prev_rs = {
+                item["Ticker"]: {"rs_1w": item.get("rs_1w"), "rs_4w": item.get("rs_4w"), "rs_13w": item.get("rs_13w")}
+                for item in _prev.get("data", [])
+                if item.get("rs_1w") is not None
+            }
+        except Exception:
+            pass
+
+    alpha = 0.2  # EMA 平滑係數
+
     rows = []
     for ticker in WATCHLIST:
         if ticker not in all_returns.get("13w", {}):
             continue
 
-        rs_1w = pct_rank(all_returns["1w"].get(ticker, 0), all_returns["1w"])
-        rs_4w = pct_rank(all_returns["4w"].get(ticker, 0), all_returns["4w"])
-        rs_13w = pct_rank(all_returns["13w"][ticker], all_returns["13w"])
+        raw_1w = pct_rank(all_returns["1w"].get(ticker, 0), all_returns["1w"])
+        raw_4w = pct_rank(all_returns["4w"].get(ticker, 0), all_returns["4w"])
+        raw_13w = pct_rank(all_returns["13w"][ticker], all_returns["13w"])
+
+        # EMA 平滑
+        prev = prev_rs.get(ticker)
+        if prev and prev.get("rs_1w") is not None:
+            rs_1w  = round(prev["rs_1w"]  * (1 - alpha) + raw_1w  * alpha, 1)
+            rs_4w  = round(prev["rs_4w"]  * (1 - alpha) + raw_4w  * alpha, 1)
+            rs_13w = round(prev["rs_13w"] * (1 - alpha) + raw_13w * alpha, 1)
+        else:
+            rs_1w, rs_4w, rs_13w = raw_1w, raw_4w, raw_13w
+
         persistence = rs_1w * 0.2 + rs_4w * 0.3 + rs_13w * 0.5
 
         if rs_1w > rs_4w > rs_13w:
@@ -370,13 +403,7 @@ def run_tw_screener() -> tuple:
     df = df.sort_values("Combined_Score", ascending=False).reset_index(drop=True)
     df.insert(0, "Rank", range(1, len(df) + 1))
 
-    # 排名變化
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    history_dir = os.path.join(repo_root, "docs", "screener", "tw_history")
-    os.makedirs(history_dir, exist_ok=True)
-    history_files = sorted(glob.glob(os.path.join(history_dir, "*.json")))
-    history_files = [f for f in history_files if today not in f]
-
+    # 排名變化（history_dir/history_files 已在上方準備好）
     if history_files:
         try:
             with open(history_files[-1]) as f:
@@ -406,8 +433,8 @@ def run_tw_screener() -> tuple:
 
     # 發布 history
     screener_dir = os.path.join(repo_root, "docs", "screener")
-    all_records = df[["Rank", "Ticker", "Name", "ETF", "RS_Score", "rs_trend",
-                       "Contraction_Score", "Combined_Score", "Price", "vs_200MA_pct"]].to_dict(orient="records")
+    all_records = df[["Rank", "Ticker", "Name", "ETF", "RS_Score", "rs_1w", "rs_4w", "rs_13w",
+                       "rs_trend", "Contraction_Score", "Combined_Score", "Price", "vs_200MA_pct"]].to_dict(orient="records")
     with open(os.path.join(history_dir, f"{today}.json"), "w", encoding="utf-8") as f:
         json.dump({"date": today, "total": len(df), "data": all_records}, f, ensure_ascii=False)
     with open(os.path.join(screener_dir, "tw_latest.json"), "w", encoding="utf-8") as f:
