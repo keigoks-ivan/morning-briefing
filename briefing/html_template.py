@@ -2249,7 +2249,7 @@ def build_misc_html(data: dict, today_system: dict = None) -> str:
     content += _fun_fact(data.get("fun_fact", {}))
     content += _today_events(data.get("today_events", []))
     content += _trading_system_card(today_system or {})
-    return _page_wrapper("misc", date, content, "財報")
+    return _page_wrapper("misc", date, content, "財報・冷知識")
 
 
 def _sector_ranking(sector_ranking: list) -> str:
