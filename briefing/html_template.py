@@ -2100,6 +2100,32 @@ def build_startup_html(data: dict, today_framework: dict = None) -> str:
     return _page_wrapper("startup", date, content, "創業")
 
 
+def _trading_timeline_html(timeline: list) -> str:
+    """交易系統歷史演變時間線"""
+    if not timeline:
+        return ""
+    status_colors = {
+        "黃金時代": ("#0F6E56", "#E1F5EE"),
+        "效果衰減": ("#BA7517", "#FFF8EE"),
+        "結構性機會": ("#185FA5", "#E6F1FB"),
+        "量化寬鬆的挑戰": ("#C0392B", "#FCEBEB"),
+        "部分復活": ("#0F6E56", "#E1F5EE"),
+    }
+    rows = ""
+    for t in timeline:
+        color, bg = status_colors.get(t.get("status", ""), ("#888", "#F5F5F5"))
+        rows += f"""
+        <div style="display:flex;gap:12px;margin-bottom:8px;">
+          <div style="width:90px;flex-shrink:0;font-size:11px;font-weight:500;color:#666;padding-top:2px;">{t.get('period','')}</div>
+          <div style="width:3px;background:{color};border-radius:2px;flex-shrink:0;"></div>
+          <div style="flex:1;">
+            <div style="font-size:11px;font-weight:600;color:{color};margin-bottom:2px;">{t.get('status','')}</div>
+            <div style="font-size:12px;line-height:1.65;color:#666;">{t.get('description','')}</div>
+          </div>
+        </div>"""
+    return rows
+
+
 def _trading_system_card(system: dict) -> str:
     if not system:
         return ""
@@ -2118,21 +2144,9 @@ def _trading_system_card(system: dict) -> str:
     contradiction = system.get("internal_contradiction", "")
     modern = system.get("modern_applicability", {})
     psychology = system.get("psychology", "")
-    applicability = system.get("today_applicability", {})
-
-    verdict = applicability.get("verdict", "— 暫無評估")
-    verdict_reason = applicability.get("verdict_reason", "")
-    analysis = applicability.get("analysis", "")
-    key_metrics = applicability.get("key_metrics", "")
-
-    if "✓" in verdict:
-        verdict_color, verdict_bg, verdict_border = "#0F6E56", "#E1F5EE", "#0F6E56"
-    elif "⚠" in verdict:
-        verdict_color, verdict_bg, verdict_border = "#BA7517", "#FAEEDA", "#BA7517"
-    elif "✕" in verdict:
-        verdict_color, verdict_bg, verdict_border = "#C0392B", "#FCEBEB", "#C0392B"
-    else:
-        verdict_color, verdict_bg, verdict_border = "#888", "#F5F5F5", "#888"
+    suitable = system.get("suitable_markets", [])
+    unsuitable = system.get("unsuitable_markets", [])
+    timeframes = system.get("timeframes", [])
 
     risk_html = ""
     risk_colors = {"極高": "#C0392B", "高": "#C0392B", "中": "#BA7517", "低": "#0F6E56"}
@@ -2217,22 +2231,43 @@ def _trading_system_card(system: dict) -> str:
           </div>
 
           <div style="margin-bottom:20px;">
-            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">現代市場適用性（2026年版本建議）</div>
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">歷史演變時間線</div>
+            {_trading_timeline_html(modern.get('timeline', []))}
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">2026 年仍然有效 vs 已經失效</div>
+            <div style="display:flex;gap:12px;margin-bottom:8px;">
+              <div style="flex:1;background:#E1F5EE;border-radius:8px;padding:10px 14px;">
+                <div style="font-size:10px;color:#0F6E56;font-weight:600;margin-bottom:6px;">✓ 仍然有效</div>
+                <div style="font-size:12px;line-height:1.75;color:#0B5E46;">{modern.get('still_effective','')}</div>
+              </div>
+              <div style="flex:1;background:#FCEBEB;border-radius:8px;padding:10px 14px;">
+                <div style="font-size:10px;color:#C0392B;font-weight:600;margin-bottom:6px;">✕ 已經失效</div>
+                <div style="font-size:12px;line-height:1.75;color:#791F1F;">{modern.get('no_longer_effective','')}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">2026 年版本建議</div>
             <div style="background:#E6F1FB;border-left:3px solid #185FA5;border-radius:0 6px 6px 0;padding:10px 14px;font-size:13px;line-height:1.75;color:#0C447C;">{modern.get('recommendation_2026','')}</div>
           </div>
 
           <div style="margin-bottom:20px;">
-            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">心理特質要求</div>
-            <div style="font-size:13px;line-height:1.85;color:#888;">{psychology}</div>
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">適用 vs 不適用</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+              {' '.join(f'<span style="font-size:11px;background:#E1F5EE;color:#0F6E56;padding:3px 8px;border-radius:4px;">✓ {m}</span>' for m in suitable)}
+              {' '.join(f'<span style="font-size:11px;background:#FCEBEB;color:#C0392B;padding:3px 8px;border-radius:4px;">✕ {m}</span>' for m in unsuitable)}
+            </div>
+            <div style="display:flex;gap:6px;margin-top:6px;">
+              {' '.join(f'<span style="font-size:10px;background:#F0F0F0;color:#666;padding:2px 6px;border-radius:3px;">⏱ {t}</span>' for t in timeframes)}
+            </div>
           </div>
 
           <div>
-            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">今日市場適用性</div>
-            <div style="background:{verdict_bg};border-left:3px solid {verdict_border};border-radius:0 6px 6px 0;padding:12px 16px;">
-              <div style="font-size:13px;font-weight:500;color:{verdict_color};margin-bottom:4px;">{verdict} · {verdict_reason}</div>
-              <div style="font-size:13px;color:{verdict_color};line-height:1.75;margin-bottom:6px;">{analysis}</div>
-              <div style="font-size:11px;color:{verdict_color};opacity:0.8;">監控指標：{key_metrics}</div>
-            </div>
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">心理特質要求</div>
+            <div style="font-size:13px;line-height:1.85;color:#888;">{psychology}</div>
           </div>
 
         </div>
