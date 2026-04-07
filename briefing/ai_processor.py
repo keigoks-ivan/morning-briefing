@@ -695,8 +695,9 @@ def _call_gemini(news_text: str, earnings_context: str) -> dict:
         config=types.GenerateContentConfig(
             system_instruction=GEMINI_SYSTEM_PROMPT,
             max_output_tokens=16000,
-            temperature=0.3,
+            temperature=0.5,
             response_mime_type="application/json",
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
         ),
     )
 
