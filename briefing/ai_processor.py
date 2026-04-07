@@ -671,7 +671,7 @@ def _call_gemini(news_text: str, earnings_context: str) -> dict:
 
     print("  → [Gemini] Calling API (news sections)...")
     response = client.models.generate_content(
-        model="gemini-2.5-flash-preview-04-17",
+        model="gemini-2.5-flash",
         contents=user_prompt,
         config=types.GenerateContentConfig(
             system_instruction=GEMINI_SYSTEM_PROMPT,
