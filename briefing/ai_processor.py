@@ -604,7 +604,8 @@ def _build_market_context(market_data: dict, today_earnings: list | None, move_i
 
 
 def _parse_json(raw_text: str) -> dict:
-    """從 API 回應文字中解析 JSON"""
+    """從 API 回應文字中解析 JSON，含自動修復"""
+    import re
     text = raw_text.strip()
     if text.startswith("```"):
         text = text.split("\n", 1)[1]
@@ -613,6 +614,24 @@ def _parse_json(raw_text: str) -> dict:
     end = text.rfind("}") + 1
     if start != -1 and end > start:
         text = text[start:end]
+
+    # 第一次嘗試直接解析
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # 修復常見 JSON 問題
+    # 1. 移除 trailing commas（}, ] 前的逗號）
+    text = re.sub(r',\s*([}\]])', r'\1', text)
+    # 2. 修復缺少逗號：}\n{ 或 ]\n[ 或 "\n"
+    text = re.sub(r'"\s*\n\s*"', '",\n"', text)
+    text = re.sub(r'}\s*\n\s*{', '},\n{', text)
+    text = re.sub(r']\s*\n\s*\[', '],\n[', text)
+    # 3. 修復 }\n" 缺少逗號
+    text = re.sub(r'}\s*\n\s*"', '},\n"', text)
+    text = re.sub(r']\s*\n\s*"', '],\n"', text)
+
     return json.loads(text)
 
 
@@ -677,6 +696,7 @@ def _call_gemini(news_text: str, earnings_context: str) -> dict:
             system_instruction=GEMINI_SYSTEM_PROMPT,
             max_output_tokens=16000,
             temperature=0.3,
+            response_mime_type="application/json",
         ),
     )
 
