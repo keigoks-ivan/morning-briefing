@@ -30,7 +30,7 @@ from ai_processor import process_news
 from html_template import build_html, build_all_pages
 from email_sender import send_email
 from trading_system_of_day import get_today_system
-from startup_framework_of_day import get_today_framework, generate_framework_applicability
+from startup_framework_of_day import get_today_framework
 
 
 def main() -> None:
@@ -88,9 +88,6 @@ def main() -> None:
     today_framework = get_today_framework()
     if today_framework:
         print(f"  今日框架：{today_framework.get('name', '')} ({today_framework.get('id', '')})")
-        framework_applicability = generate_framework_applicability(today_framework, market_data)
-        today_framework["today_applicability"] = framework_applicability
-        print(f"  今日行動：{framework_applicability.get('key_action', '—')}")
     else:
         today_framework = {}
         print("  ✗ 今日創業框架讀取失敗")

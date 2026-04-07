@@ -2010,14 +2010,9 @@ def _startup_framework_card(framework: dict) -> str:
     practical = framework.get("practical_application", {})
     contradiction = framework.get("internal_contradiction", "")
     modern = framework.get("modern_applicability", {})
-    for_early = framework.get("for_early_stage", "")
     daily_app = framework.get("today_application", "")
-    applicability = framework.get("today_applicability", {})
 
     color = _FRAMEWORK_COLORS.get(category, "#1B3A5C")
-
-    app_text = applicability.get("application", daily_app)
-    key_action = applicability.get("key_action", "")
 
     # Key insights
     insights_html = ""
@@ -2072,18 +2067,30 @@ def _startup_framework_card(framework: dict) -> str:
           </div>
 
           <div style="margin-bottom:20px;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">仍然有效 vs 正在演化</div>
+            <table width="100%" style="border-collapse:separate;border-spacing:8px 0;">
+              <tr>
+                <td style="width:50%;vertical-align:top;background:#E1F5EE;border-radius:8px;padding:10px 14px;">
+                  <div style="font-size:10px;color:#0F6E56;font-weight:600;margin-bottom:6px;">✓ 仍然有效</div>
+                  <div style="font-size:12px;line-height:1.75;color:#0B5E46;">{modern.get('still_effective','')}</div>
+                </td>
+                <td style="width:50%;vertical-align:top;background:#FFF8EE;border-radius:8px;padding:10px 14px;">
+                  <div style="font-size:10px;color:#BA7517;font-weight:600;margin-bottom:6px;">⟳ 正在演化</div>
+                  <div style="font-size:12px;line-height:1.75;color:#7A4F10;">{modern.get('evolved','')}</div>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="margin-bottom:20px;">
             <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">2026 年版本建議</div>
             <div style="background:#E6F1FB;border-left:3px solid #185FA5;border-radius:0 6px 6px 0;padding:10px 14px;font-size:13px;line-height:1.75;color:#0C447C;">{modern.get('recommendation_2026','')}</div>
           </div>
 
           <div>
-            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">今日如何應用</div>
-            <div style="background:#E1F5EE;border-left:3px solid #0F6E56;border-radius:0 6px 6px 0;padding:12px 16px;margin-bottom:12px;">
-              <div style="font-size:13px;line-height:1.75;color:#0A5C42;">{app_text}</div>
-            </div>
-            <div style="background:#0F6E56;border-radius:8px;padding:14px 18px;text-align:center;">
-              <div style="font-size:10px;color:rgba(255,255,255,0.6);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">今日行動</div>
-              <div style="font-size:15px;font-weight:500;color:#fff;line-height:1.6;">{key_action}</div>
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E8E8E8;">如何應用這個框架</div>
+            <div style="background:#E1F5EE;border-left:3px solid #0F6E56;border-radius:0 6px 6px 0;padding:12px 16px;">
+              <div style="font-size:13px;line-height:1.75;color:#0A5C42;">{daily_app}</div>
             </div>
           </div>
 
