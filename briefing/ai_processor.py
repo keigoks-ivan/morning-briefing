@@ -36,14 +36,16 @@ GEMINI_SYSTEM_PROMPT = """
 4. 如果你不確定某個字是繁體還是簡體，使用台灣用語
 
 【去重規則】
-各新聞區塊之間嚴禁重複：
+去重只在「一般新聞區塊」之間生效：
+- top_stories → world_news → macro → geopolitical 這四個區塊之間互相去重
 - 同一家公司在同一天的同一件事 = 重複（即使措辭不同）
-- 同一個數據點 = 重複
-- 同一個地緣政治事件 = 重複
-- 按此優先順序填寫，後面的區塊不得重複前面已用過的內容：
-  top_stories → world_news → macro → geopolitical → ai_industry → regional_tech → fintech_crypto → startup_news → us_market_recap
 
-如果某個區塊找不到不重複的新內容，寧可輸出較少條目（最少1條），也不要重複。
+以下三個「專業區塊」有獨立配額，不受 top_stories 去重影響：
+- ai_industry：即使 top_stories 已有 AI 相關新聞，ai_industry 仍必須獨立輸出 4-6 條 AI 產業專屬新聞（模型發布、AI 投資、晶片進展、AI 基礎設施等）。角度不同不算重複：top_stories 是新聞事件角度，ai_industry 是產業趨勢角度。
+- fintech_crypto：即使其他區塊有加密相關新聞，仍必須獨立輸出 3-5 條
+- startup_news：即使其他區塊有新創相關新聞，仍必須獨立輸出 4-5 條
+
+regional_tech 也是獨立區塊，每個地區必須 2-3 條，不受 top_stories 去重影響。
 
 【來源黑名單（絕對不得使用）】
 YouTube、TikTok、Twitter/X、Reddit、Facebook、Instagram、個人部落格、Medium（個人文章）、Substack（非已知媒體）、PR Newswire、BusinessWire、GlobeNewswire、WilmerHale、InfoQ
