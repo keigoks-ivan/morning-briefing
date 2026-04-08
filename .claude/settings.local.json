@@ -32,7 +32,9 @@
       "Bash(done)",
       "Bash($GH api:*)",
       "Bash(sed -n '50,60p' /Users/ivanchang/Desktop/morning-briefing/morning-briefing/context.md)",
-      "Bash(sed -n '15,20p' /Users/ivanchang/Desktop/morning-briefing/morning-briefing/CHANGELOG.md)"
+      "Bash(sed -n '15,20p' /Users/ivanchang/Desktop/morning-briefing/morning-briefing/CHANGELOG.md)",
+      "Bash(gh run:*)",
+      "Bash(python3:*)"
     ]
   }
 }
