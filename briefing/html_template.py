@@ -72,7 +72,7 @@ REGION_COLOR = {
 
 BASE_CSS = """
 * { box-sizing:border-box; margin:0; padding:0; }
-body { font-family:Arial,sans-serif; max-width:720px; margin:0 auto;
+body { font-family:Arial,sans-serif; max-width:1140px; margin:0 auto;
        padding:24px 20px; color:#222; background:#fff; }
 .section { margin-bottom:28px; }
 .section-label { font-size:13px; letter-spacing:1.8px; text-transform:uppercase;
@@ -81,6 +81,11 @@ body { font-family:Arial,sans-serif; max-width:720px; margin:0 auto;
                  justify-content:space-between; align-items:center; }
 .importance-high { background:#FEF3CD; color:#856404; font-size:12px;
                    padding:1px 6px; border-radius:3px; font-weight:500; }
+table { width:100%; }
+@media(max-width:768px) {
+  body { padding:12px 10px; }
+  table { display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+}
 """
 
 
@@ -1848,7 +1853,7 @@ def _page_wrapper(page: str, date: str, content: str, title: str) -> str:
 <title>{title} — 每日財經晨報 {date}</title>
 <style>
 * {{ box-sizing:border-box; margin:0; padding:0; }}
-body {{ font-family:Arial,sans-serif; max-width:800px; margin:0 auto; background:#fff; color:#333; }}
+body {{ font-family:Arial,sans-serif; max-width:1140px; margin:0 auto; background:#fff; color:#333; }}
 a {{ color:inherit; }}
 .sticky-nav {{ position:sticky; top:0; z-index:100; }}
 .nav-tabs {{ display:flex; overflow-x:auto; -webkit-overflow-scrolling:touch; }}
@@ -1864,6 +1869,7 @@ a {{ color:inherit; }}
     <a href="/briefing/" style="color:#1a56db;font-weight:600;text-decoration:none;">每日簡報</a>
     <a href="/weekly/" style="color:#6b7280;text-decoration:none;">週報</a>
     <a href="/backtest/" style="color:#6b7280;text-decoration:none;">回測</a>
+    <a href="/six-state/" style="color:#6b7280;text-decoration:none;">六狀態機</a>
   </div>
 </div>
 <div class="sticky-nav">
