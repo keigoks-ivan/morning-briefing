@@ -1857,6 +1857,15 @@ a {{ color:inherit; }}
 </style>
 </head>
 <body>
+<div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:6px 20px;display:flex;align-items:center;justify-content:space-between;font-size:13px;">
+  <a href="/" style="font-weight:700;color:#222;text-decoration:none;">InvestMQuest Research</a>
+  <div style="display:flex;gap:16px;">
+    <a href="/" style="color:#6b7280;text-decoration:none;">首頁</a>
+    <a href="/briefing/" style="color:#1a56db;font-weight:600;text-decoration:none;">每日簡報</a>
+    <a href="/weekly/" style="color:#6b7280;text-decoration:none;">週報</a>
+    <a href="/backtest/" style="color:#6b7280;text-decoration:none;">回測</a>
+  </div>
+</div>
 <div class="sticky-nav">
   <div style="background:#1B3A5C;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;">
     <div>

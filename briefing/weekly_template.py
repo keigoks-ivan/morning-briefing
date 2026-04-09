@@ -1156,7 +1156,17 @@ def build_weekly_index(
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>每週深度週報</title>
 </head>
-<body style="font-family:Arial,sans-serif;max-width:720px;margin:0 auto;padding:24px 20px;color:#222;">
+<body style="font-family:Arial,sans-serif;max-width:720px;margin:0 auto;padding:0;color:#222;">
+<div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:6px 20px;display:flex;align-items:center;justify-content:space-between;font-size:13px;">
+  <a href="/" style="font-weight:700;color:#222;text-decoration:none;">InvestMQuest Research</a>
+  <div style="display:flex;gap:16px;">
+    <a href="/" style="color:#6b7280;text-decoration:none;">首頁</a>
+    <a href="/briefing/" style="color:#6b7280;text-decoration:none;">每日簡報</a>
+    <a href="/weekly/" style="color:#1a56db;font-weight:600;text-decoration:none;">週報</a>
+    <a href="/backtest/" style="color:#6b7280;text-decoration:none;">回測</a>
+  </div>
+</div>
+<div style="padding:24px 20px;">
 <div style="border-bottom:2px solid #1B3A5C;padding-bottom:12px;margin-bottom:20px;
             display:flex;justify-content:space-between;align-items:flex-end;">
   <div>
@@ -1175,6 +1185,7 @@ def build_weekly_index(
 {archive}
 <div style="font-size:12px;color:#aaa;border-top:1px solid #e8e8e8;padding-top:12px;margin-top:20px;">
   AI 輔助分析 · 僅供參考
+</div>
 </div>
 </body>
 </html>"""
@@ -1198,15 +1209,26 @@ def build_weekly_html(data: dict, theme_key: str) -> str:
 <style>
 * {{ box-sizing:border-box; margin:0; padding:0; }}
 body {{ font-family:Arial,sans-serif; max-width:780px; margin:0 auto;
-       padding:24px 20px; color:#222; background:#fff; }}
+       padding:0; color:#222; background:#fff; }}
 </style>
 </head>
 <body>
+<div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:6px 20px;display:flex;align-items:center;justify-content:space-between;font-size:13px;">
+  <a href="/" style="font-weight:700;color:#222;text-decoration:none;">InvestMQuest Research</a>
+  <div style="display:flex;gap:16px;">
+    <a href="/" style="color:#6b7280;text-decoration:none;">首頁</a>
+    <a href="/briefing/" style="color:#6b7280;text-decoration:none;">每日簡報</a>
+    <a href="/weekly/" style="color:#1a56db;font-weight:600;text-decoration:none;">週報</a>
+    <a href="/backtest/" style="color:#6b7280;text-decoration:none;">回測</a>
+  </div>
+</div>
+<div style="padding:24px 20px;">
 {_header(theme_name, theme_key, week_label, start, end)}
 {_week_summary(data.get("week_summary",""))}
 <div style="padding:0 4px;">
 {body}
 {_footer(start, end)}
+</div>
 </div>
 </body>
 </html>"""
