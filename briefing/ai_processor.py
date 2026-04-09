@@ -702,17 +702,31 @@ def _call_gemini(news_text: str, earnings_context: str) -> dict:
     )
 
     print("  → [Gemini] Calling API (news sections)...")
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=user_prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=GEMINI_SYSTEM_PROMPT,
-            max_output_tokens=16000,
-            temperature=0.5,
-            response_mime_type="application/json",
-            thinking_config=types.ThinkingConfig(thinking_budget=0),
-        ),
-    )
+
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=GEMINI_SYSTEM_PROMPT,
+                    max_output_tokens=16000,
+                    temperature=0.5,
+                    response_mime_type="application/json",
+                    thinking_config=types.ThinkingConfig(thinking_budget=0),
+                ),
+            )
+            break
+        except Exception as e:
+            err_str = str(e)
+            if ("503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str or "RESOURCE_EXHAUSTED" in err_str) and attempt < max_retries - 1:
+                wait = (attempt + 1) * 15  # 15s, 30s
+                print(f"  ⚠ [Gemini] attempt {attempt+1} failed ({err_str[:80]}), retrying in {wait}s...")
+                import time
+                time.sleep(wait)
+            else:
+                raise
 
     raw_text = response.text
     # Token usage log
