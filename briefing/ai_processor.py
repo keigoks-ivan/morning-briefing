@@ -1,7 +1,8 @@
 """
 ai_processor.py
 ---------------
-Claude API（分析區塊）+ Gemini API（新聞區塊）並行生成結構化 JSON。
+Gemini 2.5 Pro（分析區塊）+ Gemini 2.5 Flash（新聞區塊）並行生成結構化 JSON。
+分析區塊失敗時 fallback 到 Claude Sonnet。
 """
 
 import os
@@ -648,8 +649,66 @@ def _parse_json(raw_text: str) -> dict:
     return json.loads(text)
 
 
+def _call_gemini_pro(market_context: str, news_text: str) -> dict:
+    """呼叫 Gemini 2.5 Pro（分析區塊，主要模型）"""
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY not set, falling back to Claude")
+
+    client = genai.Client(api_key=api_key)
+    user_prompt = CLAUDE_USER_PROMPT_TEMPLATE.format(
+        market_context=market_context,
+        news_text=news_text,
+        dynamic_options=DYNAMIC_STATUS_OPTIONS,
+    )
+
+    print("  → [Gemini Pro] Calling API (analysis sections)...")
+
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-pro",
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=CLAUDE_SYSTEM_PROMPT,
+                    max_output_tokens=16000,
+                    temperature=0.5,
+                    response_mime_type="application/json",
+                    thinking_config=types.ThinkingConfig(thinking_budget=0),
+                ),
+            )
+            break
+        except Exception as e:
+            err_str = str(e)
+            if ("503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str or "RESOURCE_EXHAUSTED" in err_str) and attempt < max_retries - 1:
+                wait = (attempt + 1) * 15
+                print(f"  ⚠ [Gemini Pro] attempt {attempt+1} failed ({err_str[:80]}), retrying in {wait}s...")
+                import time
+                time.sleep(wait)
+            else:
+                raise
+
+    raw_text = response.text
+    usage = response.usage_metadata
+    in_tok = usage.prompt_token_count
+    out_tok = usage.candidates_token_count
+    # Gemini 2.5 Pro: input $1.25/MTok, output $10/MTok
+    cost = in_tok / 1_000_000 * 1.25 + out_tok / 1_000_000 * 10
+    print(f"  → [Gemini Pro] tokens: in={in_tok:,} out={out_tok:,} cost=${cost:.4f}")
+
+    with open("/tmp/gemini_pro_raw.txt", "w") as f:
+        f.write(raw_text)
+
+    try:
+        return _parse_json(raw_text)
+    except json.JSONDecodeError as e:
+        print(f"  [Gemini Pro] JSON error at char {e.pos}: {e.msg}")
+        raise
+
+
 def _call_claude(market_context: str, news_text: str) -> dict:
-    """呼叫 Claude API（分析區塊）"""
+    """呼叫 Claude API（分析區塊 fallback）"""
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     user_prompt = CLAUDE_USER_PROMPT_TEMPLATE.format(
         market_context=market_context,
@@ -657,7 +716,7 @@ def _call_claude(market_context: str, news_text: str) -> dict:
         dynamic_options=DYNAMIC_STATUS_OPTIONS,
     )
 
-    print("  → [Claude] Calling API (analysis sections)...")
+    print("  → [Claude] Calling API (analysis sections, fallback)...")
     full_text = ""
     with client.messages.stream(
         model="claude-sonnet-4-20250514",
@@ -811,38 +870,46 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
         earnings_lines.append("yfinance 確認的設 yfinance_confirmed=true，其餘設 false。")
     earnings_context = "\n".join(earnings_lines)
 
-    # ── 並行呼叫 Claude + Gemini ──
-    claude_data = {}
+    # ── 並行呼叫：分析(Gemini Pro → Claude fallback) + 新聞(Gemini Flash) ──
+    analysis_data = {}
     gemini_data = {}
 
+    def _call_analysis_with_fallback():
+        """Gemini Pro 為主，失敗時 fallback 到 Claude"""
+        try:
+            return _call_gemini_pro(market_context, news_text)
+        except Exception as e:
+            print(f"  ⚠ [Gemini Pro] failed: {e}, falling back to Claude...")
+            return _call_claude(market_context, news_text)
+
     with ThreadPoolExecutor(max_workers=2) as executor:
-        claude_future = executor.submit(_call_claude, market_context, news_text)
+        analysis_future = executor.submit(_call_analysis_with_fallback)
         gemini_future = executor.submit(_call_gemini, news_text, earnings_context)
 
         try:
-            claude_data = claude_future.result()
-            print(f"  ✓ [Claude] analysis sections received")
+            analysis_data = analysis_future.result()
+            print(f"  ✓ Analysis sections received")
         except Exception as e:
-            print(f"  ✗ [Claude] failed: {e}")
+            print(f"  ✗ Analysis failed (both Gemini Pro & Claude): {e}")
 
         try:
             gemini_data = gemini_future.result()
-            print(f"  ✓ [Gemini] news sections received")
+            print(f"  ✓ [Gemini Flash] news sections received")
         except Exception as e:
-            print(f"  ✗ [Gemini] failed: {e}")
+            print(f"  ✗ [Gemini Flash] failed: {e}")
 
-    # ── 合併：Claude 分析 + Gemini 新聞 ──
+    # ── 合併：分析區塊 + Gemini 新聞 ──
     data = {}
 
-    # Claude 分析區塊（優先）
+    # 分析區塊（Gemini Pro 或 Claude fallback）
     for key in ["daily_summary", "alert", "market_pulse", "index_factor_reading",
                 "sentiment_analysis", "daily_deep_dive", "tech_trends",
                 "system_status", "smart_money"]:
-        if key in claude_data:
-            data[key] = claude_data[key]
+        if key in analysis_data:
+            data[key] = analysis_data[key]
 
-    # Claude 的 market_data 只有 move_index
-    claude_move = claude_data.get("market_data", {}).get("move_index", {})
+    # 分析模型的 market_data 只有 move_index
+    analysis_move = analysis_data.get("market_data", {}).get("move_index", {})
 
     # Gemini 新聞區塊
     for key in ["top_stories", "macro", "ai_industry", "regional_tech",
@@ -854,7 +921,7 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
     # 注入真實市場數據
     if market_data:
         data["market_data"] = market_data
-        data["market_data"]["move_index"] = claude_move
+        data["market_data"]["move_index"] = analysis_move
 
     # 跨區塊去重（code-based）
     _dedup_news(data)
