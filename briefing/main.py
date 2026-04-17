@@ -25,7 +25,7 @@ try:
 except ImportError:
     pass  # 生產環境不需要 dotenv
 
-from news_fetcher import fetch_financial_news, fetch_market_data, fetch_today_earnings, fetch_moneydj_news, fetch_deep_dive_news, fetch_move_index
+from news_fetcher import fetch_financial_news, fetch_market_data, fetch_today_earnings, fetch_moneydj_news, fetch_deep_dive_news, fetch_move_index, fetch_earnings_deep_dive
 from ai_processor import process_news
 from html_template import build_html, build_all_pages
 from email_sender import send_email
@@ -46,8 +46,9 @@ def main() -> None:
     raw_news = fetch_financial_news()
     moneydj_news = fetch_moneydj_news()
     deep_dive_news = fetch_deep_dive_news()
+    earnings_deep_dive = fetch_earnings_deep_dive()
     dd_count = len(deep_dive_news.get("fixed", [])) + len(deep_dive_news.get("dynamic", [])) if isinstance(deep_dive_news, dict) else len(deep_dive_news)
-    print(f"      {len(raw_news)} queries completed, {len(today_earnings)} earnings confirmed, {len(moneydj_news)} MoneyDJ news, {dd_count} deep dive")
+    print(f"      {len(raw_news)} queries completed, {len(today_earnings)} earnings confirmed, {len(moneydj_news)} MoneyDJ news, {dd_count} deep dive, {len(earnings_deep_dive)} earnings deep")
 
     # 1.5 執行 Screener（台灣週二~週六才跑，對應美股前一交易日）
     # 週日(6)、週一(0)跳過：週六、週日美股休市，無新數據
@@ -94,7 +95,7 @@ def main() -> None:
 
     # 2. AI 處理
     print("\n[2/4] Processing with Claude...")
-    data = process_news(raw_news, market_data, today_earnings, moneydj_news, deep_dive_news, move_index_raw=move_index_raw)
+    data = process_news(raw_news, market_data, today_earnings, moneydj_news, deep_dive_news, move_index_raw=move_index_raw, earnings_deep_dive=earnings_deep_dive)
 
     # 注入日期供多頁 builder 使用
     tz_now = datetime.now(tz)
@@ -137,7 +138,8 @@ def main() -> None:
     <a href="https://research.investmquest.com/briefing/geo.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">地緣・國際</a>
     <a href="https://research.investmquest.com/briefing/tech.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">科技・AI</a>
     <a href="https://research.investmquest.com/briefing/trends.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">新創・趨勢</a>
-    <a href="https://research.investmquest.com/briefing/misc.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">財報・冷知識</a>
+    <a href="https://research.investmquest.com/briefing/misc.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">財報</a>
+    <a href="https://research.investmquest.com/briefing/trading.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">交易系統</a>
     <a href="https://research.investmquest.com/briefing/screener.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">Screener</a>
   </div>
 </div>

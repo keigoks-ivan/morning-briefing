@@ -1238,6 +1238,66 @@ def fetch_deep_dive_news() -> dict:
     return {"fixed": fixed_results, "dynamic": dynamic_results}
 
 
+EARNINGS_DEEP_QUERIES = [
+    # Query 1: 公司層面具體財務數字
+    ("List the most important US company earnings reports released in the past 24 hours (yesterday's pre-market, market session, and after-hours). "
+     "For EACH company include these specific numbers: "
+     "(1) EPS actual vs consensus estimate with $ numbers, "
+     "(2) Revenue actual vs estimate with $ numbers and YoY growth %, "
+     "(3) Gross margin / operating margin if disclosed, "
+     "(4) Net income YoY change, "
+     "(5) Segment breakdown (e.g. semiconductor: 3nm/5nm/7nm wafer mix %; banks: FICC/equities/IB fees; streaming: subscribers/ads revenue), "
+     "(6) Stock price reaction pre-market/after-hours in %, "
+     "(7) Forward guidance if given. "
+     "Cover finance (banks, credit), semiconductors/AI, media/streaming, industrial/REIT, healthcare, consumer. "
+     "Sources: Bloomberg Reuters Financial Times WSJ CNBC Barron's company press releases"),
+    # Query 2: 財報會議重點 + CEO/CFO commentary
+    ("What are the most significant earnings call highlights from US company earnings released in the past 24 hours? "
+     "Extract specific CEO/CFO quotes and detailed commentary on: "
+     "(1) AI demand strength or weakness with specific customer or segment names, "
+     "(2) Geographic exposure changes (China, Korea, Europe, US) with specific % shifts, "
+     "(3) Capacity expansion or capex guidance with $ figures, "
+     "(4) Margin expansion/compression drivers, "
+     "(5) Acquisition impact or one-time items that affect reported numbers, "
+     "(6) Forward-looking statements about 2026 outlook. "
+     "Include direct quotes where possible. Sources: Bloomberg Reuters FT WSJ CNBC Seeking Alpha transcripts"),
+    # Query 3: 產業訊號與跨公司矛盾
+    ("Based on US company earnings released in the past 24 hours, what industry-level trends and cross-company conflicts are emerging? "
+     "Specifically look for: "
+     "(1) Where is AI infrastructure demand accelerating or slowing - TSMC, ASML, semiconductor suppliers, "
+     "(2) Banking sector: trading revenue vs NII vs credit quality divergence among JPM/BAC/MS/GS/C, "
+     "(3) Streaming/media: subscriber growth vs ad revenue vs content cost trends, "
+     "(4) Industrial/REIT: logistics demand vs data center transition signals, "
+     "(5) Where do companies contradict each other - e.g. one company says demand is strong while supplier says weak, "
+     "(6) Where does stock reaction diverge from fundamental beat - companies that beat EPS but stock fell, or missed but stock rose. "
+     "Cite specific company data to support each trend. Sources: Bloomberg Reuters FT WSJ Barron's"),
+]
+
+
+def fetch_earnings_deep_dive() -> list[dict]:
+    """
+    抓取過去 24 小時美股重要財報的深度資料（Perplexity），
+    供 Gemini Pro 做深度分析使用。
+    """
+    try:
+        api_key = os.environ["PERPLEXITY_API_KEY"]
+    except KeyError:
+        print("  ✗ PERPLEXITY_API_KEY not set, skipping earnings deep dive")
+        return []
+
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    tz = pytz.timezone("Asia/Taipei")
+    today = datetime.now(tz).strftime("%Y-%m-%d")
+
+    args_list = [(q, headers, today, 1400, "earnings-deep") for q in EARNINGS_DEEP_QUERIES]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        results = list(executor.map(_perplexity_query, args_list))
+
+    non_empty = [r for r in results if r.get("answer")]
+    print(f"  ✓ Earnings deep dive: {len(non_empty)}/{len(results)} queries succeeded")
+    return results
+
+
 def _perplexity_query(args: tuple) -> dict:
     """Execute a single Perplexity API query. Used by ThreadPoolExecutor."""
     query, headers, today, max_tokens, label = args

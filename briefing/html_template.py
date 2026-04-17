@@ -1246,6 +1246,245 @@ def _earnings_preview(items: list) -> str:
 </div>'''
 
 
+EARNINGS_CATEGORY_COLOR = {
+    "金融": "#185FA5",
+    "半導體": "#C0392B",
+    "媒體串流": "#7F77DD",
+    "工業/REIT": "#854F0B",
+    "工業": "#854F0B",
+    "REIT": "#854F0B",
+    "消費": "#0F6E56",
+    "醫療": "#534AB7",
+    "能源": "#BA7517",
+    "其他": "#555",
+}
+
+EARNINGS_RESULT_STYLE = {
+    "beat":   ("#E1F5EE", "#0F6E56", "Beat"),
+    "miss":   ("#FCEBEB", "#C0392B", "Miss"),
+    "mixed":  ("#FFF4E1", "#BA7517", "Mixed"),
+    "in-line":("#EBF2FA", "#185FA5", "In-line"),
+}
+
+
+def _earnings_deep_analysis(data: dict) -> str:
+    """深度財報分析：公司重點 + 產業趨勢 + 贏家輸家 + 矛盾 + 總結"""
+    if not data or not data.get("has_content"):
+        return ""
+
+    window = data.get("window", "")
+    overview = data.get("overview", "")
+    companies = data.get("companies", []) or []
+    industry_trends = data.get("industry_trends", []) or []
+    winners = data.get("winners", []) or []
+    losers = data.get("losers", []) or []
+    contradictions = data.get("contradictions", []) or []
+    conclusion = data.get("conclusion", "")
+
+    if not companies and not industry_trends and not winners and not losers and not contradictions:
+        return ""
+
+    # Header
+    header_html = f'''
+<div style="background:linear-gradient(135deg,#0f172a,#1e293b);color:#fff;
+            border-radius:10px;padding:18px 20px;margin-bottom:14px;">
+  <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+    <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#94a3b8;font-weight:600;">Earnings Deep Analysis</span>
+    <span style="font-size:11px;color:#64748b;">{window}</span>
+  </div>
+  <div style="font-size:15px;line-height:1.7;color:#e2e8f0;font-weight:500;">{overview}</div>
+</div>'''
+
+    # 1. 公司重點整理
+    company_cards = ""
+    if companies:
+        for c in companies:
+            cat = c.get("category", "其他")
+            color = EARNINGS_CATEGORY_COLOR.get(cat, "#555")
+            result_tag = c.get("result_tag", "")
+            rt_bg, rt_fg, rt_label = EARNINGS_RESULT_STYLE.get(result_tag, ("#F0F0F0", "#666", "—"))
+            name = c.get("name", "")
+            ticker = c.get("ticker", "")
+            weakness = c.get("weakness", "")
+            one_time = c.get("one_time_items", "")
+
+            points_html = ""
+            for p in c.get("key_points", []):
+                points_html += f'<li style="font-size:13px;color:#333;line-height:1.75;margin-bottom:5px;">{p}</li>'
+
+            weakness_html = ""
+            if weakness:
+                weakness_html = f'''
+<div style="background:#FCEBEB;border-left:3px solid #C0392B;border-radius:0 4px 4px 0;
+            padding:8px 12px;margin-top:10px;font-size:12px;line-height:1.7;color:#791F1F;">
+  <span style="font-weight:600;">弱點：</span>{weakness}
+</div>'''
+
+            one_time_html = ""
+            if one_time:
+                one_time_html = f'''
+<div style="background:#FFF8EE;border-left:3px solid #BA7517;border-radius:0 4px 4px 0;
+            padding:8px 12px;margin-top:8px;font-size:12px;line-height:1.7;color:#7B4A09;">
+  <span style="font-weight:600;">一次性項目：</span>{one_time}
+</div>'''
+
+            company_cards += f'''
+<div style="border:0.5px solid #e8e8e8;border-radius:8px;margin-bottom:10px;overflow:hidden;">
+  <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#FAFAFA;
+              border-bottom:0.5px solid #e8e8e8;flex-wrap:wrap;">
+    <span style="font-size:10px;font-weight:600;color:#fff;background:{color};
+                 padding:2px 8px;border-radius:3px;white-space:nowrap;">{cat}</span>
+    <span style="font-size:15px;font-weight:600;color:#222;">{name}</span>
+    <span style="font-size:12px;color:#888;">{ticker}</span>
+    <span style="font-size:10px;font-weight:600;background:{rt_bg};color:{rt_fg};
+                 padding:2px 7px;border-radius:3px;margin-left:auto;">{rt_label}</span>
+  </div>
+  <div style="padding:10px 14px 12px 14px;">
+    <ul style="margin:0;padding:0 0 0 18px;">{points_html}</ul>
+    {weakness_html}
+    {one_time_html}
+  </div>
+</div>'''
+
+        company_cards = f'''
+<div style="margin-bottom:22px;">
+  <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#1B3A5C;
+              font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #1B3A5C;">
+    一、公司重點整理</div>
+  {company_cards}
+</div>'''
+
+    # 2. 產業趨勢與 Imply
+    industry_html = ""
+    if industry_trends:
+        cards = ""
+        for t in industry_trends:
+            name = t.get("industry", "")
+            color = EARNINGS_CATEGORY_COLOR.get(name, "#185FA5")
+            core_trend = t.get("core_trend", "")
+            imply = t.get("imply", "")
+            sub_html = ""
+            for s in t.get("sub_signals", []):
+                sub_html += f'<li style="font-size:12px;color:#555;line-height:1.7;margin-bottom:3px;">{s}</li>'
+
+            cards += f'''
+<div style="border-left:4px solid {color};background:#F8F9FC;border-radius:0 8px 8px 0;
+            padding:12px 16px;margin-bottom:10px;">
+  <div style="font-size:14px;font-weight:600;color:{color};margin-bottom:6px;">{name}</div>
+  <div style="font-size:13px;color:#333;line-height:1.75;margin-bottom:8px;">{core_trend}</div>
+  <ul style="margin:0 0 8px 0;padding:0 0 0 18px;">{sub_html}</ul>
+  <div style="background:#fff;border:0.5px solid #D4DBE7;border-radius:4px;padding:6px 10px;
+              font-size:12px;color:#1B3A5C;line-height:1.7;">
+    <span style="font-size:10px;letter-spacing:1px;font-weight:700;color:#666;">IMPLY</span> {imply}
+  </div>
+</div>'''
+
+        industry_html = f'''
+<div style="margin-bottom:22px;">
+  <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#1B3A5C;
+              font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #1B3A5C;">
+    二、產業趨勢與意涵</div>
+  {cards}
+</div>'''
+
+    # 3. 贏家 vs 輸家
+    winner_loser_html = ""
+    if winners or losers:
+        def _person_card(p, bg, fg, icon):
+            name = p.get("name", "")
+            ticker = p.get("ticker", "")
+            ptype = p.get("type", "")
+            reason = p.get("reason", "")
+            return f'''
+<div style="background:{bg};border-radius:6px;padding:10px 12px;margin-bottom:8px;">
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;">
+    <span style="font-size:14px;">{icon}</span>
+    <span style="font-size:14px;font-weight:600;color:{fg};">{name}</span>
+    <span style="font-size:11px;color:#888;">{ticker}</span>
+    <span style="font-size:10px;font-weight:500;color:{fg};opacity:0.8;
+                 background:rgba(255,255,255,0.5);padding:1px 6px;border-radius:3px;">{ptype}</span>
+  </div>
+  <div style="font-size:12px;color:#333;line-height:1.7;">{reason}</div>
+</div>'''
+
+        win_html = "".join(_person_card(w, "#E1F5EE", "#0F6E56", "✓") for w in winners)
+        lose_html = "".join(_person_card(l, "#FCEBEB", "#C0392B", "✕") for l in losers)
+
+        winner_loser_html = f'''
+<div style="margin-bottom:22px;">
+  <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#1B3A5C;
+              font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #1B3A5C;">
+    三、贏家與輸家</div>
+  <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:8px 0;">
+    <tr>
+      <td width="50%" style="vertical-align:top;">
+        <div style="font-size:10px;font-weight:700;color:#0F6E56;letter-spacing:1.5px;
+                    margin-bottom:6px;">WINNERS</div>
+        {win_html}
+      </td>
+      <td width="50%" style="vertical-align:top;">
+        <div style="font-size:10px;font-weight:700;color:#C0392B;letter-spacing:1.5px;
+                    margin-bottom:6px;">LOSERS</div>
+        {lose_html}
+      </td>
+    </tr>
+  </table>
+</div>'''
+
+    # 4. 矛盾與不合邏輯
+    contradict_html = ""
+    if contradictions:
+        cards = ""
+        for c in contradictions:
+            issue = c.get("issue", "")
+            detail = c.get("detail", "")
+            imply = c.get("imply", "")
+            cards += f'''
+<div style="background:#FFF8EE;border:0.5px solid #E8D8B8;border-radius:8px;
+            padding:12px 14px;margin-bottom:10px;">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+    <span style="font-size:14px;">⚠</span>
+    <span style="font-size:14px;font-weight:600;color:#7B4A09;">{issue}</span>
+  </div>
+  <div style="font-size:13px;color:#333;line-height:1.75;margin-bottom:6px;">{detail}</div>
+  <div style="font-size:12px;color:#7B4A09;line-height:1.7;padding-top:6px;
+              border-top:0.5px dashed #E8D8B8;">
+    <span style="font-size:10px;letter-spacing:1px;font-weight:700;">IMPLY</span> {imply}
+  </div>
+</div>'''
+
+        contradict_html = f'''
+<div style="margin-bottom:22px;">
+  <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#1B3A5C;
+              font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #1B3A5C;">
+    四、矛盾與不合邏輯</div>
+  {cards}
+</div>'''
+
+    # 5. 總結
+    conclusion_html = ""
+    if conclusion:
+        conclusion_html = f'''
+<div style="margin-bottom:10px;">
+  <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#1B3A5C;
+              font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #1B3A5C;">
+    總結</div>
+  <div style="background:#1B3A5C;color:#fff;border-radius:8px;padding:14px 18px;
+              font-size:14px;line-height:1.85;">{conclusion}</div>
+</div>'''
+
+    return f'''
+<div class="section">
+  <div class="section-label">深度財報分析</div>
+  {header_html}
+  {company_cards}
+  {industry_html}
+  {winner_loser_html}
+  {contradict_html}
+  {conclusion_html}
+</div>'''
+
+
 def _implied_trends(trends: list) -> str:
     if not trends:
         return ""
@@ -1829,6 +2068,7 @@ _TAB_PAGES = [
     ("trends",       "新創・趨勢", "trends.html"),
     ("startup",      "創業",       "startup.html"),
     ("misc",         "財報",       "misc.html"),
+    ("trading",      "交易系統",   "trading.html"),
 ]
 
 
@@ -2297,16 +2537,24 @@ def _trading_system_card(system: dict) -> str:
     </div>"""
 
 
-def build_misc_html(data: dict, today_system: dict = None) -> str:
-    """財報"""
+def build_misc_html(data: dict) -> str:
+    """財報：美股 recap + 今日預告 + Gemini Pro 深度分析 + 冷知識 + 今日行程"""
     date = data.get("date", "")
     content = _us_market_recap(data.get("us_market_recap", {}))
     content += _earnings_preview(data.get("earnings_preview", []))
-    # content += _implied_trends(data.get("implied_trends", []))  # 已停用
+    content += _earnings_deep_analysis(data.get("earnings_deep_analysis", {}))
     content += _fun_fact(data.get("fun_fact", {}))
     content += _today_events(data.get("today_events", []))
-    content += _trading_system_card(today_system or {})
-    return _page_wrapper("misc", date, content, "財報・冷知識")
+    return _page_wrapper("misc", date, content, "財報")
+
+
+def build_trading_html(data: dict, today_system: dict = None) -> str:
+    """交易系統：今日交易系統卡片（50 天輪替）"""
+    date = data.get("date", "")
+    content = _trading_system_card(today_system or {})
+    if not content:
+        content = '<div style="padding:40px;text-align:center;color:#888;font-size:14px;">今日交易系統尚未選出</div>'
+    return _page_wrapper("trading", date, content, "交易系統")
 
 
 def _sector_ranking(sector_ranking: list) -> str:
@@ -2577,7 +2825,8 @@ def build_all_pages(data: dict, screener_result: dict = None, today_system: dict
         "tech.html":         build_tech_html(data),
         "trends.html":       build_trends_html(data),
         "startup.html":      build_startup_html(data, today_framework=today_framework),
-        "misc.html":         build_misc_html(data, today_system=today_system),
+        "misc.html":         build_misc_html(data),
+        "trading.html":      build_trading_html(data, today_system=today_system),
         "screener.html":     build_screener_html(data, sr),
         "tw_screener.html":  build_tw_screener_html(data, sr),
     }
@@ -2621,6 +2870,7 @@ def build_html(data: dict, screener_result: dict = None) -> str:
 {_startup_news(data.get("startup_news",[]))}
 {_smart_money(data.get("smart_money", {}))}
 {_earnings_preview(data.get("earnings_preview",[]))}
+{_earnings_deep_analysis(data.get("earnings_deep_analysis", {}))}
 {_implied_trends(data.get("implied_trends",[]))}
 {_fun_fact(data.get("fun_fact", {}))}
 {_us_market_recap(data.get("us_market_recap", {}))}

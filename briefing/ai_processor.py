@@ -490,6 +490,119 @@ CLAUDE_USER_PROMPT_TEMPLATE = """
 """
 
 
+# ═══════════════════════════════════════════════════════════════
+# Gemini Pro Prompt — 深度財報分析區塊
+# ═══════════════════════════════════════════════════════════════
+
+EARNINGS_ANALYSIS_SYSTEM_PROMPT = """
+你是一位服務專業系統性投資者的財報分析師。
+從 Perplexity 給的「過去 24 小時美股財報」原始資料中，整理出深度分析。
+
+【語言規則】
+- 輸出全部使用繁體中文；公司名/ticker/數字保留英文
+- 嚴禁簡體字，常見錯誤：規範不是规范、晶片不是芯片、數據不是数据
+
+【內容規則 — 魔鬼在細節】
+- 冷靜客觀陳述事實，不要花俏語句、不要煽情詞彙
+- 所有重點必須含具體數字（EPS、營收、毛利率、segment 佔比、股價反應 %）
+- 當一次性項目（例如併購稀釋、終止費、重組費用）扭曲了 headline EPS，必須點出並計算排除後的真實數字
+- 公司層面：優先包含 AI 基建鏈（TSMC、ASML、SK hynix 等）、金融交易（JPM、GS、MS、BAC、C）、媒體串流、工業/REIT、消費、醫療
+- 產業 imply：不得重複新聞標題；必須是「如果這個訊號持續，下一步會怎樣」的推論
+- 贏家/輸家：同時考慮「基本面贏家」與「股價輸家」的背離 — 例如 ASML 業績好但股價跌
+- 矛盾與不合邏輯：至少找 2-4 個。優先找：同業 FICC 差異、beat 但跌/miss 但漲、管理層口頭保守但資本支出進取、宏觀擔憂與銀行業績爆量並存
+
+【JSON 格式規則】
+- 只回傳 JSON，不要 markdown code block 或前置說明
+- 數值用英文格式：$1.25B、YoY +17%
+- 若資料完全沒有當日財報（如週末），has_content 設 false 並回傳空陣列
+"""
+
+EARNINGS_ANALYSIS_USER_TEMPLATE = """
+以下是過去 24 小時美股重要財報的 Perplexity 搜尋結果（3 組深度查詢）：
+
+{earnings_raw_text}
+
+【市場即時行情（供判斷股價反應是否合理）】
+{market_context}
+
+請輸出以下 JSON（繁體中文，嚴禁簡體字）：
+
+{{{{
+  "has_content": true,
+  "window": "時間窗標示，如 4/15-4/16 或 過去 24 小時",
+  "overview": "一句話總覽（25 字內，指出今日財報主軸）",
+
+  "companies": [
+    {{{{
+      "name": "公司全名",
+      "ticker": "TICKER",
+      "category": "金融|半導體|媒體串流|工業/REIT|消費|醫療|能源|其他",
+      "result_tag": "beat|miss|mixed",
+      "key_points": [
+        "第一個重點（含具體數字，如 EPS $X vs 估 $Y、營收 YoY +Z%）",
+        "第二個重點",
+        "第三個重點",
+        "第四個重點（可選）"
+      ],
+      "weakness": "弱點或警示（1 句，可空字串）",
+      "one_time_items": "一次性項目說明（排除後真實數字，可空字串）"
+    }}}}
+  ],
+
+  "industry_trends": [
+    {{{{
+      "industry": "產業名稱，如 金融業、半導體",
+      "core_trend": "核心趨勢（2 句，含具體數字證據）",
+      "sub_signals": [
+        "子產業訊號 1（含公司名與數字）",
+        "子產業訊號 2",
+        "子產業訊號 3（可選）"
+      ],
+      "imply": "對產業的含義（2 句，必須是推論，不是重複事實）"
+    }}}}
+  ],
+
+  "winners": [
+    {{{{
+      "name": "公司名",
+      "ticker": "TICKER",
+      "type": "基本面贏家|股價贏家|兩者皆是",
+      "reason": "成為贏家的具體原因（2 句，含數字）"
+    }}}}
+  ],
+
+  "losers": [
+    {{{{
+      "name": "公司名",
+      "ticker": "TICKER",
+      "type": "基本面輸家|股價輸家|兩者皆是",
+      "reason": "成為輸家的具體原因（2 句，含數字）"
+    }}}}
+  ],
+
+  "contradictions": [
+    {{{{
+      "issue": "矛盾/不合邏輯的標題（15 字內）",
+      "detail": "具體矛盾說明（3-4 句，點出數字）",
+      "imply": "對產業/市場的含義（1-2 句）"
+    }}}}
+  ],
+
+  "conclusion": "總結（3-5 句，點出本次財報週的 2-3 個核心主題，含推論）"
+}}}}
+
+【數量要求】
+- companies：6-10 家（選最重要且資料齊全的）
+- industry_trends：3-5 個產業
+- winners：2-4 家
+- losers：2-4 家
+- contradictions：2-4 個
+- conclusion：必須是綜合性推論，不要條列
+
+若過去 24 小時完全沒有重要財報（例如週末或假日），has_content 設 false，companies/industry_trends/winners/losers/contradictions 全部回空陣列，conclusion 填「今日無美股財報」。
+"""
+
+
 def build_news_text(raw_news: list[dict], moneydj_news: list[dict] | None = None, deep_dive_news: list[dict] | None = None) -> str:
     parts = []
     for item in raw_news:
@@ -806,6 +919,84 @@ def _call_gemini(news_text: str, earnings_context: str) -> dict:
         raise
 
 
+def _build_earnings_raw_text(earnings_deep_dive: list[dict] | None) -> str:
+    """把 Perplexity 財報查詢結果組成文字。"""
+    if not earnings_deep_dive:
+        return ""
+    parts = []
+    for i, item in enumerate(earnings_deep_dive, 1):
+        if not item.get("answer"):
+            continue
+        parts.append(f"## 查詢 {i}: {item.get('query','')[:120]}")
+        parts.append(item["answer"])
+        for src in item.get("sources", []):
+            parts.append(f"來源：{src}")
+        parts.append("")
+    return "\n".join(parts)
+
+
+def _call_gemini_earnings_analysis(earnings_raw_text: str, market_context: str) -> dict:
+    """呼叫 Gemini 2.5 Pro 做深度財報分析。"""
+    if not earnings_raw_text.strip():
+        print("  ⚠ [Earnings Analysis] 無 Perplexity 財報資料，跳過")
+        return {"has_content": False, "companies": [], "industry_trends": [],
+                "winners": [], "losers": [], "contradictions": [],
+                "conclusion": "今日無美股財報資料", "window": "", "overview": ""}
+
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY not set")
+
+    client = genai.Client(api_key=api_key)
+    user_prompt = EARNINGS_ANALYSIS_USER_TEMPLATE.format(
+        earnings_raw_text=earnings_raw_text,
+        market_context=market_context or "（無）",
+    )
+
+    print("  → [Earnings Analysis] Calling Gemini 2.5 Pro...")
+
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-pro",
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=EARNINGS_ANALYSIS_SYSTEM_PROMPT,
+                    max_output_tokens=16000,
+                    temperature=0.4,
+                    response_mime_type="application/json",
+                    thinking_config=types.ThinkingConfig(thinking_budget=0),
+                ),
+            )
+            break
+        except Exception as e:
+            err_str = str(e)
+            if ("503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str or "RESOURCE_EXHAUSTED" in err_str) and attempt < max_retries - 1:
+                wait = (attempt + 1) * 15
+                print(f"  ⚠ [Earnings Analysis] attempt {attempt+1} failed ({err_str[:80]}), retrying in {wait}s...")
+                import time
+                time.sleep(wait)
+            else:
+                raise
+
+    raw_text = response.text
+    usage = response.usage_metadata
+    in_tok = usage.prompt_token_count
+    out_tok = usage.candidates_token_count
+    cost = in_tok / 1_000_000 * 1.25 + out_tok / 1_000_000 * 10
+    print(f"  → [Earnings Analysis] tokens: in={in_tok:,} out={out_tok:,} cost=${cost:.4f}")
+
+    with open("/tmp/gemini_earnings_raw.txt", "w") as f:
+        f.write(raw_text)
+
+    try:
+        return _parse_json(raw_text)
+    except json.JSONDecodeError as e:
+        print(f"  [Earnings Analysis] JSON error at char {e.pos}: {e.msg}")
+        raise
+
+
 def _dedup_news(data: dict) -> None:
     """跨區塊去重：用 headline 前15字做指紋，後面的區塊移除與前面重複的"""
     seen = set()
@@ -854,7 +1045,7 @@ def _dedup_news(data: dict) -> None:
             rt[region] = cleaned
 
 
-def process_news(raw_news: list[dict], market_data: dict | None = None, today_earnings: list | None = None, moneydj_news: list[dict] | None = None, deep_dive_news: list[dict] | None = None, move_index_raw: str = "") -> dict:
+def process_news(raw_news: list[dict], market_data: dict | None = None, today_earnings: list | None = None, moneydj_news: list[dict] | None = None, deep_dive_news: list[dict] | None = None, move_index_raw: str = "", earnings_deep_dive: list[dict] | None = None) -> dict:
     news_text = build_news_text(raw_news, moneydj_news, deep_dive_news)
 
     market_context = ""
@@ -870,9 +1061,13 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
         earnings_lines.append("yfinance 確認的設 yfinance_confirmed=true，其餘設 false。")
     earnings_context = "\n".join(earnings_lines)
 
-    # ── 並行呼叫：分析(Gemini Pro → Claude fallback) + 新聞(Gemini Flash) ──
+    # 深度財報 Perplexity 原始資料（給 Gemini Pro 做分析用）
+    earnings_raw_text = _build_earnings_raw_text(earnings_deep_dive)
+
+    # ── 並行呼叫：分析(Gemini Pro → Claude fallback) + 新聞(Gemini Flash) + 深度財報(Gemini Pro) ──
     analysis_data = {}
     gemini_data = {}
+    earnings_analysis_data = {}
 
     def _call_analysis_with_fallback():
         """Gemini Pro 為主，失敗時 fallback 到 Claude"""
@@ -882,9 +1077,10 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
             print(f"  ⚠ [Gemini Pro] failed: {e}, falling back to Claude...")
             return _call_claude(market_context, news_text)
 
-    with ThreadPoolExecutor(max_workers=2) as executor:
+    with ThreadPoolExecutor(max_workers=3) as executor:
         analysis_future = executor.submit(_call_analysis_with_fallback)
         gemini_future = executor.submit(_call_gemini, news_text, earnings_context)
+        earnings_future = executor.submit(_call_gemini_earnings_analysis, earnings_raw_text, market_context)
 
         try:
             analysis_data = analysis_future.result()
@@ -897,6 +1093,12 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
             print(f"  ✓ [Gemini Flash] news sections received")
         except Exception as e:
             print(f"  ✗ [Gemini Flash] failed: {e}")
+
+        try:
+            earnings_analysis_data = earnings_future.result()
+            print(f"  ✓ [Earnings Analysis] received")
+        except Exception as e:
+            print(f"  ✗ [Earnings Analysis] failed: {e}")
 
     # ── 合併：分析區塊 + Gemini 新聞 ──
     data = {}
@@ -917,6 +1119,10 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
                 "us_market_recap", "earnings_preview", "today_events", "fun_fact"]:
         if key in gemini_data:
             data[key] = gemini_data[key]
+
+    # 深度財報分析
+    if earnings_analysis_data:
+        data["earnings_deep_analysis"] = earnings_analysis_data
 
     # 注入真實市場數據
     if market_data:
@@ -980,6 +1186,17 @@ def _validate(data: dict) -> None:
     })
     data.setdefault("fun_fact", {})
     data.setdefault("today_events", [])
+    data.setdefault("earnings_deep_analysis", {
+        "has_content": False,
+        "window": "",
+        "overview": "",
+        "companies": [],
+        "industry_trends": [],
+        "winners": [],
+        "losers": [],
+        "contradictions": [],
+        "conclusion": "",
+    })
 
     ss = data.setdefault("system_status", {})
     ss.setdefault("fixed", [])
