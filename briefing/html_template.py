@@ -1242,7 +1242,7 @@ def _earnings_preview(items: list) -> str:
 </div>'''
     return f'''
 <div class="section">
-  <div class="section-label">今日財報預告</div>{rows}
+  <div class="section-label">即將發布財報預告（下一個 US session）</div>{rows}
 </div>'''
 
 

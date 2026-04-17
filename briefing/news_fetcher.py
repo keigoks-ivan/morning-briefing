@@ -981,7 +981,13 @@ EARNINGS_WATCHLIST = [
 
 
 def fetch_today_earnings() -> list[dict]:
-    """Check WATCHLIST for earnings scheduled today via yfinance."""
+    """
+    Check WATCHLIST for earnings scheduled on the NEXT US trading day.
+
+    Rationale: briefing runs at TW 05:55 = US ET 17:55（前一交易日剛結束）。
+    此刻「今天 US ET」= 剛結束的那個 session（已在 deep_analysis 涵蓋）。
+    真正的「預告」= 接下來那個 US session = US ET 明天（週末自動順延到週一）。
+    """
     try:
         import yfinance as yf
     except ImportError:
@@ -989,7 +995,12 @@ def fetch_today_earnings() -> list[dict]:
         return []
 
     tz = pytz.timezone("US/Eastern")
-    today_us = datetime.now(tz).strftime("%Y-%m-%d")
+    now_et = datetime.now(tz)
+    # 下一個 US 交易日 — 跳過週六週日
+    next_et = now_et + timedelta(days=1)
+    while next_et.weekday() >= 5:
+        next_et += timedelta(days=1)
+    target_us = next_et.strftime("%Y-%m-%d")
 
     results = []
     for symbol in EARNINGS_WATCHLIST:
@@ -1008,7 +1019,7 @@ def fetch_today_earnings() -> list[dict]:
             else:
                 continue
 
-            if earn_date == today_us:
+            if earn_date == target_us:
                 # Try to determine timing
                 timing = "after-close"  # default
                 if hasattr(cal, "iloc") and cal.shape[0] > 1:
@@ -1027,7 +1038,7 @@ def fetch_today_earnings() -> list[dict]:
         except Exception:
             continue
 
-    print(f"  ✓ Today earnings: {len(results)} companies from watchlist "
+    print(f"  ✓ Upcoming earnings ({target_us} US ET): {len(results)} companies from watchlist "
           f"({', '.join(r['ticker'] for r in results[:5])}{'...' if len(results) > 5 else ''})")
     return results
 

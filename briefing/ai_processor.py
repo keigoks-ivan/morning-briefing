@@ -231,7 +231,7 @@ GEMINI_USER_PROMPT_TEMPLATE = """
 如果某個區塊條目數低於最低值，你的輸出就是失敗的。請確保每個區塊都達到要求。
 
 其他規則：
-- earnings_preview 只輸出今日尚未公布的，us_market_recap 只輸出已公布的，嚴格互斥
+- earnings_preview 輸出「下一個 US session 即將發布的」（yfinance 已確認日期），us_market_recap 輸出「剛結束那個 US session 已公布的」，兩者嚴格互斥
 - 全部使用繁體中文，發現任何簡體字請立即修正為繁體
 """
 
@@ -755,11 +755,11 @@ def _build_market_context(market_data: dict, today_earnings: list | None, move_i
         lines.append(f"RSP/SPY市場寬度：{slt.get('rsp_spy_trend','震盪')} | IWM/SPY小型股：{slt.get('iwm_spy_trend','震盪')}")
 
     if today_earnings:
-        lines.append("\n【yfinance 確認今日財報】")
+        lines.append("\n【yfinance 確認下一個 US session 即將發布】")
         for e in today_earnings:
             lines.append(f"{e['ticker']} ({e.get('time','—')})")
     else:
-        lines.append("\n【yfinance 確認今日財報】無")
+        lines.append("\n【yfinance 確認下一個 US session 即將發布】無")
 
     return "\n".join(lines)
 
@@ -1094,10 +1094,10 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
     if market_data:
         market_context = _build_market_context(market_data, today_earnings, move_index_raw)
 
-    # 財報上下文（給 Gemini 用）
+    # 財報上下文（給 Gemini 用）— 下一個 US session 即將發布
     earnings_lines = []
     if today_earnings:
-        earnings_lines.append("【yfinance 確認今日財報】")
+        earnings_lines.append("【yfinance 確認下一個 US session 即將發布的財報】")
         for e in today_earnings:
             earnings_lines.append(f"{e['ticker']} ({e.get('time','—')})")
         earnings_lines.append("yfinance 確認的設 yfinance_confirmed=true，其餘設 false。")
