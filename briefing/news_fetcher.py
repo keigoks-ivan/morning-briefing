@@ -1267,14 +1267,15 @@ EARNINGS_BELLWETHERS = (
 )
 
 
-def _build_earnings_deep_queries(yesterday_us: str, today_us: str) -> list[str]:
-    """動態組裝 Perplexity 查詢，包含前一個美股交易日日期與核心 ticker 列表。"""
-    ticker_line = f"SPECIFIC TICKERS TO CHECK (report details for EACH that released Q1 earnings): {EARNINGS_BELLWETHERS}"
+def _build_earnings_deep_queries(window_start_et: str, window_end_et: str, us_session_date: str) -> list[str]:
+    """動態組裝 Perplexity 查詢：24h 窗口（上次 briefing → 本次 briefing）。"""
+    ticker_line = f"SPECIFIC TICKERS TO CHECK (report details for EACH that released Q1 earnings in the window): {EARNINGS_BELLWETHERS}"
     window_line = (
-        f"Time window: the most recent completed US trading session (yesterday US Eastern = {yesterday_us}), "
-        f"plus any pre-market or after-hours releases up to now ({today_us}). "
-        "This typically spans ~48 hours. Do not rely on Perplexity's default 'past 24h' filter — "
-        "use the explicit date above."
+        f"Time window: strictly 24 hours between consecutive morning briefings. "
+        f"From {window_start_et} US Eastern (previous briefing run) to {window_end_et} US Eastern (this briefing run). "
+        f"This captures ONE complete US trading session — market hours 9:30-16:00 ET on {us_session_date} "
+        f"plus any after-hours up to {window_end_et} ET, plus any stragglers from {us_session_date}'s prior-session after-hours. "
+        "Ignore releases outside this window. Do NOT include earnings from the session before or after."
     )
 
     exclude_preview = (
@@ -1335,8 +1336,9 @@ def _build_earnings_deep_queries(yesterday_us: str, today_us: str) -> list[str]:
 
 def fetch_earnings_deep_dive() -> list[dict]:
     """
-    抓取最近一個完整美股交易日（+ 任何盤前盤後）的重要財報深度資料。
-    Perplexity 查詢會被 prime 一個 bellwether ticker list，確保逐一檢查。
+    抓取「最近一個 TW 05:55 briefing 窗口」內發布的重要財報。
+    窗口 = (上次 briefing time, 本次 briefing time] = 24 小時。
+    在 US ET 時間軸上，這個窗口精確覆蓋「最近一個完整 US 交易 session」。
     """
     try:
         api_key = os.environ["PERPLEXITY_API_KEY"]
@@ -1348,17 +1350,24 @@ def fetch_earnings_deep_dive() -> list[dict]:
     tz_tw = pytz.timezone("Asia/Taipei")
     tz_et = pytz.timezone("US/Eastern")
     now_et = datetime.now(tz_et)
-    today_us = now_et.strftime("%Y-%m-%d")
-    # 昨日美東交易日 — 週一倒回週五
-    shift_days = 3 if now_et.weekday() == 0 else 1  # Monday → previous Friday
-    yesterday_us = (now_et - timedelta(days=shift_days)).strftime("%Y-%m-%d")
+    now_minus_24h = now_et - timedelta(hours=24)
+
+    # US session date = 今天 (US ET) 的日期（剛結束的那個 session 的日期）
+    us_session_date = now_et.strftime("%Y-%m-%d")
+    # 週末自動 fallback 到週五
+    if now_et.weekday() == 5:  # Saturday ET
+        us_session_date = (now_et - timedelta(days=1)).strftime("%Y-%m-%d")
+    elif now_et.weekday() == 6:  # Sunday ET
+        us_session_date = (now_et - timedelta(days=2)).strftime("%Y-%m-%d")
+
+    window_start_et = now_minus_24h.strftime("%Y-%m-%d %H:%M")
+    window_end_et = now_et.strftime("%Y-%m-%d %H:%M")
     today_tw = datetime.now(tz_tw).strftime("%Y-%m-%d")
 
-    print(f"  → Earnings window: yesterday_us={yesterday_us} → today_us={today_us} (tw={today_tw})")
+    print(f"  → Earnings window (24h ET): {window_start_et} → {window_end_et} (session date: {us_session_date})")
 
-    queries = _build_earnings_deep_queries(yesterday_us, today_us)
-    # Use "week" recency (instead of "day") so Perplexity doesn't clip out edge-of-window releases
-    args_list = [(q, headers, today_tw, 1600, "earnings-deep", "week") for q in queries]
+    queries = _build_earnings_deep_queries(window_start_et, window_end_et, us_session_date)
+    args_list = [(q, headers, today_tw, 1600, "earnings-deep", "day") for q in queries]
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         results = list(executor.map(_perplexity_query, args_list))
 
