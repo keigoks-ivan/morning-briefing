@@ -935,63 +935,71 @@ def _build_earnings_raw_text(earnings_deep_dive: list[dict] | None) -> str:
     return "\n".join(parts)
 
 
-def _call_gemini_earnings_analysis(earnings_raw_text: str, market_context: str) -> dict:
-    """呼叫 Gemini 2.5 Pro 做深度財報分析。"""
-    if not earnings_raw_text.strip():
-        print("  ⚠ [Earnings Analysis] 無 Perplexity 財報資料，跳過")
-        return {"has_content": False, "companies": [], "industry_trends": [],
-                "winners": [], "losers": [], "contradictions": [],
-                "conclusion": "今日無美股財報資料", "window": "", "overview": ""}
+def _has_earnings_content(earnings_raw_text: str) -> bool:
+    """判斷 Perplexity 回傳是否含實質財報內容；若無直接跳過 LLM。"""
+    if not earnings_raw_text or not earnings_raw_text.strip():
+        return False
+    text = earnings_raw_text.lower()
+    # 內容太短 → 視為無
+    if len(text) < 800:
+        return False
+    # 明確宣告無財報的字樣主導
+    neg_phrases = [
+        "no major earnings", "no significant earnings", "no earnings reports",
+        "no earnings were released", "no notable earnings", "no us company earnings",
+        "there are no earnings", "no earnings announcements",
+    ]
+    neg_hits = sum(text.count(p) for p in neg_phrases)
+    # 關鍵字出現次數太少 → 視為無
+    kw_count = text.count("eps") + text.count("revenue") + text.count("earnings") + text.count("reported")
+    if kw_count < 4:
+        return False
+    # 否定字出現且關鍵字很稀 → 視為無
+    if neg_hits >= 2 and kw_count < 10:
+        return False
+    return True
 
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        raise RuntimeError("GEMINI_API_KEY not set")
 
-    client = genai.Client(api_key=api_key)
+def _call_claude_earnings_analysis(earnings_raw_text: str, market_context: str) -> dict:
+    """呼叫 Claude Sonnet 4.6 做深度財報分析。無當日財報時直接跳過。"""
+    empty_stub = {"has_content": False, "companies": [], "industry_trends": [],
+                  "winners": [], "losers": [], "contradictions": [],
+                  "conclusion": "", "window": "", "overview": ""}
+
+    if not _has_earnings_content(earnings_raw_text):
+        print("  ⚠ [Earnings Analysis] 當日無實質財報資料，跳過 LLM 呼叫")
+        return empty_stub
+
+    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     user_prompt = EARNINGS_ANALYSIS_USER_TEMPLATE.format(
         earnings_raw_text=earnings_raw_text,
         market_context=market_context or "（無）",
     )
 
-    print("  → [Earnings Analysis] Calling Gemini 2.5 Pro...")
+    print("  → [Earnings Analysis] Calling Claude Sonnet 4.6...")
 
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            response = client.models.generate_content(
-                model="gemini-2.5-pro",
-                contents=user_prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=EARNINGS_ANALYSIS_SYSTEM_PROMPT,
-                    max_output_tokens=16000,
-                    temperature=0.4,
-                    response_mime_type="application/json",
-                    thinking_config=types.ThinkingConfig(thinking_budget=0),
-                ),
-            )
-            break
-        except Exception as e:
-            err_str = str(e)
-            if ("503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str or "RESOURCE_EXHAUSTED" in err_str) and attempt < max_retries - 1:
-                wait = (attempt + 1) * 15
-                print(f"  ⚠ [Earnings Analysis] attempt {attempt+1} failed ({err_str[:80]}), retrying in {wait}s...")
-                import time
-                time.sleep(wait)
-            else:
-                raise
+    full_text = ""
+    with client.messages.stream(
+        model="claude-sonnet-4-6",
+        max_tokens=16000,
+        system=EARNINGS_ANALYSIS_SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": user_prompt}],
+    ) as stream:
+        for text in stream.text_stream:
+            full_text += text
+        final_msg = stream.get_final_message()
 
-    raw_text = response.text
-    usage = response.usage_metadata
-    in_tok = usage.prompt_token_count
-    out_tok = usage.candidates_token_count
-    cost = in_tok / 1_000_000 * 1.25 + out_tok / 1_000_000 * 10
+    usage = final_msg.usage
+    in_tok = usage.input_tokens
+    out_tok = usage.output_tokens
+    cost = in_tok / 1_000_000 * 3 + out_tok / 1_000_000 * 15
     print(f"  → [Earnings Analysis] tokens: in={in_tok:,} out={out_tok:,} cost=${cost:.4f}")
 
-    with open("/tmp/gemini_earnings_raw.txt", "w") as f:
-        f.write(raw_text)
+    with open("/tmp/claude_earnings_raw.txt", "w") as f:
+        f.write(full_text)
 
     try:
-        return _parse_json(raw_text)
+        return _parse_json(full_text)
     except json.JSONDecodeError as e:
         print(f"  [Earnings Analysis] JSON error at char {e.pos}: {e.msg}")
         raise
@@ -1080,7 +1088,7 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
     with ThreadPoolExecutor(max_workers=3) as executor:
         analysis_future = executor.submit(_call_analysis_with_fallback)
         gemini_future = executor.submit(_call_gemini, news_text, earnings_context)
-        earnings_future = executor.submit(_call_gemini_earnings_analysis, earnings_raw_text, market_context)
+        earnings_future = executor.submit(_call_claude_earnings_analysis, earnings_raw_text, market_context)
 
         try:
             analysis_data = analysis_future.result()
