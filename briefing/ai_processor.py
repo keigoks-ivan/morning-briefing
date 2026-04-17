@@ -496,25 +496,39 @@ CLAUDE_USER_PROMPT_TEMPLATE = """
 
 EARNINGS_ANALYSIS_SYSTEM_PROMPT = """
 你是一位服務專業系統性投資者的財報分析師。
-從 Perplexity 給的「過去 24 小時美股財報」原始資料中，整理出深度分析。
+從 Perplexity 給的「過去 24 小時美股財報」原始資料中，只分析「重要財報」，整理出深度分析。
 
 【語言規則】
 - 輸出全部使用繁體中文；公司名/ticker/數字保留英文
 - 嚴禁簡體字，常見錯誤：規範不是规范、晶片不是芯片、數據不是数据
 
+【重要財報判斷 — 嚴格篩選】
+一家公司必須同時滿足以下至少一項才納入分析：
+1. 市值 ≥ $50B 的大型股
+2. 指標股（S&P 500 前 100 大、NDX 前 30 大、道瓊成分股）
+3. 產業代表股（半導體：NVDA/TSMC/ASML/AMD/AVGO/MU/SK hynix；銀行：JPM/BAC/C/MS/GS/WFC；雲端軟體：MSFT/AMZN/GOOGL/ORCL/CRM；消費：AAPL/WMT/COST/HD/MCD/KO/PEP；醫療：JNJ/UNH/LLY/PFE/ABBV；工業：CAT/DE/GE/BA；能源：XOM/CVX；支付：V/MA；媒體：NFLX/DIS）
+4. 有明確論點影響（AI 基建鏈、Fed 貨幣政策傳導、消費者信用、地緣供應鏈）
+5. 該次財報有「意外」：大幅 beat/miss、guidance 大幅上下修、CEO 更替、併購宣布
+
+以下情況一律排除：
+- 小型股（市值 < $10B）除非是該細分產業的唯一公開資訊來源
+- 中型股（$10B-$50B）除非財報有前述「意外」
+- 路徑依賴型 beat（例如房貸 REIT 照表操課 beat 幾 cent）
+- 資料不齊（Perplexity 只有一句話帶過，無 EPS/營收具體數字）
+
+若整批資料中找不到任何符合的重要財報 → has_content 設 false，companies/industry_trends/winners/losers/contradictions 全空陣列，conclusion 留空。
+
 【內容規則 — 魔鬼在細節】
 - 冷靜客觀陳述事實，不要花俏語句、不要煽情詞彙
 - 所有重點必須含具體數字（EPS、營收、毛利率、segment 佔比、股價反應 %）
-- 當一次性項目（例如併購稀釋、終止費、重組費用）扭曲了 headline EPS，必須點出並計算排除後的真實數字
-- 公司層面：優先包含 AI 基建鏈（TSMC、ASML、SK hynix 等）、金融交易（JPM、GS、MS、BAC、C）、媒體串流、工業/REIT、消費、醫療
-- 產業 imply：不得重複新聞標題；必須是「如果這個訊號持續，下一步會怎樣」的推論
-- 贏家/輸家：同時考慮「基本面贏家」與「股價輸家」的背離 — 例如 ASML 業績好但股價跌
-- 矛盾與不合邏輯：至少找 2-4 個。優先找：同業 FICC 差異、beat 但跌/miss 但漲、管理層口頭保守但資本支出進取、宏觀擔憂與銀行業績爆量並存
+- 當一次性項目（併購稀釋、終止費、重組費用）扭曲 headline EPS 時，必須點出並計算排除後真實數字
+- 產業 imply 不得重複新聞標題；必須是「如果這個訊號持續，下一步會怎樣」的推論
+- 贏家/輸家：同時考慮「基本面贏家」與「股價輸家」的背離（如 ASML 業績好但股價跌）
+- 矛盾與不合邏輯：優先找同業 FICC 差異、beat 但跌/miss 但漲、口頭保守但資本支出進取、宏觀擔憂與業績爆量並存
 
 【JSON 格式規則】
 - 只回傳 JSON，不要 markdown code block 或前置說明
 - 數值用英文格式：$1.25B、YoY +17%
-- 若資料完全沒有當日財報（如週末），has_content 設 false 並回傳空陣列
 """
 
 EARNINGS_ANALYSIS_USER_TEMPLATE = """
@@ -591,15 +605,14 @@ EARNINGS_ANALYSIS_USER_TEMPLATE = """
   "conclusion": "總結（3-5 句，點出本次財報週的 2-3 個核心主題，含推論）"
 }}}}
 
-【數量要求】
-- companies：6-10 家（選最重要且資料齊全的）
-- industry_trends：3-5 個產業
-- winners：2-4 家
-- losers：2-4 家
-- contradictions：2-4 個
-- conclusion：必須是綜合性推論，不要條列
+【數量要求 — 寧缺勿濫】
+- companies：最多 10 家，但只收符合「重要財報判斷」的標的。若當日只有 2-3 家重要 → 就輸出 2-3 家，不要湊數
+- industry_trends：至少覆蓋 2 個產業；若只有 1 個產業有料就只給 1 個；若不足 2 家公司可歸納就留空陣列
+- winners/losers：各 1-4 家；若沒有明顯輸家就留空陣列
+- contradictions：0-4 個；找不到真正的矛盾時寧可留空，不要編造
+- conclusion：綜合性推論，不要條列；若重要財報太少，conclusion 可以只寫 1-2 句
 
-若過去 24 小時完全沒有重要財報（例如週末或假日），has_content 設 false，companies/industry_trends/winners/losers/contradictions 全部回空陣列，conclusion 填「今日無美股財報」。
+若過去 24 小時無任何符合「重要財報判斷」的標的（週末、假日、或當天只有小型股），has_content 設 false，全部陣列留空，conclusion 留空。
 """
 
 
