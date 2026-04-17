@@ -1238,56 +1238,105 @@ def fetch_deep_dive_news() -> dict:
     return {"fixed": fixed_results, "dynamic": dynamic_results}
 
 
-EARNINGS_DEEP_QUERIES = [
-    # Query 1: 公司層面具體財務數字 — 只問重要公司
-    ("List ONLY large-cap and bellwether US company earnings released in the past 24 hours. "
-     "Qualifying criteria: market cap >= $40B, OR S&P 500 top 100 / NDX top 30 / Dow constituent, "
-     "OR sector bellwether (semiconductors: NVDA/TSMC/ASML/AMD/AVGO/MU/SK hynix; "
-     "banks: JPM/BAC/C/MS/GS/WFC; cloud software: MSFT/AMZN/GOOGL/ORCL/CRM; "
-     "consumer: AAPL/WMT/COST/HD/MCD/KO/PEP; healthcare: JNJ/UNH/LLY/PFE/ABBV; "
-     "industrial: CAT/DE/GE/BA; energy: XOM/CVX; payments: V/MA; media: NFLX/DIS). "
-     "Exclude small caps, routine REIT beats, specialty niche companies. "
-     "For EACH qualifying company include: "
-     "(1) EPS actual vs consensus estimate with $ numbers, "
-     "(2) Revenue actual vs estimate with $ numbers and YoY growth %, "
-     "(3) Gross / operating margin if disclosed, "
-     "(4) Net income YoY change, "
-     "(5) Segment breakdown (semi: 3nm/5nm wafer mix %; banks: FICC/equities/IB fees; streaming: subs/ads), "
-     "(6) Stock price reaction pre-market/after-hours %, "
-     "(7) Forward guidance if given. "
-     "If zero qualifying companies reported, say so explicitly. "
-     "Sources: Bloomberg Reuters FT WSJ CNBC Barron's company press releases"),
-    # Query 2: 財報會議重點 — 只針對重要公司
-    ("What are the most significant earnings call highlights from LARGE-CAP US company earnings released in the past 24 hours? "
-     "Only include companies with market cap >= $40B or index-bellwether status. "
-     "Extract CEO/CFO quotes and commentary on: "
-     "(1) AI demand signals with specific customer/segment names, "
-     "(2) Geographic exposure shifts (China, Korea, Europe, US) with % numbers, "
-     "(3) Capacity or capex guidance with $ figures, "
-     "(4) Margin expansion/compression drivers, "
-     "(5) Acquisitions or one-time items distorting reported EPS, "
-     "(6) 2026 outlook statements. "
-     "If no large-cap earnings call content is available for past 24 hours, say so explicitly. "
-     "Sources: Bloomberg Reuters FT WSJ CNBC Seeking Alpha transcripts"),
-    # Query 3: 產業訊號與跨公司矛盾
-    ("Based on LARGE-CAP US company earnings released in the past 24 hours, what industry-level signals and cross-company contradictions are emerging? "
-     "Only cite companies with market cap >= $40B or sector bellwether status. "
-     "Look for: "
-     "(1) AI infrastructure demand: TSMC / ASML / NVDA / SK hynix / AVGO signals, "
-     "(2) Banks: trading vs NII vs credit quality divergence across JPM/BAC/MS/GS/C, "
-     "(3) Streaming/media: subscriber vs ad-revenue vs content-cost trends, "
-     "(4) Industrial/REIT: logistics vs data-center transition, "
-     "(5) Cross-company contradictions - supplier says weak while customer says strong, "
-     "(6) Stock reaction vs fundamental beat divergence - beat but fell, missed but rose. "
-     "If insufficient large-cap earnings for past 24 hours to support this analysis, say so explicitly. "
-     "Sources: Bloomberg Reuters FT WSJ Barron's"),
-]
+# 核心 bellwether ticker 列表 — 用來 prime Perplexity 逐一查
+EARNINGS_BELLWETHERS = (
+    # 半導體/AI基建
+    "NVDA TSM ASML AVGO AMD MU ARM MRVL QCOM LRCX AMAT KLAC TXN INTC AMAT "
+    # 大型銀行
+    "JPM BAC C MS GS WFC USB PNC TFC BK SCHW COF AXP "
+    # 雲端/軟體
+    "MSFT AMZN GOOGL META ORCL CRM NOW ADBE IBM PLTR "
+    # 消費
+    "AAPL WMT COST HD MCD KO PEP TGT LOW NKE SBUX TJX "
+    # 醫療
+    "JNJ UNH LLY PFE ABBV ABT BMY MRK TMO DHR AMGN LLY ISRG VRTX REGN CI HCA "
+    # 工業/運輸
+    "CAT DE GE BA LMT RTX NOC GD EMR ITW ETN HON UNP UPS FDX "
+    # 能源/化工
+    "XOM CVX COP SLB EOG PSX VLO LIN APD "
+    # 支付/金融其他
+    "V MA BLK SPGI ICE CME MCO BX KKR APO "
+    # 媒體/通訊
+    "NFLX DIS CMCSA T VZ TMUS CHTR "
+    # 房地產/工業地產
+    "PLD AMT EQIX PSA O CCI "
+    # 保險
+    "BRK-B PGR TRV AIG MET PRU MMC AON AFL "
+    # 其他大型
+    "TSLA UBER BKNG INTU MDT"
+)
+
+
+def _build_earnings_deep_queries(yesterday_us: str, today_us: str) -> list[str]:
+    """動態組裝 Perplexity 查詢，包含前一個美股交易日日期與核心 ticker 列表。"""
+    ticker_line = f"SPECIFIC TICKERS TO CHECK (report details for EACH that released Q1 earnings): {EARNINGS_BELLWETHERS}"
+    window_line = (
+        f"Time window: the most recent completed US trading session (yesterday US Eastern = {yesterday_us}), "
+        f"plus any pre-market or after-hours releases up to now ({today_us}). "
+        "This typically spans ~48 hours. Do not rely on Perplexity's default 'past 24h' filter — "
+        "use the explicit date above."
+    )
+
+    exclude_preview = (
+        "CRITICAL: ONLY report on companies that have ACTUALLY RELEASED actual Q1 2026 results. "
+        "Do NOT include companies where articles use 'expected to report', 'will report', 'analysts expect', "
+        "'earnings preview', 'ahead of earnings', 'scheduled for', or any forward-looking language. "
+        "Exclude preview / analyst-expectation / 'what to watch' articles entirely. "
+        "If only preview coverage exists for a ticker, mark it as 'not yet released' and skip details. "
+        "Require phrases like 'reported', 'posted', 'announced results', 'actual EPS' with concrete numbers."
+    )
+
+    return [
+        # Query 1: 公司層面具體財務數字
+        (f"Task: Enumerate large-cap US company Q1 2026 earnings releases from the most recent completed US trading session. "
+         f"{window_line}\n\n"
+         f"{exclude_preview}\n\n"
+         f"{ticker_line}\n\n"
+         "For EACH ticker on that list that ACTUALLY RELEASED Q1 earnings in the window, extract:\n"
+         "(1) EPS actual vs consensus with $ figures\n"
+         "(2) Revenue actual vs estimate with $ figures and YoY growth %\n"
+         "(3) Gross / operating margin if disclosed\n"
+         "(4) Net income YoY change\n"
+         "(5) Segment breakdown (semi: 3nm/5nm wafer mix %; banks: FICC/equities/IB fees; streaming: subs/ads/revenue split; REITs: occupancy/same-store NOI)\n"
+         "(6) Stock price reaction pre-market/after-hours in %\n"
+         "(7) Forward guidance if given\n"
+         "Explicitly list which tickers did NOT report in the window (skip those from output).\n"
+         "Sources: Bloomberg Reuters FT WSJ CNBC Barron's company press releases"),
+
+        # Query 2: 財報會議重點
+        (f"Task: Extract earnings call highlights from large-cap US Q1 2026 earnings released in the most recent completed US trading session. "
+         f"{window_line}\n\n"
+         f"{exclude_preview}\n\n"
+         f"{ticker_line}\n\n"
+         "For each ticker that ACTUALLY HELD an earnings call (not a preview), extract CEO/CFO direct quotes and commentary on:\n"
+         "(1) AI demand signals with specific customer / segment names\n"
+         "(2) Geographic exposure shifts (China, Korea, Europe, US) with % numbers\n"
+         "(3) Capacity / capex guidance with $ figures\n"
+         "(4) Margin expansion or compression drivers\n"
+         "(5) Acquisitions or one-time items that distort reported EPS — compute ex-items number\n"
+         "(6) 2026 outlook statements\n"
+         "Sources: Bloomberg Reuters FT WSJ CNBC Seeking Alpha earnings call transcripts"),
+
+        # Query 3: 產業訊號與跨公司矛盾
+        (f"Task: Identify industry-level signals and cross-company contradictions from large-cap US Q1 2026 earnings in the most recent completed US trading session. "
+         f"{window_line}\n\n"
+         f"{exclude_preview}\n\n"
+         f"{ticker_line}\n\n"
+         "Look for:\n"
+         "(1) AI infrastructure demand across TSM / ASML / NVDA / SK hynix / AVGO / MRVL — accelerating or decelerating?\n"
+         "(2) Banks: trading revenue vs NII vs credit-quality divergence across JPM / BAC / C / MS / GS / WFC / USB / BK\n"
+         "(3) Streaming / media: subscriber growth vs ad revenue vs content cost - NFLX / DIS\n"
+         "(4) Industrial / REIT: logistics vs data-center transition - PLD / AMT / EQIX\n"
+         "(5) Cross-company contradictions — supplier says weak while customer says strong, or vice versa\n"
+         "(6) Stock reaction vs fundamental beat divergence — beat but fell, missed but rose\n"
+         "Cite specific company numbers. Sources: Bloomberg Reuters FT WSJ Barron's"),
+    ]
 
 
 def fetch_earnings_deep_dive() -> list[dict]:
     """
-    抓取過去 24 小時美股重要財報的深度資料（Perplexity），
-    供 Gemini Pro 做深度分析使用。
+    抓取最近一個完整美股交易日（+ 任何盤前盤後）的重要財報深度資料。
+    Perplexity 查詢會被 prime 一個 bellwether ticker list，確保逐一檢查。
     """
     try:
         api_key = os.environ["PERPLEXITY_API_KEY"]
@@ -1296,10 +1345,20 @@ def fetch_earnings_deep_dive() -> list[dict]:
         return []
 
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    tz = pytz.timezone("Asia/Taipei")
-    today = datetime.now(tz).strftime("%Y-%m-%d")
+    tz_tw = pytz.timezone("Asia/Taipei")
+    tz_et = pytz.timezone("US/Eastern")
+    now_et = datetime.now(tz_et)
+    today_us = now_et.strftime("%Y-%m-%d")
+    # 昨日美東交易日 — 週一倒回週五
+    shift_days = 3 if now_et.weekday() == 0 else 1  # Monday → previous Friday
+    yesterday_us = (now_et - timedelta(days=shift_days)).strftime("%Y-%m-%d")
+    today_tw = datetime.now(tz_tw).strftime("%Y-%m-%d")
 
-    args_list = [(q, headers, today, 1400, "earnings-deep") for q in EARNINGS_DEEP_QUERIES]
+    print(f"  → Earnings window: yesterday_us={yesterday_us} → today_us={today_us} (tw={today_tw})")
+
+    queries = _build_earnings_deep_queries(yesterday_us, today_us)
+    # Use "week" recency (instead of "day") so Perplexity doesn't clip out edge-of-window releases
+    args_list = [(q, headers, today_tw, 1600, "earnings-deep", "week") for q in queries]
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         results = list(executor.map(_perplexity_query, args_list))
 
@@ -1309,26 +1368,45 @@ def fetch_earnings_deep_dive() -> list[dict]:
 
 
 def _perplexity_query(args: tuple) -> dict:
-    """Execute a single Perplexity API query. Used by ThreadPoolExecutor."""
-    query, headers, today, max_tokens, label = args
+    """Execute a single Perplexity API query. Used by ThreadPoolExecutor.
+    Tuple: (query, headers, today, max_tokens, label) or
+           (query, headers, today, max_tokens, label, recency)
+    recency: "day" | "week" | "month" — controls search_recency_filter.
+    """
+    if len(args) == 6:
+        query, headers, today, max_tokens, label, recency = args
+    else:
+        query, headers, today, max_tokens, label = args
+        recency = "day"
+
+    # 財報深度查詢要 week 窗口，系統提示也要鬆綁
+    if recency == "week":
+        system_content = (
+            f"Today is {today} Taiwan time (UTC+8). "
+            "Cover the most recent completed US trading session plus any pre-market / after-hours releases up to now "
+            "(this typically spans ~48 hours). "
+            "Sort results by BOTH recency AND importance: breaking news and high-impact events first. "
+            "Always include specific numbers, dates, and source names. "
+            "Never include ESG, sustainability, or green energy related news."
+        )
+    else:
+        system_content = (
+            f"Today is {today} Taiwan time (UTC+8). "
+            "Only report news from the past 24 hours. No exceptions. "
+            "Sort results by BOTH recency AND importance: breaking news and high-impact events first, "
+            "then other recent news. If no news from past 24 hours is available, say so explicitly. "
+            "Never include news older than 24 hours even if no recent news is available. "
+            "Always include specific numbers, dates, and source names. "
+            "Never include ESG, sustainability, or green energy related news."
+        )
+
     payload = {
         "model": "sonar",
         "messages": [
-            {
-                "role": "system",
-                "content": (
-                    f"Today is {today} Taiwan time (UTC+8). "
-                    "Only report news from the past 24 hours. No exceptions. "
-                    "Sort results by BOTH recency AND importance: breaking news and high-impact events first, "
-                    "then other recent news. If no news from past 24 hours is available, say so explicitly. "
-                    "Never include news older than 24 hours even if no recent news is available. "
-                    "Always include specific numbers, dates, and source names. "
-                    "Never include ESG, sustainability, or green energy related news."
-                ),
-            },
+            {"role": "system", "content": system_content},
             {"role": "user", "content": query},
         ],
-        "search_recency_filter": "day",
+        "search_recency_filter": recency,
         "return_citations": True,
         "max_tokens": max_tokens,
     }
