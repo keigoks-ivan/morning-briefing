@@ -334,10 +334,66 @@ def generate_weekly_market_pulse(market_data: dict) -> dict:
         return {"observations": [], "hidden_risk": "", "hidden_opportunity": ""}
 
 
+def _try_load_weekly_mac_data() -> dict | None:
+    """嘗試載入 Mac mini 產生的 weekly_full_data.json"""
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    path = os.path.join(repo_root, "docs", "briefing", "weekly_full_data.json")
+
+    if not os.path.exists(path):
+        print(f"  ⚠ Mac weekly data missing ({path}) → fallback")
+        return None
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        print(f"  ⚠ parse error: {e} → fallback")
+        return None
+
+    ts_str = data.get("generated_at", "")
+    try:
+        ts = datetime.fromisoformat(ts_str)
+        if ts.tzinfo is None:
+            ts = pytz.timezone("Asia/Taipei").localize(ts)
+        age_min = (datetime.now(ts.tzinfo) - ts).total_seconds() / 60
+    except Exception as e:
+        print(f"  ⚠ timestamp parse error: {e} → fallback")
+        return None
+
+    if age_min > 20:
+        print(f"  ⚠ Mac weekly data {age_min:.0f}min old → fallback")
+        return None
+
+    # schema check
+    sys.path.insert(0, os.path.join(repo_root, "mac_runner"))
+    try:
+        from validate_schema import validate as _validate_schema
+        ok, errors = _validate_schema(data, mode="weekly")
+    except ImportError:
+        ok, errors = True, []
+
+    if not ok:
+        print(f"  ⚠ schema invalid ({len(errors)} errors) → fallback")
+        for e in errors[:3]:
+            print(f"       - {e}")
+        return None
+
+    print(f"  ✓ Using Mac-generated weekly data ({age_min:.0f}min old)")
+    return data
+
+
 def main() -> None:
     print("=" * 50)
     print("Weekly Deep Report — starting")
     print("=" * 50)
+
+    # 0. 嘗試讀 Mac 預跑好的資料
+    print("\n[0] Check Mac-generated weekly data...")
+    mac_data = _try_load_weekly_mac_data()
+    if mac_data:
+        print("      Mac weekly path not fully integrated yet — still running fallback pipeline")
+        # TODO (PR4+): 加上 Mac weekly data → 主題 JSON 的分派邏輯；先走 fallback
+    print(f"      (using fallback pipeline regardless for now)")
 
     today, date_short, start = _get_date_info()
     output_dir = os.path.join(os.path.dirname(__file__), "weekly_output")
