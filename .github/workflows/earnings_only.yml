@@ -1,0 +1,71 @@
+name: Earnings Analysis (Test Only)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  earnings-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install openpyxl pandas numpy yfinance --upgrade
+
+      - name: Run earnings-only pipeline
+        env:
+          ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY:    ${{ secrets.GEMINI_API_KEY }}
+          PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
+        run: |
+          cd briefing
+          python earnings_only.py
+
+      - name: Publish earnings_test.html to GitHub Pages
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          TEST_FILE="${GITHUB_WORKSPACE}/docs/briefing/earnings_test.html"
+          if [ ! -f "$TEST_FILE" ]; then
+            echo "earnings_test.html not generated, skipping publish"
+            exit 0
+          fi
+
+          git clone https://x-access-token:${GH_PAT}@github.com/keigoks-ivan/financial-analysis-bot.git /tmp/fab
+          cd /tmp/fab
+          mkdir -p docs/briefing
+          cp "$TEST_FILE" docs/briefing/earnings_test.html
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/briefing/earnings_test.html
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "🧪 Earnings test page (manual trigger)"
+          git push
+
+      - name: Upload raw artifacts for inspection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: earnings-outputs
+          path: |
+            /tmp/earnings_raw.txt
+            /tmp/earnings_result.json
+            /tmp/claude_earnings_raw.txt
+          retention-days: 7
