@@ -504,7 +504,7 @@ EARNINGS_ANALYSIS_SYSTEM_PROMPT = """
 
 【重要財報判斷 — 嚴格篩選】
 一家公司必須同時滿足以下至少一項才納入分析：
-1. 市值 ≥ $50B 的大型股
+1. 市值 ≥ $40B 的大型股
 2. 指標股（S&P 500 前 100 大、NDX 前 30 大、道瓊成分股）
 3. 產業代表股（半導體：NVDA/TSMC/ASML/AMD/AVGO/MU/SK hynix；銀行：JPM/BAC/C/MS/GS/WFC；雲端軟體：MSFT/AMZN/GOOGL/ORCL/CRM；消費：AAPL/WMT/COST/HD/MCD/KO/PEP；醫療：JNJ/UNH/LLY/PFE/ABBV；工業：CAT/DE/GE/BA；能源：XOM/CVX；支付：V/MA；媒體：NFLX/DIS）
 4. 有明確論點影響（AI 基建鏈、Fed 貨幣政策傳導、消費者信用、地緣供應鏈）
@@ -512,7 +512,7 @@ EARNINGS_ANALYSIS_SYSTEM_PROMPT = """
 
 以下情況一律排除：
 - 小型股（市值 < $10B）除非是該細分產業的唯一公開資訊來源
-- 中型股（$10B-$50B）除非財報有前述「意外」
+- 中型股（$10B-$40B）除非財報有前述「意外」
 - 路徑依賴型 beat（例如房貸 REIT 照表操課 beat 幾 cent）
 - 資料不齊（Perplexity 只有一句話帶過，無 EPS/營收具體數字）
 

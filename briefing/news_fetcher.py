@@ -1241,7 +1241,7 @@ def fetch_deep_dive_news() -> dict:
 EARNINGS_DEEP_QUERIES = [
     # Query 1: 公司層面具體財務數字 — 只問重要公司
     ("List ONLY large-cap and bellwether US company earnings released in the past 24 hours. "
-     "Qualifying criteria: market cap >= $50B, OR S&P 500 top 100 / NDX top 30 / Dow constituent, "
+     "Qualifying criteria: market cap >= $40B, OR S&P 500 top 100 / NDX top 30 / Dow constituent, "
      "OR sector bellwether (semiconductors: NVDA/TSMC/ASML/AMD/AVGO/MU/SK hynix; "
      "banks: JPM/BAC/C/MS/GS/WFC; cloud software: MSFT/AMZN/GOOGL/ORCL/CRM; "
      "consumer: AAPL/WMT/COST/HD/MCD/KO/PEP; healthcare: JNJ/UNH/LLY/PFE/ABBV; "
@@ -1259,7 +1259,7 @@ EARNINGS_DEEP_QUERIES = [
      "Sources: Bloomberg Reuters FT WSJ CNBC Barron's company press releases"),
     # Query 2: 財報會議重點 — 只針對重要公司
     ("What are the most significant earnings call highlights from LARGE-CAP US company earnings released in the past 24 hours? "
-     "Only include companies with market cap >= $50B or index-bellwether status. "
+     "Only include companies with market cap >= $40B or index-bellwether status. "
      "Extract CEO/CFO quotes and commentary on: "
      "(1) AI demand signals with specific customer/segment names, "
      "(2) Geographic exposure shifts (China, Korea, Europe, US) with % numbers, "
@@ -1271,7 +1271,7 @@ EARNINGS_DEEP_QUERIES = [
      "Sources: Bloomberg Reuters FT WSJ CNBC Seeking Alpha transcripts"),
     # Query 3: 產業訊號與跨公司矛盾
     ("Based on LARGE-CAP US company earnings released in the past 24 hours, what industry-level signals and cross-company contradictions are emerging? "
-     "Only cite companies with market cap >= $50B or sector bellwether status. "
+     "Only cite companies with market cap >= $40B or sector bellwether status. "
      "Look for: "
      "(1) AI infrastructure demand: TSMC / ASML / NVDA / SK hynix / AVGO signals, "
      "(2) Banks: trading vs NII vs credit quality divergence across JPM/BAC/MS/GS/C, "
