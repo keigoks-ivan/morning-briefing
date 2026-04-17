@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd LaunchAgent — Mac pre-briefing pipeline
+
+  Install:
+    cp mac_runner/com.ivan.morningbriefing.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.ivan.morningbriefing.plist
+
+  Check loaded:
+    launchctl list | grep morningbriefing
+
+  Remove:
+    launchctl unload ~/Library/LaunchAgents/com.ivan.morningbriefing.plist
+    rm ~/Library/LaunchAgents/com.ivan.morningbriefing.plist
+
+  Trigger manually (for testing):
+    launchctl kickstart -k gui/$(id -u)/com.ivan.morningbriefing
+
+  Notes:
+    - LaunchAgent (runs in user session, has keychain access for Claude OAuth token)
+    - NOT LaunchDaemon (that would run as root without keychain)
+    - StartCalendarInterval uses local time; TW is system TZ assumed here (Asia/Taipei)
+    - If Mac is asleep at trigger time: macOS will run it at next wake unless caffeinate
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.ivan.morningbriefing</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-lc</string>
+        <string>/Users/ivanchang/Desktop/morning-briefing/morning-briefing/mac_runner/run_daily.sh</string>
+    </array>
+
+    <!-- 每天 TW 05:55 觸發 -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>5</integer>
+        <key>Minute</key>
+        <integer>55</integer>
+    </dict>
+
+    <!-- 讓 launchd 保持一個環境 PATH -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/ivanchang/.claude/local:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>/Users/ivanchang</string>
+    </dict>
+
+    <!-- stdout/stderr log -->
+    <key>StandardOutPath</key>
+    <string>/Users/ivanchang/Library/Logs/morning-briefing/runner.out</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/ivanchang/Library/Logs/morning-briefing/runner.err</string>
+
+    <!-- 在 user session 跑 -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <!-- 不要保持運行 -->
+    <key>KeepAlive</key>
+    <false/>
+
+    <!-- Process nice level — don't hog CPU -->
+    <key>Nice</key>
+    <integer>10</integer>
+
+    <!-- 限制整體執行時間：launchd 會在這秒數後送 SIGTERM -->
+    <key>ExitTimeOut</key>
+    <integer>900</integer>
+</dict>
+</plist>

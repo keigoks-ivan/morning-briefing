@@ -28,10 +28,12 @@
 
 ## 排程設定
 
-- 日報 cron：55 21 * * *（UTC）= 台灣 05:55
-- 週報 cron：55 21 * * 0（UTC）= 週日台灣 05:55
+- Mac mini launchd：TW 05:55（每天）→ 跑 mac_runner/orchestrate.py → 推 full_data.json
+- 日報 Render cron：22:15 UTC（每天）= 台灣 06:15 → trigger.py → GitHub Actions
+- 週報 GitHub cron：15 22 * * 6（UTC）= 週日台灣 06:15
+- 20 分鐘 buffer：Mac 先跑 → push → GHA 撿 full_data.json；Mac 失敗則 GHA 06:15 走 API fallback
 - 排程不跑：git commit --allow-empty -m "resync" && git push
-- GitHub Actions timeout：30 分鐘
+- GitHub Actions timeout：30 分鐘（日報）/ 60 分鐘（週報）
 - 觸發方式：Render Cron Job → trigger.py → GitHub API workflow_dispatch
 
 ---
