@@ -3,12 +3,15 @@ html_template.py
 ----------------
 將 ai_processor.py 輸出的 JSON 轉為 HTML Email。
 
+(本機預覽可能用 Python 3.9 跑 — 加 __future__ annotations 向下相容)
+
 版面順序：
   masthead → daily_summary → alert → 市場數據 → 核心要聞
   → 總經 → AI產業動態 → 地緣政治 → 全球科技 → Fintech/加密
   → 系統狀態 → 硬核科技趨勢 → 新創產業 → 本週財報預告
   → 隱含趨勢 → 財經冷知識 → 今日行程 → footer
 """
+from __future__ import annotations
 
 from datetime import datetime
 import pytz
