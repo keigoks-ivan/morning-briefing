@@ -26,6 +26,7 @@ Claude Code 認證：
   python orchestrate.py --mode daily --only earnings   # 只跑單一任務（debug 用）
   python orchestrate.py --mode daily --no-push         # 跑完不推（本機測試）
 """
+from __future__ import annotations
 
 import os
 import sys
@@ -211,18 +212,30 @@ def run_phase2_weekly(only: str | None) -> tuple[dict[str, dict], dict[str, str]
 # ── Phase 3: merge + validate ───────────────────────────────
 
 def merge_daily(raw: dict, parts: dict[str, dict]) -> dict:
-    news = parts.get("news", {}) or {}
-    analysis = parts.get("analysis", {}) or {}
+    news = dict(parts.get("news", {}) or {})
+    analysis = dict(parts.get("analysis", {}) or {})
     earnings = parts.get("earnings", {}) or {}
+
+    # analysis 輸出的 market_data 只有 move_index，要把它併進 raw 的完整 market_data，
+    # 而不是讓 **analysis 的 spread 直接覆蓋掉完整的 market_data
+    market_data = dict(raw.get("market_data", {}))
+    analysis_md = analysis.pop("market_data", None)
+    if isinstance(analysis_md, dict):
+        move_index = analysis_md.get("move_index")
+        if move_index:
+            market_data["move_index"] = move_index
+
+    # news 不應輸出 market_data，若有就丟棄
+    news.pop("market_data", None)
 
     out = {
         "generated_at": raw["generated_at"],
         "date": raw["date_tw"],
         "date_us_et": raw.get("date_us_et", ""),
-        "market_data": raw.get("market_data", {}),
+        "market_data": market_data,
         # news：直接拍平到頂層
         **news,
-        # analysis：直接拍平到頂層
+        # analysis：直接拍平到頂層（market_data 已在上面獨立處理，剩下是 daily_summary/alert/market_pulse/…）
         **analysis,
         # earnings 放到 earnings_deep_analysis
         "earnings_deep_analysis": earnings if earnings else {
