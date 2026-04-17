@@ -4,3 +4,6 @@ __pycache__/
 *.pyo
 .DS_Store
 briefing/output/
+
+# Mac mini preview testing output
+docs/briefing/preview/
