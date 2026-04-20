@@ -32,7 +32,7 @@
 - Mac Mini（主力）和 MacBook Pro（次要），git 同步
 - Claude Code 作為執行代理，我生成指令 → Claude Code 執行 → git push
 - 兩台 Mac 的 repo 路徑：
-  /Users/ivanchang/Desktop/morning-briefing/morning-briefing/
+  /Users/ivanchang/morning-briefing/
 
 ---
 

@@ -14,7 +14,7 @@
 
 set -uo pipefail
 
-REPO="/Users/ivanchang/Desktop/morning-briefing/morning-briefing"
+REPO="/Users/ivanchang/morning-briefing"
 LOG_DIR="$HOME/Library/Logs/morning-briefing"
 mkdir -p "$LOG_DIR"
 

@@ -32,7 +32,7 @@
     <array>
         <string>/bin/bash</string>
         <string>-lc</string>
-        <string>/Users/ivanchang/Desktop/morning-briefing/morning-briefing/mac_runner/run_daily.sh</string>
+        <string>/Users/ivanchang/morning-briefing/mac_runner/run_daily.sh</string>
     </array>
 
     <!-- 每天 TW 05:55 觸發 -->

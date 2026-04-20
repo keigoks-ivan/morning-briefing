@@ -11,14 +11,14 @@ claude login
 # 瀏覽器開 OAuth，完成後 token 進 keychain
 
 # Python 依賴
-cd ~/Desktop/morning-briefing/morning-briefing
+cd ~/morning-briefing
 pip3 install -r requirements.txt
 ```
 
 ## 安裝 launchd
 
 ```bash
-cd ~/Desktop/morning-briefing/morning-briefing
+cd ~/morning-briefing
 
 # 1. 複製 plist 到 LaunchAgents
 cp mac_runner/com.ivan.morningbriefing.plist ~/Library/LaunchAgents/
