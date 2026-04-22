@@ -1,8 +1,8 @@
 """
 ai_processor.py
 ---------------
-Gemini 2.5 Pro（分析區塊）+ Gemini 2.5 Flash（新聞區塊）並行生成結構化 JSON。
-分析區塊失敗時 fallback 到 Claude Sonnet。
+Gemini 2.5 Pro（分析區塊 + 財報深度分析）+ Gemini 2.5 Flash（新聞區塊）並行生成結構化 JSON。
+Gemini Pro 失敗時分別 fallback 到 Claude Sonnet 4 / Claude Sonnet 4.6。
 """
 
 import os
@@ -822,7 +822,7 @@ def _call_gemini_pro(market_context: str, news_text: str) -> dict:
                     max_output_tokens=16000,
                     temperature=0.5,
                     response_mime_type="application/json",
-                    thinking_config=types.ThinkingConfig(thinking_budget=0),
+                    thinking_config=types.ThinkingConfig(thinking_budget=-1),
                 ),
             )
             break
@@ -994,8 +994,72 @@ def _has_earnings_content(earnings_raw_text: str) -> bool:
     return True
 
 
+def _call_gemini_pro_earnings(earnings_raw_text: str, market_context: str) -> dict:
+    """呼叫 Gemini 2.5 Pro 做深度財報分析（主要模型）。無當日財報時直接跳過。"""
+    empty_stub = {"has_content": False, "companies": [], "industry_trends": [],
+                  "winners": [], "losers": [], "contradictions": [],
+                  "conclusion": "", "window": "", "overview": ""}
+
+    if not _has_earnings_content(earnings_raw_text):
+        print("  ⚠ [Earnings Analysis] 當日無實質財報資料，跳過 LLM 呼叫")
+        return empty_stub
+
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY not set, falling back to Claude")
+
+    client = genai.Client(api_key=api_key)
+    user_prompt = EARNINGS_ANALYSIS_USER_TEMPLATE.format(
+        earnings_raw_text=earnings_raw_text,
+        market_context=market_context or "（無）",
+    )
+
+    print("  → [Earnings Analysis] Calling Gemini 2.5 Pro...")
+
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-pro",
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=EARNINGS_ANALYSIS_SYSTEM_PROMPT,
+                    max_output_tokens=16000,
+                    temperature=0.5,
+                    response_mime_type="application/json",
+                    thinking_config=types.ThinkingConfig(thinking_budget=-1),
+                ),
+            )
+            break
+        except Exception as e:
+            err_str = str(e)
+            if ("503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str or "RESOURCE_EXHAUSTED" in err_str) and attempt < max_retries - 1:
+                wait = (attempt + 1) * 15
+                print(f"  ⚠ [Earnings Analysis / Gemini Pro] attempt {attempt+1} failed ({err_str[:80]}), retrying in {wait}s...")
+                import time
+                time.sleep(wait)
+            else:
+                raise
+
+    raw_text = response.text
+    usage = response.usage_metadata
+    in_tok = usage.prompt_token_count
+    out_tok = usage.candidates_token_count
+    cost = in_tok / 1_000_000 * 1.25 + out_tok / 1_000_000 * 10
+    print(f"  → [Earnings Analysis / Gemini Pro] tokens: in={in_tok:,} out={out_tok:,} cost=${cost:.4f}")
+
+    with open("/tmp/gemini_pro_earnings_raw.txt", "w") as f:
+        f.write(raw_text)
+
+    try:
+        return _parse_json(raw_text)
+    except json.JSONDecodeError as e:
+        print(f"  [Earnings Analysis / Gemini Pro] JSON error at char {e.pos}: {e.msg}")
+        raise
+
+
 def _call_claude_earnings_analysis(earnings_raw_text: str, market_context: str) -> dict:
-    """呼叫 Claude Sonnet 4.6 做深度財報分析。無當日財報時直接跳過。"""
+    """呼叫 Claude Sonnet 4.6 做深度財報分析（fallback）。無當日財報時直接跳過。"""
     empty_stub = {"has_content": False, "companies": [], "industry_trends": [],
                   "winners": [], "losers": [], "contradictions": [],
                   "conclusion": "", "window": "", "overview": ""}
@@ -1010,7 +1074,7 @@ def _call_claude_earnings_analysis(earnings_raw_text: str, market_context: str) 
         market_context=market_context or "（無）",
     )
 
-    print("  → [Earnings Analysis] Calling Claude Sonnet 4.6...")
+    print("  → [Earnings Analysis] Calling Claude Sonnet 4.6 (fallback)...")
 
     full_text = ""
     with client.messages.stream(
@@ -1119,10 +1183,18 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
             print(f"  ⚠ [Gemini Pro] failed: {e}, falling back to Claude...")
             return _call_claude(market_context, news_text)
 
+    def _call_earnings_with_fallback():
+        """Gemini Pro 為主，失敗時 fallback 到 Claude Sonnet 4.6"""
+        try:
+            return _call_gemini_pro_earnings(earnings_raw_text, market_context)
+        except Exception as e:
+            print(f"  ⚠ [Earnings Analysis / Gemini Pro] failed: {e}, falling back to Claude Sonnet 4.6...")
+            return _call_claude_earnings_analysis(earnings_raw_text, market_context)
+
     with ThreadPoolExecutor(max_workers=3) as executor:
         analysis_future = executor.submit(_call_analysis_with_fallback)
         gemini_future = executor.submit(_call_gemini, news_text, earnings_context)
-        earnings_future = executor.submit(_call_claude_earnings_analysis, earnings_raw_text, market_context)
+        earnings_future = executor.submit(_call_earnings_with_fallback)
 
         try:
             analysis_data = analysis_future.result()
