@@ -950,6 +950,26 @@ def fetch_weekly_market_data() -> dict:
         return {"items": [], "fear_greed": {"val": "—", "chg": "—", "dir": "neu"}, "dynamic": []}
 
 
+def _briefing_anchor_et() -> datetime:
+    """
+    Effective briefing anchor time in US Eastern.
+
+    Normal cron fires at US ET 17:15 Mon–Fri (= TW 06:15 Tue–Sat). For runs at
+    other times (manual workflow_dispatch), return the most recent past cron
+    fire. Keeps session_date / next_trading_day consistent across scheduled and
+    manual runs — without this, a manual run in US ET early morning would see
+    `now_et` already rolled to the next calendar day and skip a session.
+    """
+    tz = pytz.timezone("US/Eastern")
+    now = datetime.now(tz)
+    anchor = now.replace(hour=17, minute=15, second=0, microsecond=0)
+    if anchor > now:
+        anchor -= timedelta(days=1)
+    while anchor.weekday() >= 5:
+        anchor -= timedelta(days=1)
+    return anchor
+
+
 EARNINGS_WATCHLIST = [
     # 科技/AI
     "NVDA", "AMD", "INTC", "MSFT", "GOOGL", "META", "AMZN", "AAPL",
@@ -994,10 +1014,9 @@ def fetch_today_earnings() -> list[dict]:
         print("  ✗ yfinance not available for earnings check")
         return []
 
-    tz = pytz.timezone("US/Eastern")
-    now_et = datetime.now(tz)
+    anchor_et = _briefing_anchor_et()
     # 下一個 US 交易日 — 跳過週六週日
-    next_et = now_et + timedelta(days=1)
+    next_et = anchor_et + timedelta(days=1)
     while next_et.weekday() >= 5:
         next_et += timedelta(days=1)
     target_us = next_et.strftime("%Y-%m-%d")
@@ -1359,20 +1378,13 @@ def fetch_earnings_deep_dive() -> list[dict]:
 
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     tz_tw = pytz.timezone("Asia/Taipei")
-    tz_et = pytz.timezone("US/Eastern")
-    now_et = datetime.now(tz_et)
-    now_minus_24h = now_et - timedelta(hours=24)
+    anchor_et = _briefing_anchor_et()
+    window_start = anchor_et - timedelta(hours=24)
 
-    # US session date = 今天 (US ET) 的日期（剛結束的那個 session 的日期）
-    us_session_date = now_et.strftime("%Y-%m-%d")
-    # 週末自動 fallback 到週五
-    if now_et.weekday() == 5:  # Saturday ET
-        us_session_date = (now_et - timedelta(days=1)).strftime("%Y-%m-%d")
-    elif now_et.weekday() == 6:  # Sunday ET
-        us_session_date = (now_et - timedelta(days=2)).strftime("%Y-%m-%d")
-
-    window_start_et = now_minus_24h.strftime("%Y-%m-%d %H:%M")
-    window_end_et = now_et.strftime("%Y-%m-%d %H:%M")
+    # Anchor 保證是週一到週五 17:15 ET → session_date 就是 anchor 當天
+    us_session_date = anchor_et.strftime("%Y-%m-%d")
+    window_start_et = window_start.strftime("%Y-%m-%d %H:%M")
+    window_end_et = anchor_et.strftime("%Y-%m-%d %H:%M")
     today_tw = datetime.now(tz_tw).strftime("%Y-%m-%d")
 
     print(f"  → Earnings window (24h ET): {window_start_et} → {window_end_et} (session date: {us_session_date})")
