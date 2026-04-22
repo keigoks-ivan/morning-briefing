@@ -3,7 +3,6 @@ name: Weekly Deep Report
 on:
   schedule:
     # 每週六 UTC 22:15 = 台灣時間週日 06:15
-    # 延後 20 分鐘：Mac mini 05:55 先跑 Claude Code，06:15 GHA 撿 full_data.json / fallback
     - cron: "15 22 * * 6"
   workflow_dispatch:
 
@@ -33,6 +32,7 @@ jobs:
       - name: Run weekly report
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           TO_EMAIL: ${{ secrets.TO_EMAIL }}

@@ -16,12 +16,12 @@
 
 **keigoks-ivan/morning-briefing**（private repo）
 
-三個子系統：
-1. 日報：每天台灣時間 05:55 自動跑，research.investmquest.com/briefing/
-2. 週報：每週日台灣時間 05:55，research.investmquest.com/weekly/
+三個子系統，**全部在 GitHub Actions 上跑**：
+1. 日報：每天台灣時間 06:15 自動跑，research.investmquest.com/briefing/
+2. 週報：每週日台灣時間 06:15，research.investmquest.com/weekly/
 3. RS+VCP Screener：跟日報一起跑，Top 30 Email + Excel 附件
 
-技術棧：Python + Perplexity API + yfinance + FRED + Claude API（streaming）+ Resend + GitHub Pages
+技術棧：Python + Perplexity + yfinance + FRED + Gemini 2.5（Claude fallback）+ Resend + GitHub Pages
 
 完整系統藍圖在 repo 根目錄的 SYSTEM_BLUEPRINT.md。
 
@@ -31,8 +31,9 @@
 
 - Mac Mini（主力）和 MacBook Pro（次要），git 同步
 - Claude Code 作為執行代理，我生成指令 → Claude Code 執行 → git push
-- 兩台 Mac 的 repo 路徑：
+- Repo 本機路徑：
   /Users/ivanchang/morning-briefing/
+- 實際執行全部在 GitHub Actions（不依賴本機 Mac）
 
 ---
 
@@ -59,11 +60,9 @@
 
 （每次工作結束前更新這裡）
 
-2026-04-04：
-- Screener 系統完成（RS 三時間維度 + VCP 結構評分）
-- 文件系統完成（SYSTEM_BLUEPRINT.md、CLAUDE.md、briefing/CLAUDE.md）
-- Watchlist_Tickers_CIK.xlsx 已放進 repo 根目錄
-- SYSTEM_BLUEPRINT.md 已推上 GitHub
-- 待完成：觸發一次完整 daily_briefing workflow 整合測試
-- 待完成：新聞整理區塊換 Gemini Flash（選項，省 ~$3.5/月）
+2026-04-22：
+- 拆除 Mac runner 整條（mac_runner/、launchd plist、try_load_mac_data、send_fallback_alert 全部移除）
+- 日報、週報完全跑在 GitHub Actions 上，不再依賴本機 Mac
+- weekly_processor 從 Gemini Pro 換 Gemini Flash
+- 修了 weekly_report.yml 漏傳 GEMINI_API_KEY 的 bug
 - 待完成：台股 Screener（0050 + 中型100 + 富櫃50）

@@ -5,9 +5,9 @@
 
 ## 專案概述
 
-每日財經晨報 + RS+VCP Screener 自動化系統。
-- 日報：週一到週六台灣時間 05:55，research.investmquest.com/briefing/
-- 週報：每週日台灣時間 05:55，research.investmquest.com/weekly/
+每日財經晨報 + RS+VCP Screener 自動化系統，**全部在 GitHub Actions 上跑**。
+- 日報：週一到週六台灣時間 06:15，research.investmquest.com/briefing/
+- 週報：每週日台灣時間 06:15，research.investmquest.com/weekly/
 - Screener：跟日報一起跑（週二到週六），Top 30 附在 Email + Excel 附件
 - Repo：keigoks-ivan/morning-briefing（private）
 
@@ -28,13 +28,11 @@
 
 ## 排程設定
 
-- Mac mini launchd：TW 05:55（每天）→ 跑 mac_runner/orchestrate.py → 推 full_data.json
-- 日報 Render cron：22:15 UTC（每天）= 台灣 06:15 → trigger.py → GitHub Actions
-- 週報 GitHub cron：15 22 * * 6（UTC）= 週日台灣 06:15
-- 20 分鐘 buffer：Mac 先跑 → push → GHA 撿 full_data.json；Mac 失敗則 GHA 06:15 走 API fallback
+- 日報 Render cron：22:15 UTC（每天）= 台灣 06:15 → trigger.py → GitHub API workflow_dispatch → daily_briefing.yml
+- 週報 GitHub cron：15 22 * * 6（UTC）= 週日台灣 06:15 → weekly_report.yml
+- 週日 trigger.py 自己判斷跳過日報（weekday==6）
 - 排程不跑：git commit --allow-empty -m "resync" && git push
 - GitHub Actions timeout：30 分鐘（日報）/ 60 分鐘（週報）
-- 觸發方式：Render Cron Job → trigger.py → GitHub API workflow_dispatch
 
 ---
 
@@ -43,14 +41,14 @@
 ### 日報
 main.py → 日報主流程，串接所有模組
 news_fetcher.py → Perplexity 查詢 + yfinance 行情 + FRED 流動性
-ai_processor.py → Claude API streaming，輸出 JSON，含 _validate 預設值
+ai_processor.py → Gemini 2.5 Pro（分析）+ Gemini 2.5 Flash（新聞）+ Claude fallback，輸出 JSON，含 _validate 預設值
 html_template.py → JSON → HTML，所有區塊渲染函式
 email_sender.py → Resend API 寄信（支援 Excel 附件）
 
 ### 週報
 weekly_main.py → 週報主流程
 weekly_fetcher.py → 週報 Perplexity 查詢
-weekly_processor.py → 週報 Claude 分析
+weekly_processor.py → 週報 Gemini 2.5 Flash（Claude Sonnet fallback）分析
 weekly_template.py → 週報 HTML 渲染
 
 ### Screener

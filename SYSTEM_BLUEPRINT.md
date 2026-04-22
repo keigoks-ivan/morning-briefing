@@ -7,8 +7,8 @@
 ## 一、系統概覽
 
 **三個子系統：**
-1. **日報**：每天台灣時間 05:55，research.investmquest.com/briefing/
-2. **週報**：每週日台灣時間 05:55，research.investmquest.com/weekly/
+1. **日報**：每天台灣時間 06:15（GitHub Actions），research.investmquest.com/briefing/
+2. **週報**：每週日台灣時間 06:15（GitHub Actions），research.investmquest.com/weekly/
 3. **RS+VCP Screener**：跟日報一起跑（週一到週五），Top 30 附在 Email 最後，Excel 作附件
 
 **Repo：** keigoks-ivan/morning-briefing（private）
