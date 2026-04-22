@@ -1,7 +1,7 @@
 """
 weekly_processor.py
 -------------------
-將每個主題的 Perplexity 搜尋結果送給 Gemini 2.5 Pro，生成深度週報 JSON。
+將每個主題的 Perplexity 搜尋結果送給 Gemini 2.5 Flash，生成深度週報 JSON。
 失敗時 fallback 到 Claude Sonnet。
 """
 
@@ -404,9 +404,9 @@ def process_weekly_theme(
     )
 
     try:
-        raw_text = _call_gemini_pro_weekly(theme_key, user_prompt)
+        raw_text = _call_gemini_flash_weekly(theme_key, user_prompt)
     except Exception as e:
-        print(f"  ⚠ [Gemini Pro] failed for [{theme_key}]: {e}, falling back to Claude...")
+        print(f"  ⚠ [Gemini Flash] failed for [{theme_key}]: {e}, falling back to Claude...")
         raw_text = _call_claude_weekly(theme_key, user_prompt)
 
     with open(f"/tmp/weekly_{theme_key}_raw.txt", "w") as f:
@@ -436,21 +436,21 @@ def process_weekly_theme(
     return data
 
 
-def _call_gemini_pro_weekly(theme_key: str, user_prompt: str) -> str:
-    """呼叫 Gemini 2.5 Pro 處理週報主題"""
+def _call_gemini_flash_weekly(theme_key: str, user_prompt: str) -> str:
+    """呼叫 Gemini 2.5 Flash 處理週報主題"""
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY not set")
 
     client = genai.Client(api_key=api_key)
 
-    print(f"  → [Gemini Pro] Calling API for [{theme_key}]...")
+    print(f"  → [Gemini Flash] Calling API for [{theme_key}]...")
 
     max_retries = 3
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-pro",
+                model="gemini-2.5-flash",
                 contents=user_prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=WEEKLY_SYSTEM_PROMPT,
@@ -465,7 +465,7 @@ def _call_gemini_pro_weekly(theme_key: str, user_prompt: str) -> str:
             err_str = str(e)
             if ("503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str or "RESOURCE_EXHAUSTED" in err_str) and attempt < max_retries - 1:
                 wait = (attempt + 1) * 15
-                print(f"  ⚠ [Gemini Pro] attempt {attempt+1} failed ({err_str[:80]}), retrying in {wait}s...")
+                print(f"  ⚠ [Gemini Flash] attempt {attempt+1} failed ({err_str[:80]}), retrying in {wait}s...")
                 import time
                 time.sleep(wait)
             else:
@@ -474,8 +474,9 @@ def _call_gemini_pro_weekly(theme_key: str, user_prompt: str) -> str:
     usage = response.usage_metadata
     in_tok = usage.prompt_token_count
     out_tok = usage.candidates_token_count
-    cost = in_tok / 1_000_000 * 1.25 + out_tok / 1_000_000 * 10
-    print(f"  → [Gemini Pro] [{theme_key}] tokens: in={in_tok:,} out={out_tok:,} cost=${cost:.4f}")
+    # Gemini 2.5 Flash: input $0.30/MTok, output $2.50/MTok
+    cost = in_tok / 1_000_000 * 0.30 + out_tok / 1_000_000 * 2.50
+    print(f"  → [Gemini Flash] [{theme_key}] tokens: in={in_tok:,} out={out_tok:,} cost=${cost:.4f}")
 
     return response.text
 
