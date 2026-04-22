@@ -28,7 +28,7 @@ except ImportError:
 from news_fetcher import fetch_financial_news, fetch_market_data, fetch_today_earnings, fetch_moneydj_news, fetch_deep_dive_news, fetch_move_index, fetch_earnings_deep_dive
 from ai_processor import process_news
 from html_template import build_html, build_all_pages
-from email_sender import send_email
+from email_sender import send_email, send_fallback_alert
 from trading_system_of_day import get_today_system
 from startup_framework_of_day import get_today_framework
 
@@ -38,25 +38,27 @@ from startup_framework_of_day import get_today_framework
 FRESHNESS_THRESHOLD_MIN = 20  # Mac 05:55 → GHA 06:15，最多 20 分鐘舊
 
 
-def try_load_mac_data(mode: str = "daily") -> dict | None:
+def try_load_mac_data(mode: str = "daily") -> tuple[dict | None, str | None]:
     """
     嘗試載入 Mac mini 產生的 full_data.json。
-    若檔案不存在、太舊、或 schema 無效 → 回 None 觸發 fallback。
+    回 (data, None) 表成功；(None, reason) 表失敗，觸發 fallback 並可供告警用。
     """
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     filename = "full_data.json" if mode == "daily" else "weekly_full_data.json"
     path = os.path.join(repo_root, "docs", "briefing", filename)
 
     if not os.path.exists(path):
-        print(f"  ⚠ Mac data missing ({path}) → fallback to API pipeline")
-        return None
+        reason = f"Mac data missing ({path}) — Mac mini 沒推 full_data.json（關機/睡眠/launchd 沒跑/網路失敗？）"
+        print(f"  ⚠ {reason} → fallback to API pipeline")
+        return None, reason
 
     try:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
     except Exception as e:
-        print(f"  ⚠ Mac data parse error: {e} → fallback")
-        return None
+        reason = f"Mac data parse error: {e}"
+        print(f"  ⚠ {reason} → fallback")
+        return None, reason
 
     # freshness check
     ts_str = data.get("generated_at", "")
@@ -66,15 +68,18 @@ def try_load_mac_data(mode: str = "daily") -> dict | None:
             ts = pytz.timezone("Asia/Taipei").localize(ts)
         age_min = (datetime.now(ts.tzinfo) - ts).total_seconds() / 60
     except Exception as e:
-        print(f"  ⚠ Mac data timestamp parse error ({ts_str!r}): {e} → fallback")
-        return None
+        reason = f"Mac data timestamp parse error ({ts_str!r}): {e}"
+        print(f"  ⚠ {reason} → fallback")
+        return None, reason
 
     if age_min > FRESHNESS_THRESHOLD_MIN:
-        print(f"  ⚠ Mac data {age_min:.0f}min old (>{FRESHNESS_THRESHOLD_MIN}min) → fallback")
-        return None
+        reason = f"Mac data {age_min:.0f}min old (>{FRESHNESS_THRESHOLD_MIN}min) — Mac mini 跑太慢或 push 延遲"
+        print(f"  ⚠ {reason} → fallback")
+        return None, reason
     if age_min < -5:
-        print(f"  ⚠ Mac data has future timestamp ({age_min:.0f}min) → fallback")
-        return None
+        reason = f"Mac data has future timestamp ({age_min:.0f}min)"
+        print(f"  ⚠ {reason} → fallback")
+        return None, reason
 
     # schema check — 重用 mac_runner/validate_schema.py
     sys.path.insert(0, os.path.join(repo_root, "mac_runner"))
@@ -86,14 +91,16 @@ def try_load_mac_data(mode: str = "daily") -> dict | None:
         ok, errors = True, []
 
     if not ok:
+        first_errors = "; ".join(errors[:3])
+        reason = f"Mac data schema invalid ({len(errors)} errors) — {first_errors}"
         print(f"  ⚠ Mac data schema invalid ({len(errors)} errors, first 3):")
         for e in errors[:3]:
             print(f"       - {e}")
         print(f"       → fallback")
-        return None
+        return None, reason
 
     print(f"  ✓ Using Mac-generated data ({age_min:.0f}min old, schema valid)")
-    return data
+    return data, None
 
 
 def main() -> None:
@@ -103,8 +110,14 @@ def main() -> None:
 
     # 0. 嘗試讀 Mac mini 預跑好的資料
     print("\n[0/4] Check Mac-generated data...")
-    data = try_load_mac_data(mode="daily")
+    data, mac_failure_reason = try_load_mac_data(mode="daily")
     used_mac_data = data is not None
+
+    if mac_failure_reason:
+        try:
+            send_fallback_alert(mac_failure_reason, mode="daily")
+        except Exception as e:
+            print(f"  ⚠ Fallback alert email failed: {e}")
 
     today_earnings = []  # 給後面 email / misc 用（Mac path 會從 data["earnings_preview"] 還原）
 
