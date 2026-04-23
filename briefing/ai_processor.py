@@ -1184,12 +1184,24 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
             return _call_claude(market_context, news_text)
 
     def _call_earnings_with_fallback():
-        """Gemini Pro 為主，失敗時 fallback 到 Claude Sonnet 4.6"""
+        """Gemini Pro 為主，失敗（或空回應）時 fallback 到 Claude Sonnet 4.6"""
         try:
-            return _call_gemini_pro_earnings(earnings_raw_text, market_context)
+            result = _call_gemini_pro_earnings(earnings_raw_text, market_context)
         except Exception as e:
             print(f"  ⚠ [Earnings Analysis / Gemini Pro] failed: {e}, falling back to Claude Sonnet 4.6...")
             return _call_claude_earnings_analysis(earnings_raw_text, market_context)
+
+        # Gemini Pro 傾向嚴格解讀排除規則，有時輸入有實質內容卻回空 stub。
+        # 只有在確定輸入有料（passed _has_earnings_content）時才 fallback。
+        if _has_earnings_content(earnings_raw_text):
+            empty_result = (
+                not result.get("has_content")
+                or not result.get("companies")
+            )
+            if empty_result:
+                print("  ⚠ [Earnings Analysis / Gemini Pro] returned empty stub despite valid input, falling back to Claude Sonnet 4.6...")
+                return _call_claude_earnings_analysis(earnings_raw_text, market_context)
+        return result
 
     with ThreadPoolExecutor(max_workers=3) as executor:
         analysis_future = executor.submit(_call_analysis_with_fallback)
