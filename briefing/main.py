@@ -46,9 +46,13 @@ def main() -> None:
     raw_news = fetch_financial_news()
     moneydj_news = fetch_moneydj_news()
     deep_dive_news = fetch_deep_dive_news()
-    earnings_deep_dive = fetch_earnings_deep_dive()
+    # 日報財報深度分析暫停 — 已改由 Claude remote routine 獨立跑（trig_01Y14kkNRWHHtWLfVGCFLQs8，
+    # 每日 TW 08:00，存 Google Drive「04 美股財報」）。這邊傳空 list 讓下游走 empty stub，
+    # HTML 區塊會自動隱藏。要恢復的話打開下一行即可。
+    # earnings_deep_dive = fetch_earnings_deep_dive()
+    earnings_deep_dive = []
     dd_count = len(deep_dive_news.get("fixed", [])) + len(deep_dive_news.get("dynamic", [])) if isinstance(deep_dive_news, dict) else len(deep_dive_news)
-    print(f"      {len(raw_news)} queries completed, {len(today_earnings)} earnings confirmed, {len(moneydj_news)} MoneyDJ news, {dd_count} deep dive, {len(earnings_deep_dive)} earnings deep")
+    print(f"      {len(raw_news)} queries completed, {len(today_earnings)} earnings confirmed, {len(moneydj_news)} MoneyDJ news, {dd_count} deep dive, {len(earnings_deep_dive)} earnings deep (paused — handled by Claude remote routine)")
 
     # 1.5 執行 Screener（台灣週二~週六才跑，對應美股前一交易日）
     # 週日(6)、週一(0)跳過：週六、週日美股休市，無新數據
