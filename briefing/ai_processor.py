@@ -811,7 +811,7 @@ def _call_gemini_pro(market_context: str, news_text: str) -> dict:
 
     print("  → [Gemini Pro] Calling API (analysis sections)...")
 
-    max_retries = 3
+    max_retries = 5
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
@@ -829,7 +829,7 @@ def _call_gemini_pro(market_context: str, news_text: str) -> dict:
         except Exception as e:
             err_str = str(e)
             if ("503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str or "RESOURCE_EXHAUSTED" in err_str) and attempt < max_retries - 1:
-                wait = (attempt + 1) * 15
+                wait = 30 * (2 ** attempt)  # 30s, 60s, 120s, 240s
                 print(f"  ⚠ [Gemini Pro] attempt {attempt+1} failed ({err_str[:80]}), retrying in {wait}s...")
                 import time
                 time.sleep(wait)
@@ -909,7 +909,7 @@ def _call_gemini(news_text: str, earnings_context: str) -> dict:
 
     print("  → [Gemini] Calling API (news sections)...")
 
-    max_retries = 3
+    max_retries = 5
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
@@ -927,7 +927,7 @@ def _call_gemini(news_text: str, earnings_context: str) -> dict:
         except Exception as e:
             err_str = str(e)
             if ("503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str or "RESOURCE_EXHAUSTED" in err_str) and attempt < max_retries - 1:
-                wait = (attempt + 1) * 15  # 15s, 30s
+                wait = 30 * (2 ** attempt)  # 30s, 60s, 120s, 240s
                 print(f"  ⚠ [Gemini] attempt {attempt+1} failed ({err_str[:80]}), retrying in {wait}s...")
                 import time
                 time.sleep(wait)
@@ -1016,7 +1016,7 @@ def _call_gemini_pro_earnings(earnings_raw_text: str, market_context: str) -> di
 
     print("  → [Earnings Analysis] Calling Gemini 2.5 Pro...")
 
-    max_retries = 3
+    max_retries = 5
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
@@ -1034,7 +1034,7 @@ def _call_gemini_pro_earnings(earnings_raw_text: str, market_context: str) -> di
         except Exception as e:
             err_str = str(e)
             if ("503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str or "RESOURCE_EXHAUSTED" in err_str) and attempt < max_retries - 1:
-                wait = (attempt + 1) * 15
+                wait = 30 * (2 ** attempt)  # 30s, 60s, 120s, 240s
                 print(f"  ⚠ [Earnings Analysis / Gemini Pro] attempt {attempt+1} failed ({err_str[:80]}), retrying in {wait}s...")
                 import time
                 time.sleep(wait)
