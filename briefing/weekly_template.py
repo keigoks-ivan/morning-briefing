@@ -1223,7 +1223,7 @@ def build_weekly_index(
     </nav>
   </div>
 </header>
-<script>(function(){{document.querySelectorAll('.imq-dd-btn').forEach(function(btn){{btn.addEventListener('click',function(e){{e.preventDefault();var dd=btn.closest('.imq-dd');document.querySelectorAll('.imq-dd.open').forEach(function(d){{if(d!==dd)d.classList.remove('open')}});dd.classList.toggle('open')}})}}});document.addEventListener('click',function(e){{if(!e.target.closest('.imq-dd'))document.querySelectorAll('.imq-dd.open').forEach(function(d){{d.classList.remove('open')}})}})}})();</script>
+<script>(function(){{document.querySelectorAll('.imq-dd-btn').forEach(function(btn){{btn.addEventListener('click',function(e){{e.preventDefault();var dd=btn.closest('.imq-dd');document.querySelectorAll('.imq-dd.open').forEach(function(d){{if(d!==dd)d.classList.remove('open')}});dd.classList.toggle('open')}})}});document.addEventListener('click',function(e){{if(!e.target.closest('.imq-dd'))document.querySelectorAll('.imq-dd.open').forEach(function(d){{d.classList.remove('open')}})}})}})();</script>
 <div style="padding:24px 20px;">
 <div style="border-bottom:2px solid #1B3A5C;padding-bottom:12px;margin-bottom:20px;
             display:flex;justify-content:space-between;align-items:flex-end;">
@@ -1339,7 +1339,7 @@ body {{ font-family:Arial,sans-serif; max-width:1140px; margin:0 auto;
     </nav>
   </div>
 </header>
-<script>(function(){{document.querySelectorAll('.imq-dd-btn').forEach(function(btn){{btn.addEventListener('click',function(e){{e.preventDefault();var dd=btn.closest('.imq-dd');document.querySelectorAll('.imq-dd.open').forEach(function(d){{if(d!==dd)d.classList.remove('open')}});dd.classList.toggle('open')}})}}});document.addEventListener('click',function(e){{if(!e.target.closest('.imq-dd'))document.querySelectorAll('.imq-dd.open').forEach(function(d){{d.classList.remove('open')}})}})}})();</script>
+<script>(function(){{document.querySelectorAll('.imq-dd-btn').forEach(function(btn){{btn.addEventListener('click',function(e){{e.preventDefault();var dd=btn.closest('.imq-dd');document.querySelectorAll('.imq-dd.open').forEach(function(d){{if(d!==dd)d.classList.remove('open')}});dd.classList.toggle('open')}})}});document.addEventListener('click',function(e){{if(!e.target.closest('.imq-dd'))document.querySelectorAll('.imq-dd.open').forEach(function(d){{d.classList.remove('open')}})}})}})();</script>
 <div style="padding:24px 20px;">
 {_header(theme_name, theme_key, week_label, start, end)}
 {_week_summary(data.get("week_summary",""))}
