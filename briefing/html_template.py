@@ -2091,6 +2091,7 @@ def _page_wrapper(page: str, date: str, content: str, title: str) -> str:
     return f"""<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+<meta name="robots" content="noindex,nofollow">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title} — 每日財經晨報 {date}</title>
@@ -2902,6 +2903,7 @@ def build_html(data: dict, screener_result: dict = None) -> str:
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
+<meta name="robots" content="noindex,nofollow">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>{BASE_CSS}</style>

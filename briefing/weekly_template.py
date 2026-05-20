@@ -1152,6 +1152,7 @@ def build_weekly_index(
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
+<meta name="robots" content="noindex,nofollow">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>每週深度週報</title>
@@ -1261,6 +1262,7 @@ def build_weekly_html(data: dict, theme_key: str) -> str:
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
+<meta name="robots" content="noindex,nofollow">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{theme_name} — 深度週報 {week_label}</title>

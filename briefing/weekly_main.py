@@ -141,7 +141,7 @@ def send_weekly_email(summaries: dict[str, str], today: str, date_short: str) ->
 </div>'''
 
     html = f"""<!DOCTYPE html>
-<html><head><meta charset="UTF-8"></head>
+<html><head><meta name="robots" content="noindex,nofollow"><meta charset="UTF-8"></head>
 <body style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;padding:24px 20px;color:#222;">
 <div style="border-bottom:2px solid #1B3A5C;padding-bottom:12px;margin-bottom:20px;">
   <div style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#888;

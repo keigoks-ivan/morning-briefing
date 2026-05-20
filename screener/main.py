@@ -91,6 +91,7 @@ def publish_to_github_pages(df, today: str):
 
     html = f"""<!DOCTYPE html>
 <html><head>
+<meta name="robots" content="noindex,nofollow">
 <meta charset="utf-8">
 <title>RS + VCP Screener — {today}</title>
 <style>
