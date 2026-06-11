@@ -2138,9 +2138,7 @@ a {{ color:inherit; }}
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/research/">個股 DD</a>
-          <a href="/pm/">PM 複盤</a>
           <a href="/id/">產業深度 ID</a>
-          <a href="/id/theses.html">⭐ 九大非共識</a>
           <a href="/id/tier_matrix.html">🎯 Tier Matrix</a>
         </div>
       </div>
