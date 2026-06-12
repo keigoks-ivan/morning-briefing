@@ -69,7 +69,7 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
           <a href="/earnings/">財報分析</a>
           <a href="/markets.html">Markets</a>
           <a href="/sectors.html">Sectors</a>
-          <a href="/six-state/">六狀態機</a>
+          <a href="/long-track-smh/">長線訊號</a>
         </div>
       </div>
       <div class="imq-dd">
@@ -150,7 +150,7 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
           <a href="/earnings/">財報分析</a>
           <a href="/markets.html">Markets</a>
           <a href="/sectors.html">Sectors</a>
-          <a href="/six-state/">六狀態機</a>
+          <a href="/long-track-smh/">長線訊號</a>
         </div>
       </div>
       <div class="imq-dd">
@@ -232,7 +232,7 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
           <a href="/earnings/" class="active">財報分析</a>
           <a href="/markets.html">Markets</a>
           <a href="/sectors.html">Sectors</a>
-          <a href="/six-state/">六狀態機</a>
+          <a href="/long-track-smh/">長線訊號</a>
         </div>
       </div>
       <div class="imq-dd">
