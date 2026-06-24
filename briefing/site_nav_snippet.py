@@ -55,7 +55,6 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
         <div class="imq-dd-menu">
           <a href="/research/">個股 DD</a>
           <a href="/id/">產業深度 ID</a>
-          <a href="/ds/">產業敘述 DS</a>
           <a href="/comparisons/">多股對比</a>
           <a href="/supply-chain/">供應鏈地圖</a>
           <a href="/id/tier_matrix.html">🎯 Tier Matrix</a>
@@ -136,7 +135,6 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
         <div class="imq-dd-menu">
           <a href="/research/">個股 DD</a>
           <a href="/id/">產業深度 ID</a>
-          <a href="/ds/">產業敘述 DS</a>
           <a href="/comparisons/">多股對比</a>
           <a href="/supply-chain/">供應鏈地圖</a>
           <a href="/id/tier_matrix.html">🎯 Tier Matrix</a>
@@ -218,7 +216,6 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
         <div class="imq-dd-menu">
           <a href="/research/">個股 DD</a>
           <a href="/id/">產業深度 ID</a>
-          <a href="/ds/">產業敘述 DS</a>
           <a href="/comparisons/">多股對比</a>
           <a href="/supply-chain/">供應鏈地圖</a>
           <a href="/id/tier_matrix.html">🎯 Tier Matrix</a>
