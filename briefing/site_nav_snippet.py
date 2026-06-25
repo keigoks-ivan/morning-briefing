@@ -54,6 +54,7 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/research/">個股 DD</a>
+          <a href="/research/synthesis/">期望落差綜合研判</a>
           <a href="/id/">產業深度 ID</a>
           <a href="/comparisons/">多股對比</a>
           <a href="/supply-chain/">供應鏈地圖</a>
@@ -134,6 +135,7 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/research/">個股 DD</a>
+          <a href="/research/synthesis/">期望落差綜合研判</a>
           <a href="/id/">產業深度 ID</a>
           <a href="/comparisons/">多股對比</a>
           <a href="/supply-chain/">供應鏈地圖</a>
@@ -215,6 +217,7 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/research/">個股 DD</a>
+          <a href="/research/synthesis/">期望落差綜合研判</a>
           <a href="/id/">產業深度 ID</a>
           <a href="/comparisons/">多股對比</a>
           <a href="/supply-chain/">供應鏈地圖</a>
