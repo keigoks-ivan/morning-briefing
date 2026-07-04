@@ -77,6 +77,7 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
         <div class="imq-dd-menu">
           <a href="/backtest/">量化回測</a>
           <a href="/dd-screener/">DD Screener</a>
+          <a href="/engine/">⚙ 決策引擎</a>
           <a href="/qgm/">QGM 美股</a>
           <a href="/qgm-tw/">QGM 台股</a>
           <a href="/screener.html">Screener 美股</a>
@@ -158,6 +159,7 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
         <div class="imq-dd-menu">
           <a href="/backtest/">量化回測</a>
           <a href="/dd-screener/">DD Screener</a>
+          <a href="/engine/">⚙ 決策引擎</a>
           <a href="/qgm/">QGM 美股</a>
           <a href="/qgm-tw/">QGM 台股</a>
           <a href="/screener.html">Screener 美股</a>
@@ -240,6 +242,7 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
         <div class="imq-dd-menu">
           <a href="/backtest/">量化回測</a>
           <a href="/dd-screener/">DD Screener</a>
+          <a href="/engine/">⚙ 決策引擎</a>
           <a href="/qgm/">QGM 美股</a>
           <a href="/qgm-tw/">QGM 台股</a>
           <a href="/screener.html">Screener 美股</a>
