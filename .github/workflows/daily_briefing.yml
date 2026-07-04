@@ -31,7 +31,9 @@ jobs:
       - name: Run morning briefing
         env:
           ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
-          GEMINI_API_KEY:    ${{ secrets.GEMINI_API_KEY }}
+          # ⏸ PAUSED 2026-07-04：Google API 暫停使用。分析/財報區塊走 Gemini→Claude fallback；
+          #   新聞區塊（_call_gemini）無 key 時回空（作者設計的 skip 狀態）。恢復＝取消下行註解。
+          # GEMINI_API_KEY:    ${{ secrets.GEMINI_API_KEY }}
           PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
           RESEND_API_KEY:    ${{ secrets.RESEND_API_KEY }}
           TO_EMAIL:          ${{ secrets.TO_EMAIL }}
