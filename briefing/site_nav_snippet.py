@@ -53,12 +53,15 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
+          <a href="/cockpit/">選股駕駛艙</a>
           <a href="/research/">個股 DD</a>
           <a href="/research/synthesis/">期望落差綜合研判</a>
           <a href="/id/">產業深度 ID</a>
           <a href="/comparisons/">多股對比</a>
           <a href="/supply-chain/">供應鏈地圖</a>
           <a href="/id/tier_matrix.html">🎯 Tier Matrix</a>
+          <a href="/picks/">精選清單</a>
+          <a href="/research/momentum-5/">Momentum-5</a>
         </div>
       </div>
       <div class="imq-dd active">
@@ -67,9 +70,12 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
           <a href="/briefing/" class="active">每日簡報</a>
           <a href="/weekly/">週報</a>
           <a href="/earnings/">財報分析</a>
+          <a href="/catalyst/">催化劑日曆</a>
           <a href="/markets.html">Markets</a>
           <a href="/sectors.html">Sectors</a>
           <a href="/long-track-smh/">長線訊號</a>
+          <a href="/long-track-tw/">台股長線</a>
+          <a href="/turtle-sleeve/">商品 Sleeve</a>
         </div>
       </div>
       <div class="imq-dd">
@@ -135,12 +141,15 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
+          <a href="/cockpit/">選股駕駛艙</a>
           <a href="/research/">個股 DD</a>
           <a href="/research/synthesis/">期望落差綜合研判</a>
           <a href="/id/">產業深度 ID</a>
           <a href="/comparisons/">多股對比</a>
           <a href="/supply-chain/">供應鏈地圖</a>
           <a href="/id/tier_matrix.html">🎯 Tier Matrix</a>
+          <a href="/picks/">精選清單</a>
+          <a href="/research/momentum-5/">Momentum-5</a>
         </div>
       </div>
       <div class="imq-dd active">
@@ -149,9 +158,12 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
           <a href="/briefing/">每日簡報</a>
           <a href="/weekly/" class="active">週報</a>
           <a href="/earnings/">財報分析</a>
+          <a href="/catalyst/">催化劑日曆</a>
           <a href="/markets.html">Markets</a>
           <a href="/sectors.html">Sectors</a>
           <a href="/long-track-smh/">長線訊號</a>
+          <a href="/long-track-tw/">台股長線</a>
+          <a href="/turtle-sleeve/">商品 Sleeve</a>
         </div>
       </div>
       <div class="imq-dd">
@@ -218,12 +230,15 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
+          <a href="/cockpit/">選股駕駛艙</a>
           <a href="/research/">個股 DD</a>
           <a href="/research/synthesis/">期望落差綜合研判</a>
           <a href="/id/">產業深度 ID</a>
           <a href="/comparisons/">多股對比</a>
           <a href="/supply-chain/">供應鏈地圖</a>
           <a href="/id/tier_matrix.html">🎯 Tier Matrix</a>
+          <a href="/picks/">精選清單</a>
+          <a href="/research/momentum-5/">Momentum-5</a>
         </div>
       </div>
       <div class="imq-dd active">
@@ -232,9 +247,12 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
           <a href="/briefing/">每日簡報</a>
           <a href="/weekly/">週報</a>
           <a href="/earnings/" class="active">財報分析</a>
+          <a href="/catalyst/">催化劑日曆</a>
           <a href="/markets.html">Markets</a>
           <a href="/sectors.html">Sectors</a>
           <a href="/long-track-smh/">長線訊號</a>
+          <a href="/long-track-tw/">台股長線</a>
+          <a href="/turtle-sleeve/">商品 Sleeve</a>
         </div>
       </div>
       <div class="imq-dd">
