@@ -60,6 +60,8 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
           <a href="/comparisons/">多股對比</a>
           <a href="/supply-chain/">供應鏈地圖</a>
           <a href="/crowding/">擁擠交易監測</a>
+          <a href="/rotation/">產業輪動</a>
+          <a href="/regime/">大類資產 regime</a>
           <a href="/id/tier_matrix.html">🎯 Tier Matrix</a>
           <a href="/picks/">精選清單</a>
           <a href="/research/momentum-5/">Momentum-5</a>
@@ -149,6 +151,8 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
           <a href="/comparisons/">多股對比</a>
           <a href="/supply-chain/">供應鏈地圖</a>
           <a href="/crowding/">擁擠交易監測</a>
+          <a href="/rotation/">產業輪動</a>
+          <a href="/regime/">大類資產 regime</a>
           <a href="/id/tier_matrix.html">🎯 Tier Matrix</a>
           <a href="/picks/">精選清單</a>
           <a href="/research/momentum-5/">Momentum-5</a>
@@ -239,6 +243,8 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
           <a href="/comparisons/">多股對比</a>
           <a href="/supply-chain/">供應鏈地圖</a>
           <a href="/crowding/">擁擠交易監測</a>
+          <a href="/rotation/">產業輪動</a>
+          <a href="/regime/">大類資產 regime</a>
           <a href="/id/tier_matrix.html">🎯 Tier Matrix</a>
           <a href="/picks/">精選清單</a>
           <a href="/research/momentum-5/">Momentum-5</a>
