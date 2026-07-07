@@ -58,9 +58,9 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
         <div class="imq-dd-menu">
           <a href="/cockpit/">選股駕駛艙</a>
           <a href="/picks/">精選清單</a>
-          <a href="/dd-screener/pipeline.html">🧭 Pipeline 漏斗</a>
+          <a href="/dd-screener/pipeline.html">Pipeline 漏斗</a>
           <a href="/dd-screener/">DD Screener</a>
-          <a href="/engine/">⚙ 決策引擎</a>
+          <a href="/engine/">決策引擎</a>
           <a href="/research/momentum-5/">Momentum-5</a>
           <a href="/qgm/">QGM 美股</a>
           <a href="/qgm-tw/">QGM 台股</a>
@@ -74,7 +74,7 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
           <a href="/research/synthesis/">期望落差綜合研判</a>
           <a href="/comparisons/">多股對比</a>
           <a href="/id/">產業深度 ID</a>
-          <a href="/id/tier_matrix.html">🎯 Tier Matrix</a>
+          <a href="/id/tier_matrix.html">Tier Matrix</a>
           <a href="/supply-chain/">供應鏈地圖</a>
         </div>
       </div>
@@ -99,11 +99,11 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
           <a href="/turtle-sleeve/">商品 Sleeve</a>
           <a href="/backtest/">量化回測</a>
           <a href="/tools/">期貨部位計算機</a>
-          <a href="/cache/">🗄 Data Cache</a>
+          <a href="/cache/">Data Cache</a>
         </div>
       </div>
-      <a href="/mental-models/">🧠 心智模型</a>
-      <a href="/how-to.html">📘 使用說明</a>
+      <a href="/mental-models/">心智模型</a>
+      <a href="/how-to.html">使用說明</a>
     </nav>
   </div>
 </header>
@@ -151,9 +151,9 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
         <div class="imq-dd-menu">
           <a href="/cockpit/">選股駕駛艙</a>
           <a href="/picks/">精選清單</a>
-          <a href="/dd-screener/pipeline.html">🧭 Pipeline 漏斗</a>
+          <a href="/dd-screener/pipeline.html">Pipeline 漏斗</a>
           <a href="/dd-screener/">DD Screener</a>
-          <a href="/engine/">⚙ 決策引擎</a>
+          <a href="/engine/">決策引擎</a>
           <a href="/research/momentum-5/">Momentum-5</a>
           <a href="/qgm/">QGM 美股</a>
           <a href="/qgm-tw/">QGM 台股</a>
@@ -167,7 +167,7 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
           <a href="/research/synthesis/">期望落差綜合研判</a>
           <a href="/comparisons/">多股對比</a>
           <a href="/id/">產業深度 ID</a>
-          <a href="/id/tier_matrix.html">🎯 Tier Matrix</a>
+          <a href="/id/tier_matrix.html">Tier Matrix</a>
           <a href="/supply-chain/">供應鏈地圖</a>
         </div>
       </div>
@@ -192,11 +192,11 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
           <a href="/turtle-sleeve/">商品 Sleeve</a>
           <a href="/backtest/">量化回測</a>
           <a href="/tools/">期貨部位計算機</a>
-          <a href="/cache/">🗄 Data Cache</a>
+          <a href="/cache/">Data Cache</a>
         </div>
       </div>
-      <a href="/mental-models/">🧠 心智模型</a>
-      <a href="/how-to.html">📘 使用說明</a>
+      <a href="/mental-models/">心智模型</a>
+      <a href="/how-to.html">使用說明</a>
     </nav>
   </div>
 </header>
@@ -244,9 +244,9 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
         <div class="imq-dd-menu">
           <a href="/cockpit/">選股駕駛艙</a>
           <a href="/picks/">精選清單</a>
-          <a href="/dd-screener/pipeline.html">🧭 Pipeline 漏斗</a>
+          <a href="/dd-screener/pipeline.html">Pipeline 漏斗</a>
           <a href="/dd-screener/">DD Screener</a>
-          <a href="/engine/">⚙ 決策引擎</a>
+          <a href="/engine/">決策引擎</a>
           <a href="/research/momentum-5/">Momentum-5</a>
           <a href="/qgm/">QGM 美股</a>
           <a href="/qgm-tw/">QGM 台股</a>
@@ -260,7 +260,7 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
           <a href="/research/synthesis/">期望落差綜合研判</a>
           <a href="/comparisons/">多股對比</a>
           <a href="/id/">產業深度 ID</a>
-          <a href="/id/tier_matrix.html">🎯 Tier Matrix</a>
+          <a href="/id/tier_matrix.html">Tier Matrix</a>
           <a href="/supply-chain/">供應鏈地圖</a>
         </div>
       </div>
@@ -285,11 +285,11 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
           <a href="/turtle-sleeve/">商品 Sleeve</a>
           <a href="/backtest/">量化回測</a>
           <a href="/tools/">期貨部位計算機</a>
-          <a href="/cache/">🗄 Data Cache</a>
+          <a href="/cache/">Data Cache</a>
         </div>
       </div>
-      <a href="/mental-models/">🧠 心智模型</a>
-      <a href="/how-to.html">📘 使用說明</a>
+      <a href="/mental-models/">心智模型</a>
+      <a href="/how-to.html">使用說明</a>
     </nav>
   </div>
 </header>
