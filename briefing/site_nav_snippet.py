@@ -9,11 +9,14 @@ of every emitted page.
 
 To re-sync after the canonical nav changes, regenerate each literal with:
     python3 -c "import sys; sys.path.insert(0, '<financial-analysis-bot>/scripts'); \\
-        import site_nav; print(site_nav.full_nav_block('market', 'brief'))"
-(and the 'week' / 'earn' variants).
+        import site_nav; print(site_nav.full_nav_block('market', 'week'))"
+(and the 'earn' variant; BRIEF uses full_nav_block('market', None)).
+
+Synced 2026-07-07（整站 IA v2：三群 研究/市場/工具 → 四群 選股/研究/市場/系統；
+每日簡報已暫停自 nav 選單移除，NAV_BLOCK_BRIEF 改為 ('market', None) 僅群高亮）。
 """
 
-# group='market', item='brief'  (daily briefing pages, /briefing/)
+# group='market', item=None  (daily briefing pages, /briefing/ — 簡報項已自選單移除)
 NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
 .imq-nav-root{background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);padding:.7rem 20px;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,.12);position:sticky;top:0;z-index:1000;font-family:'Inter','Noto Sans TC',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .imq-nav-inner{max-width:1140px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
@@ -51,50 +54,52 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
     <nav class="imq-menu">
       <a href="/">首頁</a>
       <div class="imq-dd">
-        <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
+        <button type="button" class="imq-dd-btn">選股<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/cockpit/">選股駕駛艙</a>
+          <a href="/picks/">精選清單</a>
+          <a href="/dd-screener/pipeline.html">🧭 Pipeline 漏斗</a>
+          <a href="/dd-screener/">DD Screener</a>
+          <a href="/engine/">⚙ 決策引擎</a>
+          <a href="/research/momentum-5/">Momentum-5</a>
+          <a href="/qgm/">QGM 美股</a>
+          <a href="/qgm-tw/">QGM 台股</a>
+          <a href="/screeners.html">RS+VCP Screener</a>
+        </div>
+      </div>
+      <div class="imq-dd">
+        <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
+        <div class="imq-dd-menu">
           <a href="/research/">個股 DD</a>
           <a href="/research/synthesis/">期望落差綜合研判</a>
-          <a href="/id/">產業深度 ID</a>
           <a href="/comparisons/">多股對比</a>
-          <a href="/supply-chain/">供應鏈地圖</a>
-          <a href="/crowding/">擁擠交易監測</a>
-          <a href="/rotation/">產業輪動</a>
-          <a href="/regime/">大類資產 regime</a>
+          <a href="/id/">產業深度 ID</a>
           <a href="/id/tier_matrix.html">🎯 Tier Matrix</a>
-          <a href="/picks/">精選清單</a>
-          <a href="/research/momentum-5/">Momentum-5</a>
+          <a href="/supply-chain/">供應鏈地圖</a>
         </div>
       </div>
       <div class="imq-dd active">
         <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
-          <a href="/briefing/" class="active">每日簡報</a>
-          <a href="/weekly/">週報</a>
           <a href="/earnings/">財報分析</a>
           <a href="/catalyst/">催化劑日曆</a>
           <a href="/markets.html">Markets</a>
           <a href="/sectors.html">Sectors</a>
-          <a href="/long-track-smh/">長線訊號</a>
-          <a href="/long-track-tw/">台股長線</a>
-          <a href="/turtle-sleeve/">商品 Sleeve</a>
+          <a href="/crowding/">擁擠交易監測</a>
+          <a href="/rotation/">產業輪動</a>
+          <a href="/regime/">大類資產 regime</a>
+          <a href="/weekly/">週報</a>
         </div>
       </div>
       <div class="imq-dd">
-        <button type="button" class="imq-dd-btn">工具<span class="imq-caret">▾</span></button>
+        <button type="button" class="imq-dd-btn">系統<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
+          <a href="/long-track-smh/">長線訊號 SMH</a>
+          <a href="/long-track-tw/">台股長線</a>
+          <a href="/turtle-sleeve/">商品 Sleeve</a>
           <a href="/backtest/">量化回測</a>
-          <a href="/dd-screener/">DD Screener</a>
-          <a href="/engine/">⚙ 決策引擎</a>
-          <a href="/qgm/">QGM 美股</a>
-          <a href="/qgm-tw/">QGM 台股</a>
-          <a href="/screener.html">Screener 美股</a>
-          <a href="/screener-tw.html">Screener 台股</a>
-          <a href="/screener-jp.html">Screener 日股</a>
-          <a href="/screener-my.html">Screener 馬股</a>
-          <a href="/cache/">🗄 Data Cache</a>
           <a href="/tools/">期貨部位計算機</a>
+          <a href="/cache/">🗄 Data Cache</a>
         </div>
       </div>
       <a href="/mental-models/">🧠 心智模型</a>
@@ -104,7 +109,7 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
 </header>
 <script>(function(){document.querySelectorAll('.imq-dd-btn').forEach(function(btn){btn.addEventListener('click',function(e){e.preventDefault();var dd=btn.closest('.imq-dd');document.querySelectorAll('.imq-dd.open').forEach(function(d){if(d!==dd)d.classList.remove('open')});dd.classList.toggle('open')})});document.addEventListener('click',function(e){if(!e.target.closest('.imq-dd'))document.querySelectorAll('.imq-dd.open').forEach(function(d){d.classList.remove('open')})});})();</script>"""
 
-# group='market', item='week'  (weekly pages, /weekly/)
+# group='market', item='week'  (weekly report pages, /weekly/)
 NAV_BLOCK_WEEK = """<style id="imq-nav-style">
 .imq-nav-root{background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);padding:.7rem 20px;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,.12);position:sticky;top:0;z-index:1000;font-family:'Inter','Noto Sans TC',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .imq-nav-inner{max-width:1140px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
@@ -142,50 +147,52 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
     <nav class="imq-menu">
       <a href="/">首頁</a>
       <div class="imq-dd">
-        <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
+        <button type="button" class="imq-dd-btn">選股<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/cockpit/">選股駕駛艙</a>
+          <a href="/picks/">精選清單</a>
+          <a href="/dd-screener/pipeline.html">🧭 Pipeline 漏斗</a>
+          <a href="/dd-screener/">DD Screener</a>
+          <a href="/engine/">⚙ 決策引擎</a>
+          <a href="/research/momentum-5/">Momentum-5</a>
+          <a href="/qgm/">QGM 美股</a>
+          <a href="/qgm-tw/">QGM 台股</a>
+          <a href="/screeners.html">RS+VCP Screener</a>
+        </div>
+      </div>
+      <div class="imq-dd">
+        <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
+        <div class="imq-dd-menu">
           <a href="/research/">個股 DD</a>
           <a href="/research/synthesis/">期望落差綜合研判</a>
-          <a href="/id/">產業深度 ID</a>
           <a href="/comparisons/">多股對比</a>
-          <a href="/supply-chain/">供應鏈地圖</a>
-          <a href="/crowding/">擁擠交易監測</a>
-          <a href="/rotation/">產業輪動</a>
-          <a href="/regime/">大類資產 regime</a>
+          <a href="/id/">產業深度 ID</a>
           <a href="/id/tier_matrix.html">🎯 Tier Matrix</a>
-          <a href="/picks/">精選清單</a>
-          <a href="/research/momentum-5/">Momentum-5</a>
+          <a href="/supply-chain/">供應鏈地圖</a>
         </div>
       </div>
       <div class="imq-dd active">
         <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
-          <a href="/briefing/">每日簡報</a>
-          <a href="/weekly/" class="active">週報</a>
           <a href="/earnings/">財報分析</a>
           <a href="/catalyst/">催化劑日曆</a>
           <a href="/markets.html">Markets</a>
           <a href="/sectors.html">Sectors</a>
-          <a href="/long-track-smh/">長線訊號</a>
-          <a href="/long-track-tw/">台股長線</a>
-          <a href="/turtle-sleeve/">商品 Sleeve</a>
+          <a href="/crowding/">擁擠交易監測</a>
+          <a href="/rotation/">產業輪動</a>
+          <a href="/regime/">大類資產 regime</a>
+          <a href="/weekly/" class="active">週報</a>
         </div>
       </div>
       <div class="imq-dd">
-        <button type="button" class="imq-dd-btn">工具<span class="imq-caret">▾</span></button>
+        <button type="button" class="imq-dd-btn">系統<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
+          <a href="/long-track-smh/">長線訊號 SMH</a>
+          <a href="/long-track-tw/">台股長線</a>
+          <a href="/turtle-sleeve/">商品 Sleeve</a>
           <a href="/backtest/">量化回測</a>
-          <a href="/dd-screener/">DD Screener</a>
-          <a href="/engine/">⚙ 決策引擎</a>
-          <a href="/qgm/">QGM 美股</a>
-          <a href="/qgm-tw/">QGM 台股</a>
-          <a href="/screener.html">Screener 美股</a>
-          <a href="/screener-tw.html">Screener 台股</a>
-          <a href="/screener-jp.html">Screener 日股</a>
-          <a href="/screener-my.html">Screener 馬股</a>
-          <a href="/cache/">🗄 Data Cache</a>
           <a href="/tools/">期貨部位計算機</a>
+          <a href="/cache/">🗄 Data Cache</a>
         </div>
       </div>
       <a href="/mental-models/">🧠 心智模型</a>
@@ -195,8 +202,7 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
 </header>
 <script>(function(){document.querySelectorAll('.imq-dd-btn').forEach(function(btn){btn.addEventListener('click',function(e){e.preventDefault();var dd=btn.closest('.imq-dd');document.querySelectorAll('.imq-dd.open').forEach(function(d){if(d!==dd)d.classList.remove('open')});dd.classList.toggle('open')})});document.addEventListener('click',function(e){if(!e.target.closest('.imq-dd'))document.querySelectorAll('.imq-dd.open').forEach(function(d){d.classList.remove('open')})});})();</script>"""
 
-# group='market', item='earn'  (earnings daily pages, /earnings/ — no emitter in
-# this repo today; kept in sync so a future earnings template can import it)
+# group='market', item='earn'  (earnings pages, /earnings/)
 NAV_BLOCK_EARN = """<style id="imq-nav-style">
 .imq-nav-root{background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);padding:.7rem 20px;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,.12);position:sticky;top:0;z-index:1000;font-family:'Inter','Noto Sans TC',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .imq-nav-inner{max-width:1140px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
@@ -234,50 +240,52 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
     <nav class="imq-menu">
       <a href="/">首頁</a>
       <div class="imq-dd">
-        <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
+        <button type="button" class="imq-dd-btn">選股<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/cockpit/">選股駕駛艙</a>
+          <a href="/picks/">精選清單</a>
+          <a href="/dd-screener/pipeline.html">🧭 Pipeline 漏斗</a>
+          <a href="/dd-screener/">DD Screener</a>
+          <a href="/engine/">⚙ 決策引擎</a>
+          <a href="/research/momentum-5/">Momentum-5</a>
+          <a href="/qgm/">QGM 美股</a>
+          <a href="/qgm-tw/">QGM 台股</a>
+          <a href="/screeners.html">RS+VCP Screener</a>
+        </div>
+      </div>
+      <div class="imq-dd">
+        <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
+        <div class="imq-dd-menu">
           <a href="/research/">個股 DD</a>
           <a href="/research/synthesis/">期望落差綜合研判</a>
-          <a href="/id/">產業深度 ID</a>
           <a href="/comparisons/">多股對比</a>
-          <a href="/supply-chain/">供應鏈地圖</a>
-          <a href="/crowding/">擁擠交易監測</a>
-          <a href="/rotation/">產業輪動</a>
-          <a href="/regime/">大類資產 regime</a>
+          <a href="/id/">產業深度 ID</a>
           <a href="/id/tier_matrix.html">🎯 Tier Matrix</a>
-          <a href="/picks/">精選清單</a>
-          <a href="/research/momentum-5/">Momentum-5</a>
+          <a href="/supply-chain/">供應鏈地圖</a>
         </div>
       </div>
       <div class="imq-dd active">
         <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
-          <a href="/briefing/">每日簡報</a>
-          <a href="/weekly/">週報</a>
           <a href="/earnings/" class="active">財報分析</a>
           <a href="/catalyst/">催化劑日曆</a>
           <a href="/markets.html">Markets</a>
           <a href="/sectors.html">Sectors</a>
-          <a href="/long-track-smh/">長線訊號</a>
-          <a href="/long-track-tw/">台股長線</a>
-          <a href="/turtle-sleeve/">商品 Sleeve</a>
+          <a href="/crowding/">擁擠交易監測</a>
+          <a href="/rotation/">產業輪動</a>
+          <a href="/regime/">大類資產 regime</a>
+          <a href="/weekly/">週報</a>
         </div>
       </div>
       <div class="imq-dd">
-        <button type="button" class="imq-dd-btn">工具<span class="imq-caret">▾</span></button>
+        <button type="button" class="imq-dd-btn">系統<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
+          <a href="/long-track-smh/">長線訊號 SMH</a>
+          <a href="/long-track-tw/">台股長線</a>
+          <a href="/turtle-sleeve/">商品 Sleeve</a>
           <a href="/backtest/">量化回測</a>
-          <a href="/dd-screener/">DD Screener</a>
-          <a href="/engine/">⚙ 決策引擎</a>
-          <a href="/qgm/">QGM 美股</a>
-          <a href="/qgm-tw/">QGM 台股</a>
-          <a href="/screener.html">Screener 美股</a>
-          <a href="/screener-tw.html">Screener 台股</a>
-          <a href="/screener-jp.html">Screener 日股</a>
-          <a href="/screener-my.html">Screener 馬股</a>
-          <a href="/cache/">🗄 Data Cache</a>
           <a href="/tools/">期貨部位計算機</a>
+          <a href="/cache/">🗄 Data Cache</a>
         </div>
       </div>
       <a href="/mental-models/">🧠 心智模型</a>
