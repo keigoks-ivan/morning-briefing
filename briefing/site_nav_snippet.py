@@ -15,6 +15,7 @@ To re-sync after the canonical nav changes, regenerate each literal with:
 Synced 2026-07-07（整站 IA v2：三群 研究/市場/工具 → 四群 選股/研究/市場/系統；
 每日簡報已暫停自 nav 選單移除，NAV_BLOCK_BRIEF 改為 ('market', None) 僅群高亮）。
 2026-07-09 補：市場群加入「總經深度報告」(/macro/)，BRIEF/WEEK/EARN 三塊皆已同步。
+2026-07-10 補：市場群加入「市場監測」(/monitor/)，BRIEF/WEEK/EARN 三塊皆已同步。
 """
 
 # group='market', item=None  (daily briefing pages, /briefing/ — 簡報項已自選單移除)
@@ -84,6 +85,7 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
         <div class="imq-dd-menu">
           <a href="/earnings/">財報分析</a>
           <a href="/catalyst/">催化劑日曆</a>
+          <a href="/monitor/">市場監測</a>
           <a href="/markets.html">Markets</a>
           <a href="/sectors.html">Sectors</a>
           <a href="/crowding/">擁擠交易監測</a>
@@ -178,6 +180,7 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
         <div class="imq-dd-menu">
           <a href="/earnings/">財報分析</a>
           <a href="/catalyst/">催化劑日曆</a>
+          <a href="/monitor/">市場監測</a>
           <a href="/markets.html">Markets</a>
           <a href="/sectors.html">Sectors</a>
           <a href="/crowding/">擁擠交易監測</a>
@@ -272,6 +275,7 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
         <div class="imq-dd-menu">
           <a href="/earnings/" class="active">財報分析</a>
           <a href="/catalyst/">催化劑日曆</a>
+          <a href="/monitor/">市場監測</a>
           <a href="/markets.html">Markets</a>
           <a href="/sectors.html">Sectors</a>
           <a href="/crowding/">擁擠交易監測</a>
