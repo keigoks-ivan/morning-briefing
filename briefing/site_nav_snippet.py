@@ -16,6 +16,8 @@ Synced 2026-07-07（整站 IA v2：三群 研究/市場/工具 → 四群 選股
 每日簡報已暫停自 nav 選單移除，NAV_BLOCK_BRIEF 改為 ('market', None) 僅群高亮）。
 2026-07-09 補：市場群加入「總經深度報告」(/macro/)，BRIEF/WEEK/EARN 三塊皆已同步。
 2026-07-10 補：市場群加入「市場監測」(/monitor/)，BRIEF/WEEK/EARN 三塊皆已同步。
+2026-07-10 補：選股主控台整併——精選清單／Pipeline 漏斗／決策引擎三條收斂進
+/cockpit/ 單一入口（標籤改「選股主控台」），下拉自 9 條瘦身為 6 條，BRIEF/WEEK/EARN 三塊皆已同步。
 """
 
 # group='market', item=None  (daily briefing pages, /briefing/ — 簡報項已自選單移除)
@@ -58,11 +60,8 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">選股<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
-          <a href="/cockpit/">選股駕駛艙</a>
-          <a href="/picks/">精選清單</a>
-          <a href="/dd-screener/pipeline.html">Pipeline 漏斗</a>
+          <a href="/cockpit/">選股主控台</a>
           <a href="/dd-screener/">DD Screener</a>
-          <a href="/engine/">決策引擎</a>
           <a href="/research/momentum-5/">Momentum-5</a>
           <a href="/qgm/">QGM 美股</a>
           <a href="/qgm-tw/">QGM 台股</a>
@@ -153,11 +152,8 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">選股<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
-          <a href="/cockpit/">選股駕駛艙</a>
-          <a href="/picks/">精選清單</a>
-          <a href="/dd-screener/pipeline.html">Pipeline 漏斗</a>
+          <a href="/cockpit/">選股主控台</a>
           <a href="/dd-screener/">DD Screener</a>
-          <a href="/engine/">決策引擎</a>
           <a href="/research/momentum-5/">Momentum-5</a>
           <a href="/qgm/">QGM 美股</a>
           <a href="/qgm-tw/">QGM 台股</a>
@@ -248,11 +244,8 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">選股<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
-          <a href="/cockpit/">選股駕駛艙</a>
-          <a href="/picks/">精選清單</a>
-          <a href="/dd-screener/pipeline.html">Pipeline 漏斗</a>
+          <a href="/cockpit/">選股主控台</a>
           <a href="/dd-screener/">DD Screener</a>
-          <a href="/engine/">決策引擎</a>
           <a href="/research/momentum-5/">Momentum-5</a>
           <a href="/qgm/">QGM 美股</a>
           <a href="/qgm-tw/">QGM 台股</a>
