@@ -18,6 +18,10 @@ Synced 2026-07-07（整站 IA v2：三群 研究/市場/工具 → 四群 選股
 2026-07-10 補：市場群加入「市場監測」(/monitor/)，BRIEF/WEEK/EARN 三塊皆已同步。
 2026-07-10 補：選股主控台整併——精選清單／Pipeline 漏斗／決策引擎三條收斂進
 /cockpit/ 單一入口（標籤改「選股主控台」），下拉自 9 條瘦身為 6 條，BRIEF/WEEK/EARN 三塊皆已同步。
+2026-07-11 補：整站 nav 重排——頂層順序改「首頁·市場·選股·研究·心智模型·系統·使用指南·搜尋」；
+「使用說明」改「使用指南」；新增頂層「搜尋」(/search.html)；研究群首增「個股總覽」(/t/)；
+市場群增「資產輪動雷達」(/rotation/radar.html)；系統群增「裁決實績」(/track-record/)與「公開資料」(/data.html)；
+BRIEF/WEEK/EARN 三塊皆已由 canonical full_nav_block 重生為 byte-identical。
 """
 
 # group='market', item=None  (daily briefing pages, /briefing/ — 簡報項已自選單移除)
@@ -57,6 +61,21 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
     <a class="imq-logo" href="/">InvestMQuest<span>.</span> Research</a>
     <nav class="imq-menu">
       <a href="/">首頁</a>
+      <div class="imq-dd active">
+        <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
+        <div class="imq-dd-menu">
+          <a href="/monitor/">市場監測</a>
+          <a href="/rotation/radar.html">資產輪動雷達</a>
+          <a href="/rotation/">產業輪動</a>
+          <a href="/crowding/">擁擠交易監測</a>
+          <a href="/regime/">大類資產 regime</a>
+          <a href="/macro/">總經深度報告</a>
+          <a href="/earnings/">財報分析</a>
+          <a href="/catalyst/">催化劑日曆</a>
+          <a href="/markets.html">Markets</a>
+          <a href="/sectors.html">Sectors</a>
+        </div>
+      </div>
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">選股<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
@@ -71,42 +90,31 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
+          <a href="/t/">個股總覽</a>
           <a href="/research/">個股 DD</a>
-          <a href="/research/synthesis/">期望落差綜合研判</a>
-          <a href="/comparisons/">多股對比</a>
           <a href="/id/">產業深度 ID</a>
           <a href="/id/tier_matrix.html">Tier Matrix</a>
           <a href="/supply-chain/">供應鏈地圖</a>
+          <a href="/comparisons/">多股對比</a>
+          <a href="/research/synthesis/">期望落差綜合研判</a>
         </div>
       </div>
-      <div class="imq-dd active">
-        <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
-        <div class="imq-dd-menu">
-          <a href="/earnings/">財報分析</a>
-          <a href="/catalyst/">催化劑日曆</a>
-          <a href="/monitor/">市場監測</a>
-          <a href="/markets.html">Markets</a>
-          <a href="/sectors.html">Sectors</a>
-          <a href="/crowding/">擁擠交易監測</a>
-          <a href="/rotation/">產業輪動</a>
-          <a href="/regime/">大類資產 regime</a>
-          <a href="/macro/">總經深度報告</a>
-          <a href="/weekly/">週報</a>
-        </div>
-      </div>
+      <a href="/mental-models/">心智模型</a>
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">系統<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
+          <a href="/track-record/">裁決實績</a>
           <a href="/long-track-smh/">長線訊號 SMH</a>
           <a href="/long-track-tw/">台股長線</a>
           <a href="/turtle-sleeve/">商品 Sleeve</a>
           <a href="/backtest/">量化回測</a>
           <a href="/tools/">期貨部位計算機</a>
           <a href="/cache/">Data Cache</a>
+          <a href="/data.html">公開資料</a>
         </div>
       </div>
-      <a href="/mental-models/">心智模型</a>
-      <a href="/how-to.html">使用說明</a>
+      <a href="/how-to.html">使用指南</a>
+      <a href="/search.html">搜尋</a>
     </nav>
   </div>
 </header>
@@ -149,6 +157,21 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
     <a class="imq-logo" href="/">InvestMQuest<span>.</span> Research</a>
     <nav class="imq-menu">
       <a href="/">首頁</a>
+      <div class="imq-dd active">
+        <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
+        <div class="imq-dd-menu">
+          <a href="/monitor/">市場監測</a>
+          <a href="/rotation/radar.html">資產輪動雷達</a>
+          <a href="/rotation/">產業輪動</a>
+          <a href="/crowding/">擁擠交易監測</a>
+          <a href="/regime/">大類資產 regime</a>
+          <a href="/macro/">總經深度報告</a>
+          <a href="/earnings/">財報分析</a>
+          <a href="/catalyst/">催化劑日曆</a>
+          <a href="/markets.html">Markets</a>
+          <a href="/sectors.html">Sectors</a>
+        </div>
+      </div>
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">選股<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
@@ -163,42 +186,31 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
+          <a href="/t/">個股總覽</a>
           <a href="/research/">個股 DD</a>
-          <a href="/research/synthesis/">期望落差綜合研判</a>
-          <a href="/comparisons/">多股對比</a>
           <a href="/id/">產業深度 ID</a>
           <a href="/id/tier_matrix.html">Tier Matrix</a>
           <a href="/supply-chain/">供應鏈地圖</a>
+          <a href="/comparisons/">多股對比</a>
+          <a href="/research/synthesis/">期望落差綜合研判</a>
         </div>
       </div>
-      <div class="imq-dd active">
-        <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
-        <div class="imq-dd-menu">
-          <a href="/earnings/">財報分析</a>
-          <a href="/catalyst/">催化劑日曆</a>
-          <a href="/monitor/">市場監測</a>
-          <a href="/markets.html">Markets</a>
-          <a href="/sectors.html">Sectors</a>
-          <a href="/crowding/">擁擠交易監測</a>
-          <a href="/rotation/">產業輪動</a>
-          <a href="/regime/">大類資產 regime</a>
-          <a href="/macro/">總經深度報告</a>
-          <a href="/weekly/" class="active">週報</a>
-        </div>
-      </div>
+      <a href="/mental-models/">心智模型</a>
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">系統<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
+          <a href="/track-record/">裁決實績</a>
           <a href="/long-track-smh/">長線訊號 SMH</a>
           <a href="/long-track-tw/">台股長線</a>
           <a href="/turtle-sleeve/">商品 Sleeve</a>
           <a href="/backtest/">量化回測</a>
           <a href="/tools/">期貨部位計算機</a>
           <a href="/cache/">Data Cache</a>
+          <a href="/data.html">公開資料</a>
         </div>
       </div>
-      <a href="/mental-models/">心智模型</a>
-      <a href="/how-to.html">使用說明</a>
+      <a href="/how-to.html">使用指南</a>
+      <a href="/search.html">搜尋</a>
     </nav>
   </div>
 </header>
@@ -241,6 +253,21 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
     <a class="imq-logo" href="/">InvestMQuest<span>.</span> Research</a>
     <nav class="imq-menu">
       <a href="/">首頁</a>
+      <div class="imq-dd active">
+        <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
+        <div class="imq-dd-menu">
+          <a href="/monitor/">市場監測</a>
+          <a href="/rotation/radar.html">資產輪動雷達</a>
+          <a href="/rotation/">產業輪動</a>
+          <a href="/crowding/">擁擠交易監測</a>
+          <a href="/regime/">大類資產 regime</a>
+          <a href="/macro/">總經深度報告</a>
+          <a href="/earnings/" class="active">財報分析</a>
+          <a href="/catalyst/">催化劑日曆</a>
+          <a href="/markets.html">Markets</a>
+          <a href="/sectors.html">Sectors</a>
+        </div>
+      </div>
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">選股<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
@@ -255,42 +282,31 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
+          <a href="/t/">個股總覽</a>
           <a href="/research/">個股 DD</a>
-          <a href="/research/synthesis/">期望落差綜合研判</a>
-          <a href="/comparisons/">多股對比</a>
           <a href="/id/">產業深度 ID</a>
           <a href="/id/tier_matrix.html">Tier Matrix</a>
           <a href="/supply-chain/">供應鏈地圖</a>
+          <a href="/comparisons/">多股對比</a>
+          <a href="/research/synthesis/">期望落差綜合研判</a>
         </div>
       </div>
-      <div class="imq-dd active">
-        <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
-        <div class="imq-dd-menu">
-          <a href="/earnings/" class="active">財報分析</a>
-          <a href="/catalyst/">催化劑日曆</a>
-          <a href="/monitor/">市場監測</a>
-          <a href="/markets.html">Markets</a>
-          <a href="/sectors.html">Sectors</a>
-          <a href="/crowding/">擁擠交易監測</a>
-          <a href="/rotation/">產業輪動</a>
-          <a href="/regime/">大類資產 regime</a>
-          <a href="/macro/">總經深度報告</a>
-          <a href="/weekly/">週報</a>
-        </div>
-      </div>
+      <a href="/mental-models/">心智模型</a>
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">系統<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
+          <a href="/track-record/">裁決實績</a>
           <a href="/long-track-smh/">長線訊號 SMH</a>
           <a href="/long-track-tw/">台股長線</a>
           <a href="/turtle-sleeve/">商品 Sleeve</a>
           <a href="/backtest/">量化回測</a>
           <a href="/tools/">期貨部位計算機</a>
           <a href="/cache/">Data Cache</a>
+          <a href="/data.html">公開資料</a>
         </div>
       </div>
-      <a href="/mental-models/">心智模型</a>
-      <a href="/how-to.html">使用說明</a>
+      <a href="/how-to.html">使用指南</a>
+      <a href="/search.html">搜尋</a>
     </nav>
   </div>
 </header>
