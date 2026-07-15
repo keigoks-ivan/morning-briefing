@@ -22,6 +22,7 @@ Synced 2026-07-07（整站 IA v2：三群 研究/市場/工具 → 四群 選股
 「使用說明」改「使用指南」；新增頂層「搜尋」(/search.html)；研究群首增「個股總覽」(/t/)；
 市場群增「資產輪動雷達」(/rotation/radar.html)；系統群增「裁決實績」(/track-record/)與「公開資料」(/data.html)；
 BRIEF/WEEK/EARN 三塊皆已由 canonical full_nav_block 重生為 byte-identical。
+2026-07-16 補：市場群 monitor 之後加入「偵測警報網」(/detective/)，BRIEF/WEEK/EARN 三塊皆已同步。
 """
 
 # group='market', item=None  (daily briefing pages, /briefing/ — 簡報項已自選單移除)
@@ -65,6 +66,7 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
         <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/monitor/">市場監測</a>
+          <a href="/detective/">偵測警報網</a>
           <a href="/rotation/radar.html">資產輪動雷達</a>
           <a href="/rotation/">產業輪動</a>
           <a href="/crowding/">擁擠交易監測</a>
@@ -161,6 +163,7 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
         <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/monitor/">市場監測</a>
+          <a href="/detective/">偵測警報網</a>
           <a href="/rotation/radar.html">資產輪動雷達</a>
           <a href="/rotation/">產業輪動</a>
           <a href="/crowding/">擁擠交易監測</a>
@@ -257,6 +260,7 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
         <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/monitor/">市場監測</a>
+          <a href="/detective/">偵測警報網</a>
           <a href="/rotation/radar.html">資產輪動雷達</a>
           <a href="/rotation/">產業輪動</a>
           <a href="/crowding/">擁擠交易監測</a>
