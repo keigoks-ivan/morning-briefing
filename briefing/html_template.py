@@ -234,8 +234,9 @@ def _regime_block(rg: dict) -> str:
     contra_td = _list(rg.get("contradicts"), "#C0392B", "反對主軸")
     cc_html = ""
     if conf_td or contra_td:
+        empty_td = '<td width="50%"></td>'
         cc_html = (f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:10px;">'
-                   f'<tr>{conf_td or "<td width=\"50%\"></td>"}{contra_td or "<td width=\"50%\"></td>"}</tr></table>')
+                   f'<tr>{conf_td or empty_td}{contra_td or empty_td}</tr></table>')
 
     fals = [f for f in (rg.get("falsifiers") or []) if isinstance(f, dict) and f.get("metric")]
     fals_html = ""
