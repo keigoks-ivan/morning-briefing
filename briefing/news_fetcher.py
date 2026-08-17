@@ -1155,6 +1155,15 @@ RSS_FEEDS = [
     ("CNBC Top",        "https://www.cnbc.com/id/100003114/device/rss/rss.html", 12, 24),
     ("CNBC Tech",       "https://www.cnbc.com/id/19854910/device/rss/rss.html", 8, 24),
     ("Financial Times", "https://www.ft.com/rss/home", 10, 24),
+    ("FT Markets",      "https://www.ft.com/markets?format=rss", 8, 24),
+    ("FT Tech",         "https://www.ft.com/companies/technology?format=rss", 6, 24),
+    ("FT Asia",         "https://www.ft.com/world/asia-pacific?format=rss", 6, 24),
+    # 經濟學人是週刊（週四出刊），官方 feed 日期不可靠 → GN 代理、7 天窗、只取財經／商業／社論／亞洲／中國版
+    ("The Economist (GN)", _GN.format(q="(site:economist.com/finance-and-economics+OR+site:economist.com/business+OR+site:economist.com/leaders+OR+site:economist.com/briefing+OR+site:economist.com/asia+OR+site:economist.com/china)+when:7d"), 8, 168),
+    ("WSJ (GN)",        _GN.format(q="site:wsj.com+when:1d"), 12, 24),
+    ("Barron's (GN)",   _GN.format(q="site:barrons.com+when:1d"), 6, 24),
+    ("Nikkei Asia (GN)", _GN.format(q="site:asia.nikkei.com+when:1d"), 8, 24),
+    ("Politico (GN)",   _GN.format(q="site:politico.com+(tariff+OR+Fed+OR+China+OR+chip+OR+Iran+OR+Taiwan)+when:1d"), 5, 24),
     ("Axios",           "https://api.axios.com/feed/", 8, 24),
     ("Reuters (GN)",    _GN.format(q="site:reuters.com+when:1d"), 18, 24),
     ("Bloomberg (GN)",  _GN.format(q="site:bloomberg.com+when:1d"), 18, 24),
@@ -1179,7 +1188,7 @@ RSS_FEEDS = [
     ("CoinDesk",        "https://www.coindesk.com/arc/outboundfeeds/rss/", 8, 24),
     ("The Block",       "https://www.theblock.co/rss.xml", 6, 24),
 ]
-RSS_TOTAL_CAP = 220
+RSS_TOTAL_CAP = 280
 _RSS_NOISE = re.compile(r"開獎|中獎號碼|彩券|統一發票|訃聞|Podcast|podcast|The Download:|Crossword|Newsletter")  # 全部 feed 合計上限，超過就按清單順序截掉後面的
 
 
@@ -1220,6 +1229,7 @@ def _fetch_one_feed(spec: tuple) -> list[dict]:
                 "link": entry.get("link", ""),
                 "source": src,
                 "feed": label,
+                "weekly": max_age_h > 72,   # 週刊／評論類（經濟學人）：給模型當背景，不當今日新聞
                 "published": published.strftime("%Y-%m-%d %H:%M") if published else "",
             })
             if len(out) >= max_items:

@@ -216,6 +216,7 @@ GEMINI_SYSTEM_PROMPT = """
 - 只收 source_date ≥ 允收起始日（見使用者訊息）的新聞。RSS 每條前面有時間戳、搜尋結果內文有日期，照那個填 source_date（YYYY-MM-DD）。
 - 素材裡明顯是舊事件（上週的數據、上個月的財報、去年的政策）即使搜尋結果剛好提到，也不得當今日新聞。
 - 沒辦法判定日期的條目：丟掉。
+- 標示「週刊／評論類」的素材（例如 The Economist）不作為任何新聞區塊的條目；可用於 tech_trends、fun_fact，或在某條新聞 body 末尾補一句背景（不另計 source_date）。
 
 【最高優先級：語言規則】
 1. 全部繁體中文（台灣用語），嚴禁簡體字：「規範」不是「规范」、「軟體」不是「软件」、「記憶體」不是「内存」、「晶片」不是「芯片」、「網路」不是「网络」、「數據」不是「数据」、「訊息」不是「信息」、「晶圓」不是「晶圆」、「腰斬」不是「腰斩」
@@ -873,7 +874,9 @@ def build_news_text(raw_news: list[dict], moneydj_news: list[dict] | None = None
         for item in moneydj_news:
             by_feed.setdefault(item.get("feed") or item.get("source", "RSS"), []).append(item)
         for feed, items in by_feed.items():
-            parts.append(f"### {feed}（{len(items)} 條）")
+            weekly = any(it.get("weekly") for it in items)
+            note = "；週刊／評論類：只能當背景或 tech_trends 素材，不得當今日新聞" if weekly else ""
+            parts.append(f"### {feed}（{len(items)} 條{note}）")
             for item in items:
                 summ = f"｜{item['summary']}" if item.get("summary") else ""
                 parts.append(f"- {item.get('published','')}｜{item.get('source','')}｜{item['title']}{summ}")
@@ -1468,13 +1471,13 @@ def _sanitize_news(data: dict, cutoff_date: str) -> None:
             continue
         data[k] = _walk_fix(data[k])
 
-    def _clean_list(items: list) -> list:
+    def _clean_list(items: list, check_date: bool = True) -> list:
         out = []
         for it in items:
             if not isinstance(it, dict):
                 continue
             sd = str(it.get("source_date") or "")
-            if _re.match(r"\d{4}-\d{2}-\d{2}$", sd) and sd < cutoff_date:
+            if check_date and _re.match(r"\d{4}-\d{2}-\d{2}$", sd) and sd < cutoff_date:
                 stats["stale"] += 1
                 continue
             head = it.get("headline") or it.get("title") or ""
@@ -1494,7 +1497,7 @@ def _sanitize_news(data: dict, cutoff_date: str) -> None:
 
     for key in _NEWS_LIST_BLOCKS + ["smart_money"]:
         if isinstance(data.get(key), list):
-            data[key] = _clean_list(data[key])
+            data[key] = _clean_list(data[key], check_date=key not in ("tech_trends", "daily_deep_dive"))
     rt = data.get("regional_tech")
     if isinstance(rt, dict):
         for region, items in rt.items():
