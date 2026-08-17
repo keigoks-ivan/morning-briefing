@@ -20,7 +20,7 @@
 3. 市場數字來自 yfinance，絕不讓 Claude API 猜測
 4. 新聞區塊嚴禁行情數字（漲跌幅、指數點位）
 5. Claude API 必須用 streaming（max_tokens=32000）；Claude Code headless 路徑不適用（`claude -p` 自己處理）
-6. Perplexity 查詢用 ThreadPoolExecutor max_workers=8 並行
+6. 新聞搜尋（原 Perplexity，2026-08-17 起 Claude Code＋WebSearch）用 ThreadPoolExecutor max_workers=8 並行
 7. 分析用 NDX 現貨（^NDX），NQ 期貨已移除
 8. Screener 失敗時 screener_result={} 日報繼續跑不受影響
 
@@ -54,13 +54,15 @@
 - log 印的 Claude Code `cost` 是 **API 等價參考值，不是實際帳單**（訂閱制不另計費）。
 - ⚠ Max 額度與跑 DD 報告共用同一池，忙的時候會互相排擠。
 
+**新聞搜尋層（news_fetcher.py，2026-08-17 同日改制）**：Perplexity 已停用（帳號當日全面 429，持有人決定不再付費）。所有搜尋走 `_llm_search()` → 主＝Claude Code headless `--allowed-tools WebSearch`、模型 `haiku`（最便宜，搜尋只是找資料）；備援＝Perplexity（僅在 workflow 傳 `PERPLEXITY_API_KEY` 時啟用，目前註解掉）。換模型：`NEWS_SEARCH_MODEL`；單次逾時：`NEWS_SEARCH_TIMEOUT`（預設 240 秒）。來源網址由模型在答案末尾 `SOURCES:` 區塊列出後解析。`_fetch_dynamic_deep_topics()` 是死碼（無呼叫端），仍寫死 Perplexity，勿誤用。
+
 ---
 
 ## 檔案職責
 
 ### 日報
 main.py → 日報主流程，串接所有模組
-news_fetcher.py → Perplexity 查詢 + yfinance 行情 + FRED 流動性
+news_fetcher.py → 新聞搜尋（`_llm_search`：Claude Code Haiku＋WebSearch 主、Perplexity 備援）+ yfinance 行情 + FRED 流動性
 ai_processor.py → 三區塊（分析/新聞/財報）並行產 JSON，含 _validate 預設值。模型路由見下「AI 模型路由」
 html_template.py → JSON → HTML，所有區塊渲染函式（含多頁 tab 導航）
 email_sender.py → Resend API 寄信（支援 Excel 附件）
@@ -98,7 +100,7 @@ trigger.py → Render Cron → GitHub API
 
 股票指數：^NDX、^GSPC、^SOX、^TWII、^GDAXI、VT、VO、BTC-USD
 美股因子：FNGS、VTV、VUG、MTUM、IWM、RSP（+SPY計算比值）
-市場情緒：^VIX、^VIX9D、^SKEW、^VVIX、CNN Fear&Greed、MOVE（Perplexity）
+市場情緒：^VIX、^VIX9D、^SKEW、^VVIX、CNN Fear&Greed、MOVE（網路搜尋，見 _llm_search）
 原物料固定：BZ=F、CL=F、GC=F、SI=F、HG=F、ALI=F
 原物料動態：NG=F、PA=F、PL=F、ZW=F、ZC=F、ZS=F、CC=F、KC=F、SB=F（選2個）
 債券：^IRX(2Y)、^TNX(10Y)、^TYX(30Y)、TLT，10Y-2Y利差計算

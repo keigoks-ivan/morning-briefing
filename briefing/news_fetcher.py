@@ -1,17 +1,127 @@
 """
 news_fetcher.py
 ---------------
-使用 Perplexity API 搜尋每日財經、科技、新創新聞。
-限制前24小時內的新聞。
+搜尋每日財經、科技、新創新聞（限前 24 小時），加上 yfinance 行情與 FRED 流動性。
+
+新聞搜尋後端（2026-08-17 改制）：
+  主要   Claude Code CLI headless + WebSearch 工具，模型 Haiku（最便宜）→ 走 Max 訂閱
+  備援   Perplexity sonar → 需 PERPLEXITY_API_KEY（持有人已決定不再付費，workflow 不傳 key）
+所有搜尋呼叫都走 `_llm_search()`，後端切換在那一個函式裡。
 """
 
 import os
+import re
+import json
 import time
+import shutil
+import subprocess
 import requests
 import feedparser
 import concurrent.futures
 from datetime import datetime, timedelta
 import pytz
+
+
+# ═══════════════════════════════════════════════════════════════
+# 搜尋後端：Claude Code（Haiku + WebSearch）主、Perplexity 備援
+# ═══════════════════════════════════════════════════════════════
+
+# 搜尋只是「找資料＋整理」，用最便宜的檔就夠；分析交給 ai_processor 的 Sonnet。
+NEWS_SEARCH_MODEL = os.environ.get("NEWS_SEARCH_MODEL", "haiku")
+NEWS_SEARCH_TIMEOUT = int(os.environ.get("NEWS_SEARCH_TIMEOUT", "240"))
+
+_SEARCH_GUARD = """
+【執行環境】你在無人值守的自動化 pipeline 裡，沒有人會回覆你。
+- 先用 WebSearch 工具搜尋（可搜多次），再用英文直接作答，不要反問、不要提出選項。
+- 答案要含具體數字、日期、來源媒體名稱。
+- 最後一行起輸出 `SOURCES:`，之後每行一個你實際引用的網址（最多 5 個）。找不到就寫 `SOURCES: none`。
+- 除了答案與 SOURCES 區塊，不要輸出其他東西。
+"""
+
+
+def _claude_code_available() -> bool:
+    return bool(shutil.which("claude")) and bool(
+        os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") or os.environ.get("CLAUDE_CODE_USE_LOCAL_AUTH")
+    )
+
+
+def _claude_search(system_content: str, user_content: str, label: str) -> dict:
+    """Claude Code headless + WebSearch。回 {"answer", "sources"}；失敗 raise。"""
+    cmd = [
+        shutil.which("claude"), "-p",
+        "--output-format", "json",
+        "--model", NEWS_SEARCH_MODEL,
+        "--system-prompt", system_content + "\n" + _SEARCH_GUARD,
+        "--allowed-tools", "WebSearch",
+    ]
+    env = dict(os.environ)
+    env["MAX_THINKING_TOKENS"] = "0"
+    proc = subprocess.run(cmd, input=user_content, capture_output=True, text=True,
+                          timeout=NEWS_SEARCH_TIMEOUT, cwd="/tmp", env=env)
+    if proc.returncode != 0:
+        raise RuntimeError(f"claude CLI exited {proc.returncode}: {(proc.stderr or proc.stdout)[:200]}")
+    envelope = json.loads(proc.stdout)
+    if envelope.get("is_error") or envelope.get("subtype") != "success":
+        raise RuntimeError(f"claude CLI error envelope: {str(envelope)[:200]}")
+    text = (envelope.get("result") or "").strip()
+    if not text:
+        raise RuntimeError("empty result")
+
+    answer, sources = text, []
+    m = re.search(r"\n\s*SOURCES?:\s*(.*)$", text, re.S | re.I)
+    if m:
+        answer = text[:m.start()].strip()
+        sources = re.findall(r"https?://\S+", m.group(1))
+    return {"answer": answer, "sources": sources[:5]}
+
+
+def _perplexity_search(system_content: str, user_content: str, max_tokens: int,
+                       recency: str, timeout: int = 45) -> dict:
+    """Perplexity sonar（備援）。回 {"answer", "sources"}；失敗 raise。"""
+    api_key = os.environ.get("PERPLEXITY_API_KEY", "")
+    if not api_key:
+        raise RuntimeError("PERPLEXITY_API_KEY not set")
+    payload = {
+        "model": "sonar",
+        "messages": [
+            {"role": "system", "content": system_content},
+            {"role": "user", "content": user_content},
+        ],
+        "search_recency_filter": recency,
+        "return_citations": True,
+        "max_tokens": max_tokens,
+    }
+    resp = requests.post(
+        "https://api.perplexity.ai/chat/completions",
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        json=payload, timeout=timeout,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    return {"answer": data["choices"][0]["message"]["content"],
+            "sources": data.get("citations", [])[:5]}
+
+
+def _llm_search(system_content: str, user_content: str, max_tokens: int = 600,
+                recency: str = "day", label: str = "search") -> dict:
+    """統一入口：Claude Code（月租）→ Perplexity（若有 key）→ 空。永不 raise。"""
+    if _claude_code_available():
+        try:
+            r = _claude_search(system_content, user_content, label)
+            print(f"  ✓ [{label}] {user_content[:50]}... ({len(r['sources'])} sources, claude/{NEWS_SEARCH_MODEL})")
+            return r
+        except Exception as e:
+            print(f"  ⚠ [{label}] claude search failed: {str(e)[:120]}")
+    if os.environ.get("PERPLEXITY_API_KEY"):
+        try:
+            r = _perplexity_search(system_content, user_content, max_tokens, recency)
+            print(f"  ✓ [{label}] {user_content[:50]}... ({len(r['sources'])} sources, perplexity)")
+            return r
+        except Exception as e:
+            print(f"  ✗ [{label}] {user_content[:50]}...: {e}")
+    else:
+        print(f"  ✗ [{label}] {user_content[:50]}...: no search backend available")
+    return {"answer": "", "sources": []}
 
 
 PERPLEXITY_QUERIES = [
@@ -647,43 +757,20 @@ def fetch_market_data() -> dict:
 
 def fetch_move_index() -> str:
     """Fetch MOVE Index value via Perplexity search."""
-    api_key = os.environ.get("PERPLEXITY_API_KEY", "")
-    if not api_key:
-        print("  ✗ MOVE Index: no PERPLEXITY_API_KEY")
-        return ""
     query = "MOVE Index current value today ICE BofA MOVE bond market volatility index latest reading Sources: Bloomberg Reuters ICE"
     tz = pytz.timezone("Asia/Taipei")
     today = datetime.now(tz).strftime("%Y-%m-%d")
-    try:
-        payload = {
-            "model": "sonar",
-            "messages": [
-                {
-                    "role": "system",
-                    "content": (
-                        f"Today is {today} Taiwan time (UTC+8). "
-                        "Return only the current MOVE Index numerical value and a brief context. "
-                        "Be concise."
-                    ),
-                },
-                {"role": "user", "content": query},
-            ],
-            "search_recency_filter": "day",
-            "return_citations": True,
-            "max_tokens": 300,
-        }
-        resp = requests.post(
-            "https://api.perplexity.ai/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json=payload, timeout=30,
-        )
-        resp.raise_for_status()
-        answer = resp.json()["choices"][0]["message"]["content"]
+    system_content = (
+        f"Today is {today} Taiwan time (UTC+8). "
+        "Return only the current MOVE Index numerical value and a brief context. "
+        "Be concise."
+    )
+    answer = _llm_search(system_content, query, max_tokens=300, recency="day", label="MOVE")["answer"]
+    if answer:
         print(f"  ✓ MOVE Index: {answer[:80]}...")
-        return answer
-    except Exception as e:
-        print(f"  ✗ MOVE Index search failed: {e}")
-        return ""
+    else:
+        print("  ✗ MOVE Index search failed")
+    return answer
 
 
 # 週報用：重用 FIXED_TICKERS，產生與日報相同分類結構
@@ -1107,7 +1194,11 @@ def fetch_moneydj_news() -> list[dict]:
 
 
 def _fetch_dynamic_deep_topics(api_key: str, today: str) -> list[dict]:
-    """Meta-query to find today's 3 most important topics, then deep-dive each."""
+    """Meta-query to find today's 3 most important topics, then deep-dive each.
+
+    ⚠ 死碼：無任何呼叫端（main.py 走 fetch_deep_dive_news）。仍直接打 Perplexity，
+    未改接 _llm_search；若要復用請先改後端。
+    """
     import re
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
@@ -1185,36 +1276,21 @@ def _fetch_dynamic_deep_topics(api_key: str, today: str) -> list[dict]:
 def fetch_deep_dive_news() -> dict:
     """Fetch fixed + dynamic deep-dive topics in parallel. Returns dict with 'fixed' and 'dynamic' keys."""
     import re
-    api_key = os.environ["PERPLEXITY_API_KEY"]
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    headers = None  # 相容 _perplexity_query 的 tuple 介面；實際後端見 _llm_search
     tz = pytz.timezone("Asia/Taipei")
     today = datetime.now(tz).strftime("%Y-%m-%d")
 
     # Step 1: meta-query to find dynamic topics (must run first)
     topics = []
     try:
-        meta_payload = {
-            "model": "sonar",
-            "messages": [
-                {
-                    "role": "system",
-                    "content": f"Today is {today}. You are a financial analyst identifying the most important market-moving topics."
-                },
-                {
-                    "role": "user",
-                    "content": ("What are the 3 most important market-moving topics today that deserve deeper analysis? "
-                                "List ONLY as: 1. [topic name] 2. [topic name] 3. [topic name]. "
-                                "Focus on: geopolitical events, economic data surprises, major company news, "
-                                "central bank signals, commodity shocks. Sources: Bloomberg Reuters FT WSJ")
-                }
-            ],
-            "search_recency_filter": "day",
-            "max_tokens": 200,
-        }
-        resp = requests.post("https://api.perplexity.ai/chat/completions",
-                             headers=headers, json=meta_payload, timeout=30)
-        resp.raise_for_status()
-        meta_text = resp.json()["choices"][0]["message"]["content"]
+        meta_text = _llm_search(
+            f"Today is {today}. You are a financial analyst identifying the most important market-moving topics.",
+            ("What are the 3 most important market-moving topics today that deserve deeper analysis? "
+             "List ONLY as: 1. [topic name] 2. [topic name] 3. [topic name]. "
+             "Focus on: geopolitical events, economic data surprises, major company news, "
+             "central bank signals, commodity shocks. Sources: Bloomberg Reuters FT WSJ"),
+            max_tokens=200, recency="day", label="dynamic deep meta",
+        )["answer"]
         topics = re.findall(r'\d+\.\s*(.+?)(?=\d+\.|$)', meta_text, re.DOTALL)
         topics = [t.strip().rstrip('.') for t in topics[:3] if t.strip()]
         print(f"  ✓ [dynamic deep] topics: {topics}")
@@ -1370,13 +1446,7 @@ def fetch_earnings_deep_dive() -> list[dict]:
     窗口 = (上次 briefing time, 本次 briefing time] = 24 小時。
     在 US ET 時間軸上，這個窗口精確覆蓋「最近一個完整 US 交易 session」。
     """
-    try:
-        api_key = os.environ["PERPLEXITY_API_KEY"]
-    except KeyError:
-        print("  ✗ PERPLEXITY_API_KEY not set, skipping earnings deep dive")
-        return []
-
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    headers = None  # 相容 tuple 介面；後端見 _llm_search
     tz_tw = pytz.timezone("Asia/Taipei")
     anchor_et = _briefing_anchor_et()
     window_start = anchor_et - timedelta(hours=24)
@@ -1400,7 +1470,7 @@ def fetch_earnings_deep_dive() -> list[dict]:
 
 
 def _perplexity_query(args: tuple) -> dict:
-    """Execute a single Perplexity API query. Used by ThreadPoolExecutor.
+    """Execute a single news search (名字沿用；實際後端見 _llm_search). Used by ThreadPoolExecutor.
     Tuple: (query, headers, today, max_tokens, label) or
            (query, headers, today, max_tokens, label, recency)
     recency: "day" | "week" | "month" — controls search_recency_filter.
@@ -1432,35 +1502,12 @@ def _perplexity_query(args: tuple) -> dict:
             "Never include ESG, sustainability, or green energy related news."
         )
 
-    payload = {
-        "model": "sonar",
-        "messages": [
-            {"role": "system", "content": system_content},
-            {"role": "user", "content": query},
-        ],
-        "search_recency_filter": recency,
-        "return_citations": True,
-        "max_tokens": max_tokens,
-    }
-    try:
-        resp = requests.post(
-            "https://api.perplexity.ai/chat/completions",
-            headers=headers, json=payload, timeout=45,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        answer = data["choices"][0]["message"]["content"]
-        citations = data.get("citations", [])
-        print(f"  ✓ [{label}] {query[:50]}... ({len(citations)} sources)")
-        return {"query": query, "answer": answer, "sources": citations[:3]}
-    except Exception as e:
-        print(f"  ✗ [{label}] {query[:50]}...: {e}")
-        return {"query": query, "answer": "", "sources": []}
+    r = _llm_search(system_content, query, max_tokens=max_tokens, recency=recency, label=label)
+    return {"query": query, "answer": r["answer"], "sources": r["sources"][:3]}
 
 
 def fetch_financial_news() -> list[dict]:
-    api_key = os.environ["PERPLEXITY_API_KEY"]
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    headers = None  # 相容 tuple 介面；後端見 _llm_search
     tz = pytz.timezone("Asia/Taipei")
     today = datetime.now(tz).strftime("%Y-%m-%d")
 
