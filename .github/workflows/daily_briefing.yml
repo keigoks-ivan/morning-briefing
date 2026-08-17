@@ -90,7 +90,11 @@ jobs:
           # 不傳 GEMINI_API_KEY → ai_processor 的 Gemini 層自動跳過，直接掉到 Anthropic API 最後備援。
           # 要臨時開回來只要把下一行取消註解。
           # GEMINI_API_KEY:    ${{ secrets.GEMINI_API_KEY }}
-          ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
+          # 2026-08-17 晚：持有人發現 Console 被扣款——原因是 CLI 子程序繼承了這把 key，
+          # Claude Code 看到 API key 就優先用它計費而非月租（程式碼已改為子程序不帶 key）。
+          # 持有人明確不要走 API，故整把 key 不再傳入：月租三次失敗＝該區塊空白／workflow 紅燈寄通知，
+          # 不會偷偷花錢。要開回 API 最後備援只要取消下一行註解。
+          # ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
           # 2026-08-17：新聞搜尋改走 Claude Code + WebSearch（Haiku，月租）。
           # Perplexity 帳號當日已全面 429；持有人決定不再付費。要開回備援取消下一行註解。
           # PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}

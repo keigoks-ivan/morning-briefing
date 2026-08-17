@@ -1,0 +1,22 @@
+name: Claude Code auth check
+
+# 手動觸發：驗證 CLAUDE_CODE_OAUTH_TOKEN 單獨（不帶 ANTHROPIC_API_KEY）能不能跑 claude -p。
+# 用途：token 過期偵測、確認日報真的走月租不是 API。約 30 秒，只跑一句 haiku。
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code && claude --version
+      - name: claude -p with OAuth token only
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          unset ANTHROPIC_API_KEY
+          echo "ANTHROPIC_API_KEY set? ${ANTHROPIC_API_KEY:+yes}${ANTHROPIC_API_KEY:-no}"
+          claude -p "Reply with exactly: AUTH_OK" --model haiku --output-format json --allowed-tools "" \
+            | python3 -c 'import sys,json; d=json.load(sys.stdin); print("is_error:", d.get("is_error"), "| result:", d.get("result"), "| cost:", d.get("total_cost_usd"))'

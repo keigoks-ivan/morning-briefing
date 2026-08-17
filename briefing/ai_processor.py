@@ -46,6 +46,19 @@ _PIPELINE_GUARD = """
 """
 
 
+# Claude Code CLI 若同時看到 ANTHROPIC_API_KEY 與 OAuth token，會優先用 API key
+# 計費到 Console（2026-08-17 實際被扣款才發現）。CLI 子程序一律拿掉 API 相關變數，
+# 只留 CLAUDE_CODE_OAUTH_TOKEN，確保走月租；SDK 備援仍用 os.environ 裡的 key。
+_API_ENV_KEYS = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL")
+
+
+def _cli_env() -> dict:
+    env = dict(os.environ)
+    for k in _API_ENV_KEYS:
+        env.pop(k, None)
+    return env
+
+
 def _call_claude_code(system_prompt: str, user_prompt: str, label: str,
                       thinking_tokens: int = 0) -> dict:
     """用 Claude Code CLI 跑一次 prompt，回傳解析好的 JSON dict。
@@ -60,7 +73,7 @@ def _call_claude_code(system_prompt: str, user_prompt: str, label: str,
     if not (os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") or os.environ.get("CLAUDE_CODE_USE_LOCAL_AUTH")):
         raise RuntimeError("CLAUDE_CODE_OAUTH_TOKEN not set")
 
-    env = dict(os.environ)
+    env = _cli_env()
     env["MAX_THINKING_TOKENS"] = str(thinking_tokens)
 
     # 月租是唯一主路徑（Gemini 已停用），所以這裡自己重試兩次再放棄，

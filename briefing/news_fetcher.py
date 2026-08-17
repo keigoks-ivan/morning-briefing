@@ -55,6 +55,9 @@ def _claude_search(system_content: str, user_content: str, label: str) -> dict:
         "--allowed-tools", "WebSearch",
     ]
     env = dict(os.environ)
+    # 同 ai_processor._cli_env：拿掉 API key，否則 CLI 會優先走 API 計費而非月租
+    for k in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL"):
+        env.pop(k, None)
     env["MAX_THINKING_TOKENS"] = "0"
     proc = subprocess.run(cmd, input=user_content, capture_output=True, text=True,
                           timeout=NEWS_SEARCH_TIMEOUT, cwd="/tmp", env=env)
