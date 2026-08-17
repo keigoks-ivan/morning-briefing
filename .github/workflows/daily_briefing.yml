@@ -126,6 +126,12 @@ jobs:
           if [ -d "$PAGES_DIR" ] && [ "$(ls -A $PAGES_DIR 2>/dev/null)" ]; then
             cp "$PAGES_DIR"/*.html docs/briefing/
             echo "Copied $(ls docs/briefing/*.html | wc -l) pages from build"
+            # 主軸快照（regime_YYYY-MM-DD.json ＋ regime_latest.json）：隔天日報讀回來做昨日主軸驗證
+            if [ -d "$PAGES_DIR/data" ]; then
+              mkdir -p docs/briefing/data
+              cp "$PAGES_DIR"/data/*.json docs/briefing/data/
+              echo "Copied $(ls docs/briefing/data/*.json | wc -l) data files"
+            fi
           else
             echo "No multi-page output found, falling back to single-page"
             cp "${GITHUB_WORKSPACE}/${HTML_FILE}" docs/briefing/index.html

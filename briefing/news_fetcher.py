@@ -1189,6 +1189,8 @@ RSS_FEEDS = [
     ("The Block",       "https://www.theblock.co/rss.xml", 6, 24),
 ]
 RSS_TOTAL_CAP = 280
+_LONGFORM_FEEDS = {"Financial Times", "FT Markets", "FT Tech", "FT Asia", "The Economist (GN)",
+                   "The Information", "SemiAnalysis", "Ars Technica"}
 _RSS_NOISE = re.compile(r"開獎|中獎號碼|彩券|統一發票|訃聞|Podcast|podcast|The Download:|Crossword|Newsletter")  # 全部 feed 合計上限，超過就按清單順序截掉後面的
 
 
@@ -1230,6 +1232,7 @@ def _fetch_one_feed(spec: tuple) -> list[dict]:
                 "source": src,
                 "feed": label,
                 "weekly": max_age_h > 72,   # 週刊／評論類（經濟學人）：給模型當背景，不當今日新聞
+                "longform": label in _LONGFORM_FEEDS,  # 深度長文來源：連結一起給模型（weekend_reads 用）
                 "published": published.strftime("%Y-%m-%d %H:%M") if published else "",
             })
             if len(out) >= max_items:
@@ -1262,6 +1265,101 @@ def fetch_rss_news() -> list[dict]:
         results = results[:RSS_TOTAL_CAP]
     print(f"  ✓ RSS: {len(results)} 條（{', '.join(per_feed)}）")
     return results
+
+
+# ── 關注清單（DD universe）與昨日主軸 ─────────────────────────────────────
+DD_SCREENER_URL = "https://research.investmquest.com/dd-screener/latest.json"
+PREV_REGIME_URL = "https://research.investmquest.com/briefing/data/regime_latest.json"
+
+
+def fetch_dd_watchlist() -> list[dict]:
+    """DD Screener 的 universe（約 250 檔）→ [{ticker, name, grade, pass_count}]。抓不到回 []，日報照跑。"""
+    try:
+        r = requests.get(DD_SCREENER_URL, timeout=20)
+        r.raise_for_status()
+        stocks = r.json().get("stocks", [])
+        out = []
+        for st in stocks:
+            t = str(st.get("ticker", "")).strip()
+            if not t:
+                continue
+            out.append({"ticker": t, "name": str(st.get("name", "") or ""),
+                        "grade": str(st.get("moat_grade", "") or ""), "pass_count": st.get("pass_count")})
+        print(f"  ✓ DD 關注清單：{len(out)} 檔（as_of {r.json().get('as_of','?')}）")
+        return out
+    except Exception as e:
+        print(f"  ✗ DD 關注清單抓取失敗：{e}")
+        return []
+
+
+_TICKER_ALIASES = {
+    # 程式比對用的常見別名（模型自己也會認，這裡只是給 ★ 標記加分）
+    "TSM": ["TSMC", "台積電", "Taiwan Semiconductor"], "2330.TW": ["TSMC", "台積電"],
+    "2454.TW": ["MediaTek", "聯發科"], "2317.TW": ["Foxconn", "Hon Hai", "鴻海"],
+    "6857.T": ["Advantest"], "6146.T": ["DISCO"], "ASML": ["ASML"], "AVGO": ["Broadcom", "博通"],
+    "AMAT": ["Applied Materials", "應用材料"], "LRCX": ["Lam Research", "科林"], "KLAC": ["KLA"],
+    "LLY": ["Eli Lilly", "禮來"], "PLTR": ["Palantir"], "ANET": ["Arista"], "VRT": ["Vertiv"],
+    "MA": ["Mastercard", "萬事達"], "V": ["Visa"], "MSI": ["Motorola Solutions"], "APH": ["Amphenol"],
+    "HWM": ["Howmet"], "BESI": ["BE Semiconductor", "Besi"], "TXN": ["Texas Instruments", "德儀"],
+    "CDNS": ["Cadence"], "BKNG": ["Booking"], "IBKR": ["Interactive Brokers"], "WDC": ["Western Digital", "威騰"],
+    "STX": ["Seagate", "希捷"], "MPWR": ["Monolithic Power"], "FTNT": ["Fortinet"], "APP": ["AppLovin"],
+    "MMM": ["3M"], "NTAP": ["NetApp"], "ROK": ["Rockwell"], "TT": ["Trane"], "ABNB": ["Airbnb"], "RL": ["Ralph Lauren"],
+    "EBAY": ["eBay"], "SEZL": ["Sezzle"], "FIX": ["Comfort Systems"],
+    "NVDA": ["Nvidia", "輝達"], "META": ["Meta"], "GOOGL": ["Alphabet", "Google", "谷歌"], "MSFT": ["Microsoft", "微軟"],
+    "AAPL": ["Apple", "蘋果"], "AMZN": ["Amazon", "亞馬遜"], "INTC": ["Intel", "英特爾"], "AMD": ["AMD", "超微"],
+    "MU": ["Micron", "美光"], "ORCL": ["Oracle", "甲骨文"], "CRWV": ["CoreWeave"], "NFLX": ["Netflix"], "TSLA": ["Tesla", "特斯拉"],
+    "2317.TW": ["Foxconn", "Hon Hai", "鴻海"], "3711.TW": ["ASE", "日月光"], "3008.TW": ["Largan", "大立光"],
+    "2382.TW": ["Quanta", "廣達"], "2308.TW": ["Delta Electronics", "台達電"], "3231.TW": ["Wistron", "緯創"],
+}
+
+
+def tag_watchlist(items: list[dict], watchlist: list[dict]) -> int:
+    """在 RSS 條目上標 item['watch']=[tickers]（標題＋摘要含 ticker／公司名）。回標到的條數。"""
+    if not items or not watchlist:
+        return 0
+    pats = []
+    for w in watchlist:
+        t = w["ticker"]
+        keys = set(_TICKER_ALIASES.get(t, []))
+        name = (w.get("name") or "").strip()
+        if name and name.upper() != t.upper() and len(name) >= 4:
+            keys.add(re.sub(r",?\s+(Inc\.?|Corp\.?|Corporation|plc|Ltd\.?|Holdings?|Co\.?|N\.V\.|S\.A\.)$", "", name, flags=re.I))
+        base = t.split(".")[0]
+        # 公司名／別名：不分大小寫；裸 ticker：只認全大寫（避免 APP→App、LOW→low 誤標）
+        rx_ci = [r"(?<![A-Za-z0-9])" + re.escape(k) + r"(?![A-Za-z0-9])" for k in keys if len(k) >= 3]
+        rx_cs = []
+        if base.isalpha() and len(base) >= 3:
+            rx_cs.append(r"(?<![A-Za-z0-9])" + base + r"(?![A-Za-z0-9])")
+        if base.isdigit():
+            rx_cs.append(r"(?<!\d)" + base + r"(?!\d)")  # 台日股數字代號
+        if rx_ci or rx_cs:
+            pats.append((t,
+                         re.compile("|".join(rx_ci), re.I) if rx_ci else None,
+                         re.compile("|".join(rx_cs)) if rx_cs else None))
+    n = 0
+    for it in items:
+        text = f"{it.get('title','')} {it.get('summary','')}"
+        hits = [t for t, ci, cs in pats if (ci and ci.search(text)) or (cs and cs.search(text))]
+        if hits:
+            it["watch"] = hits[:4]
+            n += 1
+    print(f"  ✓ 關注清單比對：{n} 條 RSS 標記 ★")
+    return n
+
+
+def fetch_prev_regime() -> dict:
+    """前一份日報存檔的主軸（main.py 每天存到網站 /briefing/data/regime_latest.json）。抓不到回 {}。"""
+    try:
+        r = requests.get(PREV_REGIME_URL, timeout=15)
+        if r.status_code != 200:
+            print(f"  · 昨日主軸：無（HTTP {r.status_code}）")
+            return {}
+        d = r.json()
+        print(f"  ✓ 昨日主軸：{d.get('date','?')}｜{(d.get('regime') or {}).get('call','')[:30]}")
+        return d if isinstance(d, dict) else {}
+    except Exception as e:
+        print(f"  · 昨日主軸抓取失敗：{e}")
+        return {}
 
 
 # 舊名相容（main.py 曾 import fetch_moneydj_news）

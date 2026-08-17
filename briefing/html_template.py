@@ -257,6 +257,34 @@ def _regime_block(rg: dict) -> str:
                     f'font-size:13px;line-height:1.55;">'
                     f'<span style="font-size:10px;letter-spacing:1px;opacity:.75;">W52 引擎 ▶ </span>{w52}</div>')
 
+    # 昨日主軸驗證：verdict＋證偽條件逐項對照
+    rv = rg.get("review") or {}
+    review_html = ""
+    verdict = (rv.get("verdict") or "").strip() if isinstance(rv, dict) else ""
+    if verdict and verdict != "無前日資料":
+        v_color = {"延續": "#0F6E56", "修正": "#BA7517", "被證偽": "#C0392B"}.get(verdict, "#888")
+        chips = ""
+        for c in (rv.get("falsifier_check") or []):
+            if not isinstance(c, dict) or not c.get("metric"):
+                continue
+            hit = bool(c.get("hit"))
+            chip_bg = "#fdecea" if hit else "#eef5f1"
+            chip_fg = "#C0392B" if hit else "#0F6E56"
+            mark = "✕ 觸發" if hit else "✓ 未觸發"
+            chips += (f'<span style="display:inline-block;margin:0 6px 4px 0;padding:2px 8px;border-radius:10px;'
+                      f'background:{chip_bg};color:{chip_fg};font-size:11px;">'
+                      f'{c.get("metric","")}｜門檻 {c.get("threshold","")}｜今 {c.get("today_value","")}｜{mark}</span>')
+        y_call = rv.get("yesterday_call", "")
+        note = rv.get("note", "")
+        review_html = (f'<div style="border-top:1px dashed #ddd;margin-top:10px;padding-top:8px;">'
+                       f'<div style="font-size:11px;font-weight:600;color:#888;margin-bottom:4px;">昨日主軸驗證 '
+                       f'<span style="display:inline-block;padding:1px 8px;border-radius:3px;background:{v_color};color:#fff;'
+                       f'font-size:11px;font-weight:700;margin-left:4px;">{verdict}</span></div>'
+                       + (f'<div style="font-size:12px;color:#777;margin-bottom:4px;">昨：{y_call}</div>' if y_call else "")
+                       + (f'<div style="margin-bottom:4px;">{chips}</div>' if chips else "")
+                       + (f'<div style="font-size:12px;color:#555;line-height:1.5;">{note}</div>' if note else "")
+                       + '</div>')
+
     conf = rg.get("confidence", "")
     conf_reason = rg.get("confidence_reason", "")
     conf_color = {"高": "#0F6E56", "低": "#C0392B"}.get(conf, "#BA7517")
@@ -280,6 +308,7 @@ def _regime_block(rg: dict) -> str:
     {cc_html}
     {fals_html}
     {w52_html}
+    {review_html}
   </div>
 </div>'''
 
@@ -1032,6 +1061,55 @@ def _sentiment_analysis(sa: dict) -> str:
     {one_html}
     {_vs_regime_line(sa.get("vs_regime", ""))}
   </div>
+</div>'''
+
+
+def _watchlist_news_section(items: list) -> str:
+    """關注清單新聞：DD universe 公司本身的事件，ticker 徽章＋一句「對這家公司意味著什麼」。"""
+    items = [i for i in (items or []) if isinstance(i, dict) and i.get("headline")]
+    if not items:
+        return ""
+    rows = ""
+    for s in items:
+        badge = _importance_badge(s.get("importance", "medium"))
+        source_html = _source_line(s.get("source", ""), s.get("source_date", ""))
+        rows += f'''
+<div style="padding:11px 0;border-bottom:0.5px solid #f0f0f0;">
+  <div style="margin-bottom:4px;">
+    <span style="display:inline-block;font-size:12px;font-weight:700;letter-spacing:.5px;color:#fff;
+                 background:#1B3A5C;padding:2px 8px;border-radius:3px;margin-right:8px;vertical-align:middle;">{s.get("ticker","")}</span>
+    <span style="font-size:16px;font-weight:500;color:#222;line-height:1.5;vertical-align:middle;">{s.get("headline","")}{badge}</span>
+  </div>
+  <div style="font-size:15px;color:#555;line-height:1.65;">{s.get("body","")}</div>
+  {source_html}
+</div>'''
+    return f'''
+<div class="section">
+  <div class="section-label">關注清單動態 <span style="font-weight:400;color:#888;font-size:12px;">DD universe・S／A 級優先・只列重大事件</span></div>{rows}
+</div>'''
+
+
+def _weekend_reads_section(items: list) -> str:
+    """本週值得讀：經濟學人／FT 長文，標題＋一句為什麼＋連結。"""
+    items = [i for i in (items or []) if isinstance(i, dict) and i.get("title")]
+    if not items:
+        return ""
+    rows = ""
+    for s in items:
+        title = s.get("title", "")
+        link = s.get("link", "")
+        title_html = (f'<a href="{link}" style="color:#1B3A5C;text-decoration:none;border-bottom:1px solid #c9d3df;">{title}</a>'
+                      if link.startswith("http") else title)
+        meta = " · ".join(x for x in (s.get("source", ""), s.get("source_date", "")) if x)
+        rows += f'''
+<div style="padding:10px 0;border-bottom:0.5px solid #f0f0f0;">
+  <div style="font-size:15px;font-weight:500;line-height:1.5;margin-bottom:3px;">{title_html}</div>
+  <div style="font-size:14px;color:#555;line-height:1.6;">{s.get("why","")}</div>
+  <div style="font-size:12px;color:#999;margin-top:3px;">{meta}</div>
+</div>'''
+    return f'''
+<div class="section">
+  <div class="section-label">本週值得讀 <span style="font-weight:400;color:#888;font-size:12px;">週刊／長文・今天沒空、週末補</span></div>{rows}
 </div>'''
 
 
@@ -2241,6 +2319,7 @@ def build_news_html(data: dict) -> str:
     """要聞・深度"""
     date = data.get("date", "")
     content = _news_section("核心要聞", data.get("top_stories", []))
+    content += _watchlist_news_section(data.get("watchlist_news", []))
     content += _daily_deep_dive(data.get("daily_deep_dive", []))
     return _page_wrapper("news", date, content, "要聞・深度")
 
@@ -2268,6 +2347,7 @@ def build_trends_html(data: dict) -> str:
     """新創・趨勢"""
     date = data.get("date", "")
     content = _tech_trends(data.get("tech_trends", []))
+    content += _weekend_reads_section(data.get("weekend_reads", []))
     content += _startup_news(data.get("startup_news", []))
     content += _smart_money(data.get("smart_money", {}))
     return _page_wrapper("trends", date, content, "新創・趨勢")
@@ -2955,6 +3035,7 @@ def build_html(data: dict, screener_result: dict = None) -> str:
 {_market_pulse(data.get("market_pulse", {}))}
 {_sentiment_analysis(data.get("sentiment_analysis", {}))}
 {_news_section("核心要聞", data.get("top_stories",[]))}
+{_watchlist_news_section(data.get("watchlist_news",[]))}
 {_daily_deep_dive(data.get("daily_deep_dive", []))}
 {_world_news(data.get("world_news", []))}
 {_news_section("總經動態", data.get("macro",[]))}
@@ -2964,6 +3045,7 @@ def build_html(data: dict, screener_result: dict = None) -> str:
 {_fintech_crypto_section(data.get("fintech_crypto",[]))}
 {_status_grid(data.get("system_status", {}))}
 {_tech_trends(data.get("tech_trends",[]))}
+{_weekend_reads_section(data.get("weekend_reads",[]))}
 {_startup_news(data.get("startup_news",[]))}
 {_smart_money(data.get("smart_money", {}))}
 {_earnings_preview(data.get("earnings_preview",[]))}

@@ -60,6 +60,8 @@
 - 素材兩層：① `RSS_FEEDS`（news_fetcher.py）約 37 個 feed 並行抓（中央社／CNBC／FT（首頁＋市場＋科技＋亞洲）／Axios／TechCrunch／The Information／DIGITIMES／SCMP／CoinDesk／The Block 直連；MoneyDJ／工商時報／Bloomberg／Reuters／WSJ／Barron's／Nikkei／Politico／TrendForce／台韓日中歐／東南亞資料中心／Fed 走 **Google News RSS `site:`／關鍵字查詢**當代理（MoneyDJ 官方 feed 在 GitHub runner 抓不到）；The Economist 走 GN 7 天窗並標 `weekly=True`，prompt 規定只能當背景／tech_trends，不當今日新聞（sanitize 對 tech_trends／daily_deep_dive 不做過期過濾）），每 feed 有條數上限與回看小時數，總上限 280，`_RSS_NOISE` 濾開獎等噪音；② `PERPLEXITY_QUERIES` 由 25 題砍到 13 題，只留「需跨來源整理」的主題（Fed／總經數據／行事曆／能源地緣／AI／半導體供應鏈／台韓／新創／機構／財報×3），Sources 只列白名單。WSJ／Nikkei 官方 RSS 已停更，不要加回。
 - prompt 原則改為「寧缺勿濫」：數量全是**上限**、地區沒素材留 `[]`；`{today}`／`{cutoff_date}`（`_news_date_window()`：平日回看 2 天、週一 3 天）為硬規則；同一事件整份 JSON 只能出現一次；top_stories 前 3–5 條必須是指數部相關（tag「指數部」）；白名單擴充（AP／BBC／CNN Business／TrendForce／CoinDesk／The Block／Crunchbase／Focus Taiwan／Yonhap／Korea Herald／Caixin），黑名單加 Seeking Alpha／Yahoo 轉載／Motley Fool／Benzinga。regional_tech 的 `malaysia` 改為 `asean`（東南亞）。
 - 後處理（ai_processor.py，`process_news` 內、`_validate` 前）：`_sanitize_news()`＝簡繁／錯字一對一修正表 `_ZH_FIX`、`source_date` 早於允收起始日整條丟、標題含漲跌% 整條丟、body 含行情句（`_MARKET_SENT_RE`：股價／指數／幣價／油價／ticker＋漲跌＋數字）砍該句；`_dedup_news()` 改為 token Jaccard ≥ 0.4 或「同金額＋同專名」視為同一事件，涵蓋 tech_trends／daily_deep_dive／regional_tech。log 會印 `sanitize:`／`dedup:` 統計。
+- **關注清單新聞 `watchlist_news`（2026-08-17 晚新增）**：來源＝DD Screener universe `research.investmquest.com/dd-screener/latest.json`（`fetch_dd_watchlist()`，約 250 檔，含 moat_grade／pass_count）。`tag_watchlist()` 在 RSS 條目標 `★關注[ticker]`（公司名／別名不分大小寫，裸 ticker 只認全大寫，避免 APP→App 誤標；別名表 `_TICKER_ALIASES`）。prompt 用 `_watchlist_block()` 分兩組：**優先組＝S 級全部＋A 級 pass_count≥3**（約 60 檔）、其他組只有重大事件（財報／指引、重大訂單、併購、監管、CEO、產品線）才收；只寫公司自身事件、每家一條、上限 8、嚴禁行情句。渲染 `_watchlist_news_section`（news 頁核心要聞之後、email 同位置）。
+- **本週值得讀 `weekend_reads`（同日新增）**：從 The Economist／FT 等 `weekly`／`longform` feed 挑最多 3 篇長文，欄位 title／source／source_date／why／link；sanitize 不做過期過濾。渲染 `_weekend_reads_section`（trends 頁 tech_trends 之後、email 同位置）。
 - 想加 RSS：在 `RSS_FEEDS` 加一行 tuple；Google News 代理寫法見 `_GN`。想加白名單媒體：改 `GEMINI_SYSTEM_PROMPT` 白名單段，並同步該媒體到相關搜尋題目的 Sources。
 
 **新聞搜尋層（news_fetcher.py，2026-08-17 同日改制）**：Perplexity 已停用（帳號當日全面 429，持有人決定不再付費）。所有搜尋走 `_llm_search()` → 主＝Claude Code headless `--allowed-tools WebSearch`、模型 `haiku`（最便宜，搜尋只是找資料）；備援＝Perplexity（僅在 workflow 傳 `PERPLEXITY_API_KEY` 時啟用，目前註解掉）。換模型：`NEWS_SEARCH_MODEL`；單次逾時：`NEWS_SEARCH_TIMEOUT`（預設 240 秒）。來源網址由模型在答案末尾 `SOURCES:` 區塊列出後解析。`_fetch_dynamic_deep_topics()` 是死碼（無呼叫端），仍寫死 Perplexity，勿誤用。
@@ -74,6 +76,7 @@
 - `market_pulse`、`index_factor_reading`、`sentiment_analysis` 各多一個 `vs_regime`：格式「支持｜／反對｜／中性｜ ＋ 一句話」，必須把矛盾點講出來。
 - 渲染：`html_template._regime_block()`（放在 alert 之後、market_strip 之前，email 與 index 頁都有）＋ `_vs_regime_line()`（三個區塊底部一行）。`_validate` 有預設值，模型漏寫時區塊直接不顯示、不炸。
 - 人設已改成持有人真實系統（W52 × 自適應波動率 cap 1.5，QQQ/SMH、0050/2330），不是泛泛的「資深分析師」。中文句子標點一律全形。
+- **昨日主軸驗證（2026-08-17 晚新增）**：main.py 每天把 `{date, regime, daily_summary, alert, market_context}` 存到 `docs/briefing/data/regime_{date}.json` ＋ `regime_latest.json`（workflow 一併複製到網站）；隔天 `news_fetcher.fetch_prev_regime()` 從 `research.investmquest.com/briefing/data/regime_latest.json` 抓回，`_build_market_context(prev_regime=…)` 把昨日 call／證偽條件塞進分析 prompt，模型填 `regime.review`（`yesterday_call`／`verdict`＝延續・修正・被證偽・無前日資料／`falsifier_check[]`＝metric・threshold・today_value・hit／`note`）。渲染在 `_regime_block` 底部（verdict 色塊＋每條證偽條件 ✓／✕ chip）；`無前日資料` 時不顯示。第一次上線那天一定是無前日資料，屬正常。
 
 ---
 
@@ -166,11 +169,11 @@ trigger.py → Render Cron → GitHub API
 
 ## 日報 build_html 區塊順序
 
-1.masthead+summary 2.alert 2b._regime_block（今日主軸） 3._market_strip 4._index_factor_reading
+1.masthead+summary 2.alert 2b._regime_block（今日主軸＋底部昨日主軸驗證） 3._market_strip 4._index_factor_reading
 5._sentiment_analysis 6._market_pulse 7._daily_deep_dive
-8.top_stories 9.world_news 10.us_market_recap 11.macro
+8.top_stories 8b._watchlist_news_section（關注清單動態） 9.world_news 10.us_market_recap 11.macro
 12.geopolitical 13.ai_industry 14.regional_tech 15.fintech_crypto
-16.system_status 17.tech_trends 18.startup_news 19.smart_money
+16.system_status 17.tech_trends 17b._weekend_reads_section（本週值得讀） 18.startup_news 19.smart_money
 20.earnings_preview 21.implied_trends 22.fun_fact 23.today_events 24.footer
 
 ---
