@@ -47,8 +47,8 @@ _PIPELINE_GUARD = """
 
 
 def _call_claude_code(system_prompt: str, user_prompt: str, label: str,
-                      thinking_tokens: int = 0) -> str:
-    """用 Claude Code CLI 跑一次 prompt，回傳模型輸出的原始文字。
+                      thinking_tokens: int = 0) -> dict:
+    """用 Claude Code CLI 跑一次 prompt，回傳解析好的 JSON dict。
 
     `--allowed-tools ""` 讓它純文字生成不動工具（這三個任務都只是把輸入轉成
     JSON，不需要讀檔或上網）。thinking 預設關（實測開著會拖到 8 分鐘以上，
@@ -60,20 +60,28 @@ def _call_claude_code(system_prompt: str, user_prompt: str, label: str,
     if not (os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") or os.environ.get("CLAUDE_CODE_USE_LOCAL_AUTH")):
         raise RuntimeError("CLAUDE_CODE_OAUTH_TOKEN not set")
 
-    cmd = [
-        cli, "-p",
-        "--output-format", "json",
-        "--model", CLAUDE_CODE_MODEL,
-        "--system-prompt", system_prompt + "\n" + _PIPELINE_GUARD,
-        "--allowed-tools", "",
-    ]
     env = dict(os.environ)
     env["MAX_THINKING_TOKENS"] = str(thinking_tokens)
 
     # 月租是唯一主路徑（Gemini 已停用），所以這裡自己重試兩次再放棄，
-    # 免得一次網路抖動就讓整個區塊空掉。
+    # 免得一次網路抖動就讓整個區塊空掉。JSON 解析也在迴圈內——2026-08-17 首跑
+    # 新聞區塊回了 262 token 的散文而非 JSON（素材因 Perplexity 429 極少），
+    # 重試時把「上次回的不是 JSON」釘進去再打一次。
     max_attempts = 3
+    last_bad_head = ""
     for attempt in range(1, max_attempts + 1):
+        guard = _PIPELINE_GUARD
+        if last_bad_head:
+            guard += ("\n【上一次你違規了】上一次輸出開頭是：「" + last_bad_head +
+                      "」——那不是 JSON。這次第一個字元必須是 `{`，不得有任何解釋。"
+                      "素材不足就輸出所有欄位皆空的 JSON 骨架。\n")
+        cmd = [
+            cli, "-p",
+            "--output-format", "json",
+            "--model", CLAUDE_CODE_MODEL,
+            "--system-prompt", system_prompt + "\n" + guard,
+            "--allowed-tools", "",
+        ]
         print(f"  → [{label} / Claude Code] Calling {CLAUDE_CODE_MODEL} "
               f"(Max 訂閱, thinking={thinking_tokens}, attempt {attempt}/{max_attempts})...")
         try:
@@ -96,27 +104,29 @@ def _call_claude_code(system_prompt: str, user_prompt: str, label: str,
             raw_text = envelope.get("result") or ""
             if not raw_text.strip():
                 raise RuntimeError("claude CLI returned empty result")
-            break
+
+            usage = envelope.get("usage", {}) or {}
+            in_tok = usage.get("input_tokens", 0) + usage.get("cache_creation_input_tokens", 0) \
+                + usage.get("cache_read_input_tokens", 0)
+            out_tok = usage.get("output_tokens", 0)
+            # 訂閱制不另計費；印出的 cost 是 API 等價參考值，不是實際帳單。
+            notional = envelope.get("total_cost_usd", 0.0)
+            print(f"  → [{label} / Claude Code] tokens: in={in_tok:,} out={out_tok:,} "
+                  f"(訂閱制，API 等價 ${notional:.4f})")
+            with open(f"/tmp/claude_code_{label.lower().replace(' ', '_')}_raw.txt", "w") as f:
+                f.write(raw_text)
+
+            try:
+                return _parse_json(raw_text)
+            except json.JSONDecodeError as e:
+                last_bad_head = raw_text.strip().replace("\n", " ")[:80]
+                raise RuntimeError(f"non-JSON reply (head: {last_bad_head!r}): {e.msg}")
         except Exception as e:
             if attempt == max_attempts:
                 raise
-            print(f"  ⚠ [{label} / Claude Code] attempt {attempt} failed ({str(e)[:120]}), retrying in 30s...")
+            print(f"  ⚠ [{label} / Claude Code] attempt {attempt} failed ({str(e)[:160]}), retrying in 30s...")
             import time
             time.sleep(30)
-
-    usage = envelope.get("usage", {}) or {}
-    in_tok = usage.get("input_tokens", 0) + usage.get("cache_creation_input_tokens", 0) \
-        + usage.get("cache_read_input_tokens", 0)
-    out_tok = usage.get("output_tokens", 0)
-    # 訂閱制不另計費；印出的 cost 是 API 等價參考值，不是實際帳單。
-    notional = envelope.get("total_cost_usd", 0.0)
-    print(f"  → [{label} / Claude Code] tokens: in={in_tok:,} out={out_tok:,} "
-          f"(訂閱制，API 等價 ${notional:.4f})")
-
-    with open(f"/tmp/claude_code_{label.lower().replace(' ', '_')}_raw.txt", "w") as f:
-        f.write(raw_text)
-
-    return raw_text
 
 
 def _cc_analysis(market_context: str, news_text: str) -> dict:
@@ -126,8 +136,8 @@ def _cc_analysis(market_context: str, news_text: str) -> dict:
         news_text=news_text,
         dynamic_options=DYNAMIC_STATUS_OPTIONS,
     )
-    return _parse_json(_call_claude_code(CLAUDE_SYSTEM_PROMPT, user_prompt, "Analysis",
-                                         thinking_tokens=CLAUDE_CODE_THINKING))
+    return _call_claude_code(CLAUDE_SYSTEM_PROMPT, user_prompt, "Analysis",
+                             thinking_tokens=CLAUDE_CODE_THINKING)
 
 
 def _cc_news(news_text: str, earnings_context: str) -> dict:
@@ -136,7 +146,7 @@ def _cc_news(news_text: str, earnings_context: str) -> dict:
         news_text=news_text,
         earnings_context=earnings_context,
     )
-    return _parse_json(_call_claude_code(GEMINI_SYSTEM_PROMPT, user_prompt, "News"))
+    return _call_claude_code(GEMINI_SYSTEM_PROMPT, user_prompt, "News")
 
 
 def _cc_earnings(earnings_raw_text: str, market_context: str) -> dict:
@@ -151,10 +161,8 @@ def _cc_earnings(earnings_raw_text: str, market_context: str) -> dict:
         earnings_raw_text=earnings_raw_text,
         market_context=market_context or "（無）",
     )
-    return _parse_json(
-        _call_claude_code(EARNINGS_ANALYSIS_SYSTEM_PROMPT, user_prompt, "Earnings",
-                          thinking_tokens=CLAUDE_CODE_THINKING)
-    )
+    return _call_claude_code(EARNINGS_ANALYSIS_SYSTEM_PROMPT, user_prompt, "Earnings",
+                             thinking_tokens=CLAUDE_CODE_THINKING)
 
 
 DYNAMIC_STATUS_OPTIONS = """
