@@ -1,16 +1,149 @@
 """
 ai_processor.py
 ---------------
-Gemini 2.5 Pro（分析區塊 + 財報深度分析）+ Gemini 2.5 Flash（新聞區塊）並行生成結構化 JSON。
-Gemini Pro 失敗時分別 fallback 到 Claude Sonnet 4 / Claude Sonnet 4.6。
+三個區塊（分析 / 新聞 / 財報深度分析）並行生成結構化 JSON。
+
+模型路由（2026-08-17 改制）：
+  主要   Claude Code CLI headless（`claude -p`）→ 走 Max 訂閱，不耗 API 額度
+  備援1  Gemini（Pro 分析 / Flash 新聞）→ 需 GEMINI_API_KEY
+  備援2  Anthropic API SDK → 需 ANTHROPIC_API_KEY
+
+Claude Code 路徑需要 `CLAUDE_CODE_OAUTH_TOKEN`（本機 `claude setup-token` 產生，
+存成 GitHub secret）。任一層失敗自動往下掉，所以日報不會因訂閱認證問題斷掉。
 """
 
 import os
 import json
+import shutil
+import subprocess
 import anthropic
 from google import genai
 from google.genai import types
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+
+# ═══════════════════════════════════════════════════════════════
+# Claude Code CLI（headless）— 主要路徑，走 Max 訂閱
+# ═══════════════════════════════════════════════════════════════
+
+# 用最新 Sonnet。要換模型設環境變數 CLAUDE_CODE_MODEL 即可（"sonnet" 也是有效別名）。
+CLAUDE_CODE_MODEL = os.environ.get("CLAUDE_CODE_MODEL", "claude-sonnet-5")
+# 逾時要留足夠餘裕給 Gemini fallback 在 workflow timeout 內跑完（三條並行）。
+CLAUDE_CODE_TIMEOUT = int(os.environ.get("CLAUDE_CODE_TIMEOUT", "600"))
+# 分析／財報兩條的思考預算（新聞整理固定 0）。0 = 關。
+CLAUDE_CODE_THINKING = int(os.environ.get("CLAUDE_CODE_THINKING", "4000"))
+
+
+# claude -p 是「代理人」不是「補全 API」：素材不足時它會停下來反問、要求上網、拒絕湊數
+# （實測 3 條假新聞就觸發）。這段附加指令把它釘回無人值守 pipeline 的角色。
+_PIPELINE_GUARD = """
+【執行環境（最高優先）】
+你在一條無人值守的自動化 pipeline 裡，沒有人會讀你的問題或回覆你。
+- 只輸出一個合法 JSON 物件，從 `{` 開始到 `}` 結束，前後不得有任何說明、標題、markdown code fence。
+- 絕對不要反問、不要提出選項、不要要求更多資料、不要說明你為什麼不能做。
+- 素材不足時：能填的欄位用現有素材填，其餘陣列留空 `[]`、字串留空 `""`；不得為湊數捏造新聞、來源或數字。
+- 不要使用任何工具，不要上網。
+"""
+
+
+def _call_claude_code(system_prompt: str, user_prompt: str, label: str,
+                      thinking_tokens: int = 0) -> str:
+    """用 Claude Code CLI 跑一次 prompt，回傳模型輸出的原始文字。
+
+    `--allowed-tools ""` 讓它純文字生成不動工具（這三個任務都只是把輸入轉成
+    JSON，不需要讀檔或上網）。thinking 預設關（實測開著會拖到 8 分鐘以上，
+    這類「整理成 JSON」任務不需要）。失敗一律 raise，讓上層 fallback 接手。
+    """
+    cli = shutil.which("claude")
+    if not cli:
+        raise RuntimeError("claude CLI not found on PATH")
+    if not (os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") or os.environ.get("CLAUDE_CODE_USE_LOCAL_AUTH")):
+        raise RuntimeError("CLAUDE_CODE_OAUTH_TOKEN not set")
+
+    cmd = [
+        cli, "-p",
+        "--output-format", "json",
+        "--model", CLAUDE_CODE_MODEL,
+        "--system-prompt", system_prompt + "\n" + _PIPELINE_GUARD,
+        "--allowed-tools", "",
+    ]
+    env = dict(os.environ)
+    env["MAX_THINKING_TOKENS"] = str(thinking_tokens)
+
+    print(f"  → [{label} / Claude Code] Calling {CLAUDE_CODE_MODEL} (Max 訂閱, thinking={thinking_tokens})...")
+    proc = subprocess.run(
+        cmd,
+        input=user_prompt,
+        capture_output=True,
+        text=True,
+        timeout=CLAUDE_CODE_TIMEOUT,
+        cwd="/tmp",
+        env=env,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"claude CLI exited {proc.returncode}: {(proc.stderr or proc.stdout)[:300]}"
+        )
+
+    envelope = json.loads(proc.stdout)
+    if envelope.get("is_error") or envelope.get("subtype") != "success":
+        raise RuntimeError(f"claude CLI error envelope: {str(envelope)[:300]}")
+
+    raw_text = envelope.get("result") or ""
+    if not raw_text.strip():
+        raise RuntimeError("claude CLI returned empty result")
+
+    usage = envelope.get("usage", {}) or {}
+    in_tok = usage.get("input_tokens", 0) + usage.get("cache_creation_input_tokens", 0) \
+        + usage.get("cache_read_input_tokens", 0)
+    out_tok = usage.get("output_tokens", 0)
+    # 訂閱制不另計費；印出的 cost 是 API 等價參考值，不是實際帳單。
+    notional = envelope.get("total_cost_usd", 0.0)
+    print(f"  → [{label} / Claude Code] tokens: in={in_tok:,} out={out_tok:,} "
+          f"(訂閱制，API 等價 ${notional:.4f})")
+
+    with open(f"/tmp/claude_code_{label.lower().replace(' ', '_')}_raw.txt", "w") as f:
+        f.write(raw_text)
+
+    return raw_text
+
+
+def _cc_analysis(market_context: str, news_text: str) -> dict:
+    """分析區塊 — Claude Code 主路徑。"""
+    user_prompt = CLAUDE_USER_PROMPT_TEMPLATE.format(
+        market_context=market_context,
+        news_text=news_text,
+        dynamic_options=DYNAMIC_STATUS_OPTIONS,
+    )
+    return _parse_json(_call_claude_code(CLAUDE_SYSTEM_PROMPT, user_prompt, "Analysis",
+                                         thinking_tokens=CLAUDE_CODE_THINKING))
+
+
+def _cc_news(news_text: str, earnings_context: str) -> dict:
+    """新聞區塊 — Claude Code 主路徑。"""
+    user_prompt = GEMINI_USER_PROMPT_TEMPLATE.format(
+        news_text=news_text,
+        earnings_context=earnings_context,
+    )
+    return _parse_json(_call_claude_code(GEMINI_SYSTEM_PROMPT, user_prompt, "News"))
+
+
+def _cc_earnings(earnings_raw_text: str, market_context: str) -> dict:
+    """財報深度分析 — Claude Code 主路徑。無當日財報時直接跳過，不燒額度。"""
+    if not _has_earnings_content(earnings_raw_text):
+        print("  ⚠ [Earnings Analysis] 當日無實質財報資料，跳過 LLM 呼叫")
+        return {"has_content": False, "companies": [], "industry_trends": [],
+                "winners": [], "losers": [], "contradictions": [],
+                "conclusion": "", "window": "", "overview": ""}
+
+    user_prompt = EARNINGS_ANALYSIS_USER_TEMPLATE.format(
+        earnings_raw_text=earnings_raw_text,
+        market_context=market_context or "（無）",
+    )
+    return _parse_json(
+        _call_claude_code(EARNINGS_ANALYSIS_SYSTEM_PROMPT, user_prompt, "Earnings",
+                          thinking_tokens=CLAUDE_CODE_THINKING)
+    )
 
 
 DYNAMIC_STATUS_OPTIONS = """
@@ -1170,21 +1303,42 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
     # 深度財報 Perplexity 原始資料（給 Gemini Pro 做分析用）
     earnings_raw_text = _build_earnings_raw_text(earnings_deep_dive)
 
-    # ── 並行呼叫：分析(Gemini Pro → Claude fallback) + 新聞(Gemini Flash) + 深度財報(Gemini Pro) ──
+    # ── 並行呼叫（三條都是 Claude Code 主、Gemini/API 備援）：分析 + 新聞 + 深度財報 ──
     analysis_data = {}
     gemini_data = {}
     earnings_analysis_data = {}
 
     def _call_analysis_with_fallback():
-        """Gemini Pro 為主，失敗時 fallback 到 Claude"""
+        """Claude Code（Max 訂閱）為主 → Gemini Pro → Claude API"""
+        try:
+            return _cc_analysis(market_context, news_text)
+        except Exception as e:
+            print(f"  ⚠ [Analysis / Claude Code] failed: {e}, falling back to Gemini Pro...")
         try:
             return _call_gemini_pro(market_context, news_text)
         except Exception as e:
-            print(f"  ⚠ [Gemini Pro] failed: {e}, falling back to Claude...")
+            print(f"  ⚠ [Gemini Pro] failed: {e}, falling back to Claude API...")
             return _call_claude(market_context, news_text)
 
+    def _call_news_with_fallback():
+        """Claude Code（Max 訂閱）為主 → Gemini Flash"""
+        try:
+            return _cc_news(news_text, earnings_context)
+        except Exception as e:
+            print(f"  ⚠ [News / Claude Code] failed: {e}, falling back to Gemini Flash...")
+            return _call_gemini(news_text, earnings_context)
+
     def _call_earnings_with_fallback():
-        """Gemini Pro 為主，失敗（或空回應）時 fallback 到 Claude Sonnet 4.6"""
+        """Claude Code（Max 訂閱）為主 → Gemini Pro → Claude API；空 stub 也往下掉"""
+        try:
+            result = _cc_earnings(earnings_raw_text, market_context)
+            if not (_has_earnings_content(earnings_raw_text)
+                    and (not result.get("has_content") or not result.get("companies"))):
+                return result
+            print("  ⚠ [Earnings Analysis / Claude Code] returned empty stub despite valid input, falling back to Gemini Pro...")
+        except Exception as e:
+            print(f"  ⚠ [Earnings Analysis / Claude Code] failed: {e}, falling back to Gemini Pro...")
+
         try:
             result = _call_gemini_pro_earnings(earnings_raw_text, market_context)
         except Exception as e:
@@ -1205,20 +1359,20 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
 
     with ThreadPoolExecutor(max_workers=3) as executor:
         analysis_future = executor.submit(_call_analysis_with_fallback)
-        gemini_future = executor.submit(_call_gemini, news_text, earnings_context)
+        gemini_future = executor.submit(_call_news_with_fallback)
         earnings_future = executor.submit(_call_earnings_with_fallback)
 
         try:
             analysis_data = analysis_future.result()
             print(f"  ✓ Analysis sections received")
         except Exception as e:
-            print(f"  ✗ Analysis failed (both Gemini Pro & Claude): {e}")
+            print(f"  ✗ Analysis failed (Claude Code & Gemini Pro & Claude API): {e}")
 
         try:
             gemini_data = gemini_future.result()
-            print(f"  ✓ [Gemini Flash] news sections received")
+            print(f"  ✓ News sections received")
         except Exception as e:
-            print(f"  ✗ [Gemini Flash] failed: {e}")
+            print(f"  ✗ News failed (Claude Code & Gemini Flash): {e}")
 
         try:
             earnings_analysis_data = earnings_future.result()
@@ -1229,7 +1383,7 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
     # ── 合併：分析區塊 + Gemini 新聞 ──
     data = {}
 
-    # 分析區塊（Gemini Pro 或 Claude fallback）
+    # 分析區塊（Claude Code / Gemini Pro / Claude API 三者之一）
     for key in ["daily_summary", "alert", "market_pulse", "index_factor_reading",
                 "sentiment_analysis", "daily_deep_dive", "tech_trends",
                 "system_status", "smart_money"]:

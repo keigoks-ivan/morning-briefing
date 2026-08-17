@@ -19,7 +19,7 @@
 2. 除非明確說要觸發，不要自動跑 workflow
 3. 市場數字來自 yfinance，絕不讓 Claude API 猜測
 4. 新聞區塊嚴禁行情數字（漲跌幅、指數點位）
-5. Claude API 必須用 streaming（max_tokens=32000）
+5. Claude API 必須用 streaming（max_tokens=32000）；Claude Code headless 路徑不適用（`claude -p` 自己處理）
 6. Perplexity 查詢用 ThreadPoolExecutor max_workers=8 並行
 7. 分析用 NDX 現貨（^NDX），NQ 期貨已移除
 8. Screener 失敗時 screener_result={} 日報繼續跑不受影響
@@ -33,7 +33,26 @@
 - 週報 GitHub cron：15 22 * * 6（UTC）= 週日台灣 06:15 → weekly_report.yml
 - 週日 trigger.py 自己判斷跳過日報（weekday==6）
 - 排程不跑：git commit --allow-empty -m "resync" && git push
-- GitHub Actions timeout：30 分鐘（日報）/ 60 分鐘（週報）
+- GitHub Actions timeout：45 分鐘（日報，2026-08-17 由 30 分上調，因 Claude Code 主路徑逾時後要留時間給 Gemini fallback）/ 60 分鐘（週報）
+
+---
+
+## AI 模型路由（2026-08-17 改制：主路徑改走 Max 訂閱）
+
+三個 LLM 區塊（分析 / 新聞 / 財報深度）都是**三層 fallback**，任一層掛掉自動往下掉，日報不會斷：
+
+| 層 | 走什麼 | 認證 | 花錢嗎 |
+|---|---|---|---|
+| **主** | Claude Code CLI headless（`claude -p`），模型 `claude-sonnet-5` | `CLAUDE_CODE_OAUTH_TOKEN` secret | **不花**，吃 Max 訂閱額度 |
+| 備援 1 | Gemini 2.5 Pro（分析/財報）、2.5 Flash（新聞） | `GEMINI_API_KEY` | 花 |
+| 備援 2 | Anthropic API SDK（Sonnet 4 / 4.6） | `ANTHROPIC_API_KEY` | 花 |
+
+- 實作在 `briefing/ai_processor.py` 的 `_call_claude_code()` + `_cc_analysis/_cc_news/_cc_earnings`；三個 dispatch 在 `process_news()` 裡。
+- 換模型：設環境變數 `CLAUDE_CODE_MODEL`（別名 `sonnet` 也可）。單次逾時：`CLAUDE_CODE_TIMEOUT`（預設 900 秒）。
+- **OAuth token 會過期**。過期徵兆＝log 出現 `[.. / Claude Code] failed:` 然後掉到 Gemini。修法：本機跑 `claude setup-token`，把新 token 更新到 GitHub secret。
+- workflow 裡 `Install Claude Code CLI` 這步是 `continue-on-error: true`——裝不起來也只是掉回 Gemini，不擋日報。
+- log 印的 Claude Code `cost` 是 **API 等價參考值，不是實際帳單**（訂閱制不另計費）。
+- ⚠ Max 額度與跑 DD 報告共用同一池，忙的時候會互相排擠。
 
 ---
 
@@ -42,7 +61,7 @@
 ### 日報
 main.py → 日報主流程，串接所有模組
 news_fetcher.py → Perplexity 查詢 + yfinance 行情 + FRED 流動性
-ai_processor.py → Gemini 2.5 Pro（分析）+ Gemini 2.5 Flash（新聞）+ Claude fallback，輸出 JSON，含 _validate 預設值
+ai_processor.py → 三區塊（分析/新聞/財報）並行產 JSON，含 _validate 預設值。模型路由見下「AI 模型路由」
 html_template.py → JSON → HTML，所有區塊渲染函式（含多頁 tab 導航）
 email_sender.py → Resend API 寄信（支援 Excel 附件）
 trading_system_of_day.py → 每日交易系統（50天輪替，data/trading_systems.json）

@@ -41,7 +41,8 @@ jobs:
     needs: dedup
     if: needs.dedup.outputs.skip != 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 2026-08-17：30 → 45 分。Claude Code 主路徑逾時（600s）後還要留時間給 Gemini fallback。
+    timeout-minutes: 45
 
     steps:
       - name: Checkout code
@@ -63,8 +64,18 @@ jobs:
           pip install -r requirements.txt
           pip install openpyxl pandas numpy yfinance --upgrade
 
+      # 2026-08-17：AI 生成主路徑改走 Claude Code headless（Max 訂閱，不耗 API 額度）。
+      # 認證用 CLAUDE_CODE_OAUTH_TOKEN secret（本機 `claude setup-token` 產生，會過期）。
+      # 裝不起來或 token 失效時 ai_processor.py 會自動 fallback 到 Gemini，日報照出。
+      - name: Install Claude Code CLI
+        continue-on-error: true
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+
       - name: Run morning briefing
         env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY:    ${{ secrets.GEMINI_API_KEY }}
           PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
