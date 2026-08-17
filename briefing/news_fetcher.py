@@ -127,46 +127,29 @@ def _llm_search(system_content: str, user_content: str, max_tokens: int = 600,
     return {"answer": "", "sources": []}
 
 
+# 2026-08-17 晚改制：RSS（見 RSS_FEEDS）負責「大量頭條」，Haiku 搜尋只留 13 題做「需要跨來源整理」的主題。
+# 砍掉的：7 個地區題（RSS 覆蓋）、fintech 題（CoinDesk/The Block RSS）、國際新聞題（Reuters GN）、
+# AI 架構研究題（deep dive 已有）、「index levels」題（新聞區塊禁行情，題目本身違規）。
+# 每題末尾 Sources 只列白名單媒體（與 ai_processor GEMINI_SYSTEM_PROMPT 白名單同步）。
 PERPLEXITY_QUERIES = [
-    # 總經/市場
-    "What happened in US stock markets today? Include specific index levels and percentage changes. Sources: Bloomberg Reuters Financial Times WSJ CNBC Federal Reserve ECB FRED Blog IMF Axios The Economist",
-    "What is the latest Federal Reserve policy stance and interest rate outlook for 2026? Sources: Bloomberg Reuters Financial Times WSJ CNBC Federal Reserve ECB BIS FRED Blog JP Morgan Goldman Sachs",
-    "What is the current oil price and geopolitical situation affecting energy markets today? Sources: Bloomberg Reuters Financial Times WSJ CNBC Federal Reserve ECB Axios Politico",
-    # 科技/AI
-    "What are the latest AI industry developments today? Include AI companies, products, investments. Sources: Bloomberg Reuters TechCrunch The Information Wired Ars Technica CNBC Import AI Stratechery AI Snake Oil Axios",
-    "What are the latest breakthroughs in AI architecture and model research this week? Sources: Bloomberg Reuters TechCrunch The Information Wired Ars Technica CNBC Import AI Stratechery AI Snake Oil",
-    # 半導體
-    "What are the latest AI and semiconductor industry news today? Include Nvidia, AMD, TSMC. Sources: Bloomberg Reuters DIGITIMES SemiAnalysis Semiconductor Engineering EE Times Nikkei Asia ASML TSMC Intel official Piper Sandler Bernstein",
-    # 新創/融資
-    "What are the latest AI startup funding rounds and robotics investments announced today? Sources: TechCrunch Bloomberg Reuters Crunchbase The Information Axios",
-    # 亞洲市場
-    "What is the latest technology and semiconductor news from Taiwan and TSMC today? Sources: Bloomberg Reuters Nikkei Asia South China Morning Post DIGITIMES",
-    "What is the latest technology news from Japan today? Include semiconductors and AI. Sources: Bloomberg Reuters Nikkei Asia South China Morning Post DIGITIMES",
-    "What is the latest technology and AI industry news from the United States today? Sources: Bloomberg Reuters TechCrunch The Information Wired Ars Technica CNBC Stratechery Axios",
-    "What is the latest technology and fintech news from Malaysia today? Sources: Bloomberg Reuters Nikkei Asia South China Morning Post DIGITIMES",
-    "What is the latest technology and semiconductor news from South Korea today? Include Samsung, SK Hynix. Sources: Bloomberg Reuters Nikkei Asia South China Morning Post DIGITIMES",
-    "What is the latest technology and AI news from China today? Include Huawei, Baidu, DeepSeek. Sources: Bloomberg Reuters Nikkei Asia South China Morning Post DIGITIMES",
-    "What is the latest technology and AI news from Europe today? Sources: Bloomberg Reuters Nikkei Asia South China Morning Post DIGITIMES The Economist",
-    # Fintech/加密
-    "What are the latest fintech and cryptocurrency news today? Include Bitcoin, Ethereum, DeFi. Sources: Bloomberg Reuters CoinDesk The Block Financial Times Axios",
-    # 總經
-    "What are the major macroeconomic data releases and central bank decisions today? Sources: Bloomberg Reuters Financial Times WSJ CNBC Federal Reserve ECB BIS FRED Blog IMF The Economist",
-    # 地緣政治
-    "What are the latest geopolitical risks today? Include Middle East, US-China, Taiwan Strait. Sources: Bloomberg Reuters Financial Times WSJ Foreign Affairs Belfer Center RAND Brookings Politico The Economist",
-    # 新創
-    "What are the major startup IPOs, defense tech, and venture capital funding news today? Sources: TechCrunch Bloomberg Reuters Crunchbase The Information Axios",
-    # 今日財報預告
-    "Earnings reports scheduled for today not yet reported, companies reporting earnings today before market open during market after market close. Sources: Earnings Whispers Bloomberg Reuters CNBC WSJ",
-    # 總經行事曆
-    "What are the most important macroeconomic calendar events in the next 24 hours? Include Fed speeches, central bank decisions, economic data releases like CPI, PPI, GDP, jobs data, and major earnings reports. Sources: Bloomberg Reuters Financial Times WSJ CNBC Federal Reserve ECB BIS FRED Blog",
-    # 昨日美股重點
-    "Earnings reports and conference calls during US market hours yesterday pre-market during-market after-hours results EPS revenue guidance Sources: Bloomberg Reuters CNBC WSJ Seeking Alpha Earnings Whispers",
-    "Key statements from earnings calls investor days analyst conferences yesterday US market hours Sources: Bloomberg Reuters CNBC WSJ",
-    "Significant stock moves reactions to earnings news yesterday US pre-market market hours after-hours Sources: Bloomberg Reuters CNBC",
-    # 機構異動
-    "Unusual options activity large block trades institutional buying selling smart money today Sources: Bloomberg CNBC Unusual Whales Barchart ETF flows QQQ SPY SOXX",
-    # 國際新聞
-    "Major international news today geopolitical developments regional conflicts diplomacy global affairs past 24 hours only most important first Sources: Bloomberg Reuters Financial Times BBC AP",
+    # 總經／央行
+    "Federal Reserve: latest policy stance, officials' speeches in the past 24 hours, and market-implied path for the next two FOMC meetings. Sources: Bloomberg Reuters Financial Times WSJ CNBC Federal Reserve",
+    "Major macroeconomic data released in the past 24 hours (US, Eurozone, Japan, China): actual vs consensus, and central bank decisions. Sources: Bloomberg Reuters Financial Times WSJ CNBC ECB BOJ",
+    "Most important macroeconomic calendar events in the next 24 hours: Fed/ECB/BOJ speeches, data releases (CPI PPI GDP jobs), Treasury auctions. Sources: Bloomberg Reuters Financial Times WSJ CNBC",
+    # 能源／地緣
+    "Oil and energy markets in the past 24 hours: OPEC+, Middle East supply risk, Strait of Hormuz, US SPR, natural gas — events and quotes, not price charts. Sources: Bloomberg Reuters Financial Times WSJ",
+    "Geopolitical developments in the past 24 hours with market impact: Middle East, US-China (tariffs, export controls, chips), Taiwan Strait, Russia-Ukraine. Sources: Bloomberg Reuters Financial Times WSJ Politico Foreign Affairs RAND Brookings",
+    # AI／半導體（指數部核心）
+    "AI industry in the past 24 hours: model releases, AI capex and data-center deals, hyperscaler spending, AI chip supply. Sources: Bloomberg Reuters TechCrunch The Information Wired Ars Technica CNBC Axios",
+    "Semiconductor supply chain in the past 24 hours: TSMC, Nvidia, AMD, ASML, Samsung, SK Hynix, Micron — orders, capacity, pricing (DRAM/NAND/HBM contract prices), export controls. Sources: Bloomberg Reuters DIGITIMES TrendForce SemiAnalysis Nikkei Asia EE Times",
+    "Taiwan and Korea tech in the past 24 hours: TSMC monthly revenue, MediaTek, Foxconn, Samsung, SK Hynix — company events and government policy. Sources: Bloomberg Reuters Nikkei Asia DIGITIMES Focus Taiwan Yonhap Korea Herald",
+    # 新創／機構
+    "Largest startup funding rounds, IPO filings, and defense-tech / robotics investments announced in the past 24 hours, with amounts and lead investors. Sources: TechCrunch Bloomberg Reuters Crunchbase The Information Axios",
+    "Institutional positioning in the past 24 hours: 13F disclosures, notable fund moves, large block trades, ETF flows into QQQ SPY SOXX. Sources: Bloomberg Reuters CNBC WSJ Barchart",
+    # 財報
+    "US companies reporting earnings today (next US session) before open or after close: names, tickers, EPS and revenue consensus. Sources: Bloomberg Reuters CNBC WSJ Earnings Whispers",
+    "US earnings reported in the last US session (pre-market, during, after-hours): beat/miss, guidance, key management quotes. Sources: Bloomberg Reuters CNBC WSJ",
+    "Key statements from investor days, analyst conferences, and earnings calls in the last US session. Sources: Bloomberg Reuters CNBC WSJ",
 ]
 
 DEEP_DIVE_FIXED_QUERIES = [
@@ -1152,48 +1135,123 @@ def fetch_today_earnings() -> list[dict]:
     return results
 
 
-def fetch_moneydj_news() -> list[dict]:
-    """
-    抓取 MoneyDJ 即時財經新聞 RSS。
-    只取過去24小時內的新聞。
-    """
-    RSS_URLS = [
-        "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB010000",  # 國際財經
-        "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB020000",  # 台股新聞
-        "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB060000",  # 科技產業
-    ]
+# ── RSS 素材層（2026-08-17 晚擴充）────────────────────────────────────────
+# 直連 feed 能用就直連；Bloomberg／Reuters／TrendForce／韓國／東南亞這類沒有可用 RSS 的，
+# 走 Google News RSS 的 site:/關鍵字查詢當代理（標題＋一句摘要＋來源名，有發布時間）。
+# 每個 feed：名稱、URL、最多取幾條、回看幾小時。實測 2026-08-17：WSJ／Nikkei 官方 feed 已停更，不列。
+_GN = "https://news.google.com/rss/search?q={q}&hl=en-US&gl=US&ceid=US:en"
+RSS_FEEDS = [
+    # (source_label, url, max_items, max_age_hours)
+    # 台灣／中文
+    ("MoneyDJ 國際財經", "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB010000", 10, 24),
+    ("MoneyDJ 台股",     "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB020000", 10, 24),
+    ("MoneyDJ 科技產業", "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB060000", 10, 24),
+    ("中央社 財經",      "https://feeds.feedburner.com/rsscna/finance", 10, 24),
+    # 通用財經
+    ("CNBC Top",        "https://www.cnbc.com/id/100003114/device/rss/rss.html", 12, 24),
+    ("CNBC Tech",       "https://www.cnbc.com/id/19854910/device/rss/rss.html", 8, 24),
+    ("Financial Times", "https://www.ft.com/rss/home", 10, 24),
+    ("Axios",           "https://api.axios.com/feed/", 8, 24),
+    ("Reuters (GN)",    _GN.format(q="site:reuters.com+when:1d"), 18, 24),
+    ("Bloomberg (GN)",  _GN.format(q="site:bloomberg.com+when:1d"), 18, 24),
+    ("Fed/央行 (GN)",   _GN.format(q="(%22Federal+Reserve%22+OR+ECB+OR+%22Bank+of+Japan%22)+when:1d+(site:reuters.com+OR+site:bloomberg.com+OR+site:ft.com+OR+site:wsj.com)"), 10, 24),
+    # 科技／AI
+    ("TechCrunch",      "https://techcrunch.com/feed/", 10, 24),
+    ("The Information", "https://www.theinformation.com/feed", 8, 24),
+    ("Ars Technica",    "https://feeds.arstechnica.com/arstechnica/index", 5, 24),
+    ("SCMP Tech",       "https://www.scmp.com/rss/36/feed", 8, 24),
+    # 半導體（指數部核心）
+    ("DIGITIMES",       "https://www.digitimes.com/rss/daily.xml", 15, 24),
+    ("TrendForce (GN)", _GN.format(q="site:trendforce.com+when:3d"), 6, 72),
+    ("SemiAnalysis",    "https://semianalysis.com/feed/", 3, 72),
+    ("Semis (GN)",      _GN.format(q="(TSMC+OR+Nvidia+OR+ASML+OR+%22SK+Hynix%22+OR+Micron+OR+AMD)+when:1d+(site:reuters.com+OR+site:bloomberg.com+OR+site:digitimes.com+OR+site:asia.nikkei.com+OR+site:ft.com)"), 12, 24),
+    ("Taiwan Tech (GN)", _GN.format(q="(TSMC+OR+MediaTek+OR+Foxconn+OR+%22Taiwan+semiconductor%22)+when:1d+(site:focustaiwan.tw+OR+site:asia.nikkei.com+OR+site:digitimes.com+OR+site:reuters.com+OR+site:bloomberg.com)"), 8, 24),
+    ("Korea Tech (GN)", _GN.format(q="(Samsung+OR+%22SK+Hynix%22+OR+Hyundai)+when:1d+(site:koreaherald.com+OR+site:koreajoongangdaily.joins.com+OR+site:en.yna.co.kr+OR+site:reuters.com+OR+site:bloomberg.com)"), 8, 24),
+    ("Japan Tech (GN)", _GN.format(q="(Rapidus+OR+SoftBank+OR+Sony+OR+%22Tokyo+Electron%22+OR+Japan+chip)+when:1d+(site:asia.nikkei.com+OR+site:reuters.com+OR+site:bloomberg.com)"), 6, 24),
+    ("China Tech (GN)", _GN.format(q="(Huawei+OR+DeepSeek+OR+Alibaba+OR+SMIC+OR+Baidu)+when:1d+(site:reuters.com+OR+site:bloomberg.com+OR+site:scmp.com+OR+site:ft.com)"), 8, 24),
+    ("Europe Tech (GN)", _GN.format(q="(ASML+OR+%22European+AI%22+OR+%22EU+AI+Act%22+OR+Mistral+OR+SAP)+when:1d+(site:reuters.com+OR+site:bloomberg.com+OR+site:ft.com)"), 6, 24),
+    ("ASEAN DC (GN)",   _GN.format(q="(Malaysia+OR+Singapore+OR+Vietnam+OR+Indonesia+OR+Thailand)+(%22data+center%22+OR+semiconductor+OR+chip)+when:2d"), 6, 48),
+    # Fintech／加密
+    ("CoinDesk",        "https://www.coindesk.com/arc/outboundfeeds/rss/", 8, 24),
+    ("The Block",       "https://www.theblock.co/rss.xml", 6, 24),
+]
+RSS_TOTAL_CAP = 220
+_RSS_NOISE = re.compile(r"開獎|中獎號碼|彩券|統一發票|訃聞|Podcast|podcast|The Download:|Crossword|Newsletter")  # 全部 feed 合計上限，超過就按清單順序截掉後面的
 
+
+def _clean_rss_summary(text: str, limit: int = 180) -> str:
+    text = re.sub(r"<[^>]+>", " ", text or "")
+    text = re.sub(r"&nbsp;|&#160;", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text[:limit]
+
+
+def _fetch_one_feed(spec: tuple) -> list[dict]:
+    label, url, max_items, max_age_h = spec
     tz = pytz.timezone("Asia/Taipei")
-    cutoff = datetime.now(tz) - timedelta(hours=24)
-    results = []
-
-    for url in RSS_URLS:
-        try:
-            feed = feedparser.parse(url)
-            for entry in feed.entries[:10]:
-                # 解析發布時間
-                published = None
-                if hasattr(entry, "published_parsed") and entry.published_parsed:
-                    published = datetime.fromtimestamp(
-                        time.mktime(entry.published_parsed), tz=pytz.utc
-                    ).astimezone(tz)
-
-                # 只取24小時內
-                if published and published < cutoff:
+    cutoff = datetime.now(tz) - timedelta(hours=max_age_h)
+    out = []
+    try:
+        feed = feedparser.parse(url)
+        for entry in feed.entries:
+            pp = entry.get("published_parsed") or entry.get("updated_parsed")
+            published = None
+            if pp:
+                published = datetime.fromtimestamp(time.mktime(pp), tz=pytz.utc).astimezone(tz)
+                if published < cutoff:
                     continue
+            title = (entry.get("title") or "").strip()
+            if not title or _RSS_NOISE.search(title):
+                continue
+            # Google News：標題結尾「 - 來源」、entry.source.title 是真正媒體名
+            src = label
+            gn_src = (entry.get("source") or {}).get("title") if isinstance(entry.get("source"), dict) else None
+            if gn_src:
+                src = gn_src
+                if title.endswith(" - " + gn_src):
+                    title = title[: -len(gn_src) - 3].strip()
+            out.append({
+                "title": title,
+                "summary": _clean_rss_summary(entry.get("summary", "")),
+                "link": entry.get("link", ""),
+                "source": src,
+                "feed": label,
+                "published": published.strftime("%Y-%m-%d %H:%M") if published else "",
+            })
+            if len(out) >= max_items:
+                break
+    except Exception as e:
+        print(f"  ✗ RSS {label}: {e}")
+    return out
 
-                results.append({
-                    "title": entry.get("title", ""),
-                    "summary": entry.get("summary", "")[:300],
-                    "link": entry.get("link", ""),
-                    "source": "MoneyDJ",
-                    "published": published.strftime("%Y-%m-%d %H:%M") if published else "",
-                })
-        except Exception as e:
-            print(f"  ✗ MoneyDJ RSS {url}: {e}")
 
-    print(f"  ✓ MoneyDJ: {len(results)} 條新聞（過去24小時）")
+def fetch_rss_news() -> list[dict]:
+    """
+    抓 RSS_FEEDS 全部 feed（並行），每條回 {title, summary, link, source, feed, published}。
+    只取各 feed 回看窗內的新聞；同標題去重；總數上限 RSS_TOTAL_CAP。
+    """
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+        batches = list(ex.map(_fetch_one_feed, RSS_FEEDS))
+    seen, results = set(), []
+    per_feed = []
+    for spec, items in zip(RSS_FEEDS, batches):
+        kept = 0
+        for it in items:
+            key = re.sub(r"\W+", "", it["title"].lower())[:60]
+            if key in seen:
+                continue
+            seen.add(key)
+            results.append(it)
+            kept += 1
+        per_feed.append(f"{spec[0]}={kept}")
+    if len(results) > RSS_TOTAL_CAP:
+        results = results[:RSS_TOTAL_CAP]
+    print(f"  ✓ RSS: {len(results)} 條（{', '.join(per_feed)}）")
     return results
+
+
+# 舊名相容（main.py 曾 import fetch_moneydj_news）
+fetch_moneydj_news = fetch_rss_news
 
 
 def _fetch_dynamic_deep_topics(api_key: str, today: str) -> list[dict]:

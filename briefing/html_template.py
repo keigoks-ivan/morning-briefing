@@ -65,13 +65,13 @@ STARTUP_TAG_STYLE = {
 
 REGION_LABEL = {
     "taiwan": "🇹🇼 台灣", "japan": "🇯🇵 日本",
-    "us": "🇺🇸 美國", "malaysia": "🇲🇾 馬來西亞",
+    "us": "🇺🇸 美國", "asean": "🌏 東南亞", "malaysia": "🇲🇾 馬來西亞",
     "korea": "🇰🇷 韓國", "china": "🇨🇳 中國", "europe": "🇪🇺 歐洲",
 }
 
 REGION_COLOR = {
     "taiwan": "#185FA5", "japan": "#C0392B",
-    "us": "#0F6E56", "malaysia": "#854F0B",
+    "us": "#0F6E56", "asean": "#854F0B", "malaysia": "#854F0B",
     "korea": "#0F6E56", "china": "#C0392B", "europe": "#534AB7",
 }
 
@@ -1095,7 +1095,7 @@ def _geopolitical_section(items: list) -> str:
 
 def _regional_tech_section(regional: dict) -> str:
     content = ""
-    for region in ["taiwan", "japan", "us", "malaysia", "korea", "china", "europe"]:
+    for region in ["taiwan", "japan", "us", "korea", "china", "europe", "asean", "malaysia"]:
         items = regional.get(region, [])
         if not items:
             continue
@@ -2258,7 +2258,7 @@ def build_tech_html(data: dict) -> str:
     """科技・AI"""
     date = data.get("date", "")
     ai_tag = {"macro": "background:#EBF2FA;color:#185FA5;", "tech": "background:#EAF3DE;color:#3B6D11;"}
-    content = _news_section("AI 産業動態", data.get("ai_industry", []), ai_tag)
+    content = _news_section("AI 產業動態", data.get("ai_industry", []), ai_tag)
     content += _regional_tech_section(data.get("regional_tech", {}))
     content += _fintech_crypto_section(data.get("fintech_crypto", []))
     return _page_wrapper("tech", date, content, "科技・AI")
@@ -2933,7 +2933,7 @@ def build_html(data: dict, screener_result: dict = None) -> str:
     now = datetime.now(tz).strftime("%Y年%m月%d日 %H:%M TST")
 
     ai_tag = {"macro": "background:#EBF2FA;color:#185FA5;", "tech": "background:#EAF3DE;color:#3B6D11;"}
-    ai_section = _news_section("AI 産業動態", data.get("ai_industry", []), ai_tag)
+    ai_section = _news_section("AI 產業動態", data.get("ai_industry", []), ai_tag)
     sr = screener_result or {}
 
     return f"""<!DOCTYPE html>

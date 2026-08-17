@@ -153,11 +153,23 @@ def _cc_analysis(market_context: str, news_text: str) -> dict:
                              thinking_tokens=CLAUDE_CODE_THINKING)
 
 
+def _news_date_window() -> tuple[str, str]:
+    """回 (今日台北日期, 允收起始日)。平日回看 2 天；週一回看到上週五（含週末幾乎沒新聞）。"""
+    import pytz
+    from datetime import datetime, timedelta
+    now = datetime.now(pytz.timezone("Asia/Taipei"))
+    back = 3 if now.weekday() == 0 else 2
+    return now.strftime("%Y-%m-%d"), (now - timedelta(days=back)).strftime("%Y-%m-%d")
+
+
 def _cc_news(news_text: str, earnings_context: str) -> dict:
     """新聞區塊 — Claude Code 主路徑。"""
+    today, cutoff = _news_date_window()
     user_prompt = GEMINI_USER_PROMPT_TEMPLATE.format(
         news_text=news_text,
         earnings_context=earnings_context,
+        today=today,
+        cutoff_date=cutoff,
     )
     return _call_claude_code(GEMINI_SYSTEM_PROMPT, user_prompt, "News")
 
@@ -192,53 +204,57 @@ DYNAMIC_STATUS_OPTIONS = """
 # ═══════════════════════════════════════════════════════════════
 
 GEMINI_SYSTEM_PROMPT = """
-你是一位服務專業系統性投資者的財經新聞編輯。
-你的工作是從搜尋結果中提取、摘要、分類新聞，輸出嚴格的 JSON 格式。
+你是一位服務「系統性投資者」的財經新聞編輯。讀者的核心部位是 QQQ／SMH／0050／2330 指數部（週線趨勢×波動率引擎），
+外加美台個股。你的工作是從搜尋結果與 RSS 頭條中提取、摘要、分類新聞，輸出嚴格的 JSON。
+
+【第一原則：寧缺勿濫】
+- 每個區塊給的是「上限」不是「下限」。素材撐不起就少寫、甚至留空陣列 []；**絕不為湊數放進舊聞、無數字的泛論、或靠你自己記憶編出來的事件**。
+- 一條新聞要能寫進來，必須同時滿足：(a) 素材裡真的有；(b) source_date 在下方給的日期範圍內；(c) body 至少有一個具體數字或具名主體。三者缺一就丟掉。
+- 你沒有上網能力，素材裡沒有的事不存在。
+
+【日期硬規則】
+- 只收 source_date ≥ 允收起始日（見使用者訊息）的新聞。RSS 每條前面有時間戳、搜尋結果內文有日期，照那個填 source_date（YYYY-MM-DD）。
+- 素材裡明顯是舊事件（上週的數據、上個月的財報、去年的政策）即使搜尋結果剛好提到，也不得當今日新聞。
+- 沒辦法判定日期的條目：丟掉。
 
 【最高優先級：語言規則】
-1. 所有輸出必須使用「繁體中文」，嚴禁使用簡體中文
-2. 常見錯誤提醒：「規範」不是「规范」、「軟體」不是「软件」、「記憶體」不是「内存」、「晶片」不是「芯片」、「網路」不是「网络」、「數據」不是「数据」、「訊息」不是「信息」
-3. 公司名/技術術語/數字保留英文
-4. 如果你不確定某個字是繁體還是簡體，使用台灣用語
+1. 全部繁體中文（台灣用語），嚴禁簡體字：「規範」不是「规范」、「軟體」不是「软件」、「記憶體」不是「内存」、「晶片」不是「芯片」、「網路」不是「网络」、「數據」不是「数据」、「訊息」不是「信息」、「晶圓」不是「晶圆」、「腰斬」不是「腰斩」
+2. 中文句子的標點一律全形（，。：；「」），公司名／術語／數字保留英文
+3. 常見錯字自檢：「通膨」不是「通膀」、「澳洲」不是「澈洲」、「籌募／籌備」不是「籲募／籲備」、「產業」不是「産業」
 
-【去重規則】
-去重只在「一般新聞區塊」之間生效：
-- top_stories → world_news → macro → geopolitical 這四個區塊之間互相去重
-- 同一家公司在同一天的同一件事 = 重複（即使措辭不同）
+【跨區塊去重（硬規則）】
+- 同一事件（同一家公司的同一件事，即使措辭、角度、數字略有不同）在**整份 JSON** 裡只能出現一次——包含 top_stories、macro、geopolitical、world_news、ai_industry、regional_tech、fintech_crypto、startup_news、us_market_recap。
+- 優先順序：top_stories 先挑；其他區塊只放 top_stories 沒用到的事件。
+- 「角度不同」不是重複的藉口：Nvidia 投資某公司這件事只能出現一次，不能 top_stories 一次、ai_industry 一次、regional_tech.us 再一次。
+- 同一事件也不得跨地區重複（TSMC 一條事件放 taiwan 就不放 japan）。
 
-以下三個「專業區塊」有獨立配額，不受 top_stories 去重影響：
-- ai_industry：即使 top_stories 已有 AI 相關新聞，ai_industry 仍必須獨立輸出 4-6 條 AI 產業專屬新聞（模型發布、AI 投資、晶片進展、AI 基礎設施等）。角度不同不算重複：top_stories 是新聞事件角度，ai_industry 是產業趨勢角度。
-- fintech_crypto：即使其他區塊有加密相關新聞，仍必須獨立輸出 3-5 條
-- startup_news：即使其他區塊有新創相關新聞，仍必須獨立輸出 4-5 條
+【top_stories 排序規則】
+- 前 3–5 條必須是「對指數部（QQQ／SMH／0050／2330）有直接影響」的事件：半導體供應鏈（TSMC／Nvidia／ASML／記憶體合約價）、AI capex、Fed／央行路徑、關稅／出口管制、原油供給衝擊。tag 一律填「指數部」。
+- 之後才是其他重要新聞。新創融資、遊戲、支付併購這類除非金額或影響極大，否則不進 top_stories。
 
-regional_tech 也是獨立區塊，每個地區必須 2-3 條，不受 top_stories 去重影響。
-
-【來源黑名單（絕對不得使用）】
-YouTube、TikTok、Twitter/X、Reddit、Facebook、Instagram、個人部落格、Medium（個人文章）、Substack（非已知媒體）、PR Newswire、BusinessWire、GlobeNewswire、WilmerHale、InfoQ
-
-【來源白名單（只使用這些）】
-Bloomberg、Reuters、Financial Times、WSJ、CNBC、Barron's、The Economist、Axios、Politico、
-TechCrunch、The Information、Wired、Ars Technica、MIT Technology Review、
-DIGITIMES、SemiAnalysis、Semiconductor Engineering、EE Times、Nikkei Asia、
-South China Morning Post、Taiwan News、
-Foreign Affairs、RAND、Brookings、
-Fed、ECB、BOJ、BIS、IMF、SEC、FRED、
-Gartner、IDC、McKinsey、Goldman Sachs、JP Morgan、Barchart、MoneyDJ
+【來源白名單（只使用這些；素材若標示其他來源就跳過該條）】
+通訊社／財經：Bloomberg、Reuters、Financial Times、WSJ、CNBC、Barron's、The Economist、Axios、Politico、AP、BBC、CNN Business
+科技：TechCrunch、The Information、Wired、Ars Technica、MIT Technology Review、Crunchbase（僅融資輪）
+半導體／亞洲：DIGITIMES、TrendForce、SemiAnalysis、Semiconductor Engineering、EE Times、Nikkei Asia、South China Morning Post、Focus Taiwan／中央社、MoneyDJ、Yonhap／Korea Herald／Korea JoongAng Daily、Caixin
+加密：CoinDesk、The Block
+政策／智庫：Foreign Affairs、RAND、Brookings、Fed、ECB、BOJ、BIS、IMF、SEC、FRED
+機構：Gartner、IDC、McKinsey、Goldman Sachs、JP Morgan、Barchart、Earnings Whispers（僅財報行事曆）
+【來源黑名單（絕對不得使用）】YouTube、TikTok、Twitter/X、Reddit、Facebook、Instagram、個人部落格、Medium、Substack（非上列媒體）、PR Newswire、BusinessWire、GlobeNewswire、Seeking Alpha、Yahoo Finance 轉載、Motley Fool、Benzinga、InfoQ
 
 【新聞內容規則】
-- 所有新聞區塊只輸出事件性新聞（公司動態、政策、併購、產品發布、人事異動）
-- 嚴禁出現：股價漲跌、指數點位、交易量、市值變化、技術分析、行情走勢
-- 只使用過去24小時內的新聞
-- 排除所有 ESG 相關內容
-- source_date 格式統一為 YYYY-MM-DD
-
-【JSON 格式規則】
-- 所有數值用英文格式：$1.42T（不是 $1.42兆）
+- 只輸出事件性新聞（公司動態、政策、併購、產品發布、人事、數據公布）
+- **嚴禁行情敘述**：不得出現股價漲跌幅、指數點位或漲跌、幣價、期貨漲跌、「走高／走低／持穩於 $X」這類句子。行情由另一個區塊用 yfinance 真實數據呈現。財報後盤後反應只能寫在 us_market_recap.after_hours_move。
+- 排除 ESG 內容
+- source_date 格式 YYYY-MM-DD；source 填媒體名（不得寫「媒體報導」「綜合報導」）
+- 數值用英文格式：$1.42T（不是 $1.42兆）
 - 只回傳 JSON，不要任何前置說明或 markdown code block
 """
 
 GEMINI_USER_PROMPT_TEMPLATE = """
-以下是今日財經新聞搜尋結果：
+【今日日期（台北）】{today}
+【允收起始日】{cutoff_date} —— source_date 早於這一天的新聞一律不收。
+
+以下是今日財經新聞素材（Haiku 搜尋摘要＋RSS 頭條）：
 {news_text}
 
 {earnings_context}
@@ -284,7 +300,7 @@ GEMINI_USER_PROMPT_TEMPLATE = """
     "taiwan":   [{{{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
     "japan":    [{{{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
     "us":       [{{{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
-    "malaysia": [{{{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
+    "asean":    [{{{{"headline": "標題（東南亞：新加坡／馬來西亞／越南／印尼等資料中心與供應鏈）", "body": "1–2句", "source": "來源", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
     "korea":    [{{{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
     "china":    [{{{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
     "europe":   [{{{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}]
@@ -381,19 +397,19 @@ GEMINI_USER_PROMPT_TEMPLATE = """
   }}}}
 }}}}
 
-【最低數量要求 — 每個區塊必須達到以下數量，不得少於最低值】
-- top_stories：必須 15 條（這是最重要的區塊，不可少於 15 條）
-- macro：必須 4-6 條
-- ai_industry：必須 4-6 條
-- regional_tech：每個地區必須 2-3 條（共7個地區）
-- fintech_crypto：必須 3-5 條
-- geopolitical：必須 3-5 條
-- startup_news：必須 4-5 條
-- world_news：必須 3 條
-- today_events：2-5 個真實行程
-- fun_fact：必須有 title + content + connection
+【數量上限 — 這些是「最多」，不是「至少」；素材不夠就少寫或留 []】
+- top_stories：最多 12 條（前 3–5 條必須是指數部相關，tag「指數部」）
+- macro：最多 5 條
+- ai_industry：最多 5 條
+- regional_tech：每個地區最多 3 條，**沒有當日素材的地區留 []**（不要硬寫）
+- fintech_crypto：最多 4 條
+- geopolitical：最多 4 條
+- startup_news：最多 4 條
+- world_news：最多 3 條（不得與 top_stories／geopolitical 重複）
+- today_events：最多 5 個真實行程
+- fun_fact：可有可無；沒有跟今日新聞相關的可靠冷知識就輸出 title/content/connection 皆空字串
 
-如果某個區塊條目數低於最低值，你的輸出就是失敗的。請確保每個區塊都達到要求。
+寧可 top_stories 只有 6 條全部紮實，也不要 12 條裡有一半是舊聞或重複。輸出前自檢：每條 source_date 都 ≥ 允收起始日？同一事件有沒有在兩個區塊出現？body 有沒有行情漲跌句？
 
 其他規則：
 - earnings_preview 輸出「下一個 US session 即將發布的」（yfinance 已確認日期），us_market_recap 輸出「剛結束那個 US session 已公布的」，兩者嚴格互斥
@@ -851,10 +867,17 @@ def build_news_text(raw_news: list[dict], moneydj_news: list[dict] | None = None
         parts.append("")
 
     if moneydj_news:
-        parts.append("## MoneyDJ 台灣財經即時新聞（過去24小時）")
+        # 2026-08-17 晚起是多來源 RSS（news_fetcher.RSS_FEEDS），依 feed 分組給模型
+        parts.append("## RSS 頭條（各來源過去 24～72 小時；每條＝時間｜來源｜標題｜摘要）")
+        by_feed: dict[str, list] = {}
         for item in moneydj_news:
-            parts.append(f"標題：{item['title']}\n摘要：{item['summary']}\n來源：MoneyDJ {item['published']}")
-        parts.append("")
+            by_feed.setdefault(item.get("feed") or item.get("source", "RSS"), []).append(item)
+        for feed, items in by_feed.items():
+            parts.append(f"### {feed}（{len(items)} 條）")
+            for item in items:
+                summ = f"｜{item['summary']}" if item.get("summary") else ""
+                parts.append(f"- {item.get('published','')}｜{item.get('source','')}｜{item['title']}{summ}")
+            parts.append("")
 
     if deep_dive_news:
         # Support both old list format and new dict format
@@ -1105,9 +1128,12 @@ def _call_gemini(news_text: str, earnings_context: str) -> dict:
 
     client = genai.Client(api_key=api_key)
 
+    today, cutoff = _news_date_window()
     user_prompt = GEMINI_USER_PROMPT_TEMPLATE.format(
         news_text=news_text,
         earnings_context=earnings_context,
+        today=today,
+        cutoff_date=cutoff,
     )
 
     print("  → [Gemini] Calling API (news sections)...")
@@ -1306,38 +1332,69 @@ def _call_claude_earnings_analysis(earnings_raw_text: str, market_context: str) 
         raise
 
 
+# ── 新聞後處理：去重 / 過期 / 行情句 / 簡繁與錯字 ─────────────────────────
+import re as _re
+from datetime import datetime as _dt, timedelta as _td
+
+_NEWS_LIST_BLOCKS = ["top_stories", "macro", "geopolitical", "world_news", "ai_industry",
+                     "fintech_crypto", "startup_news", "tech_trends", "daily_deep_dive"]
+
+_MONEY_RE = _re.compile(r"\$\s?\d[\d,.]*\s?[BMTK]?|\d[\d,.]*\s?(?:億|兆|萬)")
+_ENT_RE = _re.compile(r"[A-Z][A-Za-z0-9&.\-]{1,}")          # 英文專名／ticker
+_CJK_RE = _re.compile(r"[\u4e00-\u9fff]")
+
+
+def _news_tokens(text: str) -> set:
+    """去重用 token：英文專名（小寫）＋金額＋中文 2-gram（去掉高頻虛詞）。"""
+    text = text or ""
+    toks = {t.lower() for t in _ENT_RE.findall(text)}
+    toks |= {m.replace(" ", "") for m in _MONEY_RE.findall(text)}
+    cjk = "".join(_CJK_RE.findall(text))
+    stop = set("的了在是與和及或將於對為由到及並已再也仍等")
+    toks |= {cjk[i:i+2] for i in range(len(cjk) - 1) if not (cjk[i] in stop or cjk[i+1] in stop)}
+    return toks
+
+
+def _is_dup(a: set, b: set) -> bool:
+    if not a or not b:
+        return False
+    inter = len(a & b)
+    j = inter / len(a | b)
+    if j >= 0.40:
+        return True
+    # 同一金額 ＋ 同一英文專名 → 幾乎必是同一事件（Nvidia $500B 出現五次那種）
+    money = {t for t in a & b if t.startswith("$") or any(u in t for u in "億兆萬")}
+    ents = {t for t in a & b if _re.match(r"[a-z]", t)}
+    return bool(money) and bool(ents)
+
+
 def _dedup_news(data: dict) -> None:
-    """跨區塊去重：用 headline 前15字做指紋，後面的區塊移除與前面重複的"""
-    seen = set()
+    """跨區塊去重（2026-08-17 晚強化）：headline＋body 前 80 字做 token 集合，
+    Jaccard ≥ 0.4 或「同金額＋同專名」視為同一事件；優先順序前面的區塊保留。"""
+    seen: list[set] = []
+    removed = 0
 
-    # 按優先順序處理
-    DEDUP_ORDER = [
-        ("tech_trends", "headline"),
-        ("daily_deep_dive", "headline"),
-        ("top_stories", "headline"),
-        ("world_news", "headline"),
-        ("macro", "headline"),
-        ("geopolitical", "headline"),
-        ("ai_industry", "headline"),
-        ("fintech_crypto", "headline"),
-        ("startup_news", "headline"),
-    ]
+    def _key(item: dict) -> set:
+        head = item.get("headline") or item.get("title") or ""
+        body = (item.get("body") or item.get("summary") or "")[:80]
+        return _news_tokens(head + " " + body)
 
-    for key, field in DEDUP_ORDER:
+    for key in _NEWS_LIST_BLOCKS:
         items = data.get(key, [])
         if not isinstance(items, list):
             continue
         cleaned = []
         for item in items:
-            fingerprint = str(item.get(field, ""))[:15]
-            if fingerprint and fingerprint in seen:
+            if not isinstance(item, dict):
                 continue
-            if fingerprint:
-                seen.add(fingerprint)
+            k = _key(item)
+            if any(_is_dup(k, s0) for s0 in seen):
+                removed += 1
+                continue
+            seen.append(k)
             cleaned.append(item)
         data[key] = cleaned
 
-    # regional_tech 各地區也做去重
     rt = data.get("regional_tech", {})
     if isinstance(rt, dict):
         for region, items in rt.items():
@@ -1345,13 +1402,106 @@ def _dedup_news(data: dict) -> None:
                 continue
             cleaned = []
             for item in items:
-                fp = str(item.get("headline", ""))[:15]
-                if fp and fp in seen:
+                if not isinstance(item, dict):
                     continue
-                if fp:
-                    seen.add(fp)
+                k = _key(item)
+                if any(_is_dup(k, s0) for s0 in seen):
+                    removed += 1
+                    continue
+                seen.append(k)
                 cleaned.append(item)
             rt[region] = cleaned
+    if removed:
+        print(f"  → dedup: 移除 {removed} 條跨區塊重複")
+
+
+# 常見簡體字／錯字（模型偶發），只做「一對一、不會誤傷」的替換
+_ZH_FIX = {
+    "晶圆": "晶圓", "腰斩": "腰斬", "规范": "規範", "软件": "軟體", "内存": "記憶體", "芯片": "晶片",
+    "网络": "網路", "数据": "數據", "信息": "資訊", "视频": "影片", "服务器": "伺服器", "云计算": "雲端運算",
+    "人工智能": "人工智慧", "机器人": "機器人", "汇率": "匯率", "债券": "債券", "关税": "關稅", "美联储": "聯準會",
+    "货币": "貨幣", "投资": "投資", "亿": "億", "发布": "發布", "计划": "計畫", "产业": "產業", "产能": "產能",
+    "通膀": "通膨", "澈洲": "澳洲", "籲募": "籌募", "籲備": "籌備", "籲資": "籌資", "産業": "產業", "産能": "產能",
+}
+_MARKET_SENT_RE = _re.compile(
+    r"(股價|股票|指數|期貨|幣價|比特幣|Bitcoin|Ethereum|以太幣|ETH|BTC|Stoxx|Nasdaq|S&P|標普|道瓊|費半|加權|台股|美股|盤前|盤後"
+    r"|油價|Brent|WTI|布蘭特|原油|金價|黃金|銅價|殖利率|美元指數|DXY|日圓|台幣"
+    r"|(?<![A-Za-z])(?!CPI|PPI|GDP|PCE|PMI|ISM|NFP|EPS|ROE)[A-Z]{2,6}(?![A-Za-z]))"
+    r"[^。；;]{0,30}?(上漲|下跌|大漲|大跌|走高|走低|收高|收低|飆漲|重挫|跳漲|急跌|持穩|站上|跌破|漲逾|跌逾|漲|跌)"
+    r"[^。；;]{0,6}?(\d[\d,.]*\s?%|\$\s?\d)"
+)
+
+
+def _fix_zh(text):
+    if not isinstance(text, str) or not text:
+        return text
+    for a, b in _ZH_FIX.items():
+        if a in text:
+            text = text.replace(a, b)
+    return text
+
+
+def _strip_market_sentences(text: str):
+    """砍掉含行情漲跌的句子（以。；分句）；回 (新文字, 是否有砍)。"""
+    if not isinstance(text, str) or not text:
+        return text, False
+    parts = _re.split(r"(?<=[。；;])", text)
+    kept = [pt for pt in parts if not _MARKET_SENT_RE.search(pt)]
+    if len(kept) == len(parts):
+        return text, False
+    return "".join(kept).strip(), True
+
+
+def _sanitize_news(data: dict, cutoff_date: str) -> None:
+    """(1) 全部字串簡繁／錯字修正；(2) 新聞區塊：過期條目丟掉、行情句砍掉、標題含漲跌%整條丟掉。"""
+    stats = {"stale": 0, "market_sent": 0, "market_head": 0}
+
+    def _walk_fix(obj):
+        if isinstance(obj, dict):
+            return {k: _walk_fix(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [_walk_fix(v) for v in obj]
+        return _fix_zh(obj)
+
+    for k in list(data.keys()):
+        if k == "market_data":
+            continue
+        data[k] = _walk_fix(data[k])
+
+    def _clean_list(items: list) -> list:
+        out = []
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            sd = str(it.get("source_date") or "")
+            if _re.match(r"\d{4}-\d{2}-\d{2}$", sd) and sd < cutoff_date:
+                stats["stale"] += 1
+                continue
+            head = it.get("headline") or it.get("title") or ""
+            # 標題只在「有行情主詞（股價／指數／幣價／油價／ticker）＋漲跌％」才整條丟；
+            # 合約價／營收／出口「大漲 X%」是事件數據，不是行情，要留
+            if _MARKET_SENT_RE.search(head) and not _re.search(r"合約價|報價|營收|出口|訂單|出貨|價格", head):
+                stats["market_head"] += 1
+                continue
+            for f in ("body", "summary"):
+                if f in it:
+                    new, cut = _strip_market_sentences(it[f])
+                    if cut:
+                        stats["market_sent"] += 1
+                        it[f] = new
+            out.append(it)
+        return out
+
+    for key in _NEWS_LIST_BLOCKS + ["smart_money"]:
+        if isinstance(data.get(key), list):
+            data[key] = _clean_list(data[key])
+    rt = data.get("regional_tech")
+    if isinstance(rt, dict):
+        for region, items in rt.items():
+            if isinstance(items, list):
+                rt[region] = _clean_list(items)
+    if any(stats.values()):
+        print(f"  → sanitize: 過期 {stats['stale']}、行情標題 {stats['market_head']}、行情句 {stats['market_sent']}")
 
 
 def process_news(raw_news: list[dict], market_data: dict | None = None, today_earnings: list | None = None, moneydj_news: list[dict] | None = None, deep_dive_news: list[dict] | None = None, move_index_raw: str = "", earnings_deep_dive: list[dict] | None = None) -> dict:
@@ -1479,7 +1629,8 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
         data["market_data"] = market_data
         data["market_data"]["move_index"] = analysis_move
 
-    # 跨區塊去重（code-based）
+    # 後處理：過期／行情句／簡繁錯字 → 再跨區塊去重（code-based）
+    _sanitize_news(data, _news_date_window()[1])
     _dedup_news(data)
 
     _validate(data)
@@ -1499,7 +1650,7 @@ def _validate(data: dict) -> None:
     data.setdefault("top_stories", [])
     data.setdefault("macro", [])
     data.setdefault("ai_industry", [])
-    data.setdefault("regional_tech", {"taiwan": [], "japan": [], "us": [], "malaysia": [], "korea": [], "china": [], "europe": []})
+    data.setdefault("regional_tech", {"taiwan": [], "japan": [], "us": [], "korea": [], "china": [], "europe": [], "asean": []})
     data.setdefault("fintech_crypto", [])
     data.setdefault("geopolitical", [])
     data.setdefault("world_news", [])
@@ -1579,5 +1730,5 @@ def _validate(data: dict) -> None:
     md.setdefault("liquidity_assessment", {"label": "—", "color": "neu", "score": 0, "signals": []})
 
     rt = data.get("regional_tech", {})
-    for region in ["taiwan", "japan", "us", "malaysia", "korea", "china", "europe"]:
+    for region in ["taiwan", "japan", "us", "korea", "china", "europe", "asean"]:
         rt.setdefault(region, [])

@@ -20,7 +20,7 @@
 3. 市場數字來自 yfinance，絕不讓 Claude API 猜測
 4. 新聞區塊嚴禁行情數字（漲跌幅、指數點位）
 5. Claude API 必須用 streaming（max_tokens=32000）；Claude Code headless 路徑不適用（`claude -p` 自己處理）
-6. 新聞搜尋（原 Perplexity，2026-08-17 起 Claude Code＋WebSearch）用 ThreadPoolExecutor max_workers=8 並行
+6. 新聞搜尋（原 Perplexity，2026-08-17 起 Claude Code＋WebSearch）與 RSS 抓取都用 ThreadPoolExecutor max_workers=8 並行
 7. 分析用 NDX 現貨（^NDX），NQ 期貨已移除
 8. Screener 失敗時 screener_result={} 日報繼續跑不受影響
 
@@ -56,6 +56,12 @@
 - log 印的 Claude Code `cost` 是 **API 等價參考值，不是實際帳單**（訂閱制不另計費）。
 - ⚠ Max 額度與跑 DD 報告共用同一池，忙的時候會互相排擠。
 
+**新聞素材與品質（2026-08-17 晚改制，起因＝首日輸出 36% 過期、Nvidia $500B 重複 5 次、硬湊地區新聞）**
+- 素材兩層：① `RSS_FEEDS`（news_fetcher.py）約 27 個 feed 並行抓（MoneyDJ／中央社／CNBC／FT／Axios／TechCrunch／The Information／DIGITIMES／SCMP／CoinDesk／The Block 直連；Bloomberg／Reuters／TrendForce／台韓日中歐／東南亞資料中心／Fed 走 **Google News RSS `site:`／關鍵字查詢**當代理），每 feed 有條數上限與回看小時數，總上限 220，`_RSS_NOISE` 濾開獎等噪音；② `PERPLEXITY_QUERIES` 由 25 題砍到 13 題，只留「需跨來源整理」的主題（Fed／總經數據／行事曆／能源地緣／AI／半導體供應鏈／台韓／新創／機構／財報×3），Sources 只列白名單。WSJ／Nikkei 官方 RSS 已停更，不要加回。
+- prompt 原則改為「寧缺勿濫」：數量全是**上限**、地區沒素材留 `[]`；`{today}`／`{cutoff_date}`（`_news_date_window()`：平日回看 2 天、週一 3 天）為硬規則；同一事件整份 JSON 只能出現一次；top_stories 前 3–5 條必須是指數部相關（tag「指數部」）；白名單擴充（AP／BBC／CNN Business／TrendForce／CoinDesk／The Block／Crunchbase／Focus Taiwan／Yonhap／Korea Herald／Caixin），黑名單加 Seeking Alpha／Yahoo 轉載／Motley Fool／Benzinga。regional_tech 的 `malaysia` 改為 `asean`（東南亞）。
+- 後處理（ai_processor.py，`process_news` 內、`_validate` 前）：`_sanitize_news()`＝簡繁／錯字一對一修正表 `_ZH_FIX`、`source_date` 早於允收起始日整條丟、標題含漲跌% 整條丟、body 含行情句（`_MARKET_SENT_RE`：股價／指數／幣價／油價／ticker＋漲跌＋數字）砍該句；`_dedup_news()` 改為 token Jaccard ≥ 0.4 或「同金額＋同專名」視為同一事件，涵蓋 tech_trends／daily_deep_dive／regional_tech。log 會印 `sanitize:`／`dedup:` 統計。
+- 想加 RSS：在 `RSS_FEEDS` 加一行 tuple；Google News 代理寫法見 `_GN`。想加白名單媒體：改 `GEMINI_SYSTEM_PROMPT` 白名單段，並同步該媒體到相關搜尋題目的 Sources。
+
 **新聞搜尋層（news_fetcher.py，2026-08-17 同日改制）**：Perplexity 已停用（帳號當日全面 429，持有人決定不再付費）。所有搜尋走 `_llm_search()` → 主＝Claude Code headless `--allowed-tools WebSearch`、模型 `haiku`（最便宜，搜尋只是找資料）；備援＝Perplexity（僅在 workflow 傳 `PERPLEXITY_API_KEY` 時啟用，目前註解掉）。換模型：`NEWS_SEARCH_MODEL`；單次逾時：`NEWS_SEARCH_TIMEOUT`（預設 240 秒）。來源網址由模型在答案末尾 `SOURCES:` 區塊列出後解析。`_fetch_dynamic_deep_topics()` 是死碼（無呼叫端），仍寫死 Perplexity，勿誤用。
 
 ---
@@ -75,7 +81,7 @@
 
 ### 日報
 main.py → 日報主流程，串接所有模組
-news_fetcher.py → 新聞搜尋（`_llm_search`：Claude Code Haiku＋WebSearch 主、Perplexity 備援）+ yfinance 行情 + FRED 流動性
+news_fetcher.py → 新聞素材（`RSS_FEEDS` 多來源 RSS＋Google News 代理；`_llm_search`：Claude Code Haiku＋WebSearch 主、Perplexity 備援）+ yfinance 行情 + FRED 流動性
 ai_processor.py → 三區塊（分析/新聞/財報）並行產 JSON，含 _validate 預設值。模型路由見下「AI 模型路由」
 html_template.py → JSON → HTML，所有區塊渲染函式（含多頁 tab 導航）
 email_sender.py → Resend API 寄信（支援 Excel 附件）
