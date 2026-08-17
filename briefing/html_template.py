@@ -190,6 +190,99 @@ def _alert(text: str) -> str:
 </div>'''
 
 
+def _vs_regime_line(text: str) -> str:
+    """各分析區塊對主軸的表態（支持｜／反對｜／中性｜ ＋ 一句）。"""
+    if not text:
+        return ""
+    head = text.split("｜", 1)[0].strip()
+    color = {"支持": "#0F6E56", "反對": "#C0392B"}.get(head, "#888")
+    return (f'<div style="font-size:12px;color:#555;line-height:1.5;margin-top:8px;padding-top:6px;'
+            f'border-top:0.5px dashed #ddd;">'
+            f'<span style="font-size:10px;letter-spacing:1px;color:#888;">對主軸 ▶ </span>'
+            f'<span style="font-weight:600;color:{color};">{text}</span></div>')
+
+
+def _regime_block(rg: dict) -> str:
+    """主軸區塊：今天市場狀態一句話 → 三軸 → 支持／反對 → 證偽條件 → 對 W52 引擎的意義。"""
+    if not rg or not rg.get("call"):
+        return ""
+    axes = rg.get("axes", {}) or {}
+    ax_meta = [("risk_appetite", "風險偏好", "#1B3A5C"),
+               ("liquidity", "流動性", "#085041"),
+               ("volatility", "波動", "#BA7517")]
+    ax_cells = ""
+    for key, label, color in ax_meta:
+        a = axes.get(key, {}) or {}
+        ax_cells += (f'<td width="33%" style="vertical-align:top;padding:8px 10px;">'
+                     f'<div style="font-size:10px;letter-spacing:0.5px;color:#888;margin-bottom:2px;">{label}</div>'
+                     f'<div style="font-size:14px;font-weight:600;color:{color};margin-bottom:3px;">{a.get("state","—")}</div>'
+                     f'<div style="font-size:12px;color:#555;line-height:1.55;">{a.get("evidence","")}</div></td>')
+    axes_html = (f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;'
+                 f'background:#fff;border-radius:4px;margin-bottom:10px;"><tr>{ax_cells}</tr></table>')
+
+    def _list(items, color, title):
+        items = [i for i in (items or []) if i]
+        if not items:
+            return ""
+        lis = "".join(f'<li style="margin-bottom:3px;">{i}</li>' for i in items)
+        return (f'<td width="50%" style="vertical-align:top;padding:0 5px 0 0;">'
+                f'<div style="border-left:3px solid {color};padding:6px 10px;background:#fff;">'
+                f'<div style="font-size:11px;font-weight:600;color:{color};margin-bottom:4px;">{title}</div>'
+                f'<ul style="margin:0;padding-left:16px;font-size:12px;color:#555;line-height:1.55;">{lis}</ul>'
+                f'</div></td>')
+    conf_td = _list(rg.get("confirms"), "#0F6E56", "支持主軸")
+    contra_td = _list(rg.get("contradicts"), "#C0392B", "反對主軸")
+    cc_html = ""
+    if conf_td or contra_td:
+        cc_html = (f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:10px;">'
+                   f'<tr>{conf_td or "<td width=\"50%\"></td>"}{contra_td or "<td width=\"50%\"></td>"}</tr></table>')
+
+    fals = [f for f in (rg.get("falsifiers") or []) if isinstance(f, dict) and f.get("metric")]
+    fals_html = ""
+    if fals:
+        rows = "".join(
+            f'<tr><td style="padding:4px 8px;font-size:12px;font-weight:600;color:#333;white-space:nowrap;">{f.get("metric","")}</td>'
+            f'<td style="padding:4px 8px;font-size:12px;color:#C0392B;font-weight:600;white-space:nowrap;">{f.get("threshold","")}</td>'
+            f'<td style="padding:4px 8px;font-size:12px;color:#555;line-height:1.5;">{f.get("meaning","")}</td></tr>'
+            for f in fals)
+        fals_html = (f'<div style="font-size:11px;font-weight:600;color:#888;margin-bottom:4px;">什麼數字出現就代表主軸錯了</div>'
+                     f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#fff;'
+                     f'border-radius:4px;margin-bottom:10px;">{rows}</table>')
+
+    w52 = rg.get("for_w52_engine", "")
+    w52_html = ""
+    if w52:
+        w52_html = (f'<div style="background:#1B3A5C;color:#fff;border-radius:4px;padding:8px 12px;'
+                    f'font-size:13px;line-height:1.55;">'
+                    f'<span style="font-size:10px;letter-spacing:1px;opacity:.75;">W52 引擎 ▶ </span>{w52}</div>')
+
+    conf = rg.get("confidence", "")
+    conf_reason = rg.get("confidence_reason", "")
+    conf_color = {"高": "#0F6E56", "低": "#C0392B"}.get(conf, "#BA7517")
+    conf_html = ""
+    if conf:
+        conf_html = (f'<span style="font-size:12px;color:#888;">信心 '
+                     f'<span style="font-weight:700;color:{conf_color};">{conf}</span>'
+                     f'{"｜" + conf_reason if conf_reason else ""}</span>')
+
+    return f'''
+<div class="section">
+  <div style="background:#f7f7f5;border-radius:8px;border:0.5px solid #e8e8e8;padding:14px 18px;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;
+                margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid #e8e8e8;">
+      <span style="font-size:12px;letter-spacing:1.8px;text-transform:uppercase;
+                   font-weight:500;color:#888;">今日主軸</span>
+      {conf_html}
+    </div>
+    <div style="font-size:17px;font-weight:700;color:#1B3A5C;line-height:1.4;margin-bottom:10px;">{rg.get("call","")}</div>
+    {axes_html}
+    {cc_html}
+    {fals_html}
+    {w52_html}
+  </div>
+</div>'''
+
+
 MKT_CHG_COLOR = {"pos": "#0F6E56", "neg": "#C0392B", "neu": "#888"}
 
 
@@ -796,6 +889,7 @@ def _market_pulse(pulse: dict) -> str:
     {bottom_html}
     {key_html}
     {analog_html}
+    {_vs_regime_line(pulse.get("vs_regime", ""))}
   </div>
 </div>'''
 
@@ -842,6 +936,7 @@ def _index_factor_reading(ifr: dict) -> str:
     {row1}
     {mom_html}
     {key_html}
+    {_vs_regime_line(ifr.get("vs_regime", ""))}
   </div>
 </div>'''
 
@@ -934,6 +1029,7 @@ def _sentiment_analysis(sa: dict) -> str:
     {div_html}
     {rel_html}
     {one_html}
+    {_vs_regime_line(sa.get("vs_regime", ""))}
   </div>
 </div>'''
 
@@ -2132,6 +2228,7 @@ def build_index_html(data: dict) -> str:
     content = ""
     if data.get("alert"):
         content += _alert(data["alert"])
+    content += _regime_block(data.get("regime", {}))
     content += _market_strip(data.get("market_data", {}))
     content += _index_factor_reading(data.get("index_factor_reading", {}))
     content += _sentiment_analysis(data.get("sentiment_analysis", {}))
@@ -2851,6 +2948,7 @@ def build_html(data: dict, screener_result: dict = None) -> str:
 {_quote_of_day(now[:10])}
 {_daily_summary(data.get("daily_summary",""))}
 {_alert(data.get("alert",""))}
+{_regime_block(data.get("regime", {}))}
 {_market_strip(data.get("market_data", {}))}
 {_index_factor_reading(data.get("index_factor_reading", {}))}
 {_market_pulse(data.get("market_pulse", {}))}

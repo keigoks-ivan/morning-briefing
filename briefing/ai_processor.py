@@ -29,9 +29,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # 用最新 Sonnet。要換模型設環境變數 CLAUDE_CODE_MODEL 即可（"sonnet" 也是有效別名）。
 CLAUDE_CODE_MODEL = os.environ.get("CLAUDE_CODE_MODEL", "claude-sonnet-5")
 # 逾時要留足夠餘裕給 Gemini fallback 在 workflow timeout 內跑完（三條並行）。
-CLAUDE_CODE_TIMEOUT = int(os.environ.get("CLAUDE_CODE_TIMEOUT", "600"))
+CLAUDE_CODE_TIMEOUT = int(os.environ.get("CLAUDE_CODE_TIMEOUT", "900"))
 # 分析／財報兩條的思考預算（新聞整理固定 0）。0 = 關。
-CLAUDE_CODE_THINKING = int(os.environ.get("CLAUDE_CODE_THINKING", "4000"))
+CLAUDE_CODE_THINKING = int(os.environ.get("CLAUDE_CODE_THINKING", "8000"))
 
 
 # claude -p 是「代理人」不是「補全 API」：素材不足時它會停下來反問、要求上網、拒絕湊數
@@ -393,18 +393,35 @@ GEMINI_USER_PROMPT_TEMPLATE = """
 
 CLAUDE_SYSTEM_PROMPT = """
 你是一位服務專業系統性投資者的財經分析師。
-用戶採用 NQ100 Pure MA 趨勢跟隨系統，關注 AI 基礎設施、半導體。
+用戶的實盤：指數部位採「W52 × 自適應波動率」引擎（美股 QQQ/SMH、台股 0050/2330；
+週線 W52 單線閘門決定進出，波動率決定曝險 0～150%），另有個股部位，長期關注 AI 基礎設施、半導體。
+這是一個「週線級、低頻調整」的系統：日報的任務是幫他看清環境、提前知道閘門有沒有風險，
+不是叫他每天做交易。
 你只負責「分析區塊」，新聞整理由另一個模型處理。
 
 JSON 格式規則：
 - 所有數值用英文格式（$1.42T，不是 $1.42兆）
 - 只回傳 JSON，不要任何前置說明或 markdown code block
 - 所有文字使用繁體中文，數字/公司名/技術術語保留英文
+- 中文句子的標點一律全形（，。：；「」），不得用半形 , . : ;
 
 market_data 規則：
 - market_data 直接使用 market_context 提供的真實數字，不得修改
-- move_index.val 從 Perplexity 搜尋結果中提取真實數值
-- 如果 Perplexity 沒有搜到 MOVE Index，val 填 "—"
+- move_index.val 從新聞搜尋結果中提取真實數值
+- 如果搜尋結果沒有 MOVE Index，val 填 "—"
+
+regime（主軸）規則——這是整份分析的骨架，先寫它、其他區塊都要對它表態：
+- call：一句話說今天市場處在什麼狀態，必須有方向，不可「多空拉鋸」「觀望」這類騎牆語
+- axes：風險偏好／流動性／波動三軸各給 state 與 evidence，evidence 必須引用 market_context 裡至少兩個真實數字
+- confirms：2-3 條支持主軸的觀察，各引數字
+- contradicts：1-2 條反對主軸的觀察，各引數字；若真的找不到，寫「無明顯反證」並用一句話說明為什麼這件事本身可疑（一致到沒有反證通常是擁擠或資料盲區）
+- falsifiers：2-3 條「什麼數字出現就代表主軸錯了」，metric 用可觀察的指標名、threshold 用具體數值（如「VIX 收上 22」「HYG 單日跌逾 1%」），不可寫「若市場轉弱」這類無法驗證的話
+- for_w52_engine：對 W52 引擎持有人的一句話——只描述「本週的週線閘門有沒有被威脅、波動率是否逼近會改變曝險的區間」，不下買進／賣出／加碼／減碼指令；沒有風險就直接寫「本週閘門無壓力，不需動作」
+- confidence 高／中／低 ＋ 一句理由；三軸互相矛盾或資料缺漏時不可給「高」
+
+vs_regime 規則（market_pulse / index_factor_reading / sentiment_analysis 各一欄）：
+- 格式固定「支持｜一句話」「反對｜一句話」「中性｜一句話」
+- 這一欄的目的是逼出矛盾：若這個區塊的讀數與 regime.call 不一致，必須寫「反對」，不得為了一致而修飾讀數
 
 market_pulse 分析規則：
 - 股票指數分析使用 NDX（^NDX）數值，這是美股前一日正式收盤價
@@ -527,8 +544,25 @@ CLAUDE_USER_PROMPT_TEMPLATE = """
   "daily_summary": "今日最重要的一句話總結（30字以內）",
   "alert": "最高警示事件，一句話，如無重大事件則輸出空字串",
 
+  "regime": {{
+    "call": "今天市場處在什麼狀態（15字以內，有方向）",
+    "axes": {{
+      "risk_appetite": {{"state": "偏多/偏空/中性", "evidence": "引用至少兩個真實數字"}},
+      "liquidity":     {{"state": "寬鬆/收緊/中性", "evidence": "引用至少兩個真實數字"}},
+      "volatility":    {{"state": "壓抑/上升/極端", "evidence": "引用至少兩個真實數字"}}
+    }},
+    "confirms": ["支持主軸的觀察（引數字）", "..."],
+    "contradicts": ["反對主軸的觀察（引數字）；找不到就寫『無明顯反證』並說明為何可疑"],
+    "falsifiers": [
+      {{"metric": "指標名", "threshold": "具體數值", "meaning": "出現代表主軸錯在哪（1句）"}}
+    ],
+    "for_w52_engine": "對 W52 引擎持有人的一句話（只描述閘門與波動率風險，不下買賣指令）",
+    "confidence": "高/中/低",
+    "confidence_reason": "1句"
+  }},
+
   "market_data": {{
-    "move_index": {{"val": "MOVE指數數值（從Perplexity搜尋結果提取）", "interpretation": "一句話解讀"}}
+    "move_index": {{"val": "MOVE指數數值（從新聞搜尋結果提取）", "interpretation": "一句話解讀"}}
   }},
 
   "market_pulse": {{
@@ -544,7 +578,8 @@ CLAUDE_USER_PROMPT_TEMPLATE = """
     "hidden_opportunity": "潛在機會（2句，不是顯而易見的觀察）",
     "key_level_to_watch": "關鍵價位（用NDX價位）",
     "historical_analog": "歷史類比（1句，點名具體時間段）",
-    "new_pattern": "新模式可能性（1句）"
+    "new_pattern": "新模式可能性（1句）",
+    "vs_regime": "支持｜/反對｜/中性｜ ＋ 一句話"
   }},
 
   "index_factor_reading": {{
@@ -553,7 +588,8 @@ CLAUDE_USER_PROMPT_TEMPLATE = """
     "sector_signal": "今日動態Sector的含義（1-2句）",
     "nyfang_signal": "科技巨頭訊號（1句，NYFANG vs NDX）",
     "momentum_read": "動能訊號（1句）",
-    "key_insight": "最重要的一句洞察（整合以上所有因子，有明確立場）"
+    "key_insight": "最重要的一句洞察（整合以上所有因子，有明確立場）",
+    "vs_regime": "支持｜/反對｜/中性｜ ＋ 一句話"
   }},
 
   "sentiment_analysis": {{
@@ -568,7 +604,8 @@ CLAUDE_USER_PROMPT_TEMPLATE = """
     "key_divergence": "最重要的背離或一致性訊號（1句）",
     "reliability": "高/中/低",
     "reliability_reason": "可靠性判斷依據（1句）",
-    "one_line": "綜合判斷（1句，有明確立場）"
+    "one_line": "綜合判斷（1句，有明確立場）",
+    "vs_regime": "支持｜/反對｜/中性｜ ＋ 一句話"
   }},
 
   "daily_deep_dive": [
@@ -609,7 +646,7 @@ CLAUDE_USER_PROMPT_TEMPLATE = """
 
   "system_status": {{
     "fixed": [
-      {{"name": "NQ100 趨勢", "val": "狀態", "sub": "說明", "sentiment": "pos|neg|neu"}},
+      {{"name": "W52 閘門環境", "val": "狀態", "sub": "說明（QQQ/SMH 週線趨勢與波動率環境，不下指令）", "sentiment": "pos|neg|neu"}},
       {{"name": "VIX 水位",   "val": "數值+警示", "sub": "說明", "sentiment": "pos|neg|neu"}},
       {{"name": "AI 基本面",  "val": "評估", "sub": "說明", "sentiment": "pos|neg|neu"}}
     ],
@@ -634,6 +671,7 @@ CLAUDE_USER_PROMPT_TEMPLATE = """
 }}
 
 注意：
+0. regime 先寫、先想清楚，其他區塊都要對它表態（vs_regime）；矛盾要暴露不要抹平
 1. system_status.dynamic 固定 3 個，從以下選：{dynamic_options}
 2. tech_trends 5–6 條，sub_items 固定 3 個
 3. daily_deep_dive 固定 2 個主題，從固定查詢（半導體、AI架構）和動態查詢中選最重要的 2 個
@@ -880,7 +918,7 @@ def _build_market_context(market_data: dict, today_earnings: list | None, move_i
             iwm_spy_val, iwm_spy_chg = f.get("val", "—"), f.get("chg", "—")
     lines.append(f"【市場寬度】RSP/SPY比值：{rsp_spy_val}（{rsp_spy_chg}），IWM/SPY比值：{iwm_spy_val}（{iwm_spy_chg}）")
     lines.append(f"【市場情緒】{sentiment_str}")
-    lines.append(f"【MOVE Index】{move_index_str}（從Perplexity搜尋）")
+    lines.append(f"【MOVE Index】{move_index_str}（網路搜尋結果）")
     lines.append(f"【原物料】{commodities_str}")
     lines.append(f"【債券】{bonds_str}")
     lines.append(f"【外匯】{fx_str}")
@@ -1403,7 +1441,7 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
     data = {}
 
     # 分析區塊（Claude Code / Gemini Pro / Claude API 三者之一）
-    for key in ["daily_summary", "alert", "market_pulse", "index_factor_reading",
+    for key in ["daily_summary", "alert", "regime", "market_pulse", "index_factor_reading",
                 "sentiment_analysis", "daily_deep_dive", "tech_trends",
                 "system_status", "smart_money"]:
         if key in analysis_data:
@@ -1459,6 +1497,10 @@ def _validate(data: dict) -> None:
     data["implied_trends"] = []  # 已停用，強制清空
     data.setdefault("us_market_recap", {"has_events": False, "earnings": [], "other_events": [], "summary": ""})
     data.setdefault("smart_money", {"has_signals": False, "signals": [], "summary": ""})
+    data.setdefault("regime", {
+        "call": "", "axes": {}, "confirms": [], "contradicts": [], "falsifiers": [],
+        "for_w52_engine": "", "confidence": "", "confidence_reason": "",
+    })
     data.setdefault("market_pulse", {"cross_asset_signals": [], "dominant_theme": "", "hidden_risk": "", "hidden_opportunity": "", "key_level_to_watch": "", "historical_analog": "", "new_pattern": ""})
     data.setdefault("daily_deep_dive", [])
     data.setdefault("index_factor_reading", {

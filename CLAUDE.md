@@ -48,13 +48,24 @@
 | 備援 2 | Anthropic API SDK（Sonnet 4 / 4.6）— 分析與財報兩區塊的最後備援；新聞區塊沒有 API 備援，月租三次都失敗就空白 | `ANTHROPIC_API_KEY` | 花（只在月租掛掉時） |
 
 - 實作在 `briefing/ai_processor.py` 的 `_call_claude_code()` + `_cc_analysis/_cc_news/_cc_earnings`；三個 dispatch 在 `process_news()` 裡。
-- 換模型：設環境變數 `CLAUDE_CODE_MODEL`（別名 `sonnet` 也可）。單次逾時：`CLAUDE_CODE_TIMEOUT`（預設 600 秒）；思考預算 `CLAUDE_CODE_THINKING`（分析／財報預設 4000，新聞固定 0）。
+- 換模型：設環境變數 `CLAUDE_CODE_MODEL`（別名 `sonnet` 也可）。單次逾時：`CLAUDE_CODE_TIMEOUT`（預設 900 秒，2026-08-17 由 600 上調：regime 版分析實測 440～600 秒）；思考預算 `CLAUDE_CODE_THINKING`（分析／財報預設 8000，2026-08-17 由 4000 上調給 regime 推理；新聞固定 0）。
 - **OAuth token 會過期**。過期徵兆＝log 出現 `[.. / Claude Code] failed:` 三次後掉到 Anthropic API（會花錢）。修法：本機跑 `claude setup-token`，把新 token 更新到 GitHub secret。
 - workflow 裡 `Install Claude Code CLI` 這步是 `continue-on-error: true`——裝不起來也只是掉回 Anthropic API，不擋日報。
 - log 印的 Claude Code `cost` 是 **API 等價參考值，不是實際帳單**（訂閱制不另計費）。
 - ⚠ Max 額度與跑 DD 報告共用同一池，忙的時候會互相排擠。
 
 **新聞搜尋層（news_fetcher.py，2026-08-17 同日改制）**：Perplexity 已停用（帳號當日全面 429，持有人決定不再付費）。所有搜尋走 `_llm_search()` → 主＝Claude Code headless `--allowed-tools WebSearch`、模型 `haiku`（最便宜，搜尋只是找資料）；備援＝Perplexity（僅在 workflow 傳 `PERPLEXITY_API_KEY` 時啟用，目前註解掉）。換模型：`NEWS_SEARCH_MODEL`；單次逾時：`NEWS_SEARCH_TIMEOUT`（預設 240 秒）。來源網址由模型在答案末尾 `SOURCES:` 區塊列出後解析。`_fetch_dynamic_deep_topics()` 是死碼（無呼叫端），仍寫死 Perplexity，勿誤用。
+
+---
+
+## 分析骨架：主軸先行（regime-first，2026-08-17 改制）
+
+分析區塊（`CLAUDE_SYSTEM_PROMPT` / `CLAUDE_USER_PROMPT_TEMPLATE`）不再是「每個區塊各自解讀」，而是先立主軸再讓各區塊對主軸表態：
+
+- JSON 頂層新增 `regime`：`call`（一句有方向的市場狀態）／`axes`（risk_appetite・liquidity・volatility 各 state＋evidence，證據要有實數）／`confirms`／`contradicts`（沒有反證要說為什麼可疑）／`falsifiers`（metric＋threshold＋meaning，具體門檻）／`for_w52_engine`（只講週線閘門與波動率環境，**不下買賣指令**）／`confidence`＋`confidence_reason`。
+- `market_pulse`、`index_factor_reading`、`sentiment_analysis` 各多一個 `vs_regime`：格式「支持｜／反對｜／中性｜ ＋ 一句話」，必須把矛盾點講出來。
+- 渲染：`html_template._regime_block()`（放在 alert 之後、market_strip 之前，email 與 index 頁都有）＋ `_vs_regime_line()`（三個區塊底部一行）。`_validate` 有預設值，模型漏寫時區塊直接不顯示、不炸。
+- 人設已改成持有人真實系統（W52 × 自適應波動率 cap 1.5，QQQ/SMH、0050/2330），不是泛泛的「資深分析師」。中文句子標點一律全形。
 
 ---
 
@@ -147,7 +158,7 @@ trigger.py → Render Cron → GitHub API
 
 ## 日報 build_html 區塊順序
 
-1.masthead+summary 2.alert 3._market_strip 4._index_factor_reading
+1.masthead+summary 2.alert 2b._regime_block（今日主軸） 3._market_strip 4._index_factor_reading
 5._sentiment_analysis 6._market_pulse 7._daily_deep_dive
 8.top_stories 9.world_news 10.us_market_recap 11.macro
 12.geopolitical 13.ai_industry 14.regional_tech 15.fintech_crypto
