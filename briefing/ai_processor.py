@@ -70,28 +70,39 @@ def _call_claude_code(system_prompt: str, user_prompt: str, label: str,
     env = dict(os.environ)
     env["MAX_THINKING_TOKENS"] = str(thinking_tokens)
 
-    print(f"  → [{label} / Claude Code] Calling {CLAUDE_CODE_MODEL} (Max 訂閱, thinking={thinking_tokens})...")
-    proc = subprocess.run(
-        cmd,
-        input=user_prompt,
-        capture_output=True,
-        text=True,
-        timeout=CLAUDE_CODE_TIMEOUT,
-        cwd="/tmp",
-        env=env,
-    )
-    if proc.returncode != 0:
-        raise RuntimeError(
-            f"claude CLI exited {proc.returncode}: {(proc.stderr or proc.stdout)[:300]}"
-        )
-
-    envelope = json.loads(proc.stdout)
-    if envelope.get("is_error") or envelope.get("subtype") != "success":
-        raise RuntimeError(f"claude CLI error envelope: {str(envelope)[:300]}")
-
-    raw_text = envelope.get("result") or ""
-    if not raw_text.strip():
-        raise RuntimeError("claude CLI returned empty result")
+    # 月租是唯一主路徑（Gemini 已停用），所以這裡自己重試兩次再放棄，
+    # 免得一次網路抖動就讓整個區塊空掉。
+    max_attempts = 3
+    for attempt in range(1, max_attempts + 1):
+        print(f"  → [{label} / Claude Code] Calling {CLAUDE_CODE_MODEL} "
+              f"(Max 訂閱, thinking={thinking_tokens}, attempt {attempt}/{max_attempts})...")
+        try:
+            proc = subprocess.run(
+                cmd,
+                input=user_prompt,
+                capture_output=True,
+                text=True,
+                timeout=CLAUDE_CODE_TIMEOUT,
+                cwd="/tmp",
+                env=env,
+            )
+            if proc.returncode != 0:
+                raise RuntimeError(
+                    f"claude CLI exited {proc.returncode}: {(proc.stderr or proc.stdout)[:300]}"
+                )
+            envelope = json.loads(proc.stdout)
+            if envelope.get("is_error") or envelope.get("subtype") != "success":
+                raise RuntimeError(f"claude CLI error envelope: {str(envelope)[:300]}")
+            raw_text = envelope.get("result") or ""
+            if not raw_text.strip():
+                raise RuntimeError("claude CLI returned empty result")
+            break
+        except Exception as e:
+            if attempt == max_attempts:
+                raise
+            print(f"  ⚠ [{label} / Claude Code] attempt {attempt} failed ({str(e)[:120]}), retrying in 30s...")
+            import time
+            time.sleep(30)
 
     usage = envelope.get("usage", {}) or {}
     in_tok = usage.get("input_tokens", 0) + usage.get("cache_creation_input_tokens", 0) \

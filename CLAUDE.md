@@ -43,9 +43,9 @@
 
 | 層 | 走什麼 | 認證 | 花錢嗎 |
 |---|---|---|---|
-| **主** | Claude Code CLI headless（`claude -p`），模型 `claude-sonnet-5` | `CLAUDE_CODE_OAUTH_TOKEN` secret | **不花**，吃 Max 訂閱額度 |
-| 備援 1 | Gemini 2.5 Pro（分析/財報）、2.5 Flash（新聞） | `GEMINI_API_KEY` | 花 |
-| 備援 2 | Anthropic API SDK（Sonnet 4 / 4.6） | `ANTHROPIC_API_KEY` | 花 |
+| **主** | Claude Code CLI headless（`claude -p`），模型 `claude-sonnet-5`，內建 3 次重試 | `CLAUDE_CODE_OAUTH_TOKEN` secret | **不花**，吃 Max 訂閱額度 |
+| 備援 1 | Gemini 2.5 Pro／Flash — **已停用**（持有人 2026-08-17 決定只用月租；workflow 不傳 `GEMINI_API_KEY`，程式碼保留，要開回來取消 yml 註解即可） | — | — |
+| 備援 2 | Anthropic API SDK（Sonnet 4 / 4.6）— 分析與財報兩區塊的最後備援；新聞區塊沒有 API 備援，月租三次都失敗就空白 | `ANTHROPIC_API_KEY` | 花（只在月租掛掉時） |
 
 - 實作在 `briefing/ai_processor.py` 的 `_call_claude_code()` + `_cc_analysis/_cc_news/_cc_earnings`；三個 dispatch 在 `process_news()` 裡。
 - 換模型：設環境變數 `CLAUDE_CODE_MODEL`（別名 `sonnet` 也可）。單次逾時：`CLAUDE_CODE_TIMEOUT`（預設 900 秒）。
