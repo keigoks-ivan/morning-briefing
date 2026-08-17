@@ -1140,6 +1140,7 @@ def fetch_today_earnings() -> list[dict]:
 # 走 Google News RSS 的 site:/關鍵字查詢當代理（標題＋一句摘要＋來源名，有發布時間）。
 # 每個 feed：名稱、URL、最多取幾條、回看幾小時。實測 2026-08-17：WSJ／Nikkei 官方 feed 已停更，不列。
 _GN = "https://news.google.com/rss/search?q={q}&hl=en-US&gl=US&ceid=US:en"
+_GN_TW = "https://news.google.com/rss/search?q={q}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
 RSS_FEEDS = [
     # (source_label, url, max_items, max_age_hours)
     # 台灣／中文
@@ -1147,6 +1148,9 @@ RSS_FEEDS = [
     ("MoneyDJ 台股",     "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB020000", 10, 24),
     ("MoneyDJ 科技產業", "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB060000", 10, 24),
     ("中央社 財經",      "https://feeds.feedburner.com/rsscna/finance", 10, 24),
+    # MoneyDJ 官方 RSS 在 GitHub runner 上抓不到（2026-08-17 兩次 CI 皆 0 條，本機 SSL 錯），加 GN 代理保底
+    ("MoneyDJ (GN)",    _GN_TW.format(q="site:moneydj.com+when:1d"), 12, 24),
+    ("工商時報 (GN)",   _GN_TW.format(q="site:ctee.com.tw+(半導體+OR+台積電+OR+AI+OR+聯準會+OR+關稅)+when:1d"), 8, 24),
     # 通用財經
     ("CNBC Top",        "https://www.cnbc.com/id/100003114/device/rss/rss.html", 12, 24),
     ("CNBC Tech",       "https://www.cnbc.com/id/19854910/device/rss/rss.html", 8, 24),
