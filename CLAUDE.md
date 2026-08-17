@@ -45,12 +45,14 @@
 |---|---|---|---|
 | **主** | Claude Code CLI headless（`claude -p`），模型 `claude-sonnet-5`，內建 3 次重試 | `CLAUDE_CODE_OAUTH_TOKEN` secret | **不花**，吃 Max 訂閱額度 |
 | 備援 1 | Gemini 2.5 Pro／Flash — **已停用**（持有人 2026-08-17 決定只用月租；workflow 不傳 `GEMINI_API_KEY`，程式碼保留，要開回來取消 yml 註解即可） | — | — |
-| 備援 2 | Anthropic API SDK（Sonnet 4 / 4.6）— 分析與財報兩區塊的最後備援；新聞區塊沒有 API 備援，月租三次都失敗就空白 | `ANTHROPIC_API_KEY` | 花（只在月租掛掉時） |
+| 備援 2 | Anthropic API SDK（Sonnet 4 / 4.6）— **已停用**（2026-08-17 晚持有人明確不要走 API；workflow 不傳 `ANTHROPIC_API_KEY`，程式碼保留，要開回來取消 yml 註解） | — | — |
 
+- ⚠ **CLI 子程序絕不能帶 `ANTHROPIC_API_KEY`**：Claude Code 同時看到 API key 與 OAuth token 時會優先用 API key 計費到 Console（2026-08-17 三次日報實際被扣款才發現）。`_cli_env()`／`_claude_search` 已把 `ANTHROPIC_API_KEY`／`ANTHROPIC_AUTH_TOKEN`／`ANTHROPIC_BASE_URL` 從子程序 env 拿掉；日後任何新的 `claude -p` 呼叫都要照做。驗證：手動跑 `claude_auth_check.yml`（30 秒，只帶 OAuth token 跑一句 haiku，印 `AUTH_OK`）。
+- 月租三次都失敗的後果：新聞區塊空白；分析區塊 `_call_claude` 因缺 key 拋錯 → workflow 紅燈 → GitHub 寄失敗通知。這是刻意設計：寧可紅燈也不偷偷花錢。
 - 實作在 `briefing/ai_processor.py` 的 `_call_claude_code()` + `_cc_analysis/_cc_news/_cc_earnings`；三個 dispatch 在 `process_news()` 裡。
 - 換模型：設環境變數 `CLAUDE_CODE_MODEL`（別名 `sonnet` 也可）。單次逾時：`CLAUDE_CODE_TIMEOUT`（預設 900 秒，2026-08-17 由 600 上調：regime 版分析實測 440～600 秒）；思考預算 `CLAUDE_CODE_THINKING`（分析／財報預設 8000，2026-08-17 由 4000 上調給 regime 推理；新聞固定 0）。
-- **OAuth token 會過期**。過期徵兆＝log 出現 `[.. / Claude Code] failed:` 三次後掉到 Anthropic API（會花錢）。修法：本機跑 `claude setup-token`，把新 token 更新到 GitHub secret。
-- workflow 裡 `Install Claude Code CLI` 這步是 `continue-on-error: true`——裝不起來也只是掉回 Anthropic API，不擋日報。
+- **OAuth token 會過期**。過期徵兆＝log 出現 `[.. / Claude Code] failed:` 三次、workflow 紅燈。修法：本機跑 `claude setup-token`，把新 token 更新到 GitHub secret。
+- workflow 裡 `Install Claude Code CLI` 這步是 `continue-on-error: true`——裝不起來時分析區塊會因無備援而紅燈（見上）。
 - log 印的 Claude Code `cost` 是 **API 等價參考值，不是實際帳單**（訂閱制不另計費）。
 - ⚠ Max 額度與跑 DD 報告共用同一池，忙的時候會互相排擠。
 
