@@ -33,7 +33,7 @@
 - 週報 GitHub cron：15 22 * * 6（UTC）= 週日台灣 06:15 → weekly_report.yml
 - 週日 trigger.py 自己判斷跳過日報（weekday==6）
 - 排程不跑：git commit --allow-empty -m "resync" && git push
-- GitHub Actions timeout：45 分鐘（日報，2026-08-17 由 30 分上調，因 Claude Code 主路徑逾時後要留時間給 Gemini fallback）/ 60 分鐘（週報）
+- GitHub Actions timeout：45 分鐘（日報，2026-08-17 由 30 分上調，因 Claude Code 主路徑重試＋逾時後要留時間給 API fallback）/ 60 分鐘（週報）
 
 ---
 
@@ -48,9 +48,9 @@
 | 備援 2 | Anthropic API SDK（Sonnet 4 / 4.6）— 分析與財報兩區塊的最後備援；新聞區塊沒有 API 備援，月租三次都失敗就空白 | `ANTHROPIC_API_KEY` | 花（只在月租掛掉時） |
 
 - 實作在 `briefing/ai_processor.py` 的 `_call_claude_code()` + `_cc_analysis/_cc_news/_cc_earnings`；三個 dispatch 在 `process_news()` 裡。
-- 換模型：設環境變數 `CLAUDE_CODE_MODEL`（別名 `sonnet` 也可）。單次逾時：`CLAUDE_CODE_TIMEOUT`（預設 900 秒）。
-- **OAuth token 會過期**。過期徵兆＝log 出現 `[.. / Claude Code] failed:` 然後掉到 Gemini。修法：本機跑 `claude setup-token`，把新 token 更新到 GitHub secret。
-- workflow 裡 `Install Claude Code CLI` 這步是 `continue-on-error: true`——裝不起來也只是掉回 Gemini，不擋日報。
+- 換模型：設環境變數 `CLAUDE_CODE_MODEL`（別名 `sonnet` 也可）。單次逾時：`CLAUDE_CODE_TIMEOUT`（預設 600 秒）；思考預算 `CLAUDE_CODE_THINKING`（分析／財報預設 4000，新聞固定 0）。
+- **OAuth token 會過期**。過期徵兆＝log 出現 `[.. / Claude Code] failed:` 三次後掉到 Anthropic API（會花錢）。修法：本機跑 `claude setup-token`，把新 token 更新到 GitHub secret。
+- workflow 裡 `Install Claude Code CLI` 這步是 `continue-on-error: true`——裝不起來也只是掉回 Anthropic API，不擋日報。
 - log 印的 Claude Code `cost` 是 **API 等價參考值，不是實際帳單**（訂閱制不另計費）。
 - ⚠ Max 額度與跑 DD 報告共用同一池，忙的時候會互相排擠。
 
