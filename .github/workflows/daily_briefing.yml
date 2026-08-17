@@ -7,6 +7,11 @@ on:
     # 「Skip if already sent today」保證兩者同日只寄一封。
     - cron: "15 22 * * 0-5"
   workflow_dispatch:
+    inputs:
+      force:
+        description: "略過「今日已寄過」檢查，強制再跑一次（測試用）"
+        type: boolean
+        default: false
 
 concurrency:
   group: daily-briefing
@@ -23,6 +28,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          if [ "${{ inputs.force }}" = "true" ]; then
+            echo "force=true → skip dedup"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           TODAY=$(TZ=Asia/Taipei date +%Y-%m-%d)
           # 台灣日期 = UTC 前一日 16:00 起；抓 24h 內的成功 run，再用台灣日期過濾
           SINCE=$(date -u -d '-24 hours' +%Y-%m-%dT%H:%M:%SZ)
