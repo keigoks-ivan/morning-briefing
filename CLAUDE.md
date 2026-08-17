@@ -28,7 +28,8 @@
 
 ## 排程設定
 
-- 日報 Render cron：22:15 UTC（每天）= 台灣 06:15 → trigger.py → GitHub API workflow_dispatch → daily_briefing.yml
+- 日報 GitHub cron（主，2026-08-17 起）：`15 22 * * 0-5`（UTC）= 週一到週六台灣 06:15 → daily_briefing.yml；Render cron 22:15 UTC → trigger.py → workflow_dispatch 保留為備援。workflow 內 `dedup` job 以台灣日期查當日已成功 run，兩者同日只寄一封
+- 2026-06-23～2026-08-16 日報曾暫停（與 Gemini API 暫停同因），已恢復；週報仍停用（workflow disabled_manually）
 - 週報 GitHub cron：15 22 * * 6（UTC）= 週日台灣 06:15 → weekly_report.yml
 - 週日 trigger.py 自己判斷跳過日報（weekday==6）
 - 排程不跑：git commit --allow-empty -m "resync" && git push
