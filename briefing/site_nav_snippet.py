@@ -28,6 +28,11 @@ BRIEF/WEEK/EARN 三塊皆已由 canonical full_nav_block 重生為 byte-identica
 intel 升首位；補齊 07-17 以來累積的頂層「投資流程」等變更）。NAV_BLOCK_BRIEF 由
 ('market', None) 改 ('market', 'brief')——每日簡報 2026-08-17 已重新掛回選單，簡報頁
 恢復項目高亮。三塊皆由 canonical full_nav_block 重生、byte-identical 驗證通過。
+2026-08-20 補（研究區整併第二階段，nav 瘦身）：研究 ▾ 由 7 項收斂為 3 項——「個股研究」
+(/t/)／「產業研究」(/id/)／「Tier Matrix」(/id/tier_matrix.html)。移除的 4 項（個股 DD／
+供應鏈地圖／多股對比／期望落差綜合研判）已於研究區整併第一階段（20260820）收進 /t/ 或
+/id/ 分頁。BRIEF/WEEK/EARN 三塊研究下拉皆已同步；其餘群（市場/選股/系統）不受影響，
+未重生整段驗證 byte-identical，只手動替換研究下拉區塊，其餘字元不變。
 """
 
 # group='market', item='brief'  (daily briefing pages, /briefing/ — 2026-08-17 重新掛回選單)
@@ -93,13 +98,9 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
-          <a href="/t/">個股總覽</a>
-          <a href="/research/">個股 DD</a>
-          <a href="/id/">產業深度 ID</a>
+          <a href="/t/">個股研究</a>
+          <a href="/id/">產業研究</a>
           <a href="/id/tier_matrix.html">Tier Matrix</a>
-          <a href="/supply-chain/">供應鏈地圖</a>
-          <a href="/comparisons/">多股對比</a>
-          <a href="/research/synthesis/">期望落差綜合研判</a>
         </div>
       </div>
       <a href="/mental-models/">心智模型</a>
@@ -186,13 +187,9 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
-          <a href="/t/">個股總覽</a>
-          <a href="/research/">個股 DD</a>
-          <a href="/id/">產業深度 ID</a>
+          <a href="/t/">個股研究</a>
+          <a href="/id/">產業研究</a>
           <a href="/id/tier_matrix.html">Tier Matrix</a>
-          <a href="/supply-chain/">供應鏈地圖</a>
-          <a href="/comparisons/">多股對比</a>
-          <a href="/research/synthesis/">期望落差綜合研判</a>
         </div>
       </div>
       <a href="/mental-models/">心智模型</a>
@@ -279,13 +276,9 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
-          <a href="/t/">個股總覽</a>
-          <a href="/research/">個股 DD</a>
-          <a href="/id/">產業深度 ID</a>
+          <a href="/t/">個股研究</a>
+          <a href="/id/">產業研究</a>
           <a href="/id/tier_matrix.html">Tier Matrix</a>
-          <a href="/supply-chain/">供應鏈地圖</a>
-          <a href="/comparisons/">多股對比</a>
-          <a href="/research/synthesis/">期望落差綜合研判</a>
         </div>
       </div>
       <a href="/mental-models/">心智模型</a>
