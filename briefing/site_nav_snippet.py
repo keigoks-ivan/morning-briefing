@@ -23,9 +23,14 @@ Synced 2026-07-07（整站 IA v2：三群 研究/市場/工具 → 四群 選股
 市場群增「資產輪動雷達」(/rotation/radar.html)；系統群增「裁決實績」(/track-record/)與「公開資料」(/data.html)；
 BRIEF/WEEK/EARN 三塊皆已由 canonical full_nav_block 重生為 byte-identical。
 2026-07-16 補：市場群 monitor 之後加入「偵測警報網」(/detective/)，BRIEF/WEEK/EARN 三塊皆已同步。
+2026-08-20 補（intel 2.0 Phase C）：canonical 大改後全量重生——市場群 13→7（monitor／
+偵測警報網／產業輪動／擁擠交易／regime／催化劑 六條目收斂進 /intel/ 情報監視器分頁殼，
+intel 升首位；補齊 07-17 以來累積的頂層「投資流程」等變更）。NAV_BLOCK_BRIEF 由
+('market', None) 改 ('market', 'brief')——每日簡報 2026-08-17 已重新掛回選單，簡報頁
+恢復項目高亮。三塊皆由 canonical full_nav_block 重生、byte-identical 驗證通過。
 """
 
-# group='market', item=None  (daily briefing pages, /briefing/ — 簡報項已自選單移除)
+# group='market', item='brief'  (daily briefing pages, /briefing/ — 2026-08-17 重新掛回選單)
 NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
 .imq-nav-root{background:linear-gradient(135deg,#081832 0%,#173564 100%);padding:.7rem 20px;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,.12);position:sticky;top:0;z-index:1000;font-family:'Inter','Noto Sans TC',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .imq-nav-inner{max-width:1140px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
@@ -65,15 +70,11 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
       <div class="imq-dd active">
         <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
-          <a href="/monitor/">市場監測</a>
-          <a href="/detective/">偵測警報網</a>
+          <a href="/intel/">情報監視器</a>
+          <a href="/briefing/" class="active">每日簡報</a>
           <a href="/rotation/radar.html">資產輪動雷達</a>
-          <a href="/rotation/">產業輪動</a>
-          <a href="/crowding/">擁擠交易監測</a>
-          <a href="/regime/">大類資產 regime</a>
           <a href="/macro/">總經深度報告</a>
           <a href="/earnings/">財報分析</a>
-          <a href="/catalyst/">催化劑日曆</a>
           <a href="/markets.html">Markets</a>
           <a href="/sectors.html">Sectors</a>
         </div>
@@ -106,15 +107,15 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
         <button type="button" class="imq-dd-btn">系統<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/track-record/">裁決實績</a>
-          <a href="/long-track-smh/">長線訊號 SMH</a>
-          <a href="/long-track-tw/">台股長線</a>
-          <a href="/turtle-sleeve/">商品 Sleeve</a>
+          <a href="/pm/">持倉週掃</a>
+          <a href="/long-track-w52-adaptive/">實單主系統</a>
+          <a href="/long-track/">追蹤總覽</a>
           <a href="/backtest/">量化回測</a>
           <a href="/tools/">期貨部位計算機</a>
-          <a href="/cache/">Data Cache</a>
           <a href="/data.html">公開資料</a>
         </div>
       </div>
+      <a href="/flow/">投資流程</a>
       <a href="/how-to.html">使用指南</a>
       <a href="/search.html">搜尋</a>
     </nav>
@@ -162,15 +163,11 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
       <div class="imq-dd active">
         <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
-          <a href="/monitor/">市場監測</a>
-          <a href="/detective/">偵測警報網</a>
+          <a href="/intel/">情報監視器</a>
+          <a href="/briefing/">每日簡報</a>
           <a href="/rotation/radar.html">資產輪動雷達</a>
-          <a href="/rotation/">產業輪動</a>
-          <a href="/crowding/">擁擠交易監測</a>
-          <a href="/regime/">大類資產 regime</a>
           <a href="/macro/">總經深度報告</a>
           <a href="/earnings/">財報分析</a>
-          <a href="/catalyst/">催化劑日曆</a>
           <a href="/markets.html">Markets</a>
           <a href="/sectors.html">Sectors</a>
         </div>
@@ -203,15 +200,15 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
         <button type="button" class="imq-dd-btn">系統<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/track-record/">裁決實績</a>
-          <a href="/long-track-smh/">長線訊號 SMH</a>
-          <a href="/long-track-tw/">台股長線</a>
-          <a href="/turtle-sleeve/">商品 Sleeve</a>
+          <a href="/pm/">持倉週掃</a>
+          <a href="/long-track-w52-adaptive/">實單主系統</a>
+          <a href="/long-track/">追蹤總覽</a>
           <a href="/backtest/">量化回測</a>
           <a href="/tools/">期貨部位計算機</a>
-          <a href="/cache/">Data Cache</a>
           <a href="/data.html">公開資料</a>
         </div>
       </div>
+      <a href="/flow/">投資流程</a>
       <a href="/how-to.html">使用指南</a>
       <a href="/search.html">搜尋</a>
     </nav>
@@ -259,15 +256,11 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
       <div class="imq-dd active">
         <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
-          <a href="/monitor/">市場監測</a>
-          <a href="/detective/">偵測警報網</a>
+          <a href="/intel/">情報監視器</a>
+          <a href="/briefing/">每日簡報</a>
           <a href="/rotation/radar.html">資產輪動雷達</a>
-          <a href="/rotation/">產業輪動</a>
-          <a href="/crowding/">擁擠交易監測</a>
-          <a href="/regime/">大類資產 regime</a>
           <a href="/macro/">總經深度報告</a>
           <a href="/earnings/" class="active">財報分析</a>
-          <a href="/catalyst/">催化劑日曆</a>
           <a href="/markets.html">Markets</a>
           <a href="/sectors.html">Sectors</a>
         </div>
@@ -300,15 +293,15 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
         <button type="button" class="imq-dd-btn">系統<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/track-record/">裁決實績</a>
-          <a href="/long-track-smh/">長線訊號 SMH</a>
-          <a href="/long-track-tw/">台股長線</a>
-          <a href="/turtle-sleeve/">商品 Sleeve</a>
+          <a href="/pm/">持倉週掃</a>
+          <a href="/long-track-w52-adaptive/">實單主系統</a>
+          <a href="/long-track/">追蹤總覽</a>
           <a href="/backtest/">量化回測</a>
           <a href="/tools/">期貨部位計算機</a>
-          <a href="/cache/">Data Cache</a>
           <a href="/data.html">公開資料</a>
         </div>
       </div>
+      <a href="/flow/">投資流程</a>
       <a href="/how-to.html">使用指南</a>
       <a href="/search.html">搜尋</a>
     </nav>
