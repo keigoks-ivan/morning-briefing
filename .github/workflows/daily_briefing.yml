@@ -1,12 +1,58 @@
 name: Daily Financial Briefing
 
 on:
+  schedule:
+    # 22:15 UTC Sun-Fri = 台灣 06:15 週一到週六（週日由週報接手）。
+    # 2026-08-17 起 GitHub cron 為主、Render trigger.py 為備援；下方
+    # 「Skip if already sent today」保證兩者同日只寄一封。
+    - cron: "15 22 * * 0-5"
   workflow_dispatch:
+    inputs:
+      force:
+        description: "略過「今日已寄過」檢查，強制再跑一次（測試用）"
+        type: boolean
+        default: false
+
+concurrency:
+  group: daily-briefing
+  cancel-in-progress: false
 
 jobs:
-  send-briefing:
+  dedup:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - name: Skip if already sent today (Taipei date)
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ inputs.force }}" = "true" ]; then
+            echo "force=true → skip dedup"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          TODAY=$(TZ=Asia/Taipei date +%Y-%m-%d)
+          # 台灣日期 = UTC 前一日 16:00 起；抓 24h 內的成功 run，再用台灣日期過濾
+          SINCE=$(date -u -d '-24 hours' +%Y-%m-%dT%H:%M:%SZ)
+          DONE=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow daily_briefing.yml \
+                   --status success --created ">=$SINCE" --json createdAt,databaseId \
+                   --jq "[.[] | select(.databaseId != ${{ github.run_id }})
+                          | select((.createdAt | fromdateiso8601 + 8*3600 | strftime(\"%Y-%m-%d\")) == \"$TODAY\")] | length")
+          echo "successful runs already today (Taipei $TODAY): $DONE"
+          if [ "$DONE" != "0" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  send-briefing:
+    needs: dedup
+    if: needs.dedup.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    # 2026-08-17：30 → 45 分。Claude Code 主路徑逾時（600s）後還要留時間給 Gemini fallback。
+    timeout-minutes: 45
 
     steps:
       - name: Checkout code
@@ -28,11 +74,30 @@ jobs:
           pip install -r requirements.txt
           pip install openpyxl pandas numpy yfinance --upgrade
 
+      # 2026-08-17：AI 生成主路徑改走 Claude Code headless（Max 訂閱，不耗 API 額度）。
+      # 認證用 CLAUDE_CODE_OAUTH_TOKEN secret（本機 `claude setup-token` 產生，會過期）。
+      # 裝不起來或 token 失效時 ai_processor.py 會自動 fallback 到 Gemini，日報照出。
+      - name: Install Claude Code CLI
+        continue-on-error: true
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+
       - name: Run morning briefing
         env:
-          ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
-          GEMINI_API_KEY:    ${{ secrets.GEMINI_API_KEY }}
-          PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # 2026-08-17 持有人決定：只用 Claude 月租，不用 Gemini API。
+          # 不傳 GEMINI_API_KEY → ai_processor 的 Gemini 層自動跳過，直接掉到 Anthropic API 最後備援。
+          # 要臨時開回來只要把下一行取消註解。
+          # GEMINI_API_KEY:    ${{ secrets.GEMINI_API_KEY }}
+          # 2026-08-17 晚：持有人發現 Console 被扣款——原因是 CLI 子程序繼承了這把 key，
+          # Claude Code 看到 API key 就優先用它計費而非月租（程式碼已改為子程序不帶 key）。
+          # 持有人明確不要走 API，故整把 key 不再傳入：月租三次失敗＝該區塊空白／workflow 紅燈寄通知，
+          # 不會偷偷花錢。要開回 API 最後備援只要取消下一行註解。
+          # ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
+          # 2026-08-17：新聞搜尋改走 Claude Code + WebSearch（Haiku，月租）。
+          # Perplexity 帳號當日已全面 429；持有人決定不再付費。要開回備援取消下一行註解。
+          # PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
           RESEND_API_KEY:    ${{ secrets.RESEND_API_KEY }}
           TO_EMAIL:          ${{ secrets.TO_EMAIL }}
         run: |
@@ -61,6 +126,12 @@ jobs:
           if [ -d "$PAGES_DIR" ] && [ "$(ls -A $PAGES_DIR 2>/dev/null)" ]; then
             cp "$PAGES_DIR"/*.html docs/briefing/
             echo "Copied $(ls docs/briefing/*.html | wc -l) pages from build"
+            # 主軸快照（regime_YYYY-MM-DD.json ＋ regime_latest.json）：隔天日報讀回來做昨日主軸驗證
+            if [ -d "$PAGES_DIR/data" ]; then
+              mkdir -p docs/briefing/data
+              cp "$PAGES_DIR"/data/*.json docs/briefing/data/
+              echo "Copied $(ls docs/briefing/data/*.json | wc -l) data files"
+            fi
           else
             echo "No multi-page output found, falling back to single-page"
             cp "${GITHUB_WORKSPACE}/${HTML_FILE}" docs/briefing/index.html

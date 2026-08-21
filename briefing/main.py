@@ -25,7 +25,7 @@ try:
 except ImportError:
     pass  # 生產環境不需要 dotenv
 
-from news_fetcher import fetch_financial_news, fetch_market_data, fetch_today_earnings, fetch_moneydj_news, fetch_deep_dive_news, fetch_move_index, fetch_earnings_deep_dive
+from news_fetcher import fetch_financial_news, fetch_market_data, fetch_today_earnings, fetch_rss_news, fetch_deep_dive_news, fetch_move_index, fetch_earnings_deep_dive, fetch_dd_watchlist, tag_watchlist, fetch_prev_regime
 from ai_processor import process_news
 from html_template import build_html, build_all_pages
 from email_sender import send_email
@@ -44,7 +44,10 @@ def main() -> None:
     move_index_raw = fetch_move_index()
     today_earnings = fetch_today_earnings()
     raw_news = fetch_financial_news()
-    moneydj_news = fetch_moneydj_news()
+    moneydj_news = fetch_rss_news()
+    watchlist = fetch_dd_watchlist()          # DD universe（research.investmquest.com/dd-screener/）
+    tag_watchlist(moneydj_news, watchlist)    # RSS 條目標 ★關注[ticker]
+    prev_regime = fetch_prev_regime()         # 昨日主軸（regime.review 驗證用）
     deep_dive_news = fetch_deep_dive_news()
     # 日報財報深度分析暫停 — 已改由 Claude remote routine 獨立跑（trig_01Y14kkNRWHHtWLfVGCFLQs8，
     # 每日 TW 08:00，存 Google Drive「04 美股財報」）。這邊傳空 list 讓下游走 empty stub，
@@ -52,7 +55,7 @@ def main() -> None:
     # earnings_deep_dive = fetch_earnings_deep_dive()
     earnings_deep_dive = []
     dd_count = len(deep_dive_news.get("fixed", [])) + len(deep_dive_news.get("dynamic", [])) if isinstance(deep_dive_news, dict) else len(deep_dive_news)
-    print(f"      {len(raw_news)} queries completed, {len(today_earnings)} earnings confirmed, {len(moneydj_news)} MoneyDJ news, {dd_count} deep dive, {len(earnings_deep_dive)} earnings deep (paused — handled by Claude remote routine)")
+    print(f"      {len(raw_news)} queries completed, {len(today_earnings)} earnings confirmed, {len(moneydj_news)} RSS news, {dd_count} deep dive, {len(earnings_deep_dive)} earnings deep (paused — handled by Claude remote routine)")
 
     # 1.5 執行 Screener（台灣週二~週六才跑，對應美股前一交易日）
     # 週日(6)、週一(0)跳過：週六、週日美股休市，無新數據
@@ -99,7 +102,7 @@ def main() -> None:
 
     # 2. AI 處理
     print("\n[2/4] Processing with Gemini/Claude...")
-    data = process_news(raw_news, market_data, today_earnings, moneydj_news, deep_dive_news, move_index_raw=move_index_raw, earnings_deep_dive=earnings_deep_dive)
+    data = process_news(raw_news, market_data, today_earnings, moneydj_news, deep_dive_news, move_index_raw=move_index_raw, earnings_deep_dive=earnings_deep_dive, prev_regime=prev_regime, watchlist=watchlist)
 
     # 注入日期供多頁 builder 使用
     tz_now = datetime.now(tz)
@@ -123,6 +126,27 @@ def main() -> None:
         with open(page_path, "w", encoding="utf-8") as f:
             f.write(html_content)
     print(f"      Saved {len(pages)} pages to {docs_dir}")
+
+    # 3.6 存今日主軸快照（隔天 fetch_prev_regime 讀回來做 regime.review 驗證）
+    #     發布步驟會把 docs/briefing/data/ 一起 copy 到網站 repo
+    try:
+        import json as _json
+        data_dir = os.path.join(docs_dir, "data")
+        os.makedirs(data_dir, exist_ok=True)
+        snap = {
+            "date": tz_now.strftime("%Y-%m-%d"),
+            "generated_at": data["date"],
+            "regime": data.get("regime", {}),
+            "daily_summary": data.get("daily_summary", ""),
+            "alert": data.get("alert", ""),
+            "market_context": data.get("_market_context_text", ""),
+        }
+        for fn in (f"regime_{snap['date']}.json", "regime_latest.json"):
+            with open(os.path.join(data_dir, fn), "w", encoding="utf-8") as f:
+                _json.dump(snap, f, ensure_ascii=False, indent=1)
+        print(f"      Saved regime snapshot → data/regime_{snap['date']}.json")
+    except Exception as e:
+        print(f"      ⚠ regime snapshot failed: {e}")
 
     # 同時保留舊的單檔輸出（向後相容）
     output_dir = os.path.join(os.path.dirname(__file__), "output")

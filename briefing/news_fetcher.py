@@ -1,12 +1,20 @@
 """
 news_fetcher.py
 ---------------
-使用 Perplexity API 搜尋每日財經、科技、新創新聞。
-限制前24小時內的新聞。
+搜尋每日財經、科技、新創新聞（限前 24 小時），加上 yfinance 行情與 FRED 流動性。
+
+新聞搜尋後端（2026-08-17 改制）：
+  主要   Claude Code CLI headless + WebSearch 工具，模型 Haiku（最便宜）→ 走 Max 訂閱
+  備援   Perplexity sonar → 需 PERPLEXITY_API_KEY（持有人已決定不再付費，workflow 不傳 key）
+所有搜尋呼叫都走 `_llm_search()`，後端切換在那一個函式裡。
 """
 
 import os
+import re
+import json
 import time
+import shutil
+import subprocess
 import requests
 import feedparser
 import concurrent.futures
@@ -14,46 +22,134 @@ from datetime import datetime, timedelta
 import pytz
 
 
+# ═══════════════════════════════════════════════════════════════
+# 搜尋後端：Claude Code（Haiku + WebSearch）主、Perplexity 備援
+# ═══════════════════════════════════════════════════════════════
+
+# 搜尋只是「找資料＋整理」，用最便宜的檔就夠；分析交給 ai_processor 的 Sonnet。
+NEWS_SEARCH_MODEL = os.environ.get("NEWS_SEARCH_MODEL", "haiku")
+NEWS_SEARCH_TIMEOUT = int(os.environ.get("NEWS_SEARCH_TIMEOUT", "240"))
+
+_SEARCH_GUARD = """
+【執行環境】你在無人值守的自動化 pipeline 裡，沒有人會回覆你。
+- 先用 WebSearch 工具搜尋（可搜多次），再用英文直接作答，不要反問、不要提出選項。
+- 答案要含具體數字、日期、來源媒體名稱。
+- 最後一行起輸出 `SOURCES:`，之後每行一個你實際引用的網址（最多 5 個）。找不到就寫 `SOURCES: none`。
+- 除了答案與 SOURCES 區塊，不要輸出其他東西。
+"""
+
+
+def _claude_code_available() -> bool:
+    return bool(shutil.which("claude")) and bool(
+        os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") or os.environ.get("CLAUDE_CODE_USE_LOCAL_AUTH")
+    )
+
+
+def _claude_search(system_content: str, user_content: str, label: str) -> dict:
+    """Claude Code headless + WebSearch。回 {"answer", "sources"}；失敗 raise。"""
+    cmd = [
+        shutil.which("claude"), "-p",
+        "--output-format", "json",
+        "--model", NEWS_SEARCH_MODEL,
+        "--system-prompt", system_content + "\n" + _SEARCH_GUARD,
+        "--allowed-tools", "WebSearch",
+    ]
+    env = dict(os.environ)
+    # 同 ai_processor._cli_env：拿掉 API key，否則 CLI 會優先走 API 計費而非月租
+    for k in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL"):
+        env.pop(k, None)
+    env["MAX_THINKING_TOKENS"] = "0"
+    proc = subprocess.run(cmd, input=user_content, capture_output=True, text=True,
+                          timeout=NEWS_SEARCH_TIMEOUT, cwd="/tmp", env=env)
+    if proc.returncode != 0:
+        raise RuntimeError(f"claude CLI exited {proc.returncode}: {(proc.stderr or proc.stdout)[:200]}")
+    envelope = json.loads(proc.stdout)
+    if envelope.get("is_error") or envelope.get("subtype") != "success":
+        raise RuntimeError(f"claude CLI error envelope: {str(envelope)[:200]}")
+    text = (envelope.get("result") or "").strip()
+    if not text:
+        raise RuntimeError("empty result")
+
+    answer, sources = text, []
+    m = re.search(r"\n\s*SOURCES?:\s*(.*)$", text, re.S | re.I)
+    if m:
+        answer = text[:m.start()].strip()
+        sources = re.findall(r"https?://\S+", m.group(1))
+    return {"answer": answer, "sources": sources[:5]}
+
+
+def _perplexity_search(system_content: str, user_content: str, max_tokens: int,
+                       recency: str, timeout: int = 45) -> dict:
+    """Perplexity sonar（備援）。回 {"answer", "sources"}；失敗 raise。"""
+    api_key = os.environ.get("PERPLEXITY_API_KEY", "")
+    if not api_key:
+        raise RuntimeError("PERPLEXITY_API_KEY not set")
+    payload = {
+        "model": "sonar",
+        "messages": [
+            {"role": "system", "content": system_content},
+            {"role": "user", "content": user_content},
+        ],
+        "search_recency_filter": recency,
+        "return_citations": True,
+        "max_tokens": max_tokens,
+    }
+    resp = requests.post(
+        "https://api.perplexity.ai/chat/completions",
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        json=payload, timeout=timeout,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    return {"answer": data["choices"][0]["message"]["content"],
+            "sources": data.get("citations", [])[:5]}
+
+
+def _llm_search(system_content: str, user_content: str, max_tokens: int = 600,
+                recency: str = "day", label: str = "search") -> dict:
+    """統一入口：Claude Code（月租）→ Perplexity（若有 key）→ 空。永不 raise。"""
+    if _claude_code_available():
+        try:
+            r = _claude_search(system_content, user_content, label)
+            print(f"  ✓ [{label}] {user_content[:50]}... ({len(r['sources'])} sources, claude/{NEWS_SEARCH_MODEL})")
+            return r
+        except Exception as e:
+            print(f"  ⚠ [{label}] claude search failed: {str(e)[:120]}")
+    if os.environ.get("PERPLEXITY_API_KEY"):
+        try:
+            r = _perplexity_search(system_content, user_content, max_tokens, recency)
+            print(f"  ✓ [{label}] {user_content[:50]}... ({len(r['sources'])} sources, perplexity)")
+            return r
+        except Exception as e:
+            print(f"  ✗ [{label}] {user_content[:50]}...: {e}")
+    else:
+        print(f"  ✗ [{label}] {user_content[:50]}...: no search backend available")
+    return {"answer": "", "sources": []}
+
+
+# 2026-08-17 晚改制：RSS（見 RSS_FEEDS）負責「大量頭條」，Haiku 搜尋只留 13 題做「需要跨來源整理」的主題。
+# 砍掉的：7 個地區題（RSS 覆蓋）、fintech 題（CoinDesk/The Block RSS）、國際新聞題（Reuters GN）、
+# AI 架構研究題（deep dive 已有）、「index levels」題（新聞區塊禁行情，題目本身違規）。
+# 每題末尾 Sources 只列白名單媒體（與 ai_processor GEMINI_SYSTEM_PROMPT 白名單同步）。
 PERPLEXITY_QUERIES = [
-    # 總經/市場
-    "What happened in US stock markets today? Include specific index levels and percentage changes. Sources: Bloomberg Reuters Financial Times WSJ CNBC Federal Reserve ECB FRED Blog IMF Axios The Economist",
-    "What is the latest Federal Reserve policy stance and interest rate outlook for 2026? Sources: Bloomberg Reuters Financial Times WSJ CNBC Federal Reserve ECB BIS FRED Blog JP Morgan Goldman Sachs",
-    "What is the current oil price and geopolitical situation affecting energy markets today? Sources: Bloomberg Reuters Financial Times WSJ CNBC Federal Reserve ECB Axios Politico",
-    # 科技/AI
-    "What are the latest AI industry developments today? Include AI companies, products, investments. Sources: Bloomberg Reuters TechCrunch The Information Wired Ars Technica CNBC Import AI Stratechery AI Snake Oil Axios",
-    "What are the latest breakthroughs in AI architecture and model research this week? Sources: Bloomberg Reuters TechCrunch The Information Wired Ars Technica CNBC Import AI Stratechery AI Snake Oil",
-    # 半導體
-    "What are the latest AI and semiconductor industry news today? Include Nvidia, AMD, TSMC. Sources: Bloomberg Reuters DIGITIMES SemiAnalysis Semiconductor Engineering EE Times Nikkei Asia ASML TSMC Intel official Piper Sandler Bernstein",
-    # 新創/融資
-    "What are the latest AI startup funding rounds and robotics investments announced today? Sources: TechCrunch Bloomberg Reuters Crunchbase The Information Axios",
-    # 亞洲市場
-    "What is the latest technology and semiconductor news from Taiwan and TSMC today? Sources: Bloomberg Reuters Nikkei Asia South China Morning Post DIGITIMES",
-    "What is the latest technology news from Japan today? Include semiconductors and AI. Sources: Bloomberg Reuters Nikkei Asia South China Morning Post DIGITIMES",
-    "What is the latest technology and AI industry news from the United States today? Sources: Bloomberg Reuters TechCrunch The Information Wired Ars Technica CNBC Stratechery Axios",
-    "What is the latest technology and fintech news from Malaysia today? Sources: Bloomberg Reuters Nikkei Asia South China Morning Post DIGITIMES",
-    "What is the latest technology and semiconductor news from South Korea today? Include Samsung, SK Hynix. Sources: Bloomberg Reuters Nikkei Asia South China Morning Post DIGITIMES",
-    "What is the latest technology and AI news from China today? Include Huawei, Baidu, DeepSeek. Sources: Bloomberg Reuters Nikkei Asia South China Morning Post DIGITIMES",
-    "What is the latest technology and AI news from Europe today? Sources: Bloomberg Reuters Nikkei Asia South China Morning Post DIGITIMES The Economist",
-    # Fintech/加密
-    "What are the latest fintech and cryptocurrency news today? Include Bitcoin, Ethereum, DeFi. Sources: Bloomberg Reuters CoinDesk The Block Financial Times Axios",
-    # 總經
-    "What are the major macroeconomic data releases and central bank decisions today? Sources: Bloomberg Reuters Financial Times WSJ CNBC Federal Reserve ECB BIS FRED Blog IMF The Economist",
-    # 地緣政治
-    "What are the latest geopolitical risks today? Include Middle East, US-China, Taiwan Strait. Sources: Bloomberg Reuters Financial Times WSJ Foreign Affairs Belfer Center RAND Brookings Politico The Economist",
-    # 新創
-    "What are the major startup IPOs, defense tech, and venture capital funding news today? Sources: TechCrunch Bloomberg Reuters Crunchbase The Information Axios",
-    # 今日財報預告
-    "Earnings reports scheduled for today not yet reported, companies reporting earnings today before market open during market after market close. Sources: Earnings Whispers Bloomberg Reuters CNBC WSJ",
-    # 總經行事曆
-    "What are the most important macroeconomic calendar events in the next 24 hours? Include Fed speeches, central bank decisions, economic data releases like CPI, PPI, GDP, jobs data, and major earnings reports. Sources: Bloomberg Reuters Financial Times WSJ CNBC Federal Reserve ECB BIS FRED Blog",
-    # 昨日美股重點
-    "Earnings reports and conference calls during US market hours yesterday pre-market during-market after-hours results EPS revenue guidance Sources: Bloomberg Reuters CNBC WSJ Seeking Alpha Earnings Whispers",
-    "Key statements from earnings calls investor days analyst conferences yesterday US market hours Sources: Bloomberg Reuters CNBC WSJ",
-    "Significant stock moves reactions to earnings news yesterday US pre-market market hours after-hours Sources: Bloomberg Reuters CNBC",
-    # 機構異動
-    "Unusual options activity large block trades institutional buying selling smart money today Sources: Bloomberg CNBC Unusual Whales Barchart ETF flows QQQ SPY SOXX",
-    # 國際新聞
-    "Major international news today geopolitical developments regional conflicts diplomacy global affairs past 24 hours only most important first Sources: Bloomberg Reuters Financial Times BBC AP",
+    # 總經／央行
+    "Federal Reserve: latest policy stance, officials' speeches in the past 24 hours, and market-implied path for the next two FOMC meetings. Sources: Bloomberg Reuters Financial Times WSJ CNBC Federal Reserve",
+    "Major macroeconomic data released in the past 24 hours (US, Eurozone, Japan, China): actual vs consensus, and central bank decisions. Sources: Bloomberg Reuters Financial Times WSJ CNBC ECB BOJ",
+    "Most important macroeconomic calendar events in the next 24 hours: Fed/ECB/BOJ speeches, data releases (CPI PPI GDP jobs), Treasury auctions. Sources: Bloomberg Reuters Financial Times WSJ CNBC",
+    # 能源／地緣
+    "Oil and energy markets in the past 24 hours: OPEC+, Middle East supply risk, Strait of Hormuz, US SPR, natural gas — events and quotes, not price charts. Sources: Bloomberg Reuters Financial Times WSJ",
+    "Geopolitical developments in the past 24 hours with market impact: Middle East, US-China (tariffs, export controls, chips), Taiwan Strait, Russia-Ukraine. Sources: Bloomberg Reuters Financial Times WSJ Politico Foreign Affairs RAND Brookings",
+    # AI／半導體（指數部核心）
+    "AI industry in the past 24 hours: model releases, AI capex and data-center deals, hyperscaler spending, AI chip supply. Sources: Bloomberg Reuters TechCrunch The Information Wired Ars Technica CNBC Axios",
+    "Semiconductor supply chain in the past 24 hours: TSMC, Nvidia, AMD, ASML, Samsung, SK Hynix, Micron — orders, capacity, pricing (DRAM/NAND/HBM contract prices), export controls. Sources: Bloomberg Reuters DIGITIMES TrendForce SemiAnalysis Nikkei Asia EE Times",
+    "Taiwan and Korea tech in the past 24 hours: TSMC monthly revenue, MediaTek, Foxconn, Samsung, SK Hynix — company events and government policy. Sources: Bloomberg Reuters Nikkei Asia DIGITIMES Focus Taiwan Yonhap Korea Herald",
+    # 新創／機構
+    "Largest startup funding rounds, IPO filings, and defense-tech / robotics investments announced in the past 24 hours, with amounts and lead investors. Sources: TechCrunch Bloomberg Reuters Crunchbase The Information Axios",
+    "Institutional positioning in the past 24 hours: 13F disclosures, notable fund moves, large block trades, ETF flows into QQQ SPY SOXX. Sources: Bloomberg Reuters CNBC WSJ Barchart",
+    # 財報
+    "US companies reporting earnings today (next US session) before open or after close: names, tickers, EPS and revenue consensus. Sources: Bloomberg Reuters CNBC WSJ Earnings Whispers",
+    "US earnings reported in the last US session (pre-market, during, after-hours): beat/miss, guidance, key management quotes. Sources: Bloomberg Reuters CNBC WSJ",
+    "Key statements from investor days, analyst conferences, and earnings calls in the last US session. Sources: Bloomberg Reuters CNBC WSJ",
 ]
 
 DEEP_DIVE_FIXED_QUERIES = [
@@ -647,43 +743,20 @@ def fetch_market_data() -> dict:
 
 def fetch_move_index() -> str:
     """Fetch MOVE Index value via Perplexity search."""
-    api_key = os.environ.get("PERPLEXITY_API_KEY", "")
-    if not api_key:
-        print("  ✗ MOVE Index: no PERPLEXITY_API_KEY")
-        return ""
     query = "MOVE Index current value today ICE BofA MOVE bond market volatility index latest reading Sources: Bloomberg Reuters ICE"
     tz = pytz.timezone("Asia/Taipei")
     today = datetime.now(tz).strftime("%Y-%m-%d")
-    try:
-        payload = {
-            "model": "sonar",
-            "messages": [
-                {
-                    "role": "system",
-                    "content": (
-                        f"Today is {today} Taiwan time (UTC+8). "
-                        "Return only the current MOVE Index numerical value and a brief context. "
-                        "Be concise."
-                    ),
-                },
-                {"role": "user", "content": query},
-            ],
-            "search_recency_filter": "day",
-            "return_citations": True,
-            "max_tokens": 300,
-        }
-        resp = requests.post(
-            "https://api.perplexity.ai/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json=payload, timeout=30,
-        )
-        resp.raise_for_status()
-        answer = resp.json()["choices"][0]["message"]["content"]
+    system_content = (
+        f"Today is {today} Taiwan time (UTC+8). "
+        "Return only the current MOVE Index numerical value and a brief context. "
+        "Be concise."
+    )
+    answer = _llm_search(system_content, query, max_tokens=300, recency="day", label="MOVE")["answer"]
+    if answer:
         print(f"  ✓ MOVE Index: {answer[:80]}...")
-        return answer
-    except Exception as e:
-        print(f"  ✗ MOVE Index search failed: {e}")
-        return ""
+    else:
+        print("  ✗ MOVE Index search failed")
+    return answer
 
 
 # 週報用：重用 FIXED_TICKERS，產生與日報相同分類結構
@@ -1062,52 +1135,243 @@ def fetch_today_earnings() -> list[dict]:
     return results
 
 
-def fetch_moneydj_news() -> list[dict]:
-    """
-    抓取 MoneyDJ 即時財經新聞 RSS。
-    只取過去24小時內的新聞。
-    """
-    RSS_URLS = [
-        "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB010000",  # 國際財經
-        "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB020000",  # 台股新聞
-        "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB060000",  # 科技產業
-    ]
+# ── RSS 素材層（2026-08-17 晚擴充）────────────────────────────────────────
+# 直連 feed 能用就直連；Bloomberg／Reuters／TrendForce／韓國／東南亞這類沒有可用 RSS 的，
+# 走 Google News RSS 的 site:/關鍵字查詢當代理（標題＋一句摘要＋來源名，有發布時間）。
+# 每個 feed：名稱、URL、最多取幾條、回看幾小時。實測 2026-08-17：WSJ／Nikkei 官方 feed 已停更，不列。
+_GN = "https://news.google.com/rss/search?q={q}&hl=en-US&gl=US&ceid=US:en"
+_GN_TW = "https://news.google.com/rss/search?q={q}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
+RSS_FEEDS = [
+    # (source_label, url, max_items, max_age_hours)
+    # 台灣／中文
+    ("MoneyDJ 國際財經", "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB010000", 10, 24),
+    ("MoneyDJ 台股",     "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB020000", 10, 24),
+    ("MoneyDJ 科技產業", "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB060000", 10, 24),
+    ("中央社 財經",      "https://feeds.feedburner.com/rsscna/finance", 10, 24),
+    # MoneyDJ 官方 RSS 在 GitHub runner 上抓不到（2026-08-17 兩次 CI 皆 0 條，本機 SSL 錯），加 GN 代理保底
+    ("MoneyDJ (GN)",    _GN_TW.format(q="site:moneydj.com+when:1d"), 12, 24),
+    ("工商時報 (GN)",   _GN_TW.format(q="site:ctee.com.tw+(半導體+OR+台積電+OR+AI+OR+聯準會+OR+關稅)+when:1d"), 8, 24),
+    # 通用財經
+    ("CNBC Top",        "https://www.cnbc.com/id/100003114/device/rss/rss.html", 12, 24),
+    ("CNBC Tech",       "https://www.cnbc.com/id/19854910/device/rss/rss.html", 8, 24),
+    ("Financial Times", "https://www.ft.com/rss/home", 10, 24),
+    ("FT Markets",      "https://www.ft.com/markets?format=rss", 8, 24),
+    ("FT Tech",         "https://www.ft.com/companies/technology?format=rss", 6, 24),
+    ("FT Asia",         "https://www.ft.com/world/asia-pacific?format=rss", 6, 24),
+    # 經濟學人是週刊（週四出刊），官方 feed 日期不可靠 → GN 代理、7 天窗、只取財經／商業／社論／亞洲／中國版
+    ("The Economist (GN)", _GN.format(q="(site:economist.com/finance-and-economics+OR+site:economist.com/business+OR+site:economist.com/leaders+OR+site:economist.com/briefing+OR+site:economist.com/asia+OR+site:economist.com/china)+when:7d"), 8, 168),
+    ("WSJ (GN)",        _GN.format(q="site:wsj.com+when:1d"), 12, 24),
+    ("Barron's (GN)",   _GN.format(q="site:barrons.com+when:1d"), 6, 24),
+    ("Nikkei Asia (GN)", _GN.format(q="site:asia.nikkei.com+when:1d"), 8, 24),
+    ("Politico (GN)",   _GN.format(q="site:politico.com+(tariff+OR+Fed+OR+China+OR+chip+OR+Iran+OR+Taiwan)+when:1d"), 5, 24),
+    ("Axios",           "https://api.axios.com/feed/", 8, 24),
+    ("Reuters (GN)",    _GN.format(q="site:reuters.com+when:1d"), 18, 24),
+    ("Bloomberg (GN)",  _GN.format(q="site:bloomberg.com+when:1d"), 18, 24),
+    ("Fed/央行 (GN)",   _GN.format(q="(%22Federal+Reserve%22+OR+ECB+OR+%22Bank+of+Japan%22)+when:1d+(site:reuters.com+OR+site:bloomberg.com+OR+site:ft.com+OR+site:wsj.com)"), 10, 24),
+    # 科技／AI
+    ("TechCrunch",      "https://techcrunch.com/feed/", 10, 24),
+    ("The Information", "https://www.theinformation.com/feed", 8, 24),
+    ("Ars Technica",    "https://feeds.arstechnica.com/arstechnica/index", 5, 24),
+    ("SCMP Tech",       "https://www.scmp.com/rss/36/feed", 8, 24),
+    # 半導體（指數部核心）
+    ("DIGITIMES",       "https://www.digitimes.com/rss/daily.xml", 15, 24),
+    ("TrendForce (GN)", _GN.format(q="site:trendforce.com+when:3d"), 6, 72),
+    ("SemiAnalysis",    "https://semianalysis.com/feed/", 3, 72),
+    ("Semis (GN)",      _GN.format(q="(TSMC+OR+Nvidia+OR+ASML+OR+%22SK+Hynix%22+OR+Micron+OR+AMD)+when:1d+(site:reuters.com+OR+site:bloomberg.com+OR+site:digitimes.com+OR+site:asia.nikkei.com+OR+site:ft.com)"), 12, 24),
+    ("Taiwan Tech (GN)", _GN.format(q="(TSMC+OR+MediaTek+OR+Foxconn+OR+%22Taiwan+semiconductor%22)+when:1d+(site:focustaiwan.tw+OR+site:asia.nikkei.com+OR+site:digitimes.com+OR+site:reuters.com+OR+site:bloomberg.com)"), 8, 24),
+    ("Korea Tech (GN)", _GN.format(q="(Samsung+OR+%22SK+Hynix%22+OR+Hyundai)+when:1d+(site:koreaherald.com+OR+site:koreajoongangdaily.joins.com+OR+site:en.yna.co.kr+OR+site:reuters.com+OR+site:bloomberg.com)"), 8, 24),
+    ("Japan Tech (GN)", _GN.format(q="(Rapidus+OR+SoftBank+OR+Sony+OR+%22Tokyo+Electron%22+OR+Japan+chip)+when:1d+(site:asia.nikkei.com+OR+site:reuters.com+OR+site:bloomberg.com)"), 6, 24),
+    ("China Tech (GN)", _GN.format(q="(Huawei+OR+DeepSeek+OR+Alibaba+OR+SMIC+OR+Baidu)+when:1d+(site:reuters.com+OR+site:bloomberg.com+OR+site:scmp.com+OR+site:ft.com)"), 8, 24),
+    ("Europe Tech (GN)", _GN.format(q="(ASML+OR+%22European+AI%22+OR+%22EU+AI+Act%22+OR+Mistral+OR+SAP)+when:1d+(site:reuters.com+OR+site:bloomberg.com+OR+site:ft.com)"), 6, 24),
+    ("ASEAN DC (GN)",   _GN.format(q="(Malaysia+OR+Singapore+OR+Vietnam+OR+Indonesia+OR+Thailand)+(%22data+center%22+OR+semiconductor+OR+chip)+when:2d"), 6, 48),
+    # Fintech／加密
+    ("CoinDesk",        "https://www.coindesk.com/arc/outboundfeeds/rss/", 8, 24),
+    ("The Block",       "https://www.theblock.co/rss.xml", 6, 24),
+]
+RSS_TOTAL_CAP = 280
+_LONGFORM_FEEDS = {"Financial Times", "FT Markets", "FT Tech", "FT Asia", "The Economist (GN)",
+                   "The Information", "SemiAnalysis", "Ars Technica"}
+_RSS_NOISE = re.compile(r"開獎|中獎號碼|彩券|統一發票|訃聞|Podcast|podcast|The Download:|Crossword|Newsletter")  # 全部 feed 合計上限，超過就按清單順序截掉後面的
 
+
+def _clean_rss_summary(text: str, limit: int = 180) -> str:
+    text = re.sub(r"<[^>]+>", " ", text or "")
+    text = re.sub(r"&nbsp;|&#160;", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text[:limit]
+
+
+def _fetch_one_feed(spec: tuple) -> list[dict]:
+    label, url, max_items, max_age_h = spec
     tz = pytz.timezone("Asia/Taipei")
-    cutoff = datetime.now(tz) - timedelta(hours=24)
-    results = []
-
-    for url in RSS_URLS:
-        try:
-            feed = feedparser.parse(url)
-            for entry in feed.entries[:10]:
-                # 解析發布時間
-                published = None
-                if hasattr(entry, "published_parsed") and entry.published_parsed:
-                    published = datetime.fromtimestamp(
-                        time.mktime(entry.published_parsed), tz=pytz.utc
-                    ).astimezone(tz)
-
-                # 只取24小時內
-                if published and published < cutoff:
+    cutoff = datetime.now(tz) - timedelta(hours=max_age_h)
+    out = []
+    try:
+        feed = feedparser.parse(url)
+        for entry in feed.entries:
+            pp = entry.get("published_parsed") or entry.get("updated_parsed")
+            published = None
+            if pp:
+                published = datetime.fromtimestamp(time.mktime(pp), tz=pytz.utc).astimezone(tz)
+                if published < cutoff:
                     continue
+            title = (entry.get("title") or "").strip()
+            if not title or _RSS_NOISE.search(title):
+                continue
+            # Google News：標題結尾「 - 來源」、entry.source.title 是真正媒體名
+            src = label
+            gn_src = (entry.get("source") or {}).get("title") if isinstance(entry.get("source"), dict) else None
+            if gn_src:
+                src = gn_src
+                if title.endswith(" - " + gn_src):
+                    title = title[: -len(gn_src) - 3].strip()
+            out.append({
+                "title": title,
+                "summary": _clean_rss_summary(entry.get("summary", "")),
+                "link": entry.get("link", ""),
+                "source": src,
+                "feed": label,
+                "weekly": max_age_h > 72,   # 週刊／評論類（經濟學人）：給模型當背景，不當今日新聞
+                "longform": label in _LONGFORM_FEEDS,  # 深度長文來源：連結一起給模型（weekend_reads 用）
+                "published": published.strftime("%Y-%m-%d %H:%M") if published else "",
+            })
+            if len(out) >= max_items:
+                break
+    except Exception as e:
+        print(f"  ✗ RSS {label}: {e}")
+    return out
 
-                results.append({
-                    "title": entry.get("title", ""),
-                    "summary": entry.get("summary", "")[:300],
-                    "link": entry.get("link", ""),
-                    "source": "MoneyDJ",
-                    "published": published.strftime("%Y-%m-%d %H:%M") if published else "",
-                })
-        except Exception as e:
-            print(f"  ✗ MoneyDJ RSS {url}: {e}")
 
-    print(f"  ✓ MoneyDJ: {len(results)} 條新聞（過去24小時）")
+def fetch_rss_news() -> list[dict]:
+    """
+    抓 RSS_FEEDS 全部 feed（並行），每條回 {title, summary, link, source, feed, published}。
+    只取各 feed 回看窗內的新聞；同標題去重；總數上限 RSS_TOTAL_CAP。
+    """
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+        batches = list(ex.map(_fetch_one_feed, RSS_FEEDS))
+    seen, results = set(), []
+    per_feed = []
+    for spec, items in zip(RSS_FEEDS, batches):
+        kept = 0
+        for it in items:
+            key = re.sub(r"\W+", "", it["title"].lower())[:60]
+            if key in seen:
+                continue
+            seen.add(key)
+            results.append(it)
+            kept += 1
+        per_feed.append(f"{spec[0]}={kept}")
+    if len(results) > RSS_TOTAL_CAP:
+        results = results[:RSS_TOTAL_CAP]
+    print(f"  ✓ RSS: {len(results)} 條（{', '.join(per_feed)}）")
     return results
 
 
+# ── 關注清單（DD universe）與昨日主軸 ─────────────────────────────────────
+DD_SCREENER_URL = "https://research.investmquest.com/dd-screener/latest.json"
+PREV_REGIME_URL = "https://research.investmquest.com/briefing/data/regime_latest.json"
+
+
+def fetch_dd_watchlist() -> list[dict]:
+    """DD Screener 的 universe（約 250 檔）→ [{ticker, name, grade, pass_count}]。抓不到回 []，日報照跑。"""
+    try:
+        r = requests.get(DD_SCREENER_URL, timeout=20)
+        r.raise_for_status()
+        stocks = r.json().get("stocks", [])
+        out = []
+        for st in stocks:
+            t = str(st.get("ticker", "")).strip()
+            if not t:
+                continue
+            out.append({"ticker": t, "name": str(st.get("name", "") or ""),
+                        "grade": str(st.get("moat_grade", "") or ""), "pass_count": st.get("pass_count")})
+        print(f"  ✓ DD 關注清單：{len(out)} 檔（as_of {r.json().get('as_of','?')}）")
+        return out
+    except Exception as e:
+        print(f"  ✗ DD 關注清單抓取失敗：{e}")
+        return []
+
+
+_TICKER_ALIASES = {
+    # 程式比對用的常見別名（模型自己也會認，這裡只是給 ★ 標記加分）
+    "TSM": ["TSMC", "台積電", "Taiwan Semiconductor"], "2330.TW": ["TSMC", "台積電"],
+    "2454.TW": ["MediaTek", "聯發科"], "2317.TW": ["Foxconn", "Hon Hai", "鴻海"],
+    "6857.T": ["Advantest"], "6146.T": ["DISCO"], "ASML": ["ASML"], "AVGO": ["Broadcom", "博通"],
+    "AMAT": ["Applied Materials", "應用材料"], "LRCX": ["Lam Research", "科林"], "KLAC": ["KLA"],
+    "LLY": ["Eli Lilly", "禮來"], "PLTR": ["Palantir"], "ANET": ["Arista"], "VRT": ["Vertiv"],
+    "MA": ["Mastercard", "萬事達"], "V": ["Visa"], "MSI": ["Motorola Solutions"], "APH": ["Amphenol"],
+    "HWM": ["Howmet"], "BESI": ["BE Semiconductor", "Besi"], "TXN": ["Texas Instruments", "德儀"],
+    "CDNS": ["Cadence"], "BKNG": ["Booking"], "IBKR": ["Interactive Brokers"], "WDC": ["Western Digital", "威騰"],
+    "STX": ["Seagate", "希捷"], "MPWR": ["Monolithic Power"], "FTNT": ["Fortinet"], "APP": ["AppLovin"],
+    "MMM": ["3M"], "NTAP": ["NetApp"], "ROK": ["Rockwell"], "TT": ["Trane"], "ABNB": ["Airbnb"], "RL": ["Ralph Lauren"],
+    "EBAY": ["eBay"], "SEZL": ["Sezzle"], "FIX": ["Comfort Systems"],
+    "NVDA": ["Nvidia", "輝達"], "META": ["Meta"], "GOOGL": ["Alphabet", "Google", "谷歌"], "MSFT": ["Microsoft", "微軟"],
+    "AAPL": ["Apple", "蘋果"], "AMZN": ["Amazon", "亞馬遜"], "INTC": ["Intel", "英特爾"], "AMD": ["AMD", "超微"],
+    "MU": ["Micron", "美光"], "ORCL": ["Oracle", "甲骨文"], "CRWV": ["CoreWeave"], "NFLX": ["Netflix"], "TSLA": ["Tesla", "特斯拉"],
+    "2317.TW": ["Foxconn", "Hon Hai", "鴻海"], "3711.TW": ["ASE", "日月光"], "3008.TW": ["Largan", "大立光"],
+    "2382.TW": ["Quanta", "廣達"], "2308.TW": ["Delta Electronics", "台達電"], "3231.TW": ["Wistron", "緯創"],
+}
+
+
+def tag_watchlist(items: list[dict], watchlist: list[dict]) -> int:
+    """在 RSS 條目上標 item['watch']=[tickers]（標題＋摘要含 ticker／公司名）。回標到的條數。"""
+    if not items or not watchlist:
+        return 0
+    pats = []
+    for w in watchlist:
+        t = w["ticker"]
+        keys = set(_TICKER_ALIASES.get(t, []))
+        name = (w.get("name") or "").strip()
+        if name and name.upper() != t.upper() and len(name) >= 4:
+            keys.add(re.sub(r",?\s+(Inc\.?|Corp\.?|Corporation|plc|Ltd\.?|Holdings?|Co\.?|N\.V\.|S\.A\.)$", "", name, flags=re.I))
+        base = t.split(".")[0]
+        # 公司名／別名：不分大小寫；裸 ticker：只認全大寫（避免 APP→App、LOW→low 誤標）
+        rx_ci = [r"(?<![A-Za-z0-9])" + re.escape(k) + r"(?![A-Za-z0-9])" for k in keys if len(k) >= 3]
+        rx_cs = []
+        if base.isalpha() and len(base) >= 3:
+            rx_cs.append(r"(?<![A-Za-z0-9])" + base + r"(?![A-Za-z0-9])")
+        if base.isdigit():
+            rx_cs.append(r"(?<!\d)" + base + r"(?!\d)")  # 台日股數字代號
+        if rx_ci or rx_cs:
+            pats.append((t,
+                         re.compile("|".join(rx_ci), re.I) if rx_ci else None,
+                         re.compile("|".join(rx_cs)) if rx_cs else None))
+    n = 0
+    for it in items:
+        text = f"{it.get('title','')} {it.get('summary','')}"
+        hits = [t for t, ci, cs in pats if (ci and ci.search(text)) or (cs and cs.search(text))]
+        if hits:
+            it["watch"] = hits[:4]
+            n += 1
+    print(f"  ✓ 關注清單比對：{n} 條 RSS 標記 ★")
+    return n
+
+
+def fetch_prev_regime() -> dict:
+    """前一份日報存檔的主軸（main.py 每天存到網站 /briefing/data/regime_latest.json）。抓不到回 {}。"""
+    try:
+        r = requests.get(PREV_REGIME_URL, timeout=15)
+        if r.status_code != 200:
+            print(f"  · 昨日主軸：無（HTTP {r.status_code}）")
+            return {}
+        d = r.json()
+        print(f"  ✓ 昨日主軸：{d.get('date','?')}｜{(d.get('regime') or {}).get('call','')[:30]}")
+        return d if isinstance(d, dict) else {}
+    except Exception as e:
+        print(f"  · 昨日主軸抓取失敗：{e}")
+        return {}
+
+
+# 舊名相容（main.py 曾 import fetch_moneydj_news）
+fetch_moneydj_news = fetch_rss_news
+
+
 def _fetch_dynamic_deep_topics(api_key: str, today: str) -> list[dict]:
-    """Meta-query to find today's 3 most important topics, then deep-dive each."""
+    """Meta-query to find today's 3 most important topics, then deep-dive each.
+
+    ⚠ 死碼：無任何呼叫端（main.py 走 fetch_deep_dive_news）。仍直接打 Perplexity，
+    未改接 _llm_search；若要復用請先改後端。
+    """
     import re
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
@@ -1185,36 +1449,21 @@ def _fetch_dynamic_deep_topics(api_key: str, today: str) -> list[dict]:
 def fetch_deep_dive_news() -> dict:
     """Fetch fixed + dynamic deep-dive topics in parallel. Returns dict with 'fixed' and 'dynamic' keys."""
     import re
-    api_key = os.environ["PERPLEXITY_API_KEY"]
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    headers = None  # 相容 _perplexity_query 的 tuple 介面；實際後端見 _llm_search
     tz = pytz.timezone("Asia/Taipei")
     today = datetime.now(tz).strftime("%Y-%m-%d")
 
     # Step 1: meta-query to find dynamic topics (must run first)
     topics = []
     try:
-        meta_payload = {
-            "model": "sonar",
-            "messages": [
-                {
-                    "role": "system",
-                    "content": f"Today is {today}. You are a financial analyst identifying the most important market-moving topics."
-                },
-                {
-                    "role": "user",
-                    "content": ("What are the 3 most important market-moving topics today that deserve deeper analysis? "
-                                "List ONLY as: 1. [topic name] 2. [topic name] 3. [topic name]. "
-                                "Focus on: geopolitical events, economic data surprises, major company news, "
-                                "central bank signals, commodity shocks. Sources: Bloomberg Reuters FT WSJ")
-                }
-            ],
-            "search_recency_filter": "day",
-            "max_tokens": 200,
-        }
-        resp = requests.post("https://api.perplexity.ai/chat/completions",
-                             headers=headers, json=meta_payload, timeout=30)
-        resp.raise_for_status()
-        meta_text = resp.json()["choices"][0]["message"]["content"]
+        meta_text = _llm_search(
+            f"Today is {today}. You are a financial analyst identifying the most important market-moving topics.",
+            ("What are the 3 most important market-moving topics today that deserve deeper analysis? "
+             "List ONLY as: 1. [topic name] 2. [topic name] 3. [topic name]. "
+             "Focus on: geopolitical events, economic data surprises, major company news, "
+             "central bank signals, commodity shocks. Sources: Bloomberg Reuters FT WSJ"),
+            max_tokens=200, recency="day", label="dynamic deep meta",
+        )["answer"]
         topics = re.findall(r'\d+\.\s*(.+?)(?=\d+\.|$)', meta_text, re.DOTALL)
         topics = [t.strip().rstrip('.') for t in topics[:3] if t.strip()]
         print(f"  ✓ [dynamic deep] topics: {topics}")
@@ -1370,13 +1619,7 @@ def fetch_earnings_deep_dive() -> list[dict]:
     窗口 = (上次 briefing time, 本次 briefing time] = 24 小時。
     在 US ET 時間軸上，這個窗口精確覆蓋「最近一個完整 US 交易 session」。
     """
-    try:
-        api_key = os.environ["PERPLEXITY_API_KEY"]
-    except KeyError:
-        print("  ✗ PERPLEXITY_API_KEY not set, skipping earnings deep dive")
-        return []
-
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    headers = None  # 相容 tuple 介面；後端見 _llm_search
     tz_tw = pytz.timezone("Asia/Taipei")
     anchor_et = _briefing_anchor_et()
     window_start = anchor_et - timedelta(hours=24)
@@ -1400,7 +1643,7 @@ def fetch_earnings_deep_dive() -> list[dict]:
 
 
 def _perplexity_query(args: tuple) -> dict:
-    """Execute a single Perplexity API query. Used by ThreadPoolExecutor.
+    """Execute a single news search (名字沿用；實際後端見 _llm_search). Used by ThreadPoolExecutor.
     Tuple: (query, headers, today, max_tokens, label) or
            (query, headers, today, max_tokens, label, recency)
     recency: "day" | "week" | "month" — controls search_recency_filter.
@@ -1432,35 +1675,12 @@ def _perplexity_query(args: tuple) -> dict:
             "Never include ESG, sustainability, or green energy related news."
         )
 
-    payload = {
-        "model": "sonar",
-        "messages": [
-            {"role": "system", "content": system_content},
-            {"role": "user", "content": query},
-        ],
-        "search_recency_filter": recency,
-        "return_citations": True,
-        "max_tokens": max_tokens,
-    }
-    try:
-        resp = requests.post(
-            "https://api.perplexity.ai/chat/completions",
-            headers=headers, json=payload, timeout=45,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        answer = data["choices"][0]["message"]["content"]
-        citations = data.get("citations", [])
-        print(f"  ✓ [{label}] {query[:50]}... ({len(citations)} sources)")
-        return {"query": query, "answer": answer, "sources": citations[:3]}
-    except Exception as e:
-        print(f"  ✗ [{label}] {query[:50]}...: {e}")
-        return {"query": query, "answer": "", "sources": []}
+    r = _llm_search(system_content, query, max_tokens=max_tokens, recency=recency, label=label)
+    return {"query": query, "answer": r["answer"], "sources": r["sources"][:3]}
 
 
 def fetch_financial_news() -> list[dict]:
-    api_key = os.environ["PERPLEXITY_API_KEY"]
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    headers = None  # 相容 tuple 介面；後端見 _llm_search
     tz = pytz.timezone("Asia/Taipei")
     today = datetime.now(tz).strftime("%Y-%m-%d")
 

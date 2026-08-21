@@ -16,6 +16,8 @@ from __future__ import annotations
 from datetime import datetime
 import pytz
 
+from site_nav_snippet import NAV_BLOCK_BRIEF
+
 
 SENTIMENT_COLOR = {"pos": "#0F6E56", "neg": "#C0392B", "neu": "#888"}
 
@@ -63,13 +65,13 @@ STARTUP_TAG_STYLE = {
 
 REGION_LABEL = {
     "taiwan": "🇹🇼 台灣", "japan": "🇯🇵 日本",
-    "us": "🇺🇸 美國", "malaysia": "🇲🇾 馬來西亞",
+    "us": "🇺🇸 美國", "asean": "🌏 東南亞", "malaysia": "🇲🇾 馬來西亞",
     "korea": "🇰🇷 韓國", "china": "🇨🇳 中國", "europe": "🇪🇺 歐洲",
 }
 
 REGION_COLOR = {
     "taiwan": "#185FA5", "japan": "#C0392B",
-    "us": "#0F6E56", "malaysia": "#854F0B",
+    "us": "#0F6E56", "asean": "#854F0B", "malaysia": "#854F0B",
     "korea": "#0F6E56", "china": "#C0392B", "europe": "#534AB7",
 }
 
@@ -185,6 +187,129 @@ def _alert(text: str) -> str:
 <div style="background:#FFF8F0;border-left:3px solid #C0392B;border-radius:0 6px 6px 0;
             padding:10px 14px;margin-bottom:16px;">
   <div style="font-size:15px;font-weight:500;color:#222;">⚡ {text}</div>
+</div>'''
+
+
+def _vs_regime_line(text: str) -> str:
+    """各分析區塊對主軸的表態（支持｜／反對｜／中性｜ ＋ 一句）。"""
+    if not text:
+        return ""
+    head = text.split("｜", 1)[0].strip()
+    color = {"支持": "#0F6E56", "反對": "#C0392B"}.get(head, "#888")
+    return (f'<div style="font-size:12px;color:#555;line-height:1.5;margin-top:8px;padding-top:6px;'
+            f'border-top:0.5px dashed #ddd;">'
+            f'<span style="font-size:10px;letter-spacing:1px;color:#888;">對主軸 ▶ </span>'
+            f'<span style="font-weight:600;color:{color};">{text}</span></div>')
+
+
+def _regime_block(rg: dict) -> str:
+    """主軸區塊：今天市場狀態一句話 → 三軸 → 支持／反對 → 證偽條件 → 對 W52 引擎的意義。"""
+    if not rg or not rg.get("call"):
+        return ""
+    axes = rg.get("axes", {}) or {}
+    ax_meta = [("risk_appetite", "風險偏好", "#1B3A5C"),
+               ("liquidity", "流動性", "#085041"),
+               ("volatility", "波動", "#BA7517")]
+    ax_cells = ""
+    for key, label, color in ax_meta:
+        a = axes.get(key, {}) or {}
+        ax_cells += (f'<td width="33%" style="vertical-align:top;padding:8px 10px;">'
+                     f'<div style="font-size:10px;letter-spacing:0.5px;color:#888;margin-bottom:2px;">{label}</div>'
+                     f'<div style="font-size:14px;font-weight:600;color:{color};margin-bottom:3px;">{a.get("state","—")}</div>'
+                     f'<div style="font-size:12px;color:#555;line-height:1.55;">{a.get("evidence","")}</div></td>')
+    axes_html = (f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;'
+                 f'background:#fff;border-radius:4px;margin-bottom:10px;"><tr>{ax_cells}</tr></table>')
+
+    def _list(items, color, title):
+        items = [i for i in (items or []) if i]
+        if not items:
+            return ""
+        lis = "".join(f'<li style="margin-bottom:3px;">{i}</li>' for i in items)
+        return (f'<td width="50%" style="vertical-align:top;padding:0 5px 0 0;">'
+                f'<div style="border-left:3px solid {color};padding:6px 10px;background:#fff;">'
+                f'<div style="font-size:11px;font-weight:600;color:{color};margin-bottom:4px;">{title}</div>'
+                f'<ul style="margin:0;padding-left:16px;font-size:12px;color:#555;line-height:1.55;">{lis}</ul>'
+                f'</div></td>')
+    conf_td = _list(rg.get("confirms"), "#0F6E56", "支持主軸")
+    contra_td = _list(rg.get("contradicts"), "#C0392B", "反對主軸")
+    cc_html = ""
+    if conf_td or contra_td:
+        empty_td = '<td width="50%"></td>'
+        cc_html = (f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:10px;">'
+                   f'<tr>{conf_td or empty_td}{contra_td or empty_td}</tr></table>')
+
+    fals = [f for f in (rg.get("falsifiers") or []) if isinstance(f, dict) and f.get("metric")]
+    fals_html = ""
+    if fals:
+        rows = "".join(
+            f'<tr><td style="padding:4px 8px;font-size:12px;font-weight:600;color:#333;white-space:nowrap;">{f.get("metric","")}</td>'
+            f'<td style="padding:4px 8px;font-size:12px;color:#C0392B;font-weight:600;white-space:nowrap;">{f.get("threshold","")}</td>'
+            f'<td style="padding:4px 8px;font-size:12px;color:#555;line-height:1.5;">{f.get("meaning","")}</td></tr>'
+            for f in fals)
+        fals_html = (f'<div style="font-size:11px;font-weight:600;color:#888;margin-bottom:4px;">什麼數字出現就代表主軸錯了</div>'
+                     f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#fff;'
+                     f'border-radius:4px;margin-bottom:10px;">{rows}</table>')
+
+    w52 = rg.get("for_w52_engine", "")
+    w52_html = ""
+    if w52:
+        w52_html = (f'<div style="background:#1B3A5C;color:#fff;border-radius:4px;padding:8px 12px;'
+                    f'font-size:13px;line-height:1.55;">'
+                    f'<span style="font-size:10px;letter-spacing:1px;opacity:.75;">W52 引擎 ▶ </span>{w52}</div>')
+
+    # 昨日主軸驗證：verdict＋證偽條件逐項對照
+    rv = rg.get("review") or {}
+    review_html = ""
+    verdict = (rv.get("verdict") or "").strip() if isinstance(rv, dict) else ""
+    if verdict and verdict != "無前日資料":
+        v_color = {"延續": "#0F6E56", "修正": "#BA7517", "被證偽": "#C0392B"}.get(verdict, "#888")
+        chips = ""
+        for c in (rv.get("falsifier_check") or []):
+            if not isinstance(c, dict) or not c.get("metric"):
+                continue
+            hit = bool(c.get("hit"))
+            chip_bg = "#fdecea" if hit else "#eef5f1"
+            chip_fg = "#C0392B" if hit else "#0F6E56"
+            mark = "✕ 觸發" if hit else "✓ 未觸發"
+            chips += (f'<span style="display:inline-block;margin:0 6px 4px 0;padding:2px 8px;border-radius:10px;'
+                      f'background:{chip_bg};color:{chip_fg};font-size:11px;">'
+                      f'{c.get("metric","")}｜門檻 {c.get("threshold","")}｜今 {c.get("today_value","")}｜{mark}</span>')
+        y_call = rv.get("yesterday_call", "")
+        note = rv.get("note", "")
+        review_html = (f'<div style="border-top:1px dashed #ddd;margin-top:10px;padding-top:8px;">'
+                       f'<div style="font-size:11px;font-weight:600;color:#888;margin-bottom:4px;">昨日主軸驗證 '
+                       f'<span style="display:inline-block;padding:1px 8px;border-radius:3px;background:{v_color};color:#fff;'
+                       f'font-size:11px;font-weight:700;margin-left:4px;">{verdict}</span></div>'
+                       + (f'<div style="font-size:12px;color:#777;margin-bottom:4px;">昨：{y_call}</div>' if y_call else "")
+                       + (f'<div style="margin-bottom:4px;">{chips}</div>' if chips else "")
+                       + (f'<div style="font-size:12px;color:#555;line-height:1.5;">{note}</div>' if note else "")
+                       + '</div>')
+
+    conf = rg.get("confidence", "")
+    conf_reason = rg.get("confidence_reason", "")
+    conf_color = {"高": "#0F6E56", "低": "#C0392B"}.get(conf, "#BA7517")
+    conf_html = ""
+    if conf:
+        conf_html = (f'<span style="font-size:12px;color:#888;">信心 '
+                     f'<span style="font-weight:700;color:{conf_color};">{conf}</span>'
+                     f'{"｜" + conf_reason if conf_reason else ""}</span>')
+
+    return f'''
+<div class="section">
+  <div style="background:#f7f7f5;border-radius:8px;border:0.5px solid #e8e8e8;padding:14px 18px;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;
+                margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid #e8e8e8;">
+      <span style="font-size:12px;letter-spacing:1.8px;text-transform:uppercase;
+                   font-weight:500;color:#888;">今日主軸</span>
+      {conf_html}
+    </div>
+    <div style="font-size:17px;font-weight:700;color:#1B3A5C;line-height:1.4;margin-bottom:10px;">{rg.get("call","")}</div>
+    {axes_html}
+    {cc_html}
+    {fals_html}
+    {w52_html}
+    {review_html}
+  </div>
 </div>'''
 
 
@@ -794,6 +919,7 @@ def _market_pulse(pulse: dict) -> str:
     {bottom_html}
     {key_html}
     {analog_html}
+    {_vs_regime_line(pulse.get("vs_regime", ""))}
   </div>
 </div>'''
 
@@ -840,6 +966,7 @@ def _index_factor_reading(ifr: dict) -> str:
     {row1}
     {mom_html}
     {key_html}
+    {_vs_regime_line(ifr.get("vs_regime", ""))}
   </div>
 </div>'''
 
@@ -932,7 +1059,57 @@ def _sentiment_analysis(sa: dict) -> str:
     {div_html}
     {rel_html}
     {one_html}
+    {_vs_regime_line(sa.get("vs_regime", ""))}
   </div>
+</div>'''
+
+
+def _watchlist_news_section(items: list) -> str:
+    """關注清單新聞：DD universe 公司本身的事件，ticker 徽章＋一句「對這家公司意味著什麼」。"""
+    items = [i for i in (items or []) if isinstance(i, dict) and i.get("headline")]
+    if not items:
+        return ""
+    rows = ""
+    for s in items:
+        badge = _importance_badge(s.get("importance", "medium"))
+        source_html = _source_line(s.get("source", ""), s.get("source_date", ""))
+        rows += f'''
+<div style="padding:11px 0;border-bottom:0.5px solid #f0f0f0;">
+  <div style="margin-bottom:4px;">
+    <span style="display:inline-block;font-size:12px;font-weight:700;letter-spacing:.5px;color:#fff;
+                 background:#1B3A5C;padding:2px 8px;border-radius:3px;margin-right:8px;vertical-align:middle;">{s.get("ticker","")}</span>
+    <span style="font-size:16px;font-weight:500;color:#222;line-height:1.5;vertical-align:middle;">{s.get("headline","")}{badge}</span>
+  </div>
+  <div style="font-size:15px;color:#555;line-height:1.65;">{s.get("body","")}</div>
+  {source_html}
+</div>'''
+    return f'''
+<div class="section">
+  <div class="section-label">關注清單動態 <span style="font-weight:400;color:#888;font-size:12px;">DD universe・S／A 級優先・只列重大事件</span></div>{rows}
+</div>'''
+
+
+def _weekend_reads_section(items: list) -> str:
+    """本週值得讀：經濟學人／FT 長文，標題＋一句為什麼＋連結。"""
+    items = [i for i in (items or []) if isinstance(i, dict) and i.get("title")]
+    if not items:
+        return ""
+    rows = ""
+    for s in items:
+        title = s.get("title", "")
+        link = s.get("link", "")
+        title_html = (f'<a href="{link}" style="color:#1B3A5C;text-decoration:none;border-bottom:1px solid #c9d3df;">{title}</a>'
+                      if link.startswith("http") else title)
+        meta = " · ".join(x for x in (s.get("source", ""), s.get("source_date", "")) if x)
+        rows += f'''
+<div style="padding:10px 0;border-bottom:0.5px solid #f0f0f0;">
+  <div style="font-size:15px;font-weight:500;line-height:1.5;margin-bottom:3px;">{title_html}</div>
+  <div style="font-size:14px;color:#555;line-height:1.6;">{s.get("why","")}</div>
+  <div style="font-size:12px;color:#999;margin-top:3px;">{meta}</div>
+</div>'''
+    return f'''
+<div class="section">
+  <div class="section-label">本週值得讀 <span style="font-weight:400;color:#888;font-size:12px;">週刊／長文・今天沒空、週末補</span></div>{rows}
 </div>'''
 
 
@@ -996,7 +1173,7 @@ def _geopolitical_section(items: list) -> str:
 
 def _regional_tech_section(regional: dict) -> str:
     content = ""
-    for region in ["taiwan", "japan", "us", "malaysia", "korea", "china", "europe"]:
+    for region in ["taiwan", "japan", "us", "korea", "china", "europe", "asean", "malaysia"]:
         items = regional.get(region, [])
         if not items:
             continue
@@ -2102,75 +2279,11 @@ a {{ color:inherit; }}
 .sticky-nav {{ position:sticky; top:0; z-index:100; }}
 .nav-tabs {{ display:flex; overflow-x:auto; -webkit-overflow-scrolling:touch; }}
 .nav-tabs::-webkit-scrollbar {{ display:none; }}
-.imq-nav-root{{background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);padding:.7rem 20px;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,.12);position:sticky;top:0;z-index:1000;font-family:'Inter','Noto Sans TC',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}}
-.imq-nav-inner{{max-width:1140px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}}
-.imq-logo{{font-weight:700;color:#fff !important;text-decoration:none !important;font-size:15px;letter-spacing:-.02em;flex-shrink:0;background:none !important;padding:0 !important}}
-.imq-logo:hover{{color:#fff !important;text-decoration:none !important}}
-.imq-logo span{{color:#3b82f6}}
-.imq-menu{{display:flex;align-items:center;gap:.15rem;flex-wrap:wrap;margin:0;padding:0;list-style:none}}
-.imq-menu > a,.imq-dd-btn{{color:rgba(255,255,255,.7) !important;font-size:.8rem;font-weight:500;padding:.42rem .72rem;border-radius:6px;transition:all .15s;background:none;border:0;font-family:inherit;cursor:pointer;text-decoration:none !important;display:inline-flex;align-items:center;gap:.28rem;line-height:1.2;letter-spacing:0}}
-.imq-menu > a:hover,.imq-dd-btn:hover{{color:#fff !important;background:rgba(255,255,255,.08)}}
-.imq-menu > a.active{{color:#fff !important;background:rgba(59,130,246,.22);font-weight:600}}
-.imq-dd{{position:relative;display:inline-block}}
-.imq-dd-menu{{display:none;position:absolute;top:100%;left:0;background:#1e293b;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.35rem 0;min-width:180px;box-shadow:0 10px 28px rgba(0,0,0,.3);z-index:1001}}
-.imq-dd:hover .imq-dd-menu,.imq-dd:focus-within .imq-dd-menu,.imq-dd.open .imq-dd-menu{{display:block}}
-.imq-dd-menu a{{display:block;padding:.55rem 1rem;color:rgba(255,255,255,.75) !important;font-size:.78rem;text-decoration:none !important;white-space:nowrap;transition:all .12s;font-weight:500}}
-.imq-dd-menu a:hover{{color:#fff !important;background:rgba(59,130,246,.18)}}
-.imq-caret{{font-size:.6rem;opacity:.7;margin-top:1px}}
-@media(max-width:768px){{
-  .imq-nav-root{{padding:.55rem 12px}}
-  .imq-nav-inner{{gap:.4rem}}
-  .imq-menu{{width:100%;justify-content:flex-start;gap:.1rem}}
-  .imq-menu > a,.imq-dd-btn{{font-size:.74rem;padding:.32rem .5rem}}
-  .imq-dd-menu{{position:static;display:none;min-width:auto;box-shadow:none;background:rgba(255,255,255,.04);border:none;padding:.1rem 0 .3rem 1rem;margin:.1rem 0}}
-  .imq-dd.open .imq-dd-menu{{display:block}}
-}}
 {BASE_CSS}
 </style>
 </head>
 <body>
-<header class="imq-nav-root">
-  <div class="imq-nav-inner">
-    <a class="imq-logo" href="/">InvestMQuest<span>.</span> Research</a>
-    <nav class="imq-menu">
-      <a href="/">首頁</a>
-      <div class="imq-dd">
-        <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
-        <div class="imq-dd-menu">
-          <a href="/research/">個股 DD</a>
-          <a href="/pm/">PM 複盤</a>
-          <a href="/id/">產業深度 ID</a>
-          <a href="/id/theses.html">⭐ 九大非共識</a>
-          <a href="/id/tier_matrix.html">🎯 Tier Matrix</a>
-        </div>
-      </div>
-      <div class="imq-dd active">
-        <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
-        <div class="imq-dd-menu">
-          <a href="/briefing/" class="active">每日簡報</a>
-          <a href="/weekly/">週報</a>
-          <a href="/earnings/">財報分析</a>
-          <a href="/markets.html">Markets</a>
-          <a href="/sectors.html">Sectors</a>
-          <a href="/six-state/">六狀態機</a>
-        </div>
-      </div>
-      <div class="imq-dd">
-        <button type="button" class="imq-dd-btn">工具<span class="imq-caret">▾</span></button>
-        <div class="imq-dd-menu">
-          <a href="/backtest/">量化回測</a>
-          <a href="/qgm/">QGM 美股</a>
-          <a href="/qgm-tw/">QGM 台股</a>
-          <a href="/screener.html">Screener 美股</a>
-          <a href="/screener-tw.html">Screener 台股</a>
-        </div>
-      </div>
-      <a href="/mental-models/">🧠 心智模型</a>
-      <a href="/how-to.html">📘 使用說明</a>
-    </nav>
-  </div>
-</header>
-<script>(function(){{document.querySelectorAll('.imq-dd-btn').forEach(function(btn){{btn.addEventListener('click',function(e){{e.preventDefault();var dd=btn.closest('.imq-dd');document.querySelectorAll('.imq-dd.open').forEach(function(d){{if(d!==dd)d.classList.remove('open')}});dd.classList.toggle('open')}})}});document.addEventListener('click',function(e){{if(!e.target.closest('.imq-dd'))document.querySelectorAll('.imq-dd.open').forEach(function(d){{d.classList.remove('open')}})}})}})();</script>
+{NAV_BLOCK_BRIEF}
 <div class="sticky-nav">
   <div style="background:#1B3A5C;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;">
     <div>
@@ -2194,6 +2307,7 @@ def build_index_html(data: dict) -> str:
     content = ""
     if data.get("alert"):
         content += _alert(data["alert"])
+    content += _regime_block(data.get("regime", {}))
     content += _market_strip(data.get("market_data", {}))
     content += _index_factor_reading(data.get("index_factor_reading", {}))
     content += _sentiment_analysis(data.get("sentiment_analysis", {}))
@@ -2205,6 +2319,7 @@ def build_news_html(data: dict) -> str:
     """要聞・深度"""
     date = data.get("date", "")
     content = _news_section("核心要聞", data.get("top_stories", []))
+    content += _watchlist_news_section(data.get("watchlist_news", []))
     content += _daily_deep_dive(data.get("daily_deep_dive", []))
     return _page_wrapper("news", date, content, "要聞・深度")
 
@@ -2222,7 +2337,7 @@ def build_tech_html(data: dict) -> str:
     """科技・AI"""
     date = data.get("date", "")
     ai_tag = {"macro": "background:#EBF2FA;color:#185FA5;", "tech": "background:#EAF3DE;color:#3B6D11;"}
-    content = _news_section("AI 産業動態", data.get("ai_industry", []), ai_tag)
+    content = _news_section("AI 產業動態", data.get("ai_industry", []), ai_tag)
     content += _regional_tech_section(data.get("regional_tech", {}))
     content += _fintech_crypto_section(data.get("fintech_crypto", []))
     return _page_wrapper("tech", date, content, "科技・AI")
@@ -2232,6 +2347,7 @@ def build_trends_html(data: dict) -> str:
     """新創・趨勢"""
     date = data.get("date", "")
     content = _tech_trends(data.get("tech_trends", []))
+    content += _weekend_reads_section(data.get("weekend_reads", []))
     content += _startup_news(data.get("startup_news", []))
     content += _smart_money(data.get("smart_money", {}))
     return _page_wrapper("trends", date, content, "新創・趨勢")
@@ -2897,7 +3013,7 @@ def build_html(data: dict, screener_result: dict = None) -> str:
     now = datetime.now(tz).strftime("%Y年%m月%d日 %H:%M TST")
 
     ai_tag = {"macro": "background:#EBF2FA;color:#185FA5;", "tech": "background:#EAF3DE;color:#3B6D11;"}
-    ai_section = _news_section("AI 産業動態", data.get("ai_industry", []), ai_tag)
+    ai_section = _news_section("AI 產業動態", data.get("ai_industry", []), ai_tag)
     sr = screener_result or {}
 
     return f"""<!DOCTYPE html>
@@ -2913,11 +3029,13 @@ def build_html(data: dict, screener_result: dict = None) -> str:
 {_quote_of_day(now[:10])}
 {_daily_summary(data.get("daily_summary",""))}
 {_alert(data.get("alert",""))}
+{_regime_block(data.get("regime", {}))}
 {_market_strip(data.get("market_data", {}))}
 {_index_factor_reading(data.get("index_factor_reading", {}))}
 {_market_pulse(data.get("market_pulse", {}))}
 {_sentiment_analysis(data.get("sentiment_analysis", {}))}
 {_news_section("核心要聞", data.get("top_stories",[]))}
+{_watchlist_news_section(data.get("watchlist_news",[]))}
 {_daily_deep_dive(data.get("daily_deep_dive", []))}
 {_world_news(data.get("world_news", []))}
 {_news_section("總經動態", data.get("macro",[]))}
@@ -2927,6 +3045,7 @@ def build_html(data: dict, screener_result: dict = None) -> str:
 {_fintech_crypto_section(data.get("fintech_crypto",[]))}
 {_status_grid(data.get("system_status", {}))}
 {_tech_trends(data.get("tech_trends",[]))}
+{_weekend_reads_section(data.get("weekend_reads",[]))}
 {_startup_news(data.get("startup_news",[]))}
 {_smart_money(data.get("smart_money", {}))}
 {_earnings_preview(data.get("earnings_preview",[]))}
