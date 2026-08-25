@@ -146,4 +146,13 @@ jobs:
           git add docs/
           git diff --cached --quiet && echo "No changes to commit" && exit 0
           git commit -m "📰 Morning briefing ${TODAY}"
-          git push
+
+          # 推送可能跟同一時段其他排程（intel-2-daily 等）撞車，rebase 重試最多 5 次
+          for i in 1 2 3 4 5; do
+            if git push; then
+              break
+            fi
+            echo "Push rejected, retrying with rebase (attempt $i)..."
+            git pull --rebase origin main
+            sleep 3
+          done
