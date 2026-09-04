@@ -143,6 +143,8 @@ PERPLEXITY_QUERIES = [
     "AI industry in the past 24 hours: model releases, AI capex and data-center deals, hyperscaler spending, AI chip supply. Sources: Bloomberg Reuters TechCrunch The Information Wired Ars Technica CNBC Axios",
     "Semiconductor supply chain in the past 24 hours: TSMC, Nvidia, AMD, ASML, Samsung, SK Hynix, Micron — orders, capacity, pricing (DRAM/NAND/HBM contract prices), export controls. Sources: Bloomberg Reuters DIGITIMES TrendForce SemiAnalysis Nikkei Asia EE Times",
     "Taiwan and Korea tech in the past 24 hours: TSMC monthly revenue, MediaTek, Foxconn, Samsung, SK Hynix — company events and government policy. Sources: Bloomberg Reuters Nikkei Asia DIGITIMES Focus Taiwan Yonhap Korea Herald",
+    "AI in healthcare and biotech in the past 24 hours: FDA clearances or approvals of AI-enabled devices and AI-discovered drugs, AI drug-discovery partnerships and their deal values, hospital or payer deployments, clinical-trial readouts of AI tools, and reimbursement or regulatory policy. Sources: Reuters Bloomberg Financial Times STAT News Endpoints News Fierce Biotech CNBC Nature",
+    "Enterprise and industry adoption of AI in the past 24 hours: named enterprise deployments and contract values, software vendors shipping AI agents or copilots, disclosed AI revenue or seat counts, robotics and autonomous-driving deployments, and adoption or layoff data attributed to AI. Sources: Bloomberg Reuters The Information TechCrunch Financial Times WSJ CNBC Axios",
     # 新創／機構
     "Largest startup funding rounds, IPO filings, and defense-tech / robotics investments announced in the past 24 hours, with amounts and lead investors. Sources: TechCrunch Bloomberg Reuters Crunchbase The Information Axios",
     "Institutional positioning in the past 24 hours: 13F disclosures, notable fund moves, large block trades, ETF flows into QQQ SPY SOXX. Sources: Bloomberg Reuters CNBC WSJ Barchart",
@@ -154,6 +156,7 @@ PERPLEXITY_QUERIES = [
 
 DEEP_DIVE_FIXED_QUERIES = [
     "Semiconductor supply chain today: inventory levels fab utilization TSMC Samsung capacity pricing DRAM NAND HBM latest data Sources: Digitimes SemiAnalysis Bloomberg Reuters TrendForce",
+    "Advanced packaging and memory supply chain today: CoWoS and SoIC capacity allocation, HBM3E/HBM4 qualification and contract pricing, substrate and equipment lead times, semiconductor materials constraints. Sources: Digitimes TrendForce SemiAnalysis Nikkei Asia Reuters Bloomberg",
     "AI model architecture research today: training efficiency inference optimization new model releases benchmarks compute costs Sources: Bloomberg Reuters TechCrunch The Information Ars Technica",
 ]
 
@@ -1184,11 +1187,17 @@ RSS_FEEDS = [
     ("China Tech (GN)", _GN.format(q="(Huawei+OR+DeepSeek+OR+Alibaba+OR+SMIC+OR+Baidu)+when:1d+(site:reuters.com+OR+site:bloomberg.com+OR+site:scmp.com+OR+site:ft.com)"), 8, 24),
     ("Europe Tech (GN)", _GN.format(q="(ASML+OR+%22European+AI%22+OR+%22EU+AI+Act%22+OR+Mistral+OR+SAP)+when:1d+(site:reuters.com+OR+site:bloomberg.com+OR+site:ft.com)"), 6, 24),
     ("ASEAN DC (GN)",   _GN.format(q="(Malaysia+OR+Singapore+OR+Vietnam+OR+Indonesia+OR+Thailand)+(%22data+center%22+OR+semiconductor+OR+chip)+when:2d"), 6, 48),
+    # AI 應用（醫療／生技）
+    ("STAT News (GN)",  _GN.format(q="site:statnews.com+when:2d"), 6, 48),
+    ("Endpoints (GN)",  _GN.format(q="site:endpts.com+when:2d"), 5, 48),
+    ("Fierce Biotech (GN)", _GN.format(q="site:fiercebiotech.com+OR+site:fiercehealthcare.com+when:2d"), 5, 48),
+    ("AI Health (GN)",  _GN.format(q="(%22AI%22+OR+%22artificial+intelligence%22)+(FDA+OR+%22drug+discovery%22+OR+hospital+OR+diagnostics)+when:2d+(site:reuters.com+OR+site:bloomberg.com+OR+site:ft.com+OR+site:statnews.com+OR+site:cnbc.com)"), 8, 48),
+    ("AI Enterprise (GN)", _GN.format(q="(%22AI+agents%22+OR+%22AI+deployment%22+OR+%22AI+revenue%22+OR+copilot)+when:1d+(site:reuters.com+OR+site:bloomberg.com+OR+site:theinformation.com+OR+site:techcrunch.com+OR+site:ft.com)"), 8, 24),
     # Fintech／加密
     ("CoinDesk",        "https://www.coindesk.com/arc/outboundfeeds/rss/", 8, 24),
     ("The Block",       "https://www.theblock.co/rss.xml", 6, 24),
 ]
-RSS_TOTAL_CAP = 280
+RSS_TOTAL_CAP = 310
 _LONGFORM_FEEDS = {"Financial Times", "FT Markets", "FT Tech", "FT Asia", "The Economist (GN)",
                    "The Information", "SemiAnalysis", "Ars Technica"}
 _RSS_NOISE = re.compile(r"開獎|中獎號碼|彩券|統一發票|訃聞|Podcast|podcast|The Download:|Crossword|Newsletter")  # 全部 feed 合計上限，超過就按清單順序截掉後面的

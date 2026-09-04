@@ -162,6 +162,17 @@ def _news_date_window() -> tuple[str, str]:
     return now.strftime("%Y-%m-%d"), (now - timedelta(days=back)).strftime("%Y-%m-%d")
 
 
+def _last_us_session_date() -> str:
+    """台北早報跑的時間點，「剛結束的那個 US session」是哪一天（美東日期）。
+    台北 D 日早上 → 美股最近收盤是 D-1；D-1 若落在週末就往回退到週五。"""
+    import pytz
+    from datetime import datetime, timedelta
+    d = datetime.now(pytz.timezone("Asia/Taipei")).date() - timedelta(days=1)
+    while d.weekday() >= 5:            # 5=六 6=日
+        d -= timedelta(days=1)
+    return d.strftime("%Y-%m-%d")
+
+
 def _watchlist_block(watchlist: list[dict] | None) -> tuple[str, int]:
     """關注清單 → 兩組文字：
     【優先組】S 級全部＋A 級且 QGM 4 條件通過 ≥3；【其他組】剩下的。
@@ -200,6 +211,7 @@ def _cc_news(news_text: str, earnings_context: str, watchlist: list[dict] | None
         earnings_context=earnings_context,
         today=today,
         cutoff_date=cutoff,
+        last_session=_last_us_session_date(),
         watchlist_block=wl_text,
         watchlist_count=wl_n,
     )
@@ -268,6 +280,7 @@ GEMINI_SYSTEM_PROMPT = """
 【來源白名單（只使用這些；素材若標示其他來源就跳過該條）】
 通訊社／財經：Bloomberg、Reuters、Financial Times、WSJ、CNBC、Barron's、The Economist、Axios、Politico、AP、BBC、CNN Business
 科技：TechCrunch、The Information、Wired、Ars Technica、MIT Technology Review、Crunchbase（僅融資輪）
+醫療／生技：STAT News、Endpoints News、Fierce Biotech、Fierce Healthcare、Nature、Science、NEJM、JAMA、FDA
 半導體／亞洲：DIGITIMES、TrendForce、SemiAnalysis、Semiconductor Engineering、EE Times、Nikkei Asia、South China Morning Post、Focus Taiwan／中央社、MoneyDJ、Yonhap／Korea Herald／Korea JoongAng Daily、Caixin
 加密：CoinDesk、The Block
 政策／智庫：Foreign Affairs、RAND、Brookings、Fed、ECB、BOJ、BIS、IMF、SEC、FRED
@@ -284,6 +297,21 @@ GEMINI_SYSTEM_PROMPT = """
 - ticker 欄必須照【關注清單】的寫法（如 2330.TW、6857.T）。同一事件在 top_stories 已寫過的仍可放這裡（這區塊是「按持股看」的視角，是唯一允許跨區塊重複的例外），但 body 要換成「對這家公司意味著什麼」。
 - 沒有就 []，不硬湊——一天只有 2 條真正重要的，就寫 2 條；嚴禁行情句。
 
+【AI 區塊（ai_industry）覆蓋規則】
+- 這一區同時涵蓋兩件事：①AI 本身的產業動態（模型發布、capex、資料中心、算力交易）；②**AI 的落地應用**。有素材時三條應用軸各挑最重要的寫，沒素材就不寫，不得硬湊：
+  1. **醫療／生技**：FDA 對 AI 醫材／AI 發現藥物的核准或除名、AI 藥物探索合作與金額、醫院或保險方導入、AI 工具的臨床試驗結果、給付與監管政策。
+  2. **科技與企業應用**：具名企業導入案與合約金額、軟體商出貨 AI agent／copilot、揭露的 AI 營收或席次數、機器人與自駕落地。
+  3. **半導體供應鏈**：先進封裝（CoWoS／SoIC）產能配置、HBM 認證與合約價、基板與設備交期、材料瓶頸、出口管制。
+- 每條 tag 用「醫療應用」「企業應用」「供應鏈」「AI 產業」其中之一。
+- 判準不變：body 要有具體數字或具名主體，泛論式「AI 將改變 X 產業」一律丟掉。半導體供應鏈條目若已在 top_stories 出現，不得在此重複。
+
+【昨日美股重點（us_market_recap）硬規則】
+- 只收「上一個 US session」（使用者訊息會給明確日期）當天公布的財報與事件：盤前、盤中、盤後三段都屬於那一天。
+- 每筆必須填 `report_date`，且必須等於那個日期；**素材裡沒有明確公布日期的財報一律不收**，不得靠記憶補（前天、上週、上一季的財報放進來是最嚴重的錯誤）。
+- 出現「隔日盤前」「次日續漲」這類跨日描述，代表這筆不是上一個 session 的事件，直接丟掉。
+- `summary` 只講事件面（誰報了什麼、優於或低於預期、指引方向），**不得寫指數漲跌幅或點位**；個股的盤後反應只能寫在 `after_hours_move`。
+- 當天真的沒有財報就 `earnings: []`、`has_events: false`，不要拿舊財報填版面。
+
 【新聞內容規則】
 - 只輸出事件性新聞（公司動態、政策、併購、產品發布、人事、數據公布）
 - **嚴禁行情敘述**：不得出現股價漲跌幅、指數點位或漲跌、幣價、期貨漲跌、「走高／走低／持穩於 $X」這類句子。行情由另一個區塊用 yfinance 真實數據呈現。財報後盤後反應只能寫在 us_market_recap.after_hours_move。
@@ -296,6 +324,7 @@ GEMINI_SYSTEM_PROMPT = """
 GEMINI_USER_PROMPT_TEMPLATE = """
 【今日日期（台北）】{today}
 【允收起始日】{cutoff_date} —— source_date 早於這一天的新聞一律不收。
+【上一個 US session】{last_session} —— us_market_recap 只能收這一天公布的財報與事件（report_date 必須等於它）。
 
 【關注清單】（ticker(護城河等級)，共 {watchlist_count} 檔）
 {watchlist_block}
@@ -430,7 +459,9 @@ GEMINI_USER_PROMPT_TEMPLATE = """
         "key_line": "最重要的一句話（含具體數字）",
         "after_hours_move": "股價反應",
         "why_it_matters": "為什麼重要（1句）",
-        "session": "pre-market/market/after-hours"
+        "session": "pre-market/market/after-hours",
+        "report_date": "YYYY-MM-DD（該筆財報實際公布的美東日期，必須等於【上一個 US session】）",
+        "source": "來源媒體"
       }}}}
     ],
     "other_events": [],
@@ -467,7 +498,7 @@ GEMINI_USER_PROMPT_TEMPLATE = """
 【數量上限 — 這些是「最多」，不是「至少」；素材不夠就少寫或留 []】
 - top_stories：最多 12 條（前 3–5 條必須是指數部相關，tag「指數部」）
 - macro：最多 5 條
-- ai_industry：最多 5 條
+- ai_industry：最多 7 條（其中「AI 落地應用」相關至少寫到有素材的部分，見下方 AI 區塊規則）
 - regional_tech：每個地區最多 3 條，**沒有當日素材的地區留 []**（不要硬寫）
 - fintech_crypto：最多 4 條
 - geopolitical：最多 4 條
@@ -1233,6 +1264,7 @@ def _call_gemini(news_text: str, earnings_context: str, watchlist: list[dict] | 
         earnings_context=earnings_context,
         today=today,
         cutoff_date=cutoff,
+        last_session=_last_us_session_date(),
         watchlist_block=wl_text,
         watchlist_count=wl_n,
     )
@@ -1555,7 +1587,7 @@ def _strip_market_sentences(text: str):
 
 def _sanitize_news(data: dict, cutoff_date: str) -> None:
     """(1) 全部字串簡繁／錯字修正；(2) 新聞區塊：過期條目丟掉、行情句砍掉、標題含漲跌%整條丟掉。"""
-    stats = {"stale": 0, "market_sent": 0, "market_head": 0}
+    stats = {"stale": 0, "market_sent": 0, "market_head": 0, "recap_stale": 0}
 
     def _walk_fix(obj):
         if isinstance(obj, dict):
@@ -1601,8 +1633,30 @@ def _sanitize_news(data: dict, cutoff_date: str) -> None:
         for region, items in rt.items():
             if isinstance(items, list):
                 rt[region] = _clean_list(items)
+    # us_market_recap：只留「上一個 US session」公布的財報（沒有日期或日期不符一律丟）
+    recap = data.get("us_market_recap")
+    if isinstance(recap, dict) and isinstance(recap.get("earnings"), list):
+        session = _last_us_session_date()
+        kept = []
+        for it in recap["earnings"]:
+            if not isinstance(it, dict):
+                continue
+            rd = str(it.get("report_date") or "")
+            if not _re.match(r"\d{4}-\d{2}-\d{2}$", rd) or rd != session:
+                stats["recap_stale"] += 1
+                continue
+            kept.append(it)
+        recap["earnings"] = kept
+        if isinstance(recap.get("summary"), str):
+            new_sum, cut = _strip_market_sentences(recap["summary"])
+            if cut:
+                recap["summary"] = new_sum
+                stats["market_sent"] += 1
+        if not kept and not recap.get("other_events"):
+            recap["has_events"] = False
+
     if any(stats.values()):
-        print(f"  → sanitize: 過期 {stats['stale']}、行情標題 {stats['market_head']}、行情句 {stats['market_sent']}")
+        print(f"  → sanitize: 過期 {stats['stale']}、行情標題 {stats['market_head']}、行情句 {stats['market_sent']}、昨日美股非當日財報 {stats['recap_stale']}")
 
 
 def process_news(raw_news: list[dict], market_data: dict | None = None, today_earnings: list | None = None, moneydj_news: list[dict] | None = None, deep_dive_news: list[dict] | None = None, move_index_raw: str = "", earnings_deep_dive: list[dict] | None = None, prev_regime: dict | None = None, watchlist: list[dict] | None = None) -> dict:
