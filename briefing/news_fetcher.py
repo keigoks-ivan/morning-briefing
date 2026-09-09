@@ -142,7 +142,7 @@ def _llm_search(system_content: str, user_content: str, max_tokens: int = 600,
     return {"answer": "", "sources": []}
 
 
-# 2026-08-17 晚改制：RSS（見 RSS_FEEDS）負責「大量頭條」，Haiku 搜尋保留 15 題做「需要跨來源整理」的主題。
+# 2026-09-09 擴充：RSS（見 RSS_FEEDS）負責「大量頭條」，Haiku 搜尋保留 18 題做「需要跨來源整理」的主題。
 # 砍掉的：7 個地區題（RSS 覆蓋）、fintech 題（CoinDesk/The Block RSS）、國際新聞題（Reuters GN）、
 # AI 架構研究題（deep dive 已有）、「index levels」題（新聞區塊禁行情，題目本身違規）。
 # 每題末尾 Sources 只列 source_registry.py 中的白名單媒體。
@@ -158,9 +158,12 @@ PERPLEXITY_QUERIES = [
     "Global trade, shipping and industrial policy developments in the past 24 hours: tariffs, export controls, freight or port disruption, defense procurement, reshoring and major supply-chain bottlenecks. Sources: Bloomberg Reuters Financial Times WSJ Politico Nikkei Asia",
     # AI／半導體（指數部核心）
     "AI industry in the past 24 hours: model releases, AI capex and data-center deals, hyperscaler spending, AI chip supply. Sources: Bloomberg Reuters TechCrunch The Information Wired Ars Technica CNBC Axios",
+    "Data-center infrastructure in the past 24 hours: power generation and grid connections, cooling, networking and optical interconnects, construction capacity, named orders and capex from Vertiv, Eaton, Arista, Schneider, Siemens, GE Vernova and hyperscalers. Sources: Bloomberg Reuters Financial Times CNBC The Information DIGITIMES",
     "Semiconductor supply chain in the past 24 hours: TSMC, Nvidia, AMD, ASML, Samsung, SK Hynix, Micron — orders, capacity, pricing (DRAM/NAND/HBM contract prices), export controls. Sources: Bloomberg Reuters DIGITIMES TrendForce SemiAnalysis Nikkei Asia EE Times",
     "Taiwan and Korea tech in the past 24 hours: TSMC monthly revenue, MediaTek, Foxconn, Samsung, SK Hynix — company events and government policy. Sources: Bloomberg Reuters Nikkei Asia DIGITIMES Focus Taiwan Yonhap Korea Herald",
-    "AI applications in healthcare and enterprises in the past 24 hours: FDA decisions, AI drug-discovery or hospital deployments, named enterprise agent/copilot contracts, disclosed AI revenue or seat counts, robotics and autonomous-driving deployments. Sources: Reuters Bloomberg Financial Times STAT News Endpoints News Fierce Biotech The Information TechCrunch CNBC Nature",
+    "Healthcare, biotech, pharma and medtech industry developments in the past 24 hours: FDA decisions, clinical trial readouts, AI drug discovery, hospital deployments, reimbursement, major licensing deals and manufacturing capacity. Sources: Reuters Bloomberg Financial Times STAT News Endpoints News Fierce Biotech CNBC Nature FDA",
+    "Enterprise software, cybersecurity and industrial AI developments in the past 24 hours: named agent/copilot deployments, disclosed AI revenue or seat counts, cloud migrations, major security incidents, platform pricing and enterprise contracts. Sources: Reuters Bloomberg Financial Times The Information TechCrunch Wired Ars Technica CNBC",
+    "Industrial automation, robotics, autonomous systems and aerospace or defense developments in the past 24 hours: named orders, production ramps, factory automation, defense procurement and supply-chain capacity. Sources: Reuters Bloomberg Financial Times WSJ CNBC Axios",
     # 新創／機構
     "Largest startup funding rounds, IPO filings, and defense-tech / robotics investments announced in the past 24 hours, with amounts and lead investors. Sources: TechCrunch Bloomberg Reuters Crunchbase The Information Axios",
     "Institutional positioning in the past 24 hours: 13F disclosures, notable fund moves, large block trades, ETF flows into QQQ SPY SOXX. Sources: Bloomberg Reuters CNBC WSJ Barchart",

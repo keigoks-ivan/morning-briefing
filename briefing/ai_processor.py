@@ -271,8 +271,8 @@ GEMINI_SYSTEM_PROMPT = """
 3. 常見錯字自檢：「通膨」不是「通膀」、「澳洲」不是「澈洲」、「籌募／籌備」不是「籲募／籲備」、「產業」不是「産業」
 
 【跨區塊去重（硬規則）】
-- 同一事件（同一家公司的同一件事，即使措辭、角度、數字略有不同）在**整份 JSON** 裡只能出現一次——包含 top_stories、macro、geopolitical、world_news、ai_industry、regional_tech、fintech_crypto、startup_news、us_market_recap。
-- 優先順序：top_stories 先挑；其他區塊只放 top_stories 沒用到的事件。
+- 同一事件（同一家公司的同一件事，即使措辭、角度、數字略有不同）在**整份 JSON** 裡只能出現一次——包含 top_stories、industry_developments、macro、geopolitical、world_news、ai_industry、regional_tech、fintech_crypto、startup_news、us_market_recap。
+- 優先順序：top_stories 先挑；industry_developments 再從未用過的素材挑；其他區塊只放前兩區沒用到的事件。
 - 「角度不同」不是重複的藉口：Nvidia 投資某公司這件事只能出現一次，不能 top_stories 一次、ai_industry 一次、regional_tech.us 再一次。
 - 同一事件也不得跨地區重複（TSMC 一條事件放 taiwan 就不放 japan）。
 
@@ -301,6 +301,13 @@ __SOURCE_WHITELIST__
   3. **半導體供應鏈**：先進封裝（CoWoS／SoIC）產能配置、HBM 認證與合約價、基板與設備交期、材料瓶頸、出口管制。
 - 每條 tag 用「醫療應用」「企業應用」「供應鏈」「AI 產業」其中之一。
 - 判準不變：body 要有具體數字或具名主體，泛論式「AI 將改變 X 產業」一律丟掉。半導體供應鏈條目若已在 top_stories 出現，不得在此重複。
+
+【產業發展追蹤（industry_developments）】
+- 這是增加新聞量的主區塊，但只收「會改變未來 6–18 個月產業供需、成本、技術路線、競爭格局或資本支出」的事件。
+- 優先產業：半導體、AI 基礎設施／資料中心、企業軟體／資安、機器人／工業自動化、醫療生技、金融科技、國防航太、能源／運輸物流。
+- 合格條件：必須是具體事件，且 body 有具名公司／機構與具體數字或可驗證的政策／技術節點；單純市況、分析師評等、公司 PR 口號、沒有傳導機制的泛論不收。
+- 每個產業最多 2 條；素材充足時目標 10–14 條且至少橫跨 5 個產業，不足時可低於 10 條，不得為達目標降低品質。
+- value_chain 要點出受影響的供應鏈環節；why_it_matters 要寫明傳導機制，不能只說「值得關注」。
 
 【昨日美股重點（us_market_recap）硬規則】
 - 只收「上一個 US session」（使用者訊息會給明確日期）當天公布的財報與事件：盤前、盤中、盤後三段都屬於那一天。
@@ -387,6 +394,20 @@ GEMINI_USER_PROMPT_TEMPLATE = """
       "body": "2句說明，含具體數據和公司名稱",
       "tag": "分類標籤",
       "source": "來源媒體",
+      "source_date": "YYYY-MM-DD",
+      "importance": "high|medium"
+    }}}}
+  ],
+
+  "industry_developments": [
+    {{{{
+      "industry": "半導體|AI基礎設施|企業軟體與資安|機器人與工業自動化|醫療生技|金融科技|國防航太|能源與運輸物流|其他",
+      "headline": "產業發展標題（30字以內）",
+      "body": "2句：具體事件＋關鍵數字，不寫行情",
+      "development": "需求|供給|產能|技術|價格|監管|競爭|資本支出|併購",
+      "value_chain": "受影響的上游→中游→下游環節（1句）",
+      "why_it_matters": "對未來 6–18 個月供需／利潤／競爭格局的傳導機制（1句）",
+      "source": "白名單 canonical 來源媒體",
       "source_date": "YYYY-MM-DD",
       "importance": "high|medium"
     }}}}
@@ -495,8 +516,9 @@ GEMINI_USER_PROMPT_TEMPLATE = """
   }}}}
 }}}}
 
-【數量上限 — 這些是「最多」，不是「至少」；素材不夠就少寫或留 []】
-- top_stories：最多 12 條（前 3–5 條必須是指數部相關，tag「指數部」）
+【數量目標與上限 — 目標不是硬性最低值；素材不夠就少寫或留 []】
+- top_stories：素材充足時目標 8–10 條，最多 12 條（前 3–5 條必須是指數部相關，tag「指數部」）
+- industry_developments：素材充足時目標 10–14 條，最多 14 條，至少橫跨 5 個產業、每產業最多 2 條
 - macro：最多 5 條
 - ai_industry：最多 7 條（其中「AI 落地應用」相關至少寫到有素材的部分，見下方 AI 區塊規則）
 - regional_tech：每個地區最多 3 條，**沒有當日素材的地區留 []**（不要硬寫）
@@ -1470,10 +1492,29 @@ import re as _re
 from datetime import datetime as _dt, timedelta as _td
 
 _NEWS_PRIMARY_BLOCKS = [
-    "top_stories", "macro", "geopolitical", "world_news", "ai_industry",
+    "top_stories", "industry_developments", "macro", "geopolitical", "world_news", "ai_industry",
     "fintech_crypto", "startup_news",
 ]
 _NEWS_LIST_BLOCKS = _NEWS_PRIMARY_BLOCKS + ["tech_trends", "daily_deep_dive"]
+
+_INDUSTRY_ALIASES = {
+    "半導體": "半導體",
+    "ai基礎設施": "AI基礎設施",
+    "ai資料中心": "AI基礎設施",
+    "企業軟體與資安": "企業軟體與資安",
+    "企業軟體資安": "企業軟體與資安",
+    "機器人與工業自動化": "機器人與工業自動化",
+    "機器人工業自動化": "機器人與工業自動化",
+    "醫療生技": "醫療生技",
+    "金融科技": "金融科技",
+    "國防航太": "國防航太",
+    "能源與運輸物流": "能源與運輸物流",
+    "能源運輸物流": "能源與運輸物流",
+    "其他": "其他",
+}
+_INDUSTRY_DEVELOPMENT_TYPES = {
+    "需求", "供給", "產能", "技術", "價格", "監管", "競爭", "資本支出", "併購",
+}
 
 _MONEY_RE = _re.compile(r"\$\s?\d[\d,.]*\s?[BMTK]?|\d[\d,.]*\s?(?:億|兆|萬)")
 _ENT_RE = _re.compile(r"[A-Z][A-Za-z0-9&.\-]{1,}")          # 英文專名／ticker
@@ -1746,7 +1787,7 @@ def _sanitize_news(data: dict, cutoff_date: str) -> dict:
     """(1) 全部字串簡繁／錯字修正；(2) 新聞區塊：過期條目丟掉、行情句砍掉、標題含漲跌%整條丟掉。"""
     stats = {
         "stale": 0, "market_sent": 0, "market_head": 0,
-        "recap_stale": 0, "invalid_source": 0,
+        "recap_stale": 0, "invalid_source": 0, "industry_quality": 0,
     }
 
     def _walk_fix(obj):
@@ -1796,6 +1837,32 @@ def _sanitize_news(data: dict, cutoff_date: str) -> dict:
     for key in _NEWS_LIST_BLOCKS + ["smart_money", "watchlist_news", "weekend_reads"]:
         if isinstance(data.get(key), list):
             data[key] = _clean_list(data[key], check_date=key not in ("tech_trends", "daily_deep_dive", "weekend_reads"))
+
+    # 產業區不只信 prompt：欄位不完整、類別不合或單一產業超過 2 條都不進頁面。
+    industry_kept = []
+    industry_counts = {}
+    for item in data.get("industry_developments", []) if isinstance(data.get("industry_developments"), list) else []:
+        raw_industry = _re.sub(r"[\s／/]+", "", str(item.get("industry") or "")).casefold()
+        industry = _INDUSTRY_ALIASES.get(raw_industry)
+        development_parts = [
+            part for part in _re.split(r"[\s／/|,、]+", str(item.get("development") or "")) if part
+        ]
+        complete = all(str(item.get(field) or "").strip() for field in (
+            "headline", "body", "value_chain", "why_it_matters",
+        ))
+        valid_development = bool(development_parts) and all(
+            part in _INDUSTRY_DEVELOPMENT_TYPES for part in development_parts
+        )
+        if not industry or not complete or not valid_development or industry_counts.get(industry, 0) >= 2:
+            stats["industry_quality"] += 1
+            continue
+        item["industry"] = industry
+        item["development"] = "／".join(development_parts)
+        industry_counts[industry] = industry_counts.get(industry, 0) + 1
+        industry_kept.append(item)
+        if len(industry_kept) >= 14:
+            break
+    data["industry_developments"] = industry_kept
     rt = data.get("regional_tech")
     if isinstance(rt, dict):
         for region, items in rt.items():
@@ -1837,7 +1904,7 @@ def _sanitize_news(data: dict, cutoff_date: str) -> dict:
         print(
             f"  → sanitize: 過期 {stats['stale']}、非白名單 {stats['invalid_source']}、"
             f"行情標題 {stats['market_head']}、行情句 {stats['market_sent']}、"
-            f"昨日美股非當日財報 {stats['recap_stale']}"
+            f"產業品質 {stats['industry_quality']}、昨日美股非當日財報 {stats['recap_stale']}"
         )
     return stats
 
@@ -1952,7 +2019,7 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
     analysis_move = analysis_data.get("market_data", {}).get("move_index", {})
 
     # Gemini 新聞區塊
-    for key in ["top_stories", "watchlist_news", "weekend_reads", "macro", "ai_industry", "regional_tech",
+    for key in ["top_stories", "industry_developments", "watchlist_news", "weekend_reads", "macro", "ai_industry", "regional_tech",
                 "fintech_crypto", "geopolitical", "world_news", "startup_news",
                 "us_market_recap", "earnings_preview", "today_events", "fun_fact"]:
         if key in gemini_data:
@@ -1995,11 +2062,19 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
                 for item in deep_search_items
             ),
         },
+        "output_counts": {
+            "top_stories": len(data.get("top_stories", [])),
+            "industry_developments": len(data.get("industry_developments", [])),
+            "macro": len(data.get("macro", [])),
+            "ai_industry": len(data.get("ai_industry", [])),
+            "tech_trends": len(data.get("tech_trends", [])),
+        },
     }
 
     _validate(data)
 
     print(f"  → stories={len(data.get('top_stories',[]))}, "
+          f"industry={len(data.get('industry_developments',[]))}, "
           f"macro={len(data.get('macro',[]))}, "
           f"ai={len(data.get('ai_industry',[]))}, "
           f"tech={len(data.get('tech_trends',[]))}")
@@ -2012,6 +2087,7 @@ def _validate(data: dict) -> None:
     data.setdefault("alert", "")
     data.setdefault("market_data", {})
     data.setdefault("top_stories", [])
+    data.setdefault("industry_developments", [])
     data.setdefault("macro", [])
     data.setdefault("ai_industry", [])
     data.setdefault("regional_tech", {"taiwan": [], "japan": [], "us": [], "korea": [], "china": [], "europe": [], "asean": []})

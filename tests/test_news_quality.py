@@ -111,13 +111,16 @@ class RssQualityTests(unittest.TestCase):
         self.assertTrue(all(args[4] == "deep-fixed" for args in calls))
         self.assertEqual(result["dynamic"], [])
 
-    def test_base_search_keeps_fifteen_broad_queries(self):
+    def test_base_search_keeps_eighteen_broad_queries(self):
         queries = news_fetcher.PERPLEXITY_QUERIES
-        self.assertEqual(len(queries), 15)
+        self.assertEqual(len(queries), 18)
         combined = " ".join(queries).casefold()
         self.assertIn("credit and liquidity", combined)
         self.assertIn("global trade, shipping", combined)
         self.assertIn("healthcare", combined)
+        self.assertIn("data-center infrastructure", combined)
+        self.assertIn("enterprise software, cybersecurity", combined)
+        self.assertIn("industrial automation, robotics", combined)
         self.assertIn("earnings", combined)
 
     def test_google_news_source_variant_falls_back_to_specific_feed_label(self):
@@ -198,6 +201,23 @@ class RssQualityTests(unittest.TestCase):
 
 
 class AiQualityTests(unittest.TestCase):
+    def test_industry_prompt_uses_soft_target_and_quality_fields(self):
+        prompt = ai_processor.GEMINI_SYSTEM_PROMPT + ai_processor.GEMINI_USER_PROMPT_TEMPLATE
+        self.assertIn("industry_developments", prompt)
+        self.assertIn("目標 10–14 條", prompt)
+        self.assertIn("value_chain", prompt)
+        self.assertIn("why_it_matters", prompt)
+        rendered = ai_processor.GEMINI_USER_PROMPT_TEMPLATE.format(
+            today="2026-09-09",
+            cutoff_date="2026-09-08",
+            last_session="2026-09-08",
+            watchlist_count=0,
+            watchlist_block="（無）",
+            news_text="material",
+            earnings_context="",
+        )
+        self.assertIn('"industry_developments": [', rendered)
+
     def test_sanitize_enforces_allowlist(self):
         data = {
             "top_stories": [
@@ -223,6 +243,27 @@ class AiQualityTests(unittest.TestCase):
         self.assertEqual(data["weekend_reads"], [])
         self.assertEqual(stats["invalid_source"], 1)
 
+    def test_industry_quality_requires_complete_fields_and_caps_each_industry(self):
+        def industry_item(headline, why="改變未來供需。"):
+            return {
+                "industry": "半導體",
+                "headline": headline,
+                "body": "TSMC宣布新增$1B產能。",
+                "development": "產能",
+                "value_chain": "設備→晶圓代工→客戶",
+                "why_it_matters": why,
+                "source": "Reuters",
+                "source_date": "2026-09-09",
+            }
+
+        data = {"industry_developments": [
+            industry_item("事件1"), industry_item("事件2"), industry_item("事件3"),
+            industry_item("缺少中期含義", why=""),
+        ]}
+        stats = ai_processor._sanitize_news(data, "2026-09-08")
+        self.assertEqual(len(data["industry_developments"]), 2)
+        self.assertEqual(stats["industry_quality"], 2)
+
     def test_watchlist_duplicate_is_merged_into_primary(self):
         data = {
             "top_stories": [{
@@ -241,6 +282,25 @@ class AiQualityTests(unittest.TestCase):
         self.assertEqual(data["watchlist_news"], [])
         self.assertEqual(data["top_stories"][0]["watchlist_refs"][0]["ticker"], "NVDA")
         self.assertEqual(stats["watchlist_refs_merged"], 1)
+
+    def test_industry_duplicate_does_not_repeat_top_story(self):
+        data = {
+            "top_stories": [{
+                "headline": "TSMC擴先進封裝產能",
+                "body": "TSMC將CoWoS產能擴大50%。",
+                "source_date": "2026-09-09",
+            }],
+            "industry_developments": [{
+                "industry": "半導體",
+                "headline": "TSMC將CoWoS產能擴大50%",
+                "body": "TSMC擴先進封裝產能，產能增加50%。",
+                "development": "產能",
+                "source_date": "2026-09-09",
+            }],
+        }
+        ai_processor._dedup_news(data)
+        self.assertEqual(len(data["top_stories"]), 1)
+        self.assertEqual(data["industry_developments"], [])
 
     def test_deep_dive_becomes_extension_but_different_event_survives(self):
         data = {
@@ -315,6 +375,25 @@ class AiQualityTests(unittest.TestCase):
         self.assertEqual(rendered.count("Nvidia投資MediaTek強化AI晶片合作"), 1)
         self.assertIn("對關注股的影響", rendered)
         self.assertIn("NVDA", rendered)
+
+    def test_industry_development_renders_value_chain_and_horizon(self):
+        rendered = html_template.build_news_html({
+            "date": "2026年09月09日 06:15 TST",
+            "industry_developments": [{
+                "industry": "AI基礎設施",
+                "headline": "資料中心電力訂單擴大",
+                "body": "Vertiv取得$2B訂單。",
+                "development": "需求",
+                "value_chain": "發電設備→電力管理→資料中心",
+                "why_it_matters": "交期延長將推高產能利用率。",
+                "source": "Reuters",
+                "source_date": "2026-09-09",
+                "importance": "high",
+            }],
+        })
+        self.assertIn("產業發展追蹤", rendered)
+        self.assertIn("產業鏈", rendered)
+        self.assertIn("6–18 個月", rendered)
 
 
 if __name__ == "__main__":

@@ -1159,6 +1159,61 @@ def _news_section(title: str, items: list, tag_style_map: dict | None = None) ->
 </div>'''
 
 
+_INDUSTRY_COLORS = {
+    "半導體": ("#E6F1FB", "#185FA5"),
+    "AI基礎設施": ("#EEEDFE", "#534AB7"),
+    "企業軟體與資安": ("#E1F5EE", "#0F6E56"),
+    "機器人與工業自動化": ("#FAEEDA", "#854F0B"),
+    "醫療生技": ("#FBEAF0", "#993556"),
+    "金融科技": ("#E8F2F7", "#1B3A5C"),
+    "國防航太": ("#FCEBEB", "#A32D2D"),
+    "能源與運輸物流": ("#FFF3E0", "#8A4B08"),
+}
+
+
+def _industry_developments_section(items: list) -> str:
+    if not items:
+        return ""
+    rows = ""
+    for item in items:
+        industry = item.get("industry", "其他")
+        bg, color = _INDUSTRY_COLORS.get(industry, ("#F2F2F0", "#555"))
+        development = item.get("development", "")
+        value_chain = item.get("value_chain", "")
+        why = item.get("why_it_matters", "")
+        badge = _importance_badge(item.get("importance", "medium"))
+        source_html = _source_line(item.get("source", ""), item.get("source_date", ""))
+        chain_html = (
+            f'''<div style="margin-top:7px;font-size:13px;color:#555;line-height:1.55;">
+              <span style="font-weight:600;color:#6B7C8F;">產業鏈 ▸</span> {value_chain}
+            </div>'''
+            if value_chain else ""
+        )
+        why_html = (
+            f'''<div style="margin-top:5px;font-size:13px;color:#40566f;line-height:1.55;">
+              <span style="font-weight:600;color:{color};">6–18 個月 ▸</span> {why}
+            </div>'''
+            if why else ""
+        )
+        rows += f'''
+<div style="padding:13px 0;border-bottom:0.5px solid #ECECEA;">
+  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
+    <span style="font-size:12px;font-weight:600;padding:2px 8px;border-radius:3px;background:{bg};color:{color};">{industry}</span>
+    <span style="font-size:12px;color:#777;">{development}</span>
+  </div>
+  <div style="font-size:16px;font-weight:600;color:#222;line-height:1.5;">{item.get("headline", "")}{badge}</div>
+  <div style="font-size:15px;color:#555;line-height:1.7;margin-top:5px;">{item.get("body", "")}</div>
+  {chain_html}
+  {why_html}
+  {source_html}
+</div>'''
+    return f'''
+<div class="section">
+  <div class="section-label">產業發展追蹤 <span style="font-weight:400;color:#888;font-size:12px;">6–18 個月供需與競爭格局</span></div>
+  {rows}
+</div>'''
+
+
 def _geopolitical_section(items: list) -> str:
     if not items:
         return ""
@@ -2337,6 +2392,7 @@ def build_news_html(data: dict) -> str:
     date = data.get("date", "")
     content = _news_section("核心要聞", data.get("top_stories", []))
     content += _watchlist_news_section(data.get("watchlist_news", []))
+    content += _industry_developments_section(data.get("industry_developments", []))
     content += _daily_deep_dive(data.get("daily_deep_dive", []))
     return _page_wrapper("news", date, content, "要聞・深度")
 
@@ -3053,6 +3109,7 @@ def build_html(data: dict, screener_result: dict = None) -> str:
 {_sentiment_analysis(data.get("sentiment_analysis", {}))}
 {_news_section("核心要聞", data.get("top_stories",[]))}
 {_watchlist_news_section(data.get("watchlist_news",[]))}
+{_industry_developments_section(data.get("industry_developments",[]))}
 {_daily_deep_dive(data.get("daily_deep_dive", []))}
 {_world_news(data.get("world_news", []))}
 {_news_section("總經動態", data.get("macro",[]))}
