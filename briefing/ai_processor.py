@@ -14,12 +14,15 @@ Claude Code 路徑需要 `CLAUDE_CODE_OAUTH_TOKEN`（本機 `claude setup-token`
 
 import os
 import json
+import hashlib
 import shutil
 import subprocess
 import anthropic
 from google import genai
 from google.genai import types
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from source_registry import canonicalize_source, render_source_whitelist
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -277,14 +280,8 @@ GEMINI_SYSTEM_PROMPT = """
 - 前 3–5 條必須是「對指數部（QQQ／SMH／0050／2330）有直接影響」的事件：半導體供應鏈（TSMC／Nvidia／ASML／記憶體合約價）、AI capex、Fed／央行路徑、關稅／出口管制、原油供給衝擊。tag 一律填「指數部」。
 - 之後才是其他重要新聞。新創融資、遊戲、支付併購這類除非金額或影響極大，否則不進 top_stories。
 
-【來源白名單（只使用這些；素材若標示其他來源就跳過該條）】
-通訊社／財經：Bloomberg、Reuters、Financial Times、WSJ、CNBC、Barron's、The Economist、Axios、Politico、AP、BBC、CNN Business
-科技：TechCrunch、The Information、Wired、Ars Technica、MIT Technology Review、Crunchbase（僅融資輪）
-醫療／生技：STAT News、Endpoints News、Fierce Biotech、Fierce Healthcare、Nature、Science、NEJM、JAMA、FDA
-半導體／亞洲：DIGITIMES、TrendForce、SemiAnalysis、Semiconductor Engineering、EE Times、Nikkei Asia、South China Morning Post、Focus Taiwan／中央社、MoneyDJ、Yonhap／Korea Herald／Korea JoongAng Daily、Caixin
-加密：CoinDesk、The Block
-政策／智庫：Foreign Affairs、RAND、Brookings、Fed、ECB、BOJ、BIS、IMF、SEC、FRED
-機構：Gartner、IDC、McKinsey、Goldman Sachs、JP Morgan、Barchart、Earnings Whispers（僅財報行事曆）
+【來源白名單（只使用這些 canonical 名稱；素材若標示其他來源就跳過該條）】
+__SOURCE_WHITELIST__
 【來源黑名單（絕對不得使用）】YouTube、TikTok、Twitter/X、Reddit、Facebook、Instagram、個人部落格、Medium、Substack（非上列媒體）、PR Newswire、BusinessWire、GlobeNewswire、Seeking Alpha、Yahoo Finance 轉載、Motley Fool、Benzinga、InfoQ
 
 【關注清單新聞（watchlist_news）規則】
@@ -294,7 +291,7 @@ GEMINI_SYSTEM_PROMPT = """
   1. 先從【優先組】挑（S 級、或 A 級且 QGM 4 條件通過 ≥3）；
   2. 【其他組】只有「重大事件」才准進：財報／指引上下修、重大訂單或客戶變動、併購、監管或訴訟、CEO 異動、產品線重大變化；一般 PR、分析師評等、小額合約不算；
   3. 同一家公司只留一條（挑最重大的）。
-- ticker 欄必須照【關注清單】的寫法（如 2330.TW、6857.T）。同一事件在 top_stories 已寫過的仍可放這裡（這區塊是「按持股看」的視角，是唯一允許跨區塊重複的例外），但 body 要換成「對這家公司意味著什麼」。
+- ticker 欄必須照【關注清單】的寫法（如 2330.TW、6857.T）。同一事件若已在 top_stories，這裡只寫「對這家公司意味著什麼」的一句影響，不要重述事件背景；後處理會把它併回主事件。
 - 沒有就 []，不硬湊——一天只有 2 條真正重要的，就寫 2 條；嚴禁行情句。
 
 【AI 區塊（ai_industry）覆蓋規則】
@@ -320,6 +317,9 @@ GEMINI_SYSTEM_PROMPT = """
 - 數值用英文格式：$1.42T（不是 $1.42兆）
 - 只回傳 JSON，不要任何前置說明或 markdown code block
 """
+GEMINI_SYSTEM_PROMPT = GEMINI_SYSTEM_PROMPT.replace(
+    "__SOURCE_WHITELIST__", render_source_whitelist()
+)
 
 GEMINI_USER_PROMPT_TEMPLATE = """
 【今日日期（台北）】{today}
@@ -343,7 +343,7 @@ GEMINI_USER_PROMPT_TEMPLATE = """
       "body": "2–3句，必須包含具體數字",
       "tag": "分類標籤",
       "tag_type": "macro|geo|tech|cb",
-      "source": "來源媒體名稱",
+      "source": "白名單 canonical 來源媒體名稱",
       "source_date": "YYYY-MM-DD",
       "importance": "high|medium"
     }}}}
@@ -354,7 +354,7 @@ GEMINI_USER_PROMPT_TEMPLATE = """
       "ticker": "照關注清單寫法",
       "headline": "標題（25字以內，公司本身的事件）",
       "body": "2句：發生什麼＋對這家公司意味著什麼（含數字）",
-      "source": "來源媒體",
+      "source": "白名單 canonical 來源媒體",
       "source_date": "YYYY-MM-DD",
       "importance": "high|medium"
     }}}}
@@ -812,7 +812,7 @@ CLAUDE_USER_PROMPT_TEMPLATE = """
 0. regime 先寫、先想清楚，其他區塊都要對它表態（vs_regime）；矛盾要暴露不要抹平
 1. system_status.dynamic 固定 3 個，從以下選：{dynamic_options}
 2. tech_trends 5–6 條，sub_items 固定 3 個
-3. daily_deep_dive 固定 2 個主題，從固定查詢（半導體、AI架構）和動態查詢中選最重要的 2 個
+3. daily_deep_dive 固定 2 個主題，從今日全部新聞素材與兩個固定深挖查詢中選最重要的 2 個；不必每天都選半導體或 AI
 4. smart_money 最多 3 條，沒有可信來源不要輸出
 5. cross_asset_signals 2-3 個
 """
@@ -1469,12 +1469,42 @@ def _call_claude_earnings_analysis(earnings_raw_text: str, market_context: str) 
 import re as _re
 from datetime import datetime as _dt, timedelta as _td
 
-_NEWS_LIST_BLOCKS = ["top_stories", "macro", "geopolitical", "world_news", "ai_industry",
-                     "fintech_crypto", "startup_news", "tech_trends", "daily_deep_dive"]
+_NEWS_PRIMARY_BLOCKS = [
+    "top_stories", "macro", "geopolitical", "world_news", "ai_industry",
+    "fintech_crypto", "startup_news",
+]
+_NEWS_LIST_BLOCKS = _NEWS_PRIMARY_BLOCKS + ["tech_trends", "daily_deep_dive"]
 
 _MONEY_RE = _re.compile(r"\$\s?\d[\d,.]*\s?[BMTK]?|\d[\d,.]*\s?(?:億|兆|萬)")
 _ENT_RE = _re.compile(r"[A-Z][A-Za-z0-9&.\-]{1,}")          # 英文專名／ticker
 _CJK_RE = _re.compile(r"[\u4e00-\u9fff]")
+
+_ENTITY_ALIASES = {
+    "tsmc": ("tsmc", "台積電", "2330.tw", "tsm"),
+    "nvidia": ("nvidia", "輝達", "nvda"),
+    "mediatek": ("mediatek", "聯發科", "2454.tw"),
+    "asml": ("asml",),
+    "amazon": ("amazon", "aws", "amzn"),
+    "qualcomm": ("qualcomm", "qcom"),
+    "meta": ("meta", "facebook"),
+    "federal_reserve": ("federal reserve", "fed", "聯準會"),
+    "ecb": ("ecb", "歐洲央行"),
+    "boj": ("boj", "日本央行", "日銀"),
+}
+_GENERIC_ENTITIES = {"ai", "us", "high", "na", "the", "and", "app", "tst"}
+_ACTION_GROUPS = {
+    "investment": ("投資", "入股", "認股", "investment", "stake", "warrant"),
+    "launch": ("推出", "發布", "發表", "launch", "release", "unveil"),
+    "adoption": ("導入", "採用", "合作", "攜手", "deploy", "adopt", "partnership"),
+    "rates": ("升息", "降息", "利率決議", "rate hike", "rate cut"),
+    "attack": ("攻擊", "遇襲", "空襲", "attack", "strike"),
+    "earnings": ("財報", "營收", "獲利", "指引", "earnings", "revenue", "guidance"),
+    "acquisition": ("併購", "收購", "合併", "acquisition", "acquire", "merger"),
+    "policy": ("制裁", "禁令", "關稅", "出口管制", "sanction", "tariff", "export control"),
+    "capacity": ("擴產", "產能", "供需缺口", "capacity", "shortage"),
+    "funding": ("融資", "募資", "funding", "fundraise"),
+}
+_EVENT_NUMBER_RE = _re.compile(r"\$?\d[\d,.]*(?:\s?(?:%|bps|b|m|t|億|兆|萬))?", _re.I)
 
 
 def _news_tokens(text: str) -> set:
@@ -1493,59 +1523,186 @@ def _is_dup(a: set, b: set) -> bool:
         return False
     inter = len(a & b)
     j = inter / len(a | b)
-    if j >= 0.40:
+    return j >= 0.40
+
+
+def _item_event_text(item: dict) -> str:
+    parts = [
+        item.get("headline", ""), item.get("title", ""), item.get("theme", ""),
+        item.get("body", ""), item.get("summary", ""), item.get("situation", ""),
+    ]
+    for datum in item.get("key_data", []) if isinstance(item.get("key_data"), list) else []:
+        if isinstance(datum, dict):
+            parts.extend(str(datum.get(key, "")) for key in ("metric", "value", "change"))
+    return " ".join(str(part) for part in parts if part)[:900]
+
+
+def _event_features(item: dict) -> dict:
+    text = _item_event_text(item)
+    folded = text.casefold()
+
+    def _has_alias(alias: str) -> bool:
+        alias = alias.casefold()
+        if _re.fullmatch(r"[a-z0-9.\-]+", alias):
+            return bool(_re.search(rf"(?<![a-z0-9]){_re.escape(alias)}(?![a-z0-9])", folded))
+        return alias in folded
+
+    entities = {
+        canonical
+        for canonical, aliases in _ENTITY_ALIASES.items()
+        if any(_has_alias(alias) for alias in aliases)
+    }
+    entities |= {
+        token.lower()
+        for token in _ENT_RE.findall(text)
+        if token.lower() not in _GENERIC_ENTITIES
+    }
+    actions = {
+        action
+        for action, terms in _ACTION_GROUPS.items()
+        if any(term.casefold() in folded for term in terms)
+    }
+    return {
+        "tokens": _news_tokens(text),
+        "entities": entities,
+        "actions": actions,
+        "numbers": {m.replace(" ", "").casefold() for m in _EVENT_NUMBER_RE.findall(text)},
+        "date": str(item.get("source_date") or item.get("report_date") or ""),
+    }
+
+
+def _dates_near(a: str, b: str) -> bool:
+    if not a or not b:
         return True
-    # 同一金額 ＋ 同一英文專名 → 幾乎必是同一事件（Nvidia $500B 出現五次那種）
-    money = {t for t in a & b if t.startswith("$") or any(u in t for u in "億兆萬")}
-    ents = {t for t in a & b if _re.match(r"[a-z]", t)}
-    return bool(money) and bool(ents)
+    try:
+        return abs((_dt.strptime(a, "%Y-%m-%d") - _dt.strptime(b, "%Y-%m-%d")).days) <= 1
+    except ValueError:
+        return a == b
 
 
-def _dedup_news(data: dict) -> None:
-    """跨區塊去重（2026-08-17 晚強化）：headline＋body 前 80 字做 token 集合，
-    Jaccard ≥ 0.4 或「同金額＋同專名」視為同一事件；優先順序前面的區塊保留。"""
-    seen: list[set] = []
+def _same_event(a: dict, b: dict) -> bool:
+    if not _dates_near(a["date"], b["date"]):
+        return False
+    token_union = a["tokens"] | b["tokens"]
+    similarity = len(a["tokens"] & b["tokens"]) / len(token_union) if token_union else 0
+    if similarity >= 0.55:
+        return True
+    shared_entities = a["entities"] & b["entities"]
+    if not shared_entities:
+        return False
+    if similarity >= 0.40:
+        return True
+    shared_actions = a["actions"] & b["actions"]
+    shared_numbers = {
+        number for number in a["numbers"] & b["numbers"]
+        if not _re.fullmatch(r"(?:19|20)\d{2}", number)
+    }
+    if shared_actions and (shared_numbers or len(shared_entities) >= 2 or similarity >= 0.18):
+        return True
+    return False
+
+
+def _event_id(item: dict, features: dict) -> str:
+    title = item.get("headline") or item.get("title") or item.get("theme") or ""
+    raw = "|".join([
+        features["date"], ",".join(sorted(features["entities"])),
+        ",".join(sorted(features["actions"])), "".join(_CJK_RE.findall(title))[:40],
+    ])
+    return "evt_" + hashlib.sha1(raw.encode("utf-8")).hexdigest()[:12]
+
+
+def _dedup_news(data: dict) -> dict:
+    """Keep one primary card per event and attach watchlist/deep-dive references."""
+    seen: list[tuple[dict, dict]] = []
     removed = 0
+    watchlist_merged = 0
+    deep_extensions = 0
 
-    def _key(item: dict) -> set:
-        head = item.get("headline") or item.get("title") or ""
-        body = (item.get("body") or item.get("summary") or "")[:80]
-        return _news_tokens(head + " " + body)
+    def find_match(features: dict) -> dict | None:
+        for existing_features, existing_item in seen:
+            if _same_event(features, existing_features):
+                return existing_item
+        return None
 
-    for key in _NEWS_LIST_BLOCKS:
+    def keep_primary(item: dict) -> bool:
+        nonlocal removed
+        features = _event_features(item)
+        if find_match(features):
+            removed += 1
+            return False
+        item["event_id"] = _event_id(item, features)
+        item["event_role"] = "primary"
+        seen.append((features, item))
+        return True
+
+    for key in _NEWS_PRIMARY_BLOCKS:
         items = data.get(key, [])
-        if not isinstance(items, list):
-            continue
-        cleaned = []
-        for item in items:
-            if not isinstance(item, dict):
-                continue
-            k = _key(item)
-            if any(_is_dup(k, s0) for s0 in seen):
-                removed += 1
-                continue
-            seen.append(k)
-            cleaned.append(item)
-        data[key] = cleaned
+        if isinstance(items, list):
+            data[key] = [item for item in items if isinstance(item, dict) and keep_primary(item)]
 
     rt = data.get("regional_tech", {})
     if isinstance(rt, dict):
         for region, items in rt.items():
-            if not isinstance(items, list):
-                continue
-            cleaned = []
-            for item in items:
-                if not isinstance(item, dict):
-                    continue
-                k = _key(item)
-                if any(_is_dup(k, s0) for s0 in seen):
-                    removed += 1
-                    continue
-                seen.append(k)
-                cleaned.append(item)
-            rt[region] = cleaned
-    if removed:
-        print(f"  → dedup: 移除 {removed} 條跨區塊重複")
+            if isinstance(items, list):
+                rt[region] = [item for item in items if isinstance(item, dict) and keep_primary(item)]
+
+    remaining_watchlist = []
+    for item in data.get("watchlist_news", []) if isinstance(data.get("watchlist_news"), list) else []:
+        if not isinstance(item, dict):
+            continue
+        features = _event_features(item)
+        match = find_match(features)
+        if not match:
+            keep_primary(item)
+            remaining_watchlist.append(item)
+            continue
+        match.setdefault("watchlist_refs", []).append({
+            "ticker": item.get("ticker", ""),
+            "impact": item.get("body", ""),
+        })
+        watchlist_merged += 1
+    data["watchlist_news"] = remaining_watchlist
+
+    deep_items = []
+    for item in data.get("daily_deep_dive", []) if isinstance(data.get("daily_deep_dive"), list) else []:
+        if not isinstance(item, dict):
+            continue
+        features = _event_features(item)
+        match = find_match(features)
+        if match:
+            item["event_role"] = "deep_extension"
+            item["related_event_id"] = match.get("event_id", "")
+            item["situation"] = ""
+            item["headline"] = f"延伸深挖｜{item.get('theme') or item.get('headline', '')}"
+            deep_extensions += 1
+        else:
+            item["event_id"] = _event_id(item, features)
+            item["event_role"] = "primary"
+            seen.append((features, item))
+        deep_items.append(item)
+    data["daily_deep_dive"] = deep_items
+
+    tech_items = []
+    for item in data.get("tech_trends", []) if isinstance(data.get("tech_trends"), list) else []:
+        if not isinstance(item, dict):
+            continue
+        if find_match(_event_features(item)):
+            removed += 1
+            continue
+        keep_primary(item)
+        tech_items.append(item)
+    data["tech_trends"] = tech_items
+
+    if removed or watchlist_merged or deep_extensions:
+        print(
+            f"  → dedup: 移除 {removed} 條、合併 {watchlist_merged} 條關注股、"
+            f"標記 {deep_extensions} 條延伸深挖"
+        )
+    return {
+        "event_duplicates_removed": removed,
+        "watchlist_refs_merged": watchlist_merged,
+        "deep_extensions": deep_extensions,
+    }
 
 
 # 常見簡體字／錯字（模型偶發），只做「一對一、不會誤傷」的替換
@@ -1585,9 +1742,12 @@ def _strip_market_sentences(text: str):
     return "".join(kept).strip(), True
 
 
-def _sanitize_news(data: dict, cutoff_date: str) -> None:
+def _sanitize_news(data: dict, cutoff_date: str) -> dict:
     """(1) 全部字串簡繁／錯字修正；(2) 新聞區塊：過期條目丟掉、行情句砍掉、標題含漲跌%整條丟掉。"""
-    stats = {"stale": 0, "market_sent": 0, "market_head": 0, "recap_stale": 0}
+    stats = {
+        "stale": 0, "market_sent": 0, "market_head": 0,
+        "recap_stale": 0, "invalid_source": 0,
+    }
 
     def _walk_fix(obj):
         if isinstance(obj, dict):
@@ -1606,6 +1766,14 @@ def _sanitize_news(data: dict, cutoff_date: str) -> None:
         for it in items:
             if not isinstance(it, dict):
                 continue
+            canonical_source = canonicalize_source(
+                str(it.get("source") or ""),
+                str(it.get("source_url") or it.get("link") or ""),
+            )
+            if not canonical_source:
+                stats["invalid_source"] += 1
+                continue
+            it["source"] = canonical_source
             sd = str(it.get("source_date") or "")
             if check_date and _re.match(r"\d{4}-\d{2}-\d{2}$", sd) and sd < cutoff_date:
                 stats["stale"] += 1
@@ -1635,12 +1803,22 @@ def _sanitize_news(data: dict, cutoff_date: str) -> None:
                 rt[region] = _clean_list(items)
     # us_market_recap：只留「上一個 US session」公布的財報（沒有日期或日期不符一律丟）
     recap = data.get("us_market_recap")
+    if isinstance(recap, dict):
+        if isinstance(recap.get("other_events"), list):
+            recap["other_events"] = _clean_list(recap["other_events"], check_date=False)
     if isinstance(recap, dict) and isinstance(recap.get("earnings"), list):
         session = _last_us_session_date()
         kept = []
         for it in recap["earnings"]:
             if not isinstance(it, dict):
                 continue
+            canonical_source = canonicalize_source(
+                str(it.get("source") or ""), str(it.get("source_url") or "")
+            )
+            if not canonical_source:
+                stats["invalid_source"] += 1
+                continue
+            it["source"] = canonical_source
             rd = str(it.get("report_date") or "")
             if not _re.match(r"\d{4}-\d{2}-\d{2}$", rd) or rd != session:
                 stats["recap_stale"] += 1
@@ -1656,10 +1834,15 @@ def _sanitize_news(data: dict, cutoff_date: str) -> None:
             recap["has_events"] = False
 
     if any(stats.values()):
-        print(f"  → sanitize: 過期 {stats['stale']}、行情標題 {stats['market_head']}、行情句 {stats['market_sent']}、昨日美股非當日財報 {stats['recap_stale']}")
+        print(
+            f"  → sanitize: 過期 {stats['stale']}、非白名單 {stats['invalid_source']}、"
+            f"行情標題 {stats['market_head']}、行情句 {stats['market_sent']}、"
+            f"昨日美股非當日財報 {stats['recap_stale']}"
+        )
+    return stats
 
 
-def process_news(raw_news: list[dict], market_data: dict | None = None, today_earnings: list | None = None, moneydj_news: list[dict] | None = None, deep_dive_news: list[dict] | None = None, move_index_raw: str = "", earnings_deep_dive: list[dict] | None = None, prev_regime: dict | None = None, watchlist: list[dict] | None = None) -> dict:
+def process_news(raw_news: list[dict], market_data: dict | None = None, today_earnings: list | None = None, moneydj_news: list[dict] | None = None, deep_dive_news: list[dict] | None = None, move_index_raw: str = "", earnings_deep_dive: list[dict] | None = None, prev_regime: dict | None = None, watchlist: list[dict] | None = None, news_quality: dict | None = None) -> dict:
     news_text = build_news_text(raw_news, moneydj_news, deep_dive_news)
 
     market_context = ""
@@ -1786,8 +1969,33 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
     data["_market_context_text"] = market_context  # 供 main.py 存 regime 快照（不渲染）
 
     # 後處理：過期／行情句／簡繁錯字 → 再跨區塊去重（code-based）
-    _sanitize_news(data, _news_date_window()[1])
-    _dedup_news(data)
+    sanitize_stats = _sanitize_news(data, _news_date_window()[1])
+    dedup_stats = _dedup_news(data)
+    if isinstance(deep_dive_news, dict):
+        deep_search_items = [
+            item
+            for key in ("fixed", "dynamic")
+            for item in deep_dive_news.get(key, [])
+        ]
+    else:
+        deep_search_items = deep_dive_news or []
+    data["_news_quality"] = {
+        **(news_quality or {}),
+        "sanitize": sanitize_stats,
+        "events": dedup_stats,
+        "planned_search_calls": {
+            "base_news": len(raw_news),
+            "deep_dive": len(deep_search_items),
+            "move_index": 1,
+        },
+        "successful_search_calls": {
+            "base_news": sum(bool(item.get("answer")) for item in raw_news),
+            "deep_dive": sum(
+                bool(item.get("answer") or item.get("result"))
+                for item in deep_search_items
+            ),
+        },
+    }
 
     _validate(data)
 

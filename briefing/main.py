@@ -5,7 +5,7 @@ main.py
 由 GitHub Actions 每日 UTC 22:15（台灣 06:15）觸發執行。
 
 執行流程：
-  1. Perplexity  → 搜尋財經 / 科技 / 新創新聞（~8 個查詢）
+  1. Claude Haiku WebSearch + RSS → 搜尋與彙集財經 / 科技 / 新創新聞
   2. Gemini/Claude → 整理成結構化 JSON
   3. Template    → 生成多頁 HTML
   4. Resend      → 寄出郵件
@@ -25,7 +25,7 @@ try:
 except ImportError:
     pass  # 生產環境不需要 dotenv
 
-from news_fetcher import fetch_financial_news, fetch_market_data, fetch_today_earnings, fetch_rss_news, fetch_deep_dive_news, fetch_move_index, fetch_earnings_deep_dive, fetch_dd_watchlist, tag_watchlist, fetch_prev_regime
+from news_fetcher import fetch_financial_news, fetch_market_data, fetch_today_earnings, fetch_rss_news, fetch_deep_dive_news, fetch_move_index, fetch_earnings_deep_dive, fetch_dd_watchlist, tag_watchlist, fetch_prev_regime, get_last_rss_quality
 from ai_processor import process_news
 from html_template import build_html, build_all_pages
 from email_sender import send_email
@@ -45,6 +45,7 @@ def main() -> None:
     today_earnings = fetch_today_earnings()
     raw_news = fetch_financial_news()
     moneydj_news = fetch_rss_news()
+    news_quality = get_last_rss_quality()
     watchlist = fetch_dd_watchlist()          # DD universe（research.investmquest.com/dd-screener/）
     tag_watchlist(moneydj_news, watchlist)    # RSS 條目標 ★關注[ticker]
     prev_regime = fetch_prev_regime()         # 昨日主軸（regime.review 驗證用）
@@ -102,7 +103,7 @@ def main() -> None:
 
     # 2. AI 處理
     print("\n[2/4] Processing with Gemini/Claude...")
-    data = process_news(raw_news, market_data, today_earnings, moneydj_news, deep_dive_news, move_index_raw=move_index_raw, earnings_deep_dive=earnings_deep_dive, prev_regime=prev_regime, watchlist=watchlist)
+    data = process_news(raw_news, market_data, today_earnings, moneydj_news, deep_dive_news, move_index_raw=move_index_raw, earnings_deep_dive=earnings_deep_dive, prev_regime=prev_regime, watchlist=watchlist, news_quality=news_quality)
 
     # 注入日期供多頁 builder 使用
     tz_now = datetime.now(tz)
@@ -145,8 +146,18 @@ def main() -> None:
             with open(os.path.join(data_dir, fn), "w", encoding="utf-8") as f:
                 _json.dump(snap, f, ensure_ascii=False, indent=1)
         print(f"      Saved regime snapshot → data/regime_{snap['date']}.json")
+
+        quality_snap = {
+            "date": snap["date"],
+            "generated_at": data["date"],
+            **data.get("_news_quality", {}),
+        }
+        for fn in (f"news_quality_{snap['date']}.json", "news_quality_latest.json"):
+            with open(os.path.join(data_dir, fn), "w", encoding="utf-8") as f:
+                _json.dump(quality_snap, f, ensure_ascii=False, indent=1)
+        print(f"      Saved news quality snapshot → data/news_quality_{snap['date']}.json")
     except Exception as e:
-        print(f"      ⚠ regime snapshot failed: {e}")
+        print(f"      ⚠ regime/news quality snapshot failed: {e}")
 
     # 同時保留舊的單檔輸出（向後相容）
     output_dir = os.path.join(os.path.dirname(__file__), "output")

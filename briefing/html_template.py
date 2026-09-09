@@ -1124,6 +1124,22 @@ def _news_section(title: str, items: list, tag_style_map: dict | None = None) ->
         tag_type = s.get("tag_type", "macro")
         ts = (tag_style_map or TAG_STYLE).get(tag_type, TAG_STYLE["macro"])
         source_html = _source_line(s.get("source",""), s.get("source_date",""))
+        watchlist_html = ""
+        refs = [ref for ref in s.get("watchlist_refs", []) if isinstance(ref, dict)]
+        if refs:
+            ref_rows = "".join(
+                f'''<div style="margin-top:5px;font-size:13px;line-height:1.55;color:#40566f;">
+                  <span style="display:inline-block;background:#1B3A5C;color:#fff;font-size:11px;font-weight:600;
+                               padding:1px 6px;border-radius:3px;margin-right:6px;">{ref.get("ticker","")}</span>
+                  {ref.get("impact","")}
+                </div>'''
+                for ref in refs
+            )
+            watchlist_html = f'''<div style="margin-top:8px;padding:7px 10px;background:#F3F6FA;
+                                      border-left:3px solid #1B3A5C;border-radius:0 4px 4px 0;">
+              <div style="font-size:10px;color:#6B7C8F;letter-spacing:1px;font-weight:600;">對關注股的影響</div>
+              {ref_rows}
+            </div>'''
         rows += f'''
 <div style="padding:12px 0;border-bottom:0.5px solid #f0f0f0;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:5px;">
@@ -1134,6 +1150,7 @@ def _news_section(title: str, items: list, tag_style_map: dict | None = None) ->
                  white-space:nowrap;{ts}">{tag}</span>
   </div>
   <div style="font-size:15px;color:#555;line-height:1.65;">{s.get("body","")}</div>
+  {watchlist_html}
   {source_html}
 </div>'''
     return f'''

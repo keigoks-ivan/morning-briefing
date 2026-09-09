@@ -15,11 +15,22 @@ import json
 import time
 import shutil
 import subprocess
+import unicodedata
+from collections import Counter
 import requests
 import feedparser
 import concurrent.futures
 from datetime import datetime, timedelta
 import pytz
+
+from source_registry import (
+    canonicalize_source,
+    normalize_url,
+    source_from_domain,
+    source_id_for,
+    source_tier,
+    source_topics,
+)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -109,16 +120,20 @@ def _llm_search(system_content: str, user_content: str, max_tokens: int = 600,
                 recency: str = "day", label: str = "search") -> dict:
     """統一入口：Claude Code（月租）→ Perplexity（若有 key）→ 空。永不 raise。"""
     if _claude_code_available():
-        try:
-            r = _claude_search(system_content, user_content, label)
-            print(f"  ✓ [{label}] {user_content[:50]}... ({len(r['sources'])} sources, claude/{NEWS_SEARCH_MODEL})")
-            return r
-        except Exception as e:
-            print(f"  ⚠ [{label}] claude search failed: {str(e)[:120]}")
+        for attempt in range(2):
+            try:
+                r = _claude_search(system_content, user_content, label)
+                r["sources"] = [url for url in r.get("sources", []) if source_from_domain(url)]
+                print(f"  ✓ [{label}] {user_content[:50]}... ({len(r['sources'])} allowlisted sources, claude/{NEWS_SEARCH_MODEL})")
+                return r
+            except Exception as e:
+                suffix = "; retrying once" if attempt == 0 else "; retries exhausted"
+                print(f"  ⚠ [{label}] claude search failed: {str(e)[:120]}{suffix}")
     if os.environ.get("PERPLEXITY_API_KEY"):
         try:
             r = _perplexity_search(system_content, user_content, max_tokens, recency)
-            print(f"  ✓ [{label}] {user_content[:50]}... ({len(r['sources'])} sources, perplexity)")
+            r["sources"] = [url for url in r.get("sources", []) if source_from_domain(url)]
+            print(f"  ✓ [{label}] {user_content[:50]}... ({len(r['sources'])} allowlisted sources, perplexity)")
             return r
         except Exception as e:
             print(f"  ✗ [{label}] {user_content[:50]}...: {e}")
@@ -127,36 +142,35 @@ def _llm_search(system_content: str, user_content: str, max_tokens: int = 600,
     return {"answer": "", "sources": []}
 
 
-# 2026-08-17 晚改制：RSS（見 RSS_FEEDS）負責「大量頭條」，Haiku 搜尋只留 13 題做「需要跨來源整理」的主題。
+# 2026-08-17 晚改制：RSS（見 RSS_FEEDS）負責「大量頭條」，Haiku 搜尋保留 15 題做「需要跨來源整理」的主題。
 # 砍掉的：7 個地區題（RSS 覆蓋）、fintech 題（CoinDesk/The Block RSS）、國際新聞題（Reuters GN）、
 # AI 架構研究題（deep dive 已有）、「index levels」題（新聞區塊禁行情，題目本身違規）。
-# 每題末尾 Sources 只列白名單媒體（與 ai_processor GEMINI_SYSTEM_PROMPT 白名單同步）。
+# 每題末尾 Sources 只列 source_registry.py 中的白名單媒體。
 PERPLEXITY_QUERIES = [
     # 總經／央行
     "Federal Reserve: latest policy stance, officials' speeches in the past 24 hours, and market-implied path for the next two FOMC meetings. Sources: Bloomberg Reuters Financial Times WSJ CNBC Federal Reserve",
     "Major macroeconomic data released in the past 24 hours (US, Eurozone, Japan, China): actual vs consensus, and central bank decisions. Sources: Bloomberg Reuters Financial Times WSJ CNBC ECB BOJ",
     "Most important macroeconomic calendar events in the next 24 hours: Fed/ECB/BOJ speeches, data releases (CPI PPI GDP jobs), Treasury auctions. Sources: Bloomberg Reuters Financial Times WSJ CNBC",
-    # 能源／地緣
-    "Oil and energy markets in the past 24 hours: OPEC+, Middle East supply risk, Strait of Hormuz, US SPR, natural gas — events and quotes, not price charts. Sources: Bloomberg Reuters Financial Times WSJ",
+    "Credit and liquidity developments in the past 24 hours: bank funding, investment-grade and high-yield stress, Treasury liquidity, lending standards, major bank or insurer events. Sources: Bloomberg Reuters Financial Times WSJ CNBC Federal Reserve",
+    # 能源／地緣／全球供應鏈
+    "Oil, gas and industrial commodity developments in the past 24 hours: OPEC+, supply disruptions, US SPR, natural gas, copper and key agricultural shocks — events and quotes, not price charts. Sources: Bloomberg Reuters Financial Times WSJ",
     "Geopolitical developments in the past 24 hours with market impact: Middle East, US-China (tariffs, export controls, chips), Taiwan Strait, Russia-Ukraine. Sources: Bloomberg Reuters Financial Times WSJ Politico Foreign Affairs RAND Brookings",
+    "Global trade, shipping and industrial policy developments in the past 24 hours: tariffs, export controls, freight or port disruption, defense procurement, reshoring and major supply-chain bottlenecks. Sources: Bloomberg Reuters Financial Times WSJ Politico Nikkei Asia",
     # AI／半導體（指數部核心）
     "AI industry in the past 24 hours: model releases, AI capex and data-center deals, hyperscaler spending, AI chip supply. Sources: Bloomberg Reuters TechCrunch The Information Wired Ars Technica CNBC Axios",
     "Semiconductor supply chain in the past 24 hours: TSMC, Nvidia, AMD, ASML, Samsung, SK Hynix, Micron — orders, capacity, pricing (DRAM/NAND/HBM contract prices), export controls. Sources: Bloomberg Reuters DIGITIMES TrendForce SemiAnalysis Nikkei Asia EE Times",
     "Taiwan and Korea tech in the past 24 hours: TSMC monthly revenue, MediaTek, Foxconn, Samsung, SK Hynix — company events and government policy. Sources: Bloomberg Reuters Nikkei Asia DIGITIMES Focus Taiwan Yonhap Korea Herald",
-    "AI in healthcare and biotech in the past 24 hours: FDA clearances or approvals of AI-enabled devices and AI-discovered drugs, AI drug-discovery partnerships and their deal values, hospital or payer deployments, clinical-trial readouts of AI tools, and reimbursement or regulatory policy. Sources: Reuters Bloomberg Financial Times STAT News Endpoints News Fierce Biotech CNBC Nature",
-    "Enterprise and industry adoption of AI in the past 24 hours: named enterprise deployments and contract values, software vendors shipping AI agents or copilots, disclosed AI revenue or seat counts, robotics and autonomous-driving deployments, and adoption or layoff data attributed to AI. Sources: Bloomberg Reuters The Information TechCrunch Financial Times WSJ CNBC Axios",
+    "AI applications in healthcare and enterprises in the past 24 hours: FDA decisions, AI drug-discovery or hospital deployments, named enterprise agent/copilot contracts, disclosed AI revenue or seat counts, robotics and autonomous-driving deployments. Sources: Reuters Bloomberg Financial Times STAT News Endpoints News Fierce Biotech The Information TechCrunch CNBC Nature",
     # 新創／機構
     "Largest startup funding rounds, IPO filings, and defense-tech / robotics investments announced in the past 24 hours, with amounts and lead investors. Sources: TechCrunch Bloomberg Reuters Crunchbase The Information Axios",
     "Institutional positioning in the past 24 hours: 13F disclosures, notable fund moves, large block trades, ETF flows into QQQ SPY SOXX. Sources: Bloomberg Reuters CNBC WSJ Barchart",
     # 財報
     "US companies reporting earnings today (next US session) before open or after close: names, tickers, EPS and revenue consensus. Sources: Bloomberg Reuters CNBC WSJ Earnings Whispers",
-    "US earnings reported in the last US session (pre-market, during, after-hours): beat/miss, guidance, key management quotes. Sources: Bloomberg Reuters CNBC WSJ",
-    "Key statements from investor days, analyst conferences, and earnings calls in the last US session. Sources: Bloomberg Reuters CNBC WSJ",
+    "US earnings reported in the last US session (pre-market, during, after-hours): beat/miss, guidance, key management quotes from earnings calls, investor days or analyst conferences. Sources: Bloomberg Reuters CNBC WSJ",
 ]
 
 DEEP_DIVE_FIXED_QUERIES = [
-    "Semiconductor supply chain today: inventory levels fab utilization TSMC Samsung capacity pricing DRAM NAND HBM latest data Sources: Digitimes SemiAnalysis Bloomberg Reuters TrendForce",
-    "Advanced packaging and memory supply chain today: CoWoS and SoIC capacity allocation, HBM3E/HBM4 qualification and contract pricing, substrate and equipment lead times, semiconductor materials constraints. Sources: Digitimes TrendForce SemiAnalysis Nikkei Asia Reuters Bloomberg",
+    "Semiconductor supply chain today: inventory levels, fab utilization, advanced packaging (CoWoS/SoIC), HBM/DRAM/NAND qualification and contract pricing, equipment and material constraints. Sources: DIGITIMES TrendForce SemiAnalysis Nikkei Asia Reuters Bloomberg",
     "AI model architecture research today: training efficiency inference optimization new model releases benchmarks compute costs Sources: Bloomberg Reuters TechCrunch The Information Ars Technica",
 ]
 
@@ -1200,7 +1214,117 @@ RSS_FEEDS = [
 RSS_TOTAL_CAP = 310
 _LONGFORM_FEEDS = {"Financial Times", "FT Markets", "FT Tech", "FT Asia", "The Economist (GN)",
                    "The Information", "SemiAnalysis", "Ars Technica"}
-_RSS_NOISE = re.compile(r"開獎|中獎號碼|彩券|統一發票|訃聞|Podcast|podcast|The Download:|Crossword|Newsletter")  # 全部 feed 合計上限，超過就按清單順序截掉後面的
+_RSS_NOISE = re.compile(r"開獎|中獎號碼|彩券|統一發票|訃聞|Podcast|podcast|The Download:|Crossword|Newsletter")
+_LAST_RSS_QUALITY: dict = {}
+
+
+def _normalize_news_title(title: str) -> str:
+    text = unicodedata.normalize("NFKC", title or "").casefold()
+    text = re.sub(r"\s+-\s+[^-]{2,40}$", "", text)
+    return re.sub(r"[^a-z0-9\u4e00-\u9fff]+", "", text)
+
+
+def _title_tokens(title: str) -> set[str]:
+    text = unicodedata.normalize("NFKC", title or "").casefold()
+    english = set(re.findall(r"[a-z0-9][a-z0-9.\-]{1,}", text))
+    cjk = "".join(re.findall(r"[\u4e00-\u9fff]", text))
+    return english | {cjk[i:i + 2] for i in range(max(0, len(cjk) - 1))}
+
+
+def _near_same_title(a: str, b: str) -> bool:
+    na, nb = _normalize_news_title(a), _normalize_news_title(b)
+    if na and na == nb:
+        return True
+    ta, tb = _title_tokens(a), _title_tokens(b)
+    if len(ta) < 3 or len(tb) < 3:
+        return False
+    return len(ta & tb) / len(ta | tb) >= 0.82
+
+
+def _rss_item_score(item: dict) -> tuple:
+    tier_score = {"A": 3, "B": 2, "C": 1}.get(source_tier(item.get("source", "")), 0)
+    return tier_score, item.get("published", ""), len(item.get("summary", ""))
+
+
+def _feed_topics(label: str, source: str) -> list[str]:
+    folded = label.casefold()
+    topics = set(source_topics(source))
+    if any(term in folded for term in ("stat", "endpoint", "fierce", "ai health")):
+        topics.add("healthcare_ai")
+    if "enterprise" in folded:
+        topics.add("enterprise_ai")
+    if any(term in folded for term in ("digitimes", "trendforce", "semianalysis", "semis")):
+        topics.add("semiconductor")
+    if any(term in folded for term in ("taiwan", "korea", "japan", "china", "asean", "asia")):
+        topics.add("regional_asia")
+    if "europe" in folded:
+        topics.add("regional_europe")
+    if any(term in folded for term in ("coindesk", "the block")):
+        topics.add("fintech_crypto")
+    if any(term in folded for term in ("politico", "央行", "economist")):
+        topics.update(("macro", "geopolitics"))
+    if any(term in folded for term in ("financial times", "ft ", "cnbc", "reuters", "bloomberg", "moneydj", "工商", "中央社")):
+        topics.update(("macro", "markets"))
+    return sorted(topics)
+
+
+def _dedup_rss_items(items: list[dict]) -> tuple[list[dict], int]:
+    """Deduplicate URLs and near-identical headlines while keeping the best source."""
+    kept: list[dict] = []
+    removed = 0
+    for item in items:
+        item_url = normalize_url(item.get("link", ""))
+        duplicate_index = None
+        for idx, existing in enumerate(kept):
+            same_url = bool(item_url and item_url == normalize_url(existing.get("link", "")))
+            same_title = _near_same_title(item.get("title", ""), existing.get("title", ""))
+            if same_url or same_title:
+                duplicate_index = idx
+                break
+        if duplicate_index is None:
+            item["link"] = item_url
+            item["alternate_sources"] = []
+            kept.append(item)
+            continue
+
+        removed += 1
+        existing = kept[duplicate_index]
+        sources = set(existing.get("alternate_sources", []))
+        sources.update([existing.get("source", ""), item.get("source", "")])
+        sources.discard("")
+        if _rss_item_score(item) > _rss_item_score(existing):
+            item["link"] = item_url
+            item["alternate_sources"] = sorted(sources - {item.get("source", "")})
+            kept[duplicate_index] = item
+        else:
+            existing["alternate_sources"] = sorted(sources - {existing.get("source", "")})
+    return kept, removed
+
+
+def _coverage_stats(items: list[dict]) -> dict:
+    topics: dict[str, dict] = {}
+    sources = Counter()
+    for item in items:
+        source = item.get("source", "")
+        if source:
+            sources[source] += 1
+        for topic in item.get("topics", []):
+            entry = topics.setdefault(topic, {"items": 0, "sources": set()})
+            entry["items"] += 1
+            if source:
+                entry["sources"].add(source)
+    return {
+        "topics": {
+            topic: {"items": value["items"], "sources": sorted(value["sources"])}
+            for topic, value in sorted(topics.items())
+        },
+        "sources": dict(sorted(sources.items())),
+    }
+
+
+def get_last_rss_quality() -> dict:
+    """Return a copy of the most recent RSS quality snapshot."""
+    return json.loads(json.dumps(_LAST_RSS_QUALITY, ensure_ascii=False)) if _LAST_RSS_QUALITY else {}
 
 
 def _clean_rss_summary(text: str, limit: int = 180) -> str:
@@ -1210,11 +1334,12 @@ def _clean_rss_summary(text: str, limit: int = 180) -> str:
     return text[:limit]
 
 
-def _fetch_one_feed(spec: tuple) -> list[dict]:
+def _fetch_one_feed(spec: tuple) -> tuple[list[dict], int]:
     label, url, max_items, max_age_h = spec
     tz = pytz.timezone("Asia/Taipei")
     cutoff = datetime.now(tz) - timedelta(hours=max_age_h)
     out = []
+    blocked = 0
     try:
         feed = feedparser.parse(url)
         for entry in feed.entries:
@@ -1234,11 +1359,23 @@ def _fetch_one_feed(spec: tuple) -> list[dict]:
                 src = gn_src
                 if title.endswith(" - " + gn_src):
                     title = title[: -len(gn_src) - 3].strip()
+            link = entry.get("link", "")
+            canonical_source = canonicalize_source(src, link)
+            if not canonical_source:
+                # The curated feed identity is the safe fallback for direct feeds and
+                # for Google News source.title punctuation/suffix changes. Broad labels
+                # such as "Semis (GN)" remain blocked because they are not aliases.
+                canonical_source = canonicalize_source(label)
+            if not canonical_source:
+                blocked += 1
+                continue
             out.append({
                 "title": title,
                 "summary": _clean_rss_summary(entry.get("summary", "")),
-                "link": entry.get("link", ""),
-                "source": src,
+                "link": normalize_url(link),
+                "source": canonical_source,
+                "source_id": source_id_for(canonical_source),
+                "topics": _feed_topics(label, canonical_source),
                 "feed": label,
                 "weekly": max_age_h > 72,   # 週刊／評論類（經濟學人）：給模型當背景，不當今日新聞
                 "longform": label in _LONGFORM_FEEDS,  # 深度長文來源：連結一起給模型（weekend_reads 用）
@@ -1248,31 +1385,48 @@ def _fetch_one_feed(spec: tuple) -> list[dict]:
                 break
     except Exception as e:
         print(f"  ✗ RSS {label}: {e}")
-    return out
+    return out, blocked
 
 
 def fetch_rss_news() -> list[dict]:
     """
     抓 RSS_FEEDS 全部 feed（並行），每條回 {title, summary, link, source, feed, published}。
-    只取各 feed 回看窗內的新聞；同標題去重；總數上限 RSS_TOTAL_CAP。
+    只取各 feed 回看窗內且通過來源白名單的新聞；以 URL／近似標題去重，
+    再以 round-robin 保留各來源覆蓋，總數上限 RSS_TOTAL_CAP。
     """
+    global _LAST_RSS_QUALITY
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
-        batches = list(ex.map(_fetch_one_feed, RSS_FEEDS))
-    seen, results = set(), []
+        fetched = list(ex.map(_fetch_one_feed, RSS_FEEDS))
+    batches = [items for items, _ in fetched]
+    blocked = sum(count for _, count in fetched)
+
+    # Round-robin feeds so a global cap cannot starve sources listed later.
+    candidates = []
+    for index in range(max((len(items) for items in batches), default=0)):
+        for items in batches:
+            if index < len(items):
+                candidates.append(items[index])
+
+    results, duplicate_removed = _dedup_rss_items(candidates)
+    before_cap = len(results)
+    results = results[:RSS_TOTAL_CAP]
     per_feed = []
     for spec, items in zip(RSS_FEEDS, batches):
-        kept = 0
-        for it in items:
-            key = re.sub(r"\W+", "", it["title"].lower())[:60]
-            if key in seen:
-                continue
-            seen.add(key)
-            results.append(it)
-            kept += 1
-        per_feed.append(f"{spec[0]}={kept}")
-    if len(results) > RSS_TOTAL_CAP:
-        results = results[:RSS_TOTAL_CAP]
-    print(f"  ✓ RSS: {len(results)} 條（{', '.join(per_feed)}）")
+        per_feed.append(f"{spec[0]}={len(items)}")
+    coverage = _coverage_stats(results)
+    _LAST_RSS_QUALITY = {
+        "total_before_dedup": len(candidates),
+        "total_after_dedup": before_cap,
+        "total_after_cap": len(results),
+        "blocked_by_whitelist": blocked,
+        "duplicate_removed": duplicate_removed,
+        "cap_removed": max(0, before_cap - len(results)),
+        **coverage,
+    }
+    print(
+        f"  ✓ RSS: {len(results)} 條（白名單擋 {blocked}、去重 {duplicate_removed}；"
+        f"{', '.join(per_feed)}）"
+    )
     return results
 
 
@@ -1456,74 +1610,14 @@ def _fetch_dynamic_deep_topics(api_key: str, today: str) -> list[dict]:
 
 
 def fetch_deep_dive_news() -> dict:
-    """Fetch fixed + dynamic deep-dive topics in parallel. Returns dict with 'fixed' and 'dynamic' keys."""
-    import re
+    """Fetch two dependable deep-dive topics without a separate meta-search."""
     headers = None  # 相容 _perplexity_query 的 tuple 介面；實際後端見 _llm_search
     tz = pytz.timezone("Asia/Taipei")
     today = datetime.now(tz).strftime("%Y-%m-%d")
-
-    # Step 1: meta-query to find dynamic topics (must run first)
-    topics = []
-    try:
-        meta_text = _llm_search(
-            f"Today is {today}. You are a financial analyst identifying the most important market-moving topics.",
-            ("What are the 3 most important market-moving topics today that deserve deeper analysis? "
-             "List ONLY as: 1. [topic name] 2. [topic name] 3. [topic name]. "
-             "Focus on: geopolitical events, economic data surprises, major company news, "
-             "central bank signals, commodity shocks. Sources: Bloomberg Reuters FT WSJ"),
-            max_tokens=200, recency="day", label="dynamic deep meta",
-        )["answer"]
-        topics = re.findall(r'\d+\.\s*(.+?)(?=\d+\.|$)', meta_text, re.DOTALL)
-        topics = [t.strip().rstrip('.') for t in topics[:3] if t.strip()]
-        print(f"  ✓ [dynamic deep] topics: {topics}")
-    except Exception as e:
-        print(f"  ✗ [dynamic deep] meta-query failed: {e}")
-
-    # Step 2: run all fixed + dynamic deep queries in parallel
-    deep_system = (
-        f"Today is {today} Taiwan time (UTC+8). "
-        "Only report news from the past 24 hours. No exceptions. "
-        "Provide detailed data, specific numbers, and source names. "
-        "Focus on structural developments, not surface-level summaries. "
-        "Never include ESG, sustainability, or green energy related news."
-    )
-
-    # Build dynamic query strings
-    dynamic_queries = [
-        f"Deep analysis of '{topic}' today: what happened, key data points and numbers, "
-        "market implications, expert views, what it means for investors. "
-        "Sources: Bloomberg Reuters FT WSJ CNBC"
-        for topic in topics
-    ]
-
-    all_args = []
-    # Fixed queries
-    for q in DEEP_DIVE_FIXED_QUERIES:
-        all_args.append((q, headers, today, 1000, "deep-fixed"))
-    # Dynamic queries
-    for q in dynamic_queries:
-        all_args.append((q, headers, today, 1000, "deep-dyn"))
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-        all_results = list(executor.map(_perplexity_query, all_args))
-
-    # Split results back
-    n_fixed = len(DEEP_DIVE_FIXED_QUERIES)
-    fixed_results = all_results[:n_fixed]
-    dynamic_raw = all_results[n_fixed:]
-
-    # Convert dynamic results to topic format
-    dynamic_results = []
-    for i, topic in enumerate(topics):
-        if i < len(dynamic_raw):
-            r = dynamic_raw[i]
-            dynamic_results.append({
-                "topic": topic,
-                "result": r.get("answer", ""),
-                "sources": r.get("sources", []),
-            })
-
-    return {"fixed": fixed_results, "dynamic": dynamic_results}
+    args = [(query, headers, today, 1000, "deep-fixed") for query in DEEP_DIVE_FIXED_QUERIES]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        fixed_results = list(executor.map(_perplexity_query, args))
+    return {"fixed": fixed_results, "dynamic": []}
 
 
 # 核心 bellwether ticker 列表 — 用來 prime Perplexity 逐一查
@@ -1604,7 +1698,7 @@ def _build_earnings_deep_queries(window_start_et: str, window_end_et: str, us_se
          "(4) Margin expansion or compression drivers\n"
          "(5) Acquisitions or one-time items that distort reported EPS — compute ex-items number\n"
          "(6) 2026 outlook statements\n"
-         "Sources: Bloomberg Reuters FT WSJ CNBC Seeking Alpha earnings call transcripts"),
+         "Sources: Bloomberg Reuters FT WSJ CNBC company earnings call transcripts"),
 
         # Query 3: 產業訊號與跨公司矛盾
         (f"Task: Identify industry-level signals and cross-company contradictions from large-cap US Q1 2026 earnings in the most recent completed US trading session. "
