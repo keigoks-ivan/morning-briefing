@@ -121,6 +121,8 @@ class RssQualityTests(unittest.TestCase):
         self.assertIn("data-center infrastructure", combined)
         self.assertIn("enterprise software, cybersecurity", combined)
         self.assertIn("industrial automation, robotics", combined)
+        self.assertIn("ai application deployments", combined)
+        self.assertIn("us sector and large-cap stock movers", combined)
         self.assertIn("earnings", combined)
 
     def test_google_news_source_variant_falls_back_to_specific_feed_label(self):
@@ -213,7 +215,7 @@ class AiQualityTests(unittest.TestCase):
         self.assertIn('"fact_status"', prompt)
         self.assertIn('"confirmed_impact"', prompt)
         self.assertIn('"unknowns"', prompt)
-        self.assertIn("整區最多 18 條", prompt)
+        self.assertIn("目標 12–16 條、最多 18 條", prompt)
         analysis_prompt = ai_processor.CLAUDE_USER_PROMPT_TEMPLATE
         self.assertIn("tech_trends 素材充足時 3–4 條、最多 4 條", analysis_prompt)
         self.assertIn("daily_deep_dive 最多 1 個主題", analysis_prompt)
@@ -287,7 +289,7 @@ class AiQualityTests(unittest.TestCase):
             "headline": "醫院簽署AI部署合約",
             "body": "某醫院簽署$10M合約。投資人應關注後續成長。",
             "evidence": "合約於9月9日簽署，金額$10M。",
-            "fact_status": "已簽約",
+            "fact_status": "已簽署",
             "development": "需求",
             "value_chain": "模型商→醫院",
             "market_move": "",
@@ -298,9 +300,31 @@ class AiQualityTests(unittest.TestCase):
         }]}
         stats = ai_processor._sanitize_news(data, "2026-09-08")
         self.assertEqual(data["industry_developments"][0]["category"], "AI產業應用")
+        self.assertEqual(data["industry_developments"][0]["fact_status"], "已簽約")
         self.assertEqual(data["industry_developments"][0]["body"], "某醫院簽署$10M合約。")
         self.assertEqual(data["industry_developments"][0]["confirmed_impact"], "")
         self.assertEqual(stats["inference_trimmed"], 2)
+
+    def test_fact_news_recovers_evidence_and_unknowns_from_factual_body(self):
+        data = {"industry_developments": [{
+            "category": "全球新創",
+            "industry": "金融科技",
+            "headline": "新創完成A輪融資",
+            "body": "FinCo於9月9日完成$25M A輪融資。",
+            "evidence": "",
+            "fact_status": "已完成",
+            "development": "資本支出",
+            "value_chain": "",
+            "market_move": "",
+            "confirmed_impact": "",
+            "unknowns": "",
+            "source": "Reuters",
+            "source_date": "2026-09-09",
+        }]}
+        ai_processor._sanitize_news(data, "2026-09-08")
+        item = data["industry_developments"][0]
+        self.assertEqual(item["evidence"], "FinCo於9月9日完成$25M A輪融資。")
+        self.assertEqual(item["unknowns"], "素材未列出其他未決事項。")
 
     def test_stock_mover_fact_requires_exact_move_and_session(self):
         base = {

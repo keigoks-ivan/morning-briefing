@@ -307,11 +307,11 @@ __SOURCE_WHITELIST__
 - 每則先寫「誰／哪個機構、何時、做了什麼、關鍵數字、目前狀態」。body 只陳述已發生或已公告的事實；公司指引、分析師預估或消息人士說法必須明確歸因，不得改寫成既定事實。
 - 美股財報：只收已公布的季度營收／EPS／指引與實際值對預期；不收財報預告或分析師猜測。
 - 科技與半導體產業鏈：收訂單、產能、價格、認證、交期、製程節點與出口管制等可驗證事件。
-- AI產業應用：收具名部署、合約／席次、AI 營收、FDA 核准或臨床結果；沒有客戶或落地證據的展示與行銷稿不收。
+- AI產業應用：收具名部署、合約／席次、AI 營收、FDA 核准或臨床結果；有合格素材時優先保留 3–4 條。沒有客戶或落地證據的展示與行銷稿不收。
 - 全球新創：收融資金額／輪次／投資人、IPO／併購條款或可驗證產品里程碑。
 - 美股類股與波動個股：必須有具名事件催化劑、上一個 US session 的確切漲跌幅與時段；不得把時間上同時發生的新聞自行推論成漲跌原因。
 - 全球多產業與財經：收金融、能源、物流、工業、消費、醫療、國防與重大政策的具體事件。
-- 每類素材充足時目標 2–4 條、最多 4 條；整區最多 18 條。任一類可為 0，不得用舊聞或推論湊數。
+- 六類都要逐一掃描素材；整區素材充足時目標 12–16 條、最多 18 條，每類最多 4 條。任一類真的沒有合格事件可為 0，不得用舊聞或推論湊數。
 - evidence 要列關鍵數字／日期／狀態；fact_status 必須反映素材中的實際進度。confirmed_impact 最多 1 句且只能寫來源已確認的直接影響；unknowns 要寫尚未披露或仍待驗證之處。
 - 禁止「值得關注」「可望受惠」「長線利多／利空」「想像空間」「投資人應」「建議買進／賣出」「目標價」等推論或投資建議。
 
@@ -530,7 +530,7 @@ GEMINI_USER_PROMPT_TEMPLATE = """
 
 【數量目標與上限 — 目標不是硬性最低值；素材不夠就少寫或留 []】
 - top_stories：素材充足時目標 8–10 條，最多 12 條（前 3–5 條必須是指數部相關，tag「指數部」）
-- industry_developments：六個 category 各目標 2–4 條、每類最多 4 條，整區最多 18 條；素材不足的類別可為 0
+- industry_developments：六類都掃描，整區素材充足時目標 12–16 條、最多 18 條，每類最多 4 條；素材不足的類別可為 0
 - macro：最多 5 條
 - ai_industry：最多 7 條（其中「AI 落地應用」相關至少寫到有素材的部分，見下方 AI 區塊規則）
 - regional_tech：每個地區最多 3 條，**沒有當日素材的地區留 []**（不要硬寫）
@@ -1523,6 +1523,21 @@ _FACT_CATEGORY_ALIASES = {
 _FACT_STATUSES = {
     "已公布", "已完成", "已核准", "已簽約", "已申請", "已排程", "進行中", "公司指引",
 }
+_FACT_STATUS_ALIASES = {
+    "已發布": "已公布",
+    "已公告": "已公布",
+    "已披露": "已公布",
+    "已發表": "已公布",
+    "已簽署": "已簽約",
+    "已達成": "已簽約",
+    "已批准": "已核准",
+    "已提交": "已申請",
+    "已提出": "已申請",
+    "已安排": "已排程",
+    "規劃中": "已排程",
+    "執行中": "進行中",
+    "指引": "公司指引",
+}
 _INDUSTRY_ALIASES = {
     "半導體": "半導體",
     "ai基礎設施": "AI基礎設施",
@@ -1795,6 +1810,10 @@ _MARKET_MOVE_FACT_RE = _re.compile(
     r"(?=.*\d[\d,.]*\s?%)(?=.*(?:盤前|盤中|盤後|收盤|交易時段|上一個\s*US\s*session|當日))",
     _re.I,
 )
+_FACT_ANCHOR_RE = _re.compile(
+    r"\d|公告|公布|發布|披露|核准|批准|簽署|簽約|提交|申請|完成|啟動|部署|指引|財報|營收|EPS",
+    _re.I,
+)
 
 
 def _fix_zh(text):
@@ -1893,13 +1912,15 @@ def _sanitize_news(data: dict, cutoff_date: str) -> dict:
         category = _FACT_CATEGORY_ALIASES.get(raw_category)
         raw_industry = _re.sub(r"[\s／/]+", "", str(item.get("industry") or "")).casefold()
         industry = _INDUSTRY_ALIASES.get(raw_industry)
-        fact_status = str(item.get("fact_status") or "").strip()
+        raw_fact_status = str(item.get("fact_status") or "").strip()
+        fact_status = _FACT_STATUS_ALIASES.get(raw_fact_status, raw_fact_status)
         development_parts = [
             part for part in _re.split(r"[\s／/|,、]+", str(item.get("development") or "")) if part
         ]
-        complete = all(str(item.get(field) or "").strip() for field in (
-            "headline", "body", "evidence", "unknowns",
-        ))
+        complete = all(str(item.get(field) or "").strip() for field in ("headline", "body"))
+        evidence = str(item.get("evidence") or "").strip()
+        body = str(item.get("body") or "").strip()
+        has_fact_anchor = bool(_FACT_ANCHOR_RE.search(f"{body} {evidence}"))
         valid_development = bool(development_parts) and all(
             part in _INDUSTRY_DEVELOPMENT_TYPES for part in development_parts
         )
@@ -1909,8 +1930,8 @@ def _sanitize_news(data: dict, cutoff_date: str) -> dict:
         )
         if (
             not category or not industry or fact_status not in _FACT_STATUSES or not complete
-            or not valid_development or not valid_market_move
-            or category_counts.get(category, 0) >= 4 or industry_counts.get(industry, 0) >= 3
+            or not has_fact_anchor or not valid_development or not valid_market_move
+            or category_counts.get(category, 0) >= 4 or industry_counts.get(industry, 0) >= 4
         ):
             stats["industry_quality"] += 1
             continue
@@ -1925,6 +1946,8 @@ def _sanitize_news(data: dict, cutoff_date: str) -> dict:
         item["category"] = category
         item["industry"] = industry
         item["fact_status"] = fact_status
+        item["evidence"] = evidence or _re.split(r"(?<=[。；;])", body, maxsplit=1)[0].strip()
+        item["unknowns"] = str(item.get("unknowns") or "").strip() or "素材未列出其他未決事項。"
         item["development"] = "／".join(development_parts)
         category_counts[category] = category_counts.get(category, 0) + 1
         industry_counts[industry] = industry_counts.get(industry, 0) + 1

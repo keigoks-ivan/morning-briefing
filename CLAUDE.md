@@ -57,11 +57,11 @@
 - ⚠ Max 額度與跑 DD 報告共用同一池，忙的時候會互相排擠。
 
 **新聞素材與品質（2026-08-17 晚改制，起因＝首日輸出 36% 過期、Nvidia $500B 重複 5 次、硬湊地區新聞）**
-- 素材兩層：① `RSS_FEEDS`（news_fetcher.py）多來源 feed 並行抓，抓取端先以 `source_registry.py` 做來源正規化與白名單硬驗證，再以 URL／近似標題去重並 round-robin 保留各來源覆蓋，總上限 310；② `PERPLEXITY_QUERIES` 共 18 題，新增資料中心基礎設施、醫療生技、企業軟體／資安、工業自動化／國防航太等跨來源主題。深挖不再先跑 meta-query，固定並行 2 題；MOVE 另算 1 次。WSJ／Nikkei 官方 RSS 已停更，不要加回。
+- 素材兩層：① `RSS_FEEDS`（news_fetcher.py）多來源 feed 並行抓，抓取端先以 `source_registry.py` 做來源正規化與白名單硬驗證，再以 URL／近似標題去重並 round-robin 保留各來源覆蓋，總上限 310；② `PERPLEXITY_QUERIES` 共 18 題，涵蓋資料中心基礎設施、醫療生技、企業軟體／資安、工業自動化／國防航太，並把 AI 題聚焦具名產業導入、把機構持倉題改為有事實催化劑的美股類股／大型股波動。深挖不再先跑 meta-query，固定並行 2 題；MOVE 另算 1 次。WSJ／Nikkei 官方 RSS 已停更，不要加回。
 - prompt 原則仍是「寧缺勿濫」：核心要聞與產業發展有軟目標但不是硬性最低值，地區沒素材留 `[]`；`{today}`／`{cutoff_date}`（`_news_date_window()`：平日回看 2 天、週一 3 天）為硬規則；同一事件整份 JSON 只能出現一次；top_stories 前 3–5 條必須是指數部相關（tag「指數部」）；白名單擴充（AP／BBC／CNN Business／TrendForce／CoinDesk／The Block／Crunchbase／Focus Taiwan／Yonhap／Korea Herald／Caixin），黑名單加 Seeking Alpha／Yahoo 轉載／Motley Fool／Benzinga。regional_tech 的 `malaysia` 改為 `asean`（東南亞）。
 - 後處理（ai_processor.py，`process_news` 內、`_validate` 前）：`_sanitize_news()` 會再次硬驗證 canonical 白名單、移除過期與行情句；`_dedup_news()` 以日期＋實體＋事件動作＋數字判斷事件。核心要聞是主卡，重複的關注清單內容併為「對關注股的影響」，深度內容標為「延伸深挖」並移除重複現況段。品質統計寫入 `news_quality_latest.json`。
 - **關注清單新聞 `watchlist_news`（2026-08-17 晚新增）**：來源＝DD Screener universe `research.investmquest.com/dd-screener/latest.json`（`fetch_dd_watchlist()`，約 250 檔，含 moat_grade／pass_count）。`tag_watchlist()` 在 RSS 條目標 `★關注[ticker]`（公司名／別名不分大小寫，裸 ticker 只認全大寫，避免 APP→App 誤標；別名表 `_TICKER_ALIASES`）。prompt 用 `_watchlist_block()` 分兩組：**優先組＝S 級全部＋A 級 pass_count≥3**（約 60 檔）、其他組只有重大事件（財報／指引、重大訂單、併購、監管、CEO、產品線）才收；只寫公司自身事件、每家一條、上限 8、嚴禁行情句。渲染 `_watchlist_news_section`（news 頁核心要聞之後、email 同位置）。
-- **分類事實新聞 `industry_developments`（2026-09-10 調整）**：分為美股財報、科技與半導體產業鏈、AI 產業應用、全球新創、美股類股與波動個股、全球多產業與財經六類；素材充足時每類目標 2–4 條、每類最多 4 條、整區最多 18 條。每條以 `evidence`／`fact_status`／`unknowns` 呈現已確認事實，`confirmed_impact` 最多一個來源支持的直接影響句；不得用預測、投資建議或舊聞湊數。與核心要聞及其他新聞區塊去重，渲染在 news 頁與 email 的核心要聞之後。
+- **分類事實新聞 `industry_developments`（2026-09-10 調整）**：分為美股財報、科技與半導體產業鏈、AI 產業應用、全球新創、美股類股與波動個股、全球多產業與財經六類；六類都掃描，素材充足時整區目標 12–16 條、每類最多 4 條、整區最多 18 條，AI 應用有料時優先保留 3–4 條。每條以 `evidence`／`fact_status`／`unknowns` 呈現已確認事實；同義事實狀態會正規化，缺少重複的 evidence／unknowns 欄位時可從有事實錨點的 body 安全補值，不再整條誤刪。`confirmed_impact` 最多一個來源支持的直接影響句；不得用預測、投資建議或舊聞湊數。與核心要聞及其他新聞區塊去重，渲染在 news 頁與 email 的核心要聞之後。
 - **本週值得讀 `weekend_reads`（同日新增）**：從 The Economist／FT 等 `weekly`／`longform` feed 挑最多 3 篇長文，欄位 title／source／source_date／why／link；sanitize 不做過期過濾。渲染 `_weekend_reads_section`（trends 頁 tech_trends 之後、email 同位置）。
 - 想加 RSS：先在 `source_registry.py` 加 canonical 名稱、別名、網域與 topics，再在 `RSS_FEEDS` 加一行 tuple；`GEMINI_SYSTEM_PROMPT` 的白名單會由 registry 自動產生。
 

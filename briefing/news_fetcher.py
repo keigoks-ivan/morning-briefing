@@ -157,7 +157,7 @@ PERPLEXITY_QUERIES = [
     "Geopolitical developments in the past 24 hours with market impact: Middle East, US-China (tariffs, export controls, chips), Taiwan Strait, Russia-Ukraine. Sources: Bloomberg Reuters Financial Times WSJ Politico Foreign Affairs RAND Brookings",
     "Global trade, shipping and industrial policy developments in the past 24 hours: tariffs, export controls, freight or port disruption, defense procurement, reshoring and major supply-chain bottlenecks. Sources: Bloomberg Reuters Financial Times WSJ Politico Nikkei Asia",
     # AI／半導體（指數部核心）
-    "AI industry in the past 24 hours: model releases, AI capex and data-center deals, hyperscaler spending, AI chip supply. Sources: Bloomberg Reuters TechCrunch The Information Wired Ars Technica CNBC Axios",
+    "AI application deployments announced in the past 48 hours: named customers, contracts, seat counts or disclosed AI revenue in healthcare, finance, manufacturing, customer service and government; exclude demos without a named deployment. Sources: Bloomberg Reuters TechCrunch The Information Wired Ars Technica CNBC Axios STAT News",
     "Data-center infrastructure in the past 24 hours: power generation and grid connections, cooling, networking and optical interconnects, construction capacity, named orders and capex from Vertiv, Eaton, Arista, Schneider, Siemens, GE Vernova and hyperscalers. Sources: Bloomberg Reuters Financial Times CNBC The Information DIGITIMES",
     "Semiconductor supply chain in the past 24 hours: TSMC, Nvidia, AMD, ASML, Samsung, SK Hynix, Micron — orders, capacity, pricing (DRAM/NAND/HBM contract prices), export controls. Sources: Bloomberg Reuters DIGITIMES TrendForce SemiAnalysis Nikkei Asia EE Times",
     "Taiwan and Korea tech in the past 24 hours: TSMC monthly revenue, MediaTek, Foxconn, Samsung, SK Hynix — company events and government policy. Sources: Bloomberg Reuters Nikkei Asia DIGITIMES Focus Taiwan Yonhap Korea Herald",
@@ -166,7 +166,7 @@ PERPLEXITY_QUERIES = [
     "Industrial automation, robotics, autonomous systems and aerospace or defense developments in the past 24 hours: named orders, production ramps, factory automation, defense procurement and supply-chain capacity. Sources: Reuters Bloomberg Financial Times WSJ CNBC Axios",
     # 新創／機構
     "Largest startup funding rounds, IPO filings, and defense-tech / robotics investments announced in the past 24 hours, with amounts and lead investors. Sources: TechCrunch Bloomberg Reuters Crunchbase The Information Axios",
-    "Institutional positioning in the past 24 hours: 13F disclosures, notable fund moves, large block trades, ETF flows into QQQ SPY SOXX. Sources: Bloomberg Reuters CNBC WSJ Barchart",
+    "US sector and large-cap stock movers in the latest completed session: only moves tied by the source to a named factual catalyst such as earnings, guidance, orders, regulation, M&A or management change; include exact move percentage and session timing, exclude technical-analysis explanations. Sources: Bloomberg Reuters CNBC WSJ Barron's Financial Times",
     # 財報
     "US companies reporting earnings today (next US session) before open or after close: names, tickers, EPS and revenue consensus. Sources: Bloomberg Reuters CNBC WSJ Earnings Whispers",
     "US earnings reported in the last US session (pre-market, during, after-hours): beat/miss, guidance, key management quotes from earnings calls, investor days or analyst conferences. Sources: Bloomberg Reuters CNBC WSJ",
