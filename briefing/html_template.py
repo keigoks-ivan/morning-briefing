@@ -1170,46 +1170,94 @@ _INDUSTRY_COLORS = {
     "能源與運輸物流": ("#FFF3E0", "#8A4B08"),
 }
 
+_FACT_CATEGORY_ORDER = [
+    "美股財報",
+    "科技與半導體產業鏈",
+    "AI產業應用",
+    "全球新創",
+    "美股類股與波動個股",
+    "全球多產業與財經",
+]
+_FACT_CATEGORY_COLORS = {
+    "美股財報": "#185FA5",
+    "科技與半導體產業鏈": "#534AB7",
+    "AI產業應用": "#0F6E56",
+    "全球新創": "#854F0B",
+    "美股類股與波動個股": "#A32D2D",
+    "全球多產業與財經": "#1B3A5C",
+}
+
 
 def _industry_developments_section(items: list) -> str:
     if not items:
         return ""
     rows = ""
+    grouped = {category: [] for category in _FACT_CATEGORY_ORDER}
     for item in items:
-        industry = item.get("industry", "其他")
-        bg, color = _INDUSTRY_COLORS.get(industry, ("#F2F2F0", "#555"))
-        development = item.get("development", "")
-        value_chain = item.get("value_chain", "")
-        why = item.get("why_it_matters", "")
-        badge = _importance_badge(item.get("importance", "medium"))
-        source_html = _source_line(item.get("source", ""), item.get("source_date", ""))
-        chain_html = (
-            f'''<div style="margin-top:7px;font-size:13px;color:#555;line-height:1.55;">
-              <span style="font-weight:600;color:#6B7C8F;">產業鏈 ▸</span> {value_chain}
-            </div>'''
-            if value_chain else ""
-        )
-        why_html = (
-            f'''<div style="margin-top:5px;font-size:13px;color:#40566f;line-height:1.55;">
-              <span style="font-weight:600;color:{color};">6–18 個月 ▸</span> {why}
-            </div>'''
-            if why else ""
-        )
+        grouped.setdefault(item.get("category", "全球多產業與財經"), []).append(item)
+
+    for category, category_items in grouped.items():
+        if not category_items:
+            continue
+        category_color = _FACT_CATEGORY_COLORS.get(category, "#555")
         rows += f'''
+<div style="margin-top:16px;padding-bottom:5px;border-bottom:2px solid {category_color};
+            font-size:14px;font-weight:700;color:{category_color};">
+  {category} <span style="font-weight:400;color:#888;">{len(category_items)} 則</span>
+</div>'''
+        for item in category_items:
+            industry = item.get("industry", "其他")
+            bg, color = _INDUSTRY_COLORS.get(industry, ("#F2F2F0", "#555"))
+            development = item.get("development", "")
+            fact_status = item.get("fact_status", "")
+            value_chain = item.get("value_chain", "")
+            evidence = item.get("evidence", "")
+            market_move = item.get("market_move", "")
+            confirmed_impact = item.get("confirmed_impact", "")
+            unknowns = item.get("unknowns", "")
+            badge = _importance_badge(item.get("importance", "medium"))
+            source_html = _source_line(item.get("source", ""), item.get("source_date", ""))
+            chain_html = (
+                f'''<div style="margin-top:5px;font-size:13px;color:#555;line-height:1.55;">
+                  <span style="font-weight:600;color:#6B7C8F;">產業鏈 ▸</span> {value_chain}
+                </div>'''
+                if value_chain else ""
+            )
+            move_html = (
+                f'''<div style="margin-top:5px;font-size:13px;color:#555;line-height:1.55;">
+                  <span style="font-weight:600;color:#A32D2D;">市場反應 ▸</span> {market_move}
+                </div>'''
+                if market_move else ""
+            )
+            impact_html = (
+                f'''<div style="margin-top:5px;font-size:13px;color:#40566f;line-height:1.55;">
+                  <span style="font-weight:600;color:{category_color};">已知影響 ▸</span> {confirmed_impact}
+                </div>'''
+                if confirmed_impact else ""
+            )
+            rows += f'''
 <div style="padding:13px 0;border-bottom:0.5px solid #ECECEA;">
   <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
     <span style="font-size:12px;font-weight:600;padding:2px 8px;border-radius:3px;background:{bg};color:{color};">{industry}</span>
     <span style="font-size:12px;color:#777;">{development}</span>
+    <span style="font-size:12px;color:#777;">{fact_status}</span>
   </div>
   <div style="font-size:16px;font-weight:600;color:#222;line-height:1.5;">{item.get("headline", "")}{badge}</div>
   <div style="font-size:15px;color:#555;line-height:1.7;margin-top:5px;">{item.get("body", "")}</div>
+  <div style="margin-top:7px;font-size:13px;color:#333;line-height:1.55;">
+    <span style="font-weight:600;color:{category_color};">關鍵證據 ▸</span> {evidence}
+  </div>
   {chain_html}
-  {why_html}
+  {move_html}
+  {impact_html}
+  <div style="margin-top:5px;font-size:13px;color:#777;line-height:1.55;">
+    <span style="font-weight:600;">尚待確認 ▸</span> {unknowns}
+  </div>
   {source_html}
 </div>'''
     return f'''
 <div class="section">
-  <div class="section-label">產業發展追蹤 <span style="font-weight:400;color:#888;font-size:12px;">6–18 個月供需與競爭格局</span></div>
+  <div class="section-label">分類事實新聞 <span style="font-weight:400;color:#888;font-size:12px;">先事實・後脈絡</span></div>
   {rows}
 </div>'''
 

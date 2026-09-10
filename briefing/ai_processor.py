@@ -302,12 +302,18 @@ __SOURCE_WHITELIST__
 - 每條 tag 用「醫療應用」「企業應用」「供應鏈」「AI 產業」其中之一。
 - 判準不變：body 要有具體數字或具名主體，泛論式「AI 將改變 X 產業」一律丟掉。半導體供應鏈條目若已在 top_stories 出現，不得在此重複。
 
-【產業發展追蹤（industry_developments）】
-- 這是增加新聞量的主區塊，但只收「會改變未來 6–18 個月產業供需、成本、技術路線、競爭格局或資本支出」的事件。
-- 優先產業：半導體、AI 基礎設施／資料中心、企業軟體／資安、機器人／工業自動化、醫療生技、金融科技、國防航太、能源／運輸物流。
-- 合格條件：必須是具體事件，且 body 有具名公司／機構與具體數字或可驗證的政策／技術節點；單純市況、分析師評等、公司 PR 口號、沒有傳導機制的泛論不收。
-- 每個產業最多 2 條；素材充足時目標 10–14 條且至少橫跨 5 個產業，不足時可低於 10 條，不得為達目標降低品質。
-- value_chain 要點出受影響的供應鏈環節；why_it_matters 要寫明傳導機制，不能只說「值得關注」。
+【分類事實新聞（industry_developments）】
+- 用這一區增加高品質新聞量，category 只能是：美股財報、科技與半導體產業鏈、AI產業應用、全球新創、美股類股與波動個股、全球多產業與財經。
+- 每則先寫「誰／哪個機構、何時、做了什麼、關鍵數字、目前狀態」。body 只陳述已發生或已公告的事實；公司指引、分析師預估或消息人士說法必須明確歸因，不得改寫成既定事實。
+- 美股財報：只收已公布的季度營收／EPS／指引與實際值對預期；不收財報預告或分析師猜測。
+- 科技與半導體產業鏈：收訂單、產能、價格、認證、交期、製程節點與出口管制等可驗證事件。
+- AI產業應用：收具名部署、合約／席次、AI 營收、FDA 核准或臨床結果；沒有客戶或落地證據的展示與行銷稿不收。
+- 全球新創：收融資金額／輪次／投資人、IPO／併購條款或可驗證產品里程碑。
+- 美股類股與波動個股：必須有具名事件催化劑、上一個 US session 的確切漲跌幅與時段；不得把時間上同時發生的新聞自行推論成漲跌原因。
+- 全球多產業與財經：收金融、能源、物流、工業、消費、醫療、國防與重大政策的具體事件。
+- 每類素材充足時目標 2–4 條、最多 4 條；整區最多 18 條。任一類可為 0，不得用舊聞或推論湊數。
+- evidence 要列關鍵數字／日期／狀態；fact_status 必須反映素材中的實際進度。confirmed_impact 最多 1 句且只能寫來源已確認的直接影響；unknowns 要寫尚未披露或仍待驗證之處。
+- 禁止「值得關注」「可望受惠」「長線利多／利空」「想像空間」「投資人應」「建議買進／賣出」「目標價」等推論或投資建議。
 
 【昨日美股重點（us_market_recap）硬規則】
 - 只收「上一個 US session」（使用者訊息會給明確日期）當天公布的財報與事件：盤前、盤中、盤後三段都屬於那一天。
@@ -318,6 +324,7 @@ __SOURCE_WHITELIST__
 
 【新聞內容規則】
 - 只輸出事件性新聞（公司動態、政策、併購、產品發布、人事、數據公布）
+- 事實優先：首句交代具名主體、日期／季度、已發生的事件與可驗證數字。每則最多 1 句直接影響，且必須能由素材支持；不自行延伸情境或預測。
 - **嚴禁行情敘述**：不得出現股價漲跌幅、指數點位或漲跌、幣價、期貨漲跌、「走高／走低／持穩於 $X」這類句子。行情由另一個區塊用 yfinance 真實數據呈現。財報後盤後反應只能寫在 us_market_recap.after_hours_move。
 - 排除 ESG 內容
 - source_date 格式 YYYY-MM-DD；source 填媒體名（不得寫「媒體報導」「綜合報導」）
@@ -401,12 +408,17 @@ GEMINI_USER_PROMPT_TEMPLATE = """
 
   "industry_developments": [
     {{{{
+      "category": "美股財報|科技與半導體產業鏈|AI產業應用|全球新創|美股類股與波動個股|全球多產業與財經",
       "industry": "半導體|AI基礎設施|企業軟體與資安|機器人與工業自動化|醫療生技|金融科技|國防航太|能源與運輸物流|其他",
-      "headline": "產業發展標題（30字以內）",
-      "body": "2句：具體事件＋關鍵數字，不寫行情",
+      "headline": "事實新聞標題（30字以內）",
+      "body": "1–2句，只寫具名主體、日期／季度、已發生事件與關鍵數字",
+      "evidence": "關鍵數字／日期／公告狀態（1句）",
+      "fact_status": "已公布|已完成|已核准|已簽約|已申請|已排程|進行中|公司指引",
       "development": "需求|供給|產能|技術|價格|監管|競爭|資本支出|併購",
-      "value_chain": "受影響的上游→中游→下游環節（1句）",
-      "why_it_matters": "對未來 6–18 個月供需／利潤／競爭格局的傳導機制（1句）",
+      "value_chain": "有明確產業鏈時才填；否則空字串",
+      "market_move": "僅美股類股與波動個股填：上一個 US session 的漲跌幅與時段；其他類別空字串",
+      "confirmed_impact": "來源已確認的直接影響，最多1句；沒有就空字串",
+      "unknowns": "尚未披露或仍待驗證之處；若無則寫「無已知未決事項」",
       "source": "白名單 canonical 來源媒體",
       "source_date": "YYYY-MM-DD",
       "importance": "high|medium"
@@ -518,7 +530,7 @@ GEMINI_USER_PROMPT_TEMPLATE = """
 
 【數量目標與上限 — 目標不是硬性最低值；素材不夠就少寫或留 []】
 - top_stories：素材充足時目標 8–10 條，最多 12 條（前 3–5 條必須是指數部相關，tag「指數部」）
-- industry_developments：素材充足時目標 10–14 條，最多 14 條，至少橫跨 5 個產業、每產業最多 2 條
+- industry_developments：六個 category 各目標 2–4 條、每類最多 4 條，整區最多 18 條；素材不足的類別可為 0
 - macro：最多 5 條
 - ai_industry：最多 7 條（其中「AI 落地應用」相關至少寫到有素材的部分，見下方 AI 區塊規則）
 - regional_tech：每個地區最多 3 條，**沒有當日素材的地區留 []**（不要硬寫）
@@ -773,15 +785,15 @@ CLAUDE_USER_PROMPT_TEMPLATE = """
       "theme": "主題名稱",
       "theme_type": "semiconductor/ai_arch/liquidity/energy/spotlight",
       "headline": "今日這個主題最重要的一句話（25字以內）",
-      "situation": "現況描述（4-6句）",
+      "situation": "現況事實（3–4句，明確區分公告、指引與估計）",
       "key_data": [
         {{"metric": "指標名稱", "value": "具體數值", "change": "變化", "context": "含義（1句）"}}
       ],
-      "deep_analysis": "深度分析（4-6句，邏輯推演）",
-      "structural_signal": "結構性訊號（2-3句）",
-      "bull_case": "樂觀情境（2句）",
-      "bear_case": "悲觀情境（2句）",
-      "implication": "對投資決策的含義（2-3句）",
+      "deep_analysis": "分析（2–3句，清楚標示這是分析而非已發生事實）",
+      "structural_signal": "結構性訊號（1句）",
+      "bull_case": "樂觀情境（1句）",
+      "bear_case": "悲觀情境（1句）",
+      "implication": "以已知事實為基礎的含義（1句，不下買賣建議）",
       "source": "來源媒體",
       "source_date": "YYYY-MM-DD"
     }}
@@ -833,8 +845,8 @@ CLAUDE_USER_PROMPT_TEMPLATE = """
 注意：
 0. regime 先寫、先想清楚，其他區塊都要對它表態（vs_regime）；矛盾要暴露不要抹平
 1. system_status.dynamic 固定 3 個，從以下選：{dynamic_options}
-2. tech_trends 5–6 條，sub_items 固定 3 個
-3. daily_deep_dive 固定 2 個主題，從今日全部新聞素材與兩個固定深挖查詢中選最重要的 2 個；不必每天都選半導體或 AI
+2. tech_trends 素材充足時 3–4 條、最多 4 條，sub_items 固定 3 個
+3. daily_deep_dive 最多 1 個主題，從今日全部新聞素材與兩個固定深挖查詢中只選證據最完整的一個；沒有足夠事實就留 []
 4. smart_money 最多 3 條，沒有可信來源不要輸出
 5. cross_asset_signals 2-3 個
 """
@@ -1497,6 +1509,20 @@ _NEWS_PRIMARY_BLOCKS = [
 ]
 _NEWS_LIST_BLOCKS = _NEWS_PRIMARY_BLOCKS + ["tech_trends", "daily_deep_dive"]
 
+_FACT_CATEGORY_ALIASES = {
+    "美股財報": "美股財報",
+    "科技與半導體產業鏈": "科技與半導體產業鏈",
+    "科技半導體產業鏈": "科技與半導體產業鏈",
+    "ai產業應用": "AI產業應用",
+    "全球新創": "全球新創",
+    "美股類股與波動個股": "美股類股與波動個股",
+    "美股類股波動個股": "美股類股與波動個股",
+    "全球多產業與財經": "全球多產業與財經",
+    "全球多產業財經": "全球多產業與財經",
+}
+_FACT_STATUSES = {
+    "已公布", "已完成", "已核准", "已簽約", "已申請", "已排程", "進行中", "公司指引",
+}
 _INDUSTRY_ALIASES = {
     "半導體": "半導體",
     "ai基礎設施": "AI基礎設施",
@@ -1571,6 +1597,7 @@ def _item_event_text(item: dict) -> str:
     parts = [
         item.get("headline", ""), item.get("title", ""), item.get("theme", ""),
         item.get("body", ""), item.get("summary", ""), item.get("situation", ""),
+        item.get("evidence", ""), item.get("market_move", ""), item.get("confirmed_impact", ""),
     ]
     for datum in item.get("key_data", []) if isinstance(item.get("key_data"), list) else []:
         if isinstance(datum, dict):
@@ -1761,6 +1788,13 @@ _MARKET_SENT_RE = _re.compile(
     r"[^。；;]{0,30}?(上漲|下跌|大漲|大跌|走高|走低|收高|收低|飆漲|重挫|跳漲|急跌|持穩|站上|跌破|漲逾|跌逾|漲|跌)"
     r"[^。；;]{0,6}?(\d[\d,.]*\s?%|\$\s?\d)"
 )
+_INFERENCE_SENT_RE = _re.compile(
+    r"值得關注|可望受惠|長線利多|長線利空|想像空間|投資人應|建議買進|建議賣出|目標價"
+)
+_MARKET_MOVE_FACT_RE = _re.compile(
+    r"(?=.*\d[\d,.]*\s?%)(?=.*(?:盤前|盤中|盤後|收盤|交易時段|上一個\s*US\s*session|當日))",
+    _re.I,
+)
 
 
 def _fix_zh(text):
@@ -1783,11 +1817,23 @@ def _strip_market_sentences(text: str):
     return "".join(kept).strip(), True
 
 
+def _strip_inference_sentences(text: str):
+    """移除明顯投資推論句；保留可驗證事實與明確歸因內容。"""
+    if not isinstance(text, str) or not text:
+        return text, False
+    parts = _re.split(r"(?<=[。；;])", text)
+    kept = [pt for pt in parts if not _INFERENCE_SENT_RE.search(pt)]
+    if len(kept) == len(parts):
+        return text, False
+    return "".join(kept).strip(), True
+
+
 def _sanitize_news(data: dict, cutoff_date: str) -> dict:
     """(1) 全部字串簡繁／錯字修正；(2) 新聞區塊：過期條目丟掉、行情句砍掉、標題含漲跌%整條丟掉。"""
     stats = {
         "stale": 0, "market_sent": 0, "market_head": 0,
         "recap_stale": 0, "invalid_source": 0, "industry_quality": 0,
+        "inference_trimmed": 0,
     }
 
     def _walk_fix(obj):
@@ -1838,29 +1884,52 @@ def _sanitize_news(data: dict, cutoff_date: str) -> dict:
         if isinstance(data.get(key), list):
             data[key] = _clean_list(data[key], check_date=key not in ("tech_trends", "daily_deep_dive", "weekend_reads"))
 
-    # 產業區不只信 prompt：欄位不完整、類別不合或單一產業超過 2 條都不進頁面。
+    # 分類事實新聞不只信 prompt：類別、事實欄位、狀態與類別上限都做硬驗證。
     industry_kept = []
+    category_counts = {}
     industry_counts = {}
     for item in data.get("industry_developments", []) if isinstance(data.get("industry_developments"), list) else []:
+        raw_category = _re.sub(r"[\s／/]+", "", str(item.get("category") or "")).casefold()
+        category = _FACT_CATEGORY_ALIASES.get(raw_category)
         raw_industry = _re.sub(r"[\s／/]+", "", str(item.get("industry") or "")).casefold()
         industry = _INDUSTRY_ALIASES.get(raw_industry)
+        fact_status = str(item.get("fact_status") or "").strip()
         development_parts = [
             part for part in _re.split(r"[\s／/|,、]+", str(item.get("development") or "")) if part
         ]
         complete = all(str(item.get(field) or "").strip() for field in (
-            "headline", "body", "value_chain", "why_it_matters",
+            "headline", "body", "evidence", "unknowns",
         ))
         valid_development = bool(development_parts) and all(
             part in _INDUSTRY_DEVELOPMENT_TYPES for part in development_parts
         )
-        if not industry or not complete or not valid_development or industry_counts.get(industry, 0) >= 2:
+        market_move = str(item.get("market_move") or "").strip()
+        valid_market_move = category != "美股類股與波動個股" or bool(
+            _MARKET_MOVE_FACT_RE.search(market_move)
+        )
+        if (
+            not category or not industry or fact_status not in _FACT_STATUSES or not complete
+            or not valid_development or not valid_market_move
+            or category_counts.get(category, 0) >= 4 or industry_counts.get(industry, 0) >= 3
+        ):
             stats["industry_quality"] += 1
             continue
+        for field in ("body", "confirmed_impact"):
+            cleaned, cut = _strip_inference_sentences(str(item.get(field) or ""))
+            if cut:
+                stats["inference_trimmed"] += 1
+                item[field] = cleaned
+        if not str(item.get("body") or "").strip():
+            stats["industry_quality"] += 1
+            continue
+        item["category"] = category
         item["industry"] = industry
+        item["fact_status"] = fact_status
         item["development"] = "／".join(development_parts)
+        category_counts[category] = category_counts.get(category, 0) + 1
         industry_counts[industry] = industry_counts.get(industry, 0) + 1
         industry_kept.append(item)
-        if len(industry_kept) >= 14:
+        if len(industry_kept) >= 18:
             break
     data["industry_developments"] = industry_kept
     rt = data.get("regional_tech")
@@ -1904,7 +1973,8 @@ def _sanitize_news(data: dict, cutoff_date: str) -> dict:
         print(
             f"  → sanitize: 過期 {stats['stale']}、非白名單 {stats['invalid_source']}、"
             f"行情標題 {stats['market_head']}、行情句 {stats['market_sent']}、"
-            f"產業品質 {stats['industry_quality']}、昨日美股非當日財報 {stats['recap_stale']}"
+            f"產業品質 {stats['industry_quality']}、推論句 {stats['inference_trimmed']}、"
+            f"昨日美股非當日財報 {stats['recap_stale']}"
         )
     return stats
 
@@ -2068,6 +2138,14 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
             "macro": len(data.get("macro", [])),
             "ai_industry": len(data.get("ai_industry", [])),
             "tech_trends": len(data.get("tech_trends", [])),
+        },
+        "fact_category_counts": {
+            category: sum(
+                item.get("category") == category
+                for item in data.get("industry_developments", [])
+                if isinstance(item, dict)
+            )
+            for category in _FACT_CATEGORY_ALIASES.values()
         },
     }
 

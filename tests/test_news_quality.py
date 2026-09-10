@@ -201,12 +201,22 @@ class RssQualityTests(unittest.TestCase):
 
 
 class AiQualityTests(unittest.TestCase):
-    def test_industry_prompt_uses_soft_target_and_quality_fields(self):
+    def test_industry_prompt_uses_six_fact_categories_and_quality_fields(self):
         prompt = ai_processor.GEMINI_SYSTEM_PROMPT + ai_processor.GEMINI_USER_PROMPT_TEMPLATE
         self.assertIn("industry_developments", prompt)
-        self.assertIn("目標 10–14 條", prompt)
-        self.assertIn("value_chain", prompt)
-        self.assertIn("why_it_matters", prompt)
+        for category in (
+            "美股財報", "科技與半導體產業鏈", "AI產業應用", "全球新創",
+            "美股類股與波動個股", "全球多產業與財經",
+        ):
+            self.assertIn(category, prompt)
+        self.assertIn('"evidence"', prompt)
+        self.assertIn('"fact_status"', prompt)
+        self.assertIn('"confirmed_impact"', prompt)
+        self.assertIn('"unknowns"', prompt)
+        self.assertIn("整區最多 18 條", prompt)
+        analysis_prompt = ai_processor.CLAUDE_USER_PROMPT_TEMPLATE
+        self.assertIn("tech_trends 素材充足時 3–4 條、最多 4 條", analysis_prompt)
+        self.assertIn("daily_deep_dive 最多 1 個主題", analysis_prompt)
         rendered = ai_processor.GEMINI_USER_PROMPT_TEMPLATE.format(
             today="2026-09-09",
             cutoff_date="2026-09-08",
@@ -243,26 +253,77 @@ class AiQualityTests(unittest.TestCase):
         self.assertEqual(data["weekend_reads"], [])
         self.assertEqual(stats["invalid_source"], 1)
 
-    def test_industry_quality_requires_complete_fields_and_caps_each_industry(self):
-        def industry_item(headline, why="改變未來供需。"):
+    def test_fact_news_requires_complete_fields_and_caps_each_category(self):
+        def fact_item(headline, industry="半導體", evidence="TSMC於9月9日公告投資$1B。", category="科技與半導體產業鏈"):
             return {
-                "industry": "半導體",
+                "category": category,
+                "industry": industry,
                 "headline": headline,
                 "body": "TSMC宣布新增$1B產能。",
+                "evidence": evidence,
+                "fact_status": "已公布",
                 "development": "產能",
                 "value_chain": "設備→晶圓代工→客戶",
-                "why_it_matters": why,
+                "market_move": "",
+                "confirmed_impact": "公司表示新產能將供應既有客戶。",
+                "unknowns": "投產日期尚未披露。",
                 "source": "Reuters",
                 "source_date": "2026-09-09",
             }
 
         data = {"industry_developments": [
-            industry_item("事件1"), industry_item("事件2"), industry_item("事件3"),
-            industry_item("缺少中期含義", why=""),
+            fact_item("事件1"), fact_item("事件2", "AI基礎設施"),
+            fact_item("事件3", "企業軟體與資安"), fact_item("事件4", "機器人與工業自動化"),
+            fact_item("事件5", "醫療生技"), fact_item("缺少證據", evidence=""),
         ]}
         stats = ai_processor._sanitize_news(data, "2026-09-08")
-        self.assertEqual(len(data["industry_developments"]), 2)
+        self.assertEqual(len(data["industry_developments"]), 4)
         self.assertEqual(stats["industry_quality"], 2)
+
+    def test_fact_news_normalizes_category_and_trims_inference(self):
+        data = {"industry_developments": [{
+            "category": "AI 產業應用",
+            "industry": "企業軟體與資安",
+            "headline": "醫院簽署AI部署合約",
+            "body": "某醫院簽署$10M合約。投資人應關注後續成長。",
+            "evidence": "合約於9月9日簽署，金額$10M。",
+            "fact_status": "已簽約",
+            "development": "需求",
+            "value_chain": "模型商→醫院",
+            "market_move": "",
+            "confirmed_impact": "可望受惠並帶動估值。",
+            "unknowns": "導入席次尚未披露。",
+            "source": "Reuters",
+            "source_date": "2026-09-09",
+        }]}
+        stats = ai_processor._sanitize_news(data, "2026-09-08")
+        self.assertEqual(data["industry_developments"][0]["category"], "AI產業應用")
+        self.assertEqual(data["industry_developments"][0]["body"], "某醫院簽署$10M合約。")
+        self.assertEqual(data["industry_developments"][0]["confirmed_impact"], "")
+        self.assertEqual(stats["inference_trimmed"], 2)
+
+    def test_stock_mover_fact_requires_exact_move_and_session(self):
+        base = {
+            "category": "美股類股與波動個股",
+            "industry": "企業軟體與資安",
+            "headline": "公司公布年度財測",
+            "body": "公司公布全年營收指引$2B。",
+            "evidence": "9月9日公告全年營收指引$2B。",
+            "fact_status": "公司指引",
+            "development": "需求",
+            "value_chain": "",
+            "confirmed_impact": "",
+            "unknowns": "實際全年營收仍待公布。",
+            "source": "Reuters",
+            "source_date": "2026-09-09",
+        }
+        data = {"industry_developments": [
+            {**base, "market_move": "上一個 US session 收盤上漲8.2%。"},
+            {**base, "headline": "另一家公司公布財測", "market_move": "股價明顯上漲。"},
+        ]}
+        stats = ai_processor._sanitize_news(data, "2026-09-08")
+        self.assertEqual(len(data["industry_developments"]), 1)
+        self.assertEqual(stats["industry_quality"], 1)
 
     def test_watchlist_duplicate_is_merged_into_primary(self):
         data = {
@@ -376,24 +437,33 @@ class AiQualityTests(unittest.TestCase):
         self.assertIn("對關注股的影響", rendered)
         self.assertIn("NVDA", rendered)
 
-    def test_industry_development_renders_value_chain_and_horizon(self):
+    def test_fact_news_renders_category_and_evidence_fields(self):
         rendered = html_template.build_news_html({
             "date": "2026年09月09日 06:15 TST",
             "industry_developments": [{
+                "category": "科技與半導體產業鏈",
                 "industry": "AI基礎設施",
                 "headline": "資料中心電力訂單擴大",
                 "body": "Vertiv取得$2B訂單。",
+                "evidence": "Vertiv於9月9日公告訂單金額$2B。",
+                "fact_status": "已公布",
                 "development": "需求",
                 "value_chain": "發電設備→電力管理→資料中心",
-                "why_it_matters": "交期延長將推高產能利用率。",
+                "market_move": "",
+                "confirmed_impact": "公司將擴充交付排程。",
+                "unknowns": "客戶名稱尚未披露。",
                 "source": "Reuters",
                 "source_date": "2026-09-09",
                 "importance": "high",
             }],
         })
-        self.assertIn("產業發展追蹤", rendered)
+        self.assertIn("分類事實新聞", rendered)
+        self.assertIn("科技與半導體產業鏈", rendered)
+        self.assertIn("關鍵證據", rendered)
         self.assertIn("產業鏈", rendered)
-        self.assertIn("6–18 個月", rendered)
+        self.assertIn("已知影響", rendered)
+        self.assertIn("尚待確認", rendered)
+        self.assertNotIn("6–18 個月", rendered)
 
 
 if __name__ == "__main__":
