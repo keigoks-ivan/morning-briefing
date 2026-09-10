@@ -1,9 +1,6 @@
 name: Daily Financial Briefing
 
 on:
-  push:
-    tags:
-      - "run-briefing-*"
   schedule:
     # 22:15 UTC Sun-Fri = 台灣 06:15 週一到週六（週日由週報接手）。
     # 2026-08-17 起 GitHub cron 為主、Render trigger.py 為備援；下方
@@ -31,7 +28,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "${{ inputs.force }}" = "true" ] || [ "${{ github.event_name }}" = "push" ]; then
+          if [ "${{ inputs.force }}" = "true" ]; then
             echo "force=true → skip dedup"
             echo "skip=false" >> "$GITHUB_OUTPUT"
             exit 0
