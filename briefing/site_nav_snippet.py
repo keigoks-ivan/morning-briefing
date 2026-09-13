@@ -42,6 +42,7 @@ _consolidation_system_20260823.md）。
 (/long-track/，原「追蹤總覽」改名)／量化回測／期貨部位計算機／公開資料；市場偵探／
 裁決實績／持倉週掃／實單主系統四個下拉項移除（頁面仍可直達，只是不進系統群選單）。
 三塊已由 canonical full_nav_block('market','brief'/'week'/'earn') 重生為 byte-identical。
+2026-09-13 補：同步 canonical 的「模擬」入口，置於「系統」之後。
 """
 
 # group='market', item='brief'  (daily briefing pages, /briefing/ — 2026-08-17 重新掛回選單)
@@ -84,6 +85,7 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
       <div class="imq-dd active">
         <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
+          <a href="/market/">市況主控台</a>
           <a href="/intel/">情報監視器</a>
           <a href="/briefing/" class="active">每日簡報</a>
           <a href="/rotation/radar.html">資產輪動雷達</a>
@@ -112,6 +114,7 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
           <a href="/data.html">公開資料</a>
         </div>
       </div>
+      <a href="/simulation/">模擬</a>
       <a href="/flow/">投資流程</a>
       <a href="/how-to.html">使用指南</a>
       <a href="/search.html">搜尋</a>
@@ -160,6 +163,7 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
       <div class="imq-dd active">
         <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
+          <a href="/market/">市況主控台</a>
           <a href="/intel/">情報監視器</a>
           <a href="/briefing/">每日簡報</a>
           <a href="/rotation/radar.html">資產輪動雷達</a>
@@ -188,6 +192,7 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
           <a href="/data.html">公開資料</a>
         </div>
       </div>
+      <a href="/simulation/">模擬</a>
       <a href="/flow/">投資流程</a>
       <a href="/how-to.html">使用指南</a>
       <a href="/search.html">搜尋</a>
@@ -236,6 +241,7 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
       <div class="imq-dd active">
         <button type="button" class="imq-dd-btn">市場<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
+          <a href="/market/">市況主控台</a>
           <a href="/intel/">情報監視器</a>
           <a href="/briefing/">每日簡報</a>
           <a href="/rotation/radar.html">資產輪動雷達</a>
@@ -264,6 +270,7 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
           <a href="/data.html">公開資料</a>
         </div>
       </div>
+      <a href="/simulation/">模擬</a>
       <a href="/flow/">投資流程</a>
       <a href="/how-to.html">使用指南</a>
       <a href="/search.html">搜尋</a>
