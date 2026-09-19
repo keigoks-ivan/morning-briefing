@@ -2072,7 +2072,10 @@ def _sanitize_news(data: dict, cutoff_date: str) -> dict:
                 head, _re.I):
                 stats["market_head"] += 1
                 continue
-            for f in ("body", "summary", "why"):
+            # 2026-09-19 首份英文日報實測發現的既有漏洞（中文時期就在）：evidence 與
+            # confirmed_impact 從來沒過行情句過濾，「shares fell as much as 7%」就這樣
+            # 出現在 Evidence 欄。market_move 不列入——那一欄本來就是放漲跌的。
+            for f in ("body", "summary", "why", "evidence", "confirmed_impact"):
                 if f in it:
                     new, cut = _strip_market_sentences(it[f])
                     if cut:

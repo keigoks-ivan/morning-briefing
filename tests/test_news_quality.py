@@ -333,6 +333,39 @@ class AiQualityTests(unittest.TestCase):
         self.assertEqual(item["evidence"], "FinCo closed a $25M Series A on Sept 9.")
         self.assertEqual(item["unknowns"], "Nothing else outstanding in the material.")
 
+    def test_market_move_is_stripped_from_evidence_but_kept_in_market_move(self):
+        """evidence／confirmed_impact 不得夾帶行情句；market_move 那一欄才是放漲跌的。"""
+        base = {
+            "category": "Industry and finance",
+            "industry": "Other",
+            "headline": "Volkswagen cuts full-year profit outlook",
+            "body": "Volkswagen warned full-year profit will take a hit of up to EUR10 billion on weak China operations.",
+            "evidence": "EUR10 billion profit impact disclosed September 18, 2026; shares fell as much as 7%.",
+            "fact_status": "company guidance",
+            "development": "demand",
+            "value_chain": "",
+            "market_move": "",
+            "confirmed_impact": "",
+            "unknowns": "Restructuring detail undisclosed.",
+            "source": "Reuters",
+            "source_date": "2026-09-18",
+        }
+        data = {"industry_developments": [dict(base)]}
+        stats = ai_processor._sanitize_news(data, "2026-09-17")
+        item = data["industry_developments"][0]
+        self.assertNotIn("shares fell", item["evidence"])
+        self.assertIn("EUR10 billion profit impact", item["evidence"])
+        self.assertEqual(stats["market_sent"], 1)
+
+        mover = {**base, "category": "US sector moves",
+                 "evidence": "Guidance cut announced Sept 18.",
+                 "market_move": "Shares fell 7.1% in the regular session."}
+        data = {"industry_developments": [mover]}
+        ai_processor._sanitize_news(data, "2026-09-17")
+        self.assertEqual(len(data["industry_developments"]), 1)
+        self.assertEqual(data["industry_developments"][0]["market_move"],
+                         "Shares fell 7.1% in the regular session.")
+
     def test_stock_mover_fact_requires_exact_move_and_session(self):
         base = {
             "category": "US sector moves",
