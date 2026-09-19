@@ -71,6 +71,30 @@ market 資料 label 也全改英文（SOX／TAIEX／Gold／US 10Y／IWM/SPY／Ba
 
 ---
 
+## 收件人與寄件網域（2026-09-19 未完成）
+
+**現況**：`TO_EMAIL` secret＝`keigoks@gmail.com,jiehperngyu@gmail.com`，但實際只有第一個收得到。
+原因是寄件人仍是 Resend 共用測試寄件人 `onboarding@resend.dev`，該模式只准寄給 Resend 帳號本人。
+2026-09-19 實測 Resend 回 403：`You can only send testing emails to your own email address (keigoks@gmail.com)`。
+`email_sender.send_email()` 偵測到多收件人被退就自動改寄第一位並印出原因，所以日報信不會因此斷掉。
+
+**要讓第二個信箱收到，回到電腦前依序做**：
+
+1. https://resend.com/domains 登入 → Add Domain → 填 **`send.investmquest.com`**
+   - ⚠ 刻意用子網域，不要用根網域。根網域已有 `v=spf1 +a +mx +ip4:85.187.128.56 include:spf.a2hosting.com ~all`
+     與 `MX mail.investmquest.com`；一個網域只能有一筆 SPF，動它有機率讓現有信箱進垃圾信。
+2. Resend 會給一組 DNS 紀錄（SPF TXT／DKIM TXT／回郵 MX）。DNS 在 **A2 Hosting**（ns1–4.a2hosting.com），
+   到 A2 cPanel → **Zone Editor** → `investmquest.com` → 逐筆新增。只新增 `send.` 底下的，別碰既有 SPF／MX。
+3. 回 Resend 按 **Verify**（通常幾分鐘到一小時）。
+4. 設 secret：`gh secret set FROM_EMAIL`，值填 `Morning Briefing <briefing@send.investmquest.com>`。
+   workflow 已經在傳這個變數，程式已經接好，**不用改任何一行碼**。
+5. 下一份日報兩個信箱就會直接收到（不是轉寄）。
+
+**試過但走不通的路**：Gmail 自動轉寄。新增轉寄地址時 Google 擋下來（`An error occurred with the secure
+Google verification`）——那是機器人偵測，不繞。而且就算加成功，確認信要 `jiehperngyu@gmail.com` 本人去點。
+
+---
+
 ## 排程設定
 
 - 日報 GitHub cron（主，2026-08-17 起）：`15 22 * * 0-5`（UTC）= 週一到週六台灣 06:15 → daily_briefing.yml；Render cron 22:15 UTC → trigger.py → workflow_dispatch 保留為備援。workflow 內 `dedup` job 以台灣日期查當日已成功 run，兩者同日只寄一封
