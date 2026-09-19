@@ -62,6 +62,27 @@ def _cli_env() -> dict:
     return env
 
 
+# 2026-09-19：`claude -p` 會讀跑它那台機器的 user／project 設定（~/.claude/CLAUDE.md、
+# output style）。本機試跑時 Haiku 因此用中文作答、語氣也跟著跑掉——日報改英文後這是
+# 會安靜污染輸出的坑。`--restricted` 讓子程序忽略這些設定檔，順便拿掉 Bash 等
+# 執行工具（pipeline 本來就不該給）。舊版 CLI 不認這個旗標，所以偵測一次再決定用不用。
+_RESTRICTED_FLAG: "bool | None" = None
+
+
+def _supports_restricted(cli: str) -> bool:
+    """偵測一次 `--restricted` 是否可用，結果快取。"""
+    global _RESTRICTED_FLAG
+    if _RESTRICTED_FLAG is None:
+        try:
+            out = subprocess.run([cli, "-p", "--help"], capture_output=True, text=True, timeout=30)
+            _RESTRICTED_FLAG = "--restricted" in (out.stdout or "") + (out.stderr or "")
+        except Exception:
+            _RESTRICTED_FLAG = False
+        if not _RESTRICTED_FLAG:
+            print("  ⚠ claude CLI 不支援 --restricted，子程序會沿用本機設定")
+    return _RESTRICTED_FLAG
+
+
 def _call_claude_code(system_prompt: str, user_prompt: str, label: str,
                       thinking_tokens: int = 0) -> dict:
     """用 Claude Code CLI 跑一次 prompt，回傳解析好的 JSON dict。
@@ -98,6 +119,8 @@ def _call_claude_code(system_prompt: str, user_prompt: str, label: str,
             "--system-prompt", system_prompt + "\n" + guard,
             "--allowed-tools", "",
         ]
+        if _supports_restricted(cli):
+            cmd.insert(2, "--restricted")
         print(f"  → [{label} / Claude Code] Calling {CLAUDE_CODE_MODEL} "
               f"(Max 訂閱, thinking={thinking_tokens}, attempt {attempt}/{max_attempts})...")
         try:

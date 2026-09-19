@@ -100,6 +100,11 @@ jobs:
           # PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
           RESEND_API_KEY:    ${{ secrets.RESEND_API_KEY }}
           TO_EMAIL:          ${{ secrets.TO_EMAIL }}
+          # 選填。沒設就用 Resend 共用測試寄件人 onboarding@resend.dev，該模式只准寄給
+          # Resend 帳號本人；多收件人會被擋，email_sender 會自動退回只寄第一位。
+          # 在 Resend 驗證 investmquest.com 後把這個 secret 設成 briefing@investmquest.com，
+          # 兩個信箱就會直接收到。
+          FROM_EMAIL:        ${{ secrets.FROM_EMAIL }}
         run: |
           cd briefing
           python main.py

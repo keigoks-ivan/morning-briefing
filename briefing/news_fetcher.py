@@ -42,11 +42,12 @@ NEWS_SEARCH_MODEL = os.environ.get("NEWS_SEARCH_MODEL", "haiku")
 NEWS_SEARCH_TIMEOUT = int(os.environ.get("NEWS_SEARCH_TIMEOUT", "240"))
 
 _SEARCH_GUARD = """
-【執行環境】你在無人值守的自動化 pipeline 裡，沒有人會回覆你。
-- 先用 WebSearch 工具搜尋（可搜多次），再用英文直接作答，不要反問、不要提出選項。
-- 答案要含具體數字、日期、來源媒體名稱。
-- 最後一行起輸出 `SOURCES:`，之後每行一個你實際引用的網址（最多 5 個）。找不到就寫 `SOURCES: none`。
-- 除了答案與 SOURCES 區塊，不要輸出其他東西。
+[EXECUTION ENVIRONMENT] You are inside an unattended automated pipeline. Nobody will reply to you.
+- Search with the WebSearch tool first (several times if needed), then answer directly. Never ask a question, never offer options.
+- Answer in English only. No Chinese characters anywhere in the output, whatever language the sources are in.
+- Include concrete numbers, dates and the name of the outlet.
+- End with a line starting `SOURCES:`, then one URL per line for what you actually cited (at most 5). Write `SOURCES: none` if there are none.
+- Output nothing besides the answer and the SOURCES block.
 """
 
 
@@ -56,15 +57,39 @@ def _claude_code_available() -> bool:
     )
 
 
+# 2026-09-19：`claude -p` 會讀跑它那台機器的 user／project 設定（~/.claude/CLAUDE.md、
+# output style）。本機試跑時 Haiku 因此用中文作答、語氣也跟著跑掉——日報改英文後這是
+# 會安靜污染輸出的坑。`--restricted` 讓子程序忽略這些設定檔，順便拿掉 Bash 等
+# 執行工具（pipeline 本來就不該給）。舊版 CLI 不認這個旗標，所以偵測一次再決定用不用。
+_RESTRICTED_FLAG: "bool | None" = None
+
+
+def _supports_restricted(cli: str) -> bool:
+    """偵測一次 `--restricted` 是否可用，結果快取。"""
+    global _RESTRICTED_FLAG
+    if _RESTRICTED_FLAG is None:
+        try:
+            out = subprocess.run([cli, "-p", "--help"], capture_output=True, text=True, timeout=30)
+            _RESTRICTED_FLAG = "--restricted" in (out.stdout or "") + (out.stderr or "")
+        except Exception:
+            _RESTRICTED_FLAG = False
+        if not _RESTRICTED_FLAG:
+            print("  ⚠ claude CLI 不支援 --restricted，子程序會沿用本機設定")
+    return _RESTRICTED_FLAG
+
+
 def _claude_search(system_content: str, user_content: str, label: str) -> dict:
     """Claude Code headless + WebSearch。回 {"answer", "sources"}；失敗 raise。"""
+    cli = shutil.which("claude")
     cmd = [
-        shutil.which("claude"), "-p",
+        cli, "-p",
         "--output-format", "json",
         "--model", NEWS_SEARCH_MODEL,
         "--system-prompt", system_content + "\n" + _SEARCH_GUARD,
         "--allowed-tools", "WebSearch",
     ]
+    if _supports_restricted(cli):
+        cmd.insert(2, "--restricted")
     env = dict(os.environ)
     # 同 ai_processor._cli_env：拿掉 API key，否則 CLI 會優先走 API 計費而非月租
     for k in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL"):
