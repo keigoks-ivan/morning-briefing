@@ -471,12 +471,35 @@ GEMINI_USER_PROMPT_TEMPLATE = """
 
   "startup_news": [
     {{{{
-      "headline": "標題（35字以內）",
-      "summary": "1–2句",
+      "headline": "標題（35字以內，寫公司做什麼、不是只寫「某某完成募資」）",
+      "summary": "2句：這家做什麼、這筆錢／這件事要拿去幹嘛",
+      "deal": {{{{
+        "stage": "種子輪|A輪|B輪|C輪|D輪以後|成長輪|IPO申請|併購|基金募集|裁撤|其他；非募資事件寫「其他」",
+        "amount": "金額（含幣別，例 $120M；未揭露寫「未揭露」）",
+        "valuation": "投後估值（未揭露寫「未揭露」）",
+        "investors": "領投＋主要跟投（未揭露寫「未揭露」）",
+        "hq": "總部所在地（城市＋國家）"
+      }}}},
+      "why": "為什麼這件事值得一個二級市場投資人花 10 秒（1句：對誰的既有業務構成威脅／驗證了哪個需求／哪個上市公司是買家或對手）",
       "tag": "分類標籤",
       "tag_type": "defense|ai|health|fintech|other",
       "accent": "defense|ai_gov|health|fintech|cyber|other",
       "source": "來源媒體",
+      "source_date": "YYYY-MM-DD",
+      "importance": "high|medium"
+    }}}}
+  ],
+
+  "frontier_tech": [
+    {{{{
+      "headline": "標題（35字以內，直接寫成果本身）",
+      "field": "領域中文名（例：量子運算、核融合、人形機器人、腦機介面、太空、新型運算、電池與材料、合成生物）",
+      "field_type": "quantum|robotics|space|energy|biotech|compute|materials|other",
+      "who": "做出這件事的機構／公司（具名）",
+      "body": "2–3句：具體做出什麼，一定要有數字（qubit 數、能量增益、良率、產量、精度、發射次數…）",
+      "stage": "實驗室結果|原型|試點|小量商用|大量商用|募資",
+      "why": "為什麼值得追蹤（1句：它卡住的是什麼、突破後誰會受影響；不得下投資建議、不得預測股價）",
+      "source": "白名單來源媒體",
       "source_date": "YYYY-MM-DD",
       "importance": "high|medium"
     }}}}
@@ -536,7 +559,8 @@ GEMINI_USER_PROMPT_TEMPLATE = """
 - regional_tech：每個地區最多 3 條，**沒有當日素材的地區留 []**（不要硬寫）
 - fintech_crypto：最多 4 條
 - geopolitical：最多 4 條
-- startup_news：最多 4 條
+- startup_news：素材充足時目標 6–8 條、最多 8 條（未上市公司本身的事件；已上市公司的併購案只有在買的是新創時才算）
+- frontier_tech：素材充足時目標 3–5 條、最多 5 條；領域盡量不重複，至少涵蓋 3 個不同 field
 - world_news：最多 3 條（不得與 top_stories／geopolitical 重複）
 - watchlist_news：最多 8 條（關注清單公司本身的事件；沒有就 []）
 - weekend_reads：最多 3 條（只從標「週刊／評論類」或明顯是深度長文的素材挑；一般快訊不算；link 只能抄素材裡的網址）
@@ -1505,7 +1529,7 @@ from datetime import datetime as _dt, timedelta as _td
 
 _NEWS_PRIMARY_BLOCKS = [
     "top_stories", "industry_developments", "macro", "geopolitical", "world_news", "ai_industry",
-    "fintech_crypto", "startup_news",
+    "fintech_crypto", "startup_news", "frontier_tech",
 ]
 _NEWS_LIST_BLOCKS = _NEWS_PRIMARY_BLOCKS + ["tech_trends", "daily_deep_dive"]
 
@@ -1890,7 +1914,7 @@ def _sanitize_news(data: dict, cutoff_date: str) -> dict:
             if _MARKET_SENT_RE.search(head) and not _re.search(r"合約價|報價|營收|出口|訂單|出貨|價格", head):
                 stats["market_head"] += 1
                 continue
-            for f in ("body", "summary"):
+            for f in ("body", "summary", "why"):
                 if f in it:
                     new, cut = _strip_market_sentences(it[f])
                     if cut:
@@ -1901,7 +1925,7 @@ def _sanitize_news(data: dict, cutoff_date: str) -> dict:
 
     for key in _NEWS_LIST_BLOCKS + ["smart_money", "watchlist_news", "weekend_reads"]:
         if isinstance(data.get(key), list):
-            data[key] = _clean_list(data[key], check_date=key not in ("tech_trends", "daily_deep_dive", "weekend_reads"))
+            data[key] = _clean_list(data[key], check_date=key not in ("tech_trends", "daily_deep_dive", "weekend_reads", "frontier_tech"))
 
     # 分類事實新聞不只信 prompt：類別、事實欄位、狀態與類別上限都做硬驗證。
     industry_kept = []
@@ -2113,7 +2137,7 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
 
     # Gemini 新聞區塊
     for key in ["top_stories", "industry_developments", "watchlist_news", "weekend_reads", "macro", "ai_industry", "regional_tech",
-                "fintech_crypto", "geopolitical", "world_news", "startup_news",
+                "fintech_crypto", "geopolitical", "world_news", "startup_news", "frontier_tech",
                 "us_market_recap", "earnings_preview", "today_events", "fun_fact"]:
         if key in gemini_data:
             data[key] = gemini_data[key]
@@ -2161,6 +2185,8 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
             "macro": len(data.get("macro", [])),
             "ai_industry": len(data.get("ai_industry", [])),
             "tech_trends": len(data.get("tech_trends", [])),
+            "startup_news": len(data.get("startup_news", [])),
+            "frontier_tech": len(data.get("frontier_tech", [])),
         },
         "fact_category_counts": {
             category: sum(
@@ -2178,7 +2204,9 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
           f"industry={len(data.get('industry_developments',[]))}, "
           f"macro={len(data.get('macro',[]))}, "
           f"ai={len(data.get('ai_industry',[]))}, "
-          f"tech={len(data.get('tech_trends',[]))}")
+          f"tech={len(data.get('tech_trends',[]))}, "
+          f"startup={len(data.get('startup_news',[]))}, "
+          f"frontier={len(data.get('frontier_tech',[]))}")
 
     return data
 
@@ -2198,6 +2226,9 @@ def _validate(data: dict) -> None:
     data["world_news"] = data["world_news"][:3]
     data.setdefault("tech_trends", [])
     data.setdefault("startup_news", [])
+    data["startup_news"] = data["startup_news"][:8]
+    data.setdefault("frontier_tech", [])
+    data["frontier_tech"] = data["frontier_tech"][:5]
     data.setdefault("earnings_preview", [])
     data["implied_trends"] = []  # 已停用，強制清空
     data.setdefault("us_market_recap", {"has_events": False, "earnings": [], "other_events": [], "summary": ""})

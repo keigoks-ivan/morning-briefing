@@ -63,6 +63,32 @@ STARTUP_TAG_STYLE = {
     "other":   "background:#EBF2FA;color:#185FA5;",
 }
 
+FRONTIER_ACCENT = {
+    "quantum": "#534AB7", "robotics": "#1D9E75", "space": "#185FA5",
+    "energy":  "#854F0B", "biotech":  "#D4537E", "compute": "#378ADD",
+    "materials": "#BA7517", "other": "#888780",
+}
+
+FRONTIER_TAG_STYLE = {
+    "quantum":   "background:#F0EDF8;color:#534AB7;",
+    "robotics":  "background:#E1F5EE;color:#0F6E56;",
+    "space":     "background:#EBF2FA;color:#185FA5;",
+    "energy":    "background:#FAF0DA;color:#854F0B;",
+    "biotech":   "background:#FBEAF0;color:#993556;",
+    "compute":   "background:#EBF2FA;color:#185FA5;",
+    "materials": "background:#FAF0DA;color:#854F0B;",
+    "other":     "background:#EBF2FA;color:#185FA5;",
+}
+
+STAGE_STYLE = {
+    "實驗室結果": "background:#e8e8e8;color:#555;",
+    "原型":      "background:#FAF0DA;color:#854F0B;",
+    "試點":      "background:#EBF2FA;color:#185FA5;",
+    "小量商用":   "background:#E1F5EE;color:#0F6E56;",
+    "大量商用":   "background:#EAF3DE;color:#3B6D11;",
+    "募資":      "background:#F0EDF8;color:#534AB7;",
+}
+
 REGION_LABEL = {
     "taiwan": "🇹🇼 台灣", "japan": "🇯🇵 日本",
     "us": "🇺🇸 美國", "asean": "🌏 東南亞", "malaysia": "🇲🇾 馬來西亞",
@@ -1422,6 +1448,32 @@ def _tech_trends(trends: list) -> str:
 </div>'''
 
 
+def _deal_line(deal: dict) -> str:
+    """新創募資明細：只印有值的欄位，「未揭露」的估值／投資人不佔版面。"""
+    if not isinstance(deal, dict):
+        return ""
+    fields = [("輪次", deal.get("stage", "")), ("金額", deal.get("amount", "")),
+              ("估值", deal.get("valuation", "")), ("投資人", deal.get("investors", "")),
+              ("總部", deal.get("hq", ""))]
+    parts = []
+    for label, value in fields:
+        value = str(value or "").strip()
+        if not value or (value == "未揭露" and label in ("估值", "投資人")):
+            continue
+        parts.append(f'''<span style="color:#888;">{label}</span> <span style="color:#333;font-weight:500;">{value}</span>''')
+    if not parts:
+        return ""
+    inner = '<span style="color:#ddd;margin:0 8px;">|</span>'.join(parts)
+    return f'''<div style="font-size:13px;line-height:1.7;margin-top:6px;padding:6px 10px;background:#FAFAFA;border-radius:4px;">{inner}</div>'''
+
+
+def _why_line(text: str, label: str = "為什麼重要") -> str:
+    if not text:
+        return ""
+    return f'''<div style="font-size:14px;color:#555;line-height:1.6;margin-top:6px;">
+  <span style="color:#888;font-weight:500;">{label}｜</span>{text}</div>'''
+
+
 def _startup_news(startups: list) -> str:
     if not startups:
         return ""
@@ -1440,12 +1492,55 @@ def _startup_news(startups: list) -> str:
       <span style="font-size:12px;font-weight:500;padding:2px 7px;border-radius:3px;white-space:nowrap;{ts}">{s.get("tag","")}</span>
     </div>
     <div style="font-size:15px;color:#555;line-height:1.6;">{s.get("summary","")}</div>
+    {_deal_line(s.get("deal", {}))}
+    {_why_line(s.get("why",""), "為什麼看它")}
     {source_html}
   </div>
 </div>'''
     return f'''
 <div class="section">
   <div class="section-label">新創產業發展</div>{items}
+</div>'''
+
+
+def _frontier_tech(items_data: list) -> str:
+    """技術前緣：量子／機器人／太空／能源／生技等尚未進入財報的技術進展。"""
+    if not items_data:
+        return ""
+    items = ""
+    for t in items_data:
+        ftype = t.get("field_type", "other")
+        accent = FRONTIER_ACCENT.get(ftype, FRONTIER_ACCENT["other"])
+        ts = FRONTIER_TAG_STYLE.get(ftype, FRONTIER_TAG_STYLE["other"])
+        badge = _importance_badge(t.get("importance", "medium"))
+        stage = str(t.get("stage", "") or "")
+        stage_html = ""
+        if stage:
+            stage_html = f'''<span style="font-size:12px;font-weight:500;padding:2px 8px;border-radius:3px;
+                   {STAGE_STYLE.get(stage, "background:#e8e8e8;color:#555;")}">{stage}</span>'''
+        who = str(t.get("who", "") or "")
+        who_html = f'''<span style="font-size:13px;color:#666;font-weight:500;">{who}</span>''' if who else ""
+        meta = ""
+        if who_html or stage_html:
+            meta = f'''<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">{who_html}{stage_html}</div>'''
+        source_html = _source_line(t.get("source", ""), t.get("source_date", ""))
+        items += f'''
+<div style="display:grid;grid-template-columns:3px 1fr;gap:12px;padding:12px 0;border-bottom:0.5px solid #f0f0f0;">
+  <div style="background:{accent};border-radius:2px;"></div>
+  <div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px;">
+      <div style="font-size:16px;font-weight:500;color:#222;line-height:1.45;flex:1;">{t.get("headline","")}{badge}</div>
+      <span style="font-size:12px;font-weight:500;padding:2px 7px;border-radius:3px;white-space:nowrap;{ts}">{t.get("field","")}</span>
+    </div>
+    {meta}
+    <div style="font-size:15px;color:#555;line-height:1.7;">{t.get("body","")}</div>
+    {_why_line(t.get("why",""))}
+    {source_html}
+  </div>
+</div>'''
+    return f'''
+<div class="section">
+  <div class="section-label">技術前緣</div>{items}
 </div>'''
 
 
@@ -2468,8 +2563,9 @@ def build_trends_html(data: dict) -> str:
     """新創・趨勢"""
     date = data.get("date", "")
     content = _tech_trends(data.get("tech_trends", []))
-    content += _weekend_reads_section(data.get("weekend_reads", []))
+    content += _frontier_tech(data.get("frontier_tech", []))
     content += _startup_news(data.get("startup_news", []))
+    content += _weekend_reads_section(data.get("weekend_reads", []))
     content += _smart_money(data.get("smart_money", {}))
     return _page_wrapper("trends", date, content, "新創・趨勢")
 
@@ -3167,8 +3263,9 @@ def build_html(data: dict, screener_result: dict = None) -> str:
 {_fintech_crypto_section(data.get("fintech_crypto",[]))}
 {_status_grid(data.get("system_status", {}))}
 {_tech_trends(data.get("tech_trends",[]))}
-{_weekend_reads_section(data.get("weekend_reads",[]))}
+{_frontier_tech(data.get("frontier_tech",[]))}
 {_startup_news(data.get("startup_news",[]))}
+{_weekend_reads_section(data.get("weekend_reads",[]))}
 {_smart_money(data.get("smart_money", {}))}
 {_earnings_preview(data.get("earnings_preview",[]))}
 {_earnings_deep_analysis(data.get("earnings_deep_analysis", {}))}

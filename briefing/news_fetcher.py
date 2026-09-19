@@ -164,8 +164,13 @@ PERPLEXITY_QUERIES = [
     "Healthcare, biotech, pharma and medtech industry developments in the past 24 hours: FDA decisions, clinical trial readouts, AI drug discovery, hospital deployments, reimbursement, major licensing deals and manufacturing capacity. Sources: Reuters Bloomberg Financial Times STAT News Endpoints News Fierce Biotech CNBC Nature FDA",
     "Enterprise software, cybersecurity and industrial AI developments in the past 24 hours: named agent/copilot deployments, disclosed AI revenue or seat counts, cloud migrations, major security incidents, platform pricing and enterprise contracts. Sources: Reuters Bloomberg Financial Times The Information TechCrunch Wired Ars Technica CNBC",
     "Industrial automation, robotics, autonomous systems and aerospace or defense developments in the past 24 hours: named orders, production ramps, factory automation, defense procurement and supply-chain capacity. Sources: Reuters Bloomberg Financial Times WSJ CNBC Axios",
-    # 新創／機構
+    # 新創／創投
     "Largest startup funding rounds, IPO filings, and defense-tech / robotics investments announced in the past 24 hours, with amounts and lead investors. Sources: TechCrunch Bloomberg Reuters Crunchbase The Information Axios",
+    "Startup financing detail in the past 24-48 hours: name the company, round stage (seed/Series A-E/growth), exact amount raised, post-money valuation if disclosed, lead and participating investors, and what the money is for. Cover the US, Europe and Asia. Sources: TechCrunch Crunchbase The Information Bloomberg Reuters Sifted Tech in Asia Axios",
+    "Startup ecosystem structural news in the past 48 hours: notable founder departures, down rounds, shutdowns, acquisitions of venture-backed companies, new VC fund closes with fund size, corporate venture arms, and accelerator or sovereign-fund programmes. Sources: TechCrunch Crunchbase The Information Bloomberg Reuters Sifted Axios Financial Times",
+    # 技術前緣（尚未進財報的技術）
+    "Frontier technology milestones in the past 72 hours outside mainstream semiconductors: quantum computing (qubit counts, error correction, commercial installs), nuclear fusion and advanced nuclear, humanoid and field robotics, brain-computer interfaces, space launch and satellite constellations, novel compute (photonics, neuromorphic, analog), advanced batteries and materials, synthetic biology and gene editing. For each: the named organisation, the specific technical milestone with numbers, and the stage (lab result, prototype, pilot, commercial). Sources: IEEE Spectrum MIT Technology Review Nature Science Quanta Magazine New Scientist SpaceNews The Quantum Insider Reuters Bloomberg Financial Times Ars Technica Wired",
+    "Peer-reviewed research and national-lab results published in the past 72 hours with a plausible commercial path within five years: name the institution, the result with numbers, and what has to be true for it to scale. Exclude speculation and press releases without data. Sources: Nature Science IEEE Spectrum MIT Technology Review Quanta Magazine New Scientist Reuters",
     "US sector and large-cap stock movers in the latest completed session: only moves tied by the source to a named factual catalyst such as earnings, guidance, orders, regulation, M&A or management change; include exact move percentage and session timing, exclude technical-analysis explanations. Sources: Bloomberg Reuters CNBC WSJ Barron's Financial Times",
     # 財報
     "US companies reporting earnings today (next US session) before open or after close: names, tickers, EPS and revenue consensus. Sources: Bloomberg Reuters CNBC WSJ Earnings Whispers",
@@ -1213,10 +1218,32 @@ RSS_FEEDS = [
     # Fintech／加密
     ("CoinDesk",        "https://www.coindesk.com/arc/outboundfeeds/rss/", 8, 24),
     ("The Block",       "https://www.theblock.co/rss.xml", 6, 24),
+    # 新創／創投（2026-09-19 新增：原本只有 TechCrunch 主 feed，新創素材長期不足）
+    ("TechCrunch Venture",  "https://techcrunch.com/category/venture/feed/", 8, 24),
+    ("TechCrunch Startups", "https://techcrunch.com/category/startups/feed/", 8, 24),
+    ("Crunchbase News",     "https://news.crunchbase.com/feed/", 8, 72),
+    ("Sifted",              "https://sifted.eu/feed", 6, 48),
+    ("Tech in Asia (GN)",   _GN.format(q="site:techinasia.com+when:2d"), 5, 48),
+    ("Wired 商業科技",       "https://www.wired.com/feed/category/business/latest/rss", 5, 48),
+    ("Startup Funding (GN)", _GN.format(q="(%22Series+A%22+OR+%22Series+B%22+OR+%22Series+C%22+OR+%22seed+round%22+OR+%22funding+round%22+OR+%22raises%22)+when:1d+(site:techcrunch.com+OR+site:crunchbase.com+OR+site:theinformation.com+OR+site:sifted.eu+OR+site:axios.com+OR+site:reuters.com+OR+site:bloomberg.com)"), 10, 24),
+    # 技術前緣（2026-09-19 新增：量子／機器人／太空／能源／新運算／合成生物）
+    ("IEEE Spectrum",       "https://spectrum.ieee.org/feeds/feed.rss", 6, 72),
+    ("IEEE Robotics",       "https://spectrum.ieee.org/feeds/topic/robotics.rss", 5, 72),
+    ("MIT Tech Review",     "https://www.technologyreview.com/feed/", 6, 72),
+    ("Quanta Magazine",     "https://api.quantamagazine.org/feed/", 4, 168),
+    ("Nature 新聞",          "https://www.nature.com/nature.rss", 6, 72),
+    ("Science 新聞",         "https://www.science.org/rss/news_current.xml", 6, 72),
+    ("New Scientist",       "https://www.newscientist.com/feed/home/", 5, 72),
+    ("SpaceNews",           "https://spacenews.com/feed/", 5, 48),
+    ("The Quantum Insider", "https://thequantuminsider.com/feed/", 5, 72),
+    ("Ars Science",         "https://feeds.arstechnica.com/arstechnica/science", 5, 48),
+    ("Frontier Tech (GN)",  _GN.format(q="(%22quantum+computing%22+OR+%22nuclear+fusion%22+OR+%22humanoid+robot%22+OR+%22brain-computer%22+OR+%22solid-state+battery%22+OR+%22gene+editing%22+OR+%22photonic+chip%22)+when:2d+(site:reuters.com+OR+site:bloomberg.com+OR+site:ft.com+OR+site:spectrum.ieee.org+OR+site:technologyreview.com+OR+site:nature.com+OR+site:science.org+OR+site:arstechnica.com)"), 8, 48),
 ]
-RSS_TOTAL_CAP = 310
+RSS_TOTAL_CAP = 400
 _LONGFORM_FEEDS = {"Financial Times", "FT Markets", "FT Tech", "FT Asia", "The Economist (GN)",
-                   "The Information", "SemiAnalysis", "Ars Technica"}
+                   "The Information", "SemiAnalysis", "Ars Technica",
+                   "IEEE Spectrum", "MIT Tech Review", "Quanta Magazine", "Nature 新聞",
+                   "Science 新聞", "New Scientist"}
 _RSS_NOISE = re.compile(r"開獎|中獎號碼|彩券|統一發票|訃聞|Podcast|podcast|The Download:|Crossword|Newsletter")
 _LAST_RSS_QUALITY: dict = {}
 
@@ -1264,6 +1291,11 @@ def _feed_topics(label: str, source: str) -> list[str]:
         topics.add("regional_europe")
     if any(term in folded for term in ("coindesk", "the block")):
         topics.add("fintech_crypto")
+    if any(term in folded for term in ("venture", "startup", "crunchbase", "sifted", "tech in asia", "funding")):
+        topics.add("startup")
+    if any(term in folded for term in ("spectrum", "quanta", "new scientist", "spacenews", "quantum",
+                                       "nature", "science 新聞", "ars science", "frontier", "mit tech")):
+        topics.add("frontier")
     if any(term in folded for term in ("politico", "央行", "economist")):
         topics.update(("macro", "geopolitics"))
     if any(term in folded for term in ("financial times", "ft ", "cnbc", "reuters", "bloomberg", "moneydj", "工商", "中央社")):

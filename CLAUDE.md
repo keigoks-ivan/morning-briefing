@@ -62,6 +62,12 @@
 - 後處理（ai_processor.py，`process_news` 內、`_validate` 前）：`_sanitize_news()` 會再次硬驗證 canonical 白名單、移除過期與行情句；`_dedup_news()` 以日期＋實體＋事件動作＋數字判斷事件。核心要聞是主卡，重複的關注清單內容併為「對關注股的影響」，深度內容標為「延伸深挖」並移除重複現況段。品質統計寫入 `news_quality_latest.json`。
 - **關注清單新聞 `watchlist_news`（2026-08-17 晚新增）**：來源＝DD Screener universe `research.investmquest.com/dd-screener/latest.json`（`fetch_dd_watchlist()`，約 250 檔，含 moat_grade／pass_count）。`tag_watchlist()` 在 RSS 條目標 `★關注[ticker]`（公司名／別名不分大小寫，裸 ticker 只認全大寫，避免 APP→App 誤標；別名表 `_TICKER_ALIASES`）。prompt 用 `_watchlist_block()` 分兩組：**優先組＝S 級全部＋A 級 pass_count≥3**（約 60 檔）、其他組只有重大事件（財報／指引、重大訂單、併購、監管、CEO、產品線）才收；只寫公司自身事件、每家一條、上限 8、嚴禁行情句。渲染 `_watchlist_news_section`（news 頁核心要聞之後、email 同位置）。
 - **分類事實新聞 `industry_developments`（2026-09-10 調整）**：分為美股財報、科技與半導體產業鏈、AI 產業應用、全球新創、美股類股與波動個股、全球多產業與財經六類；六類都掃描，素材充足時整區目標 12–16 條、每類最多 4 條、整區最多 18 條，AI 應用有料時優先保留 3–4 條。每條以 `evidence`／`fact_status`／`unknowns` 呈現已確認事實；同義事實狀態會正規化，缺少重複的 evidence／unknowns 欄位時可從有事實錨點的 body 安全補值，不再整條誤刪。`confirmed_impact` 最多一個來源支持的直接影響句；不得用預測、投資建議或舊聞湊數。與核心要聞及其他新聞區塊去重，渲染在 news 頁與 email 的核心要聞之後。
+- **新創與技術前緣（2026-09-19 擴充，起因＝持有人指出日報過度偏二級市場與金融）**：
+  - 素材端加 18 個 RSS feed（新創／創投：TechCrunch Venture・TechCrunch Startups・Crunchbase News・Sifted・Tech in Asia (GN)・Wired 商業科技・Startup Funding (GN)；技術前緣：IEEE Spectrum・IEEE Robotics・MIT Tech Review・Quanta Magazine・Nature 新聞・Science 新聞・New Scientist・SpaceNews・The Quantum Insider・Ars Science・Frontier Tech (GN)），`RSS_TOTAL_CAP` 310→400。
+  - `PERPLEXITY_QUERIES` 18→22：新創融資細節（輪次／金額／估值／投資人）、新創生態結構（down round・關門・併購・新基金）、技術前緣里程碑（量子・核融合・機器人・腦機・太空・新型運算・電池材料・合成生物）、可商轉的同儕審查研究。
+  - `startup_news` 上限 4→8，每條多 `deal`（stage／amount／valuation／investors／hq）與 `why`；渲染 `_deal_line()`，「未揭露」的估值與投資人不佔版面。
+  - **新區塊 `frontier_tech`（技術前緣）**：走新聞模型（不是分析模型），欄位 field／field_type／who／body／stage／why，最多 5 條、至少涵蓋 3 個不同 field。渲染 `_frontier_tech()`（trends 頁 tech_trends 之後、email 同位置）。因為前緣研究本來就慢，`_sanitize_news` 對它**不做**過期過濾（同 tech_trends），時間窗由 prompt 的 72 小時規則控制。
+  - source_registry 新增 Sifted／Tech in Asia／IEEE Spectrum／Quanta Magazine／New Scientist／SpaceNews／The Quantum Insider（新 group「前緣科技」），並給既有的 Wired／Ars Technica／MIT Tech Review／Nature／Science 補上 `frontier` topic。
 - **本週值得讀 `weekend_reads`（同日新增）**：從 The Economist／FT 等 `weekly`／`longform` feed 挑最多 3 篇長文，欄位 title／source／source_date／why／link；sanitize 不做過期過濾。渲染 `_weekend_reads_section`（trends 頁 tech_trends 之後、email 同位置）。
 - 想加 RSS：先在 `source_registry.py` 加 canonical 名稱、別名、網域與 topics，再在 `RSS_FEEDS` 加一行 tuple；`GEMINI_SYSTEM_PROMPT` 的白名單會由 registry 自動產生。
 
@@ -175,7 +181,7 @@ trigger.py → Render Cron → GitHub API
 5._sentiment_analysis 6._market_pulse 7._daily_deep_dive
 8.top_stories 8b._watchlist_news_section（關注清單動態） 9.world_news 10.us_market_recap 11.macro
 12.geopolitical 13.ai_industry 14.regional_tech 15.fintech_crypto
-16.system_status 17.tech_trends 17b._weekend_reads_section（本週值得讀） 18.startup_news 19.smart_money
+16.system_status 17.tech_trends 17b._frontier_tech（技術前緣） 18.startup_news 18b._weekend_reads_section（本週值得讀） 19.smart_money
 20.earnings_preview 21.implied_trends 22.fun_fact 23.today_events 24.footer
 
 ---
@@ -183,7 +189,7 @@ trigger.py → Render Cron → GitHub API
 ## 日報去重順序（最高優先級）
 
 top_stories → macro → geopolitical → world_news → ai_industry →
-regional_tech → fintech_crypto → startup_news；watchlist_news 與
+regional_tech → fintech_crypto → startup_news → frontier_tech；watchlist_news 與
 daily_deep_dive 若命中同事件則分別併為影響註記與延伸深挖，不另建主卡。
 
 ---

@@ -111,10 +111,14 @@ class RssQualityTests(unittest.TestCase):
         self.assertTrue(all(args[4] == "deep-fixed" for args in calls))
         self.assertEqual(result["dynamic"], [])
 
-    def test_base_search_keeps_eighteen_broad_queries(self):
+    def test_base_search_keeps_twenty_two_broad_queries(self):
         queries = news_fetcher.PERPLEXITY_QUERIES
-        self.assertEqual(len(queries), 18)
+        self.assertEqual(len(queries), 22)
         combined = " ".join(queries).casefold()
+        self.assertIn("startup financing detail", combined)
+        self.assertIn("startup ecosystem structural news", combined)
+        self.assertIn("frontier technology milestones", combined)
+        self.assertIn("peer-reviewed research", combined)
         self.assertIn("credit and liquidity", combined)
         self.assertIn("global trade, shipping", combined)
         self.assertIn("healthcare", combined)
