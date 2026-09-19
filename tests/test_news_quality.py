@@ -51,7 +51,7 @@ from source_registry import (
 class SourceRegistryTests(unittest.TestCase):
     def test_aliases_and_domains_are_canonicalized(self):
         self.assertEqual(canonicalize_source("Reuters (GN)"), "Reuters")
-        self.assertEqual(canonicalize_source("Focus Taiwan"), "中央社")
+        self.assertEqual(canonicalize_source("Focus Taiwan"), "CNA")
         self.assertEqual(canonicalize_source("", "https://www.reuters.com/world/story"), "Reuters")
         self.assertEqual(
             canonicalize_source("Reuters", "https://news.google.com/rss/articles/abc"),
@@ -162,7 +162,7 @@ class RssQualityTests(unittest.TestCase):
                 ("中央社 財經", "https://feeds.feedburner.com/rsscna/finance", 5, 24)
             )
         self.assertEqual(blocked, 0)
-        self.assertEqual(items[0]["source"], "中央社")
+        self.assertEqual(items[0]["source"], "CNA")
 
     def test_search_citation_urls_are_hard_filtered(self):
         result = {
@@ -211,24 +211,24 @@ class AiQualityTests(unittest.TestCase):
         prompt = ai_processor.GEMINI_SYSTEM_PROMPT + ai_processor.GEMINI_USER_PROMPT_TEMPLATE
         self.assertIn("industry_developments", prompt)
         for category in (
-            "美股財報", "科技與半導體產業鏈", "AI產業應用", "全球新創",
-            "美股類股與波動個股", "全球多產業與財經",
+            "US earnings", "Semis and supply chain", "AI in production",
+            "Global startups", "US sector moves", "Industry and finance",
         ):
             self.assertIn(category, prompt)
         self.assertIn('"evidence"', prompt)
         self.assertIn('"fact_status"', prompt)
         self.assertIn('"confirmed_impact"', prompt)
         self.assertIn('"unknowns"', prompt)
-        self.assertIn("目標 12–16 條、最多 18 條", prompt)
+        self.assertIn("Target 12-16 across the block, maximum 18", prompt)
         analysis_prompt = ai_processor.CLAUDE_USER_PROMPT_TEMPLATE
-        self.assertIn("tech_trends 素材充足時 3–4 條、最多 4 條", analysis_prompt)
-        self.assertIn("daily_deep_dive 最多 1 個主題", analysis_prompt)
+        self.assertIn("tech_trends: 3-4 entries when the material supports it, maximum 4", analysis_prompt)
+        self.assertIn("daily_deep_dive: at most 1 theme", analysis_prompt)
         rendered = ai_processor.GEMINI_USER_PROMPT_TEMPLATE.format(
             today="2026-09-09",
             cutoff_date="2026-09-08",
             last_session="2026-09-08",
             watchlist_count=0,
-            watchlist_block="（無）",
+            watchlist_block="(none)",
             news_text="material",
             earnings_context="",
         )
@@ -237,8 +237,8 @@ class AiQualityTests(unittest.TestCase):
     def test_sanitize_enforces_allowlist(self):
         data = {
             "top_stories": [
-                {"headline": "合法", "body": "事件內容", "source": "路透社", "source_date": "2026-09-09"},
-                {"headline": "不合法", "body": "事件內容", "source": "Random Blog", "source_date": "2026-09-09"},
+                {"headline": "Allowed", "body": "Event body", "source": "Reuters", "source_date": "2026-09-09"},
+                {"headline": "Blocked", "body": "Event body", "source": "Random Blog", "source_date": "2026-09-09"},
             ]
         }
         stats = ai_processor._sanitize_news(data, "2026-09-08")
@@ -260,27 +260,30 @@ class AiQualityTests(unittest.TestCase):
         self.assertEqual(stats["invalid_source"], 1)
 
     def test_fact_news_requires_complete_fields_and_caps_each_category(self):
-        def fact_item(headline, industry="半導體", evidence="TSMC於9月9日公告投資$1B。", category="科技與半導體產業鏈"):
+        def fact_item(headline, industry="Semiconductors",
+                      evidence="TSMC announced a $1B investment on Sept 9.",
+                      category="Semis and supply chain"):
             return {
                 "category": category,
                 "industry": industry,
                 "headline": headline,
-                "body": "TSMC宣布新增$1B產能。",
+                "body": "TSMC announced $1B of added capacity.",
                 "evidence": evidence,
-                "fact_status": "已公布",
-                "development": "產能",
-                "value_chain": "設備→晶圓代工→客戶",
+                "fact_status": "reported",
+                "development": "capacity",
+                "value_chain": "equipment to foundry to customer",
                 "market_move": "",
-                "confirmed_impact": "公司表示新產能將供應既有客戶。",
-                "unknowns": "投產日期尚未披露。",
+                "confirmed_impact": "The company said the new capacity serves existing customers.",
+                "unknowns": "Production start date undisclosed.",
                 "source": "Reuters",
                 "source_date": "2026-09-09",
             }
 
         data = {"industry_developments": [
-            fact_item("事件1"), fact_item("事件2", "AI基礎設施"),
-            fact_item("事件3", "企業軟體與資安"), fact_item("事件4", "機器人與工業自動化"),
-            fact_item("事件5", "醫療生技"), fact_item("缺少證據", evidence=""),
+            fact_item("Event 1"), fact_item("Event 2", "AI infrastructure"),
+            fact_item("Event 3", "Enterprise software and security"),
+            fact_item("Event 4", "Robotics and automation"),
+            fact_item("Event 5", "Healthcare and biotech"), fact_item("No evidence", evidence=""),
         ]}
         stats = ai_processor._sanitize_news(data, "2026-09-08")
         self.assertEqual(len(data["industry_developments"]), 4)
@@ -288,36 +291,36 @@ class AiQualityTests(unittest.TestCase):
 
     def test_fact_news_normalizes_category_and_trims_inference(self):
         data = {"industry_developments": [{
-            "category": "AI 產業應用",
-            "industry": "企業軟體與資安",
-            "headline": "醫院簽署AI部署合約",
-            "body": "某醫院簽署$10M合約。投資人應關注後續成長。",
-            "evidence": "合約於9月9日簽署，金額$10M。",
-            "fact_status": "已簽署",
-            "development": "需求",
-            "value_chain": "模型商→醫院",
+            "category": "AI in Production",
+            "industry": "Enterprise software and security",
+            "headline": "Hospital signs an AI deployment contract",
+            "body": "A hospital signed a $10M contract. Investors should watch the growth from here.",
+            "evidence": "Contract signed Sept 9, worth $10M.",
+            "fact_status": "agreed",
+            "development": "demand",
+            "value_chain": "model vendor to hospital",
             "market_move": "",
-            "confirmed_impact": "可望受惠並帶動估值。",
-            "unknowns": "導入席次尚未披露。",
+            "confirmed_impact": "The vendor stands to benefit as valuations re-rate.",
+            "unknowns": "Seat count undisclosed.",
             "source": "Reuters",
             "source_date": "2026-09-09",
         }]}
         stats = ai_processor._sanitize_news(data, "2026-09-08")
-        self.assertEqual(data["industry_developments"][0]["category"], "AI產業應用")
-        self.assertEqual(data["industry_developments"][0]["fact_status"], "已簽約")
-        self.assertEqual(data["industry_developments"][0]["body"], "某醫院簽署$10M合約。")
+        self.assertEqual(data["industry_developments"][0]["category"], "AI in production")
+        self.assertEqual(data["industry_developments"][0]["fact_status"], "signed")
+        self.assertEqual(data["industry_developments"][0]["body"], "A hospital signed a $10M contract.")
         self.assertEqual(data["industry_developments"][0]["confirmed_impact"], "")
         self.assertEqual(stats["inference_trimmed"], 2)
 
     def test_fact_news_recovers_evidence_and_unknowns_from_factual_body(self):
         data = {"industry_developments": [{
-            "category": "全球新創",
-            "industry": "金融科技",
-            "headline": "新創完成A輪融資",
-            "body": "FinCo於9月9日完成$25M A輪融資。",
+            "category": "Global startups",
+            "industry": "Fintech",
+            "headline": "Startup closes a Series A",
+            "body": "FinCo closed a $25M Series A on Sept 9.",
             "evidence": "",
-            "fact_status": "已完成",
-            "development": "資本支出",
+            "fact_status": "completed",
+            "development": "capex",
             "value_chain": "",
             "market_move": "",
             "confirmed_impact": "",
@@ -327,27 +330,27 @@ class AiQualityTests(unittest.TestCase):
         }]}
         ai_processor._sanitize_news(data, "2026-09-08")
         item = data["industry_developments"][0]
-        self.assertEqual(item["evidence"], "FinCo於9月9日完成$25M A輪融資。")
-        self.assertEqual(item["unknowns"], "素材未列出其他未決事項。")
+        self.assertEqual(item["evidence"], "FinCo closed a $25M Series A on Sept 9.")
+        self.assertEqual(item["unknowns"], "Nothing else outstanding in the material.")
 
     def test_stock_mover_fact_requires_exact_move_and_session(self):
         base = {
-            "category": "美股類股與波動個股",
-            "industry": "企業軟體與資安",
-            "headline": "公司公布年度財測",
-            "body": "公司公布全年營收指引$2B。",
-            "evidence": "9月9日公告全年營收指引$2B。",
-            "fact_status": "公司指引",
-            "development": "需求",
+            "category": "US sector moves",
+            "industry": "Enterprise software and security",
+            "headline": "Company issues full-year guidance",
+            "body": "The company guided full-year revenue to $2B.",
+            "evidence": "Full-year revenue guidance of $2B announced Sept 9.",
+            "fact_status": "company guidance",
+            "development": "demand",
             "value_chain": "",
             "confirmed_impact": "",
-            "unknowns": "實際全年營收仍待公布。",
+            "unknowns": "Actual full-year revenue still to be reported.",
             "source": "Reuters",
             "source_date": "2026-09-09",
         }
         data = {"industry_developments": [
-            {**base, "market_move": "上一個 US session 收盤上漲8.2%。"},
-            {**base, "headline": "另一家公司公布財測", "market_move": "股價明顯上漲。"},
+            {**base, "market_move": "Closed up 8.2% in the last US session."},
+            {**base, "headline": "Another company guides", "market_move": "Shares rose noticeably."},
         ]}
         stats = ai_processor._sanitize_news(data, "2026-09-08")
         self.assertEqual(len(data["industry_developments"]), 1)
@@ -356,14 +359,14 @@ class AiQualityTests(unittest.TestCase):
     def test_watchlist_duplicate_is_merged_into_primary(self):
         data = {
             "top_stories": [{
-                "headline": "Nvidia投資MediaTek強化AI晶片合作",
-                "body": "Nvidia投資MediaTek $3.5B，雙方合作開發AI晶片。",
+                "headline": "Nvidia invests in MediaTek to deepen AI chip work",
+                "body": "Nvidia invested $3.5B in MediaTek to co-develop AI chips.",
                 "source_date": "2026-09-09",
             }],
             "watchlist_news": [{
                 "ticker": "NVDA",
-                "headline": "Nvidia入股MediaTek",
-                "body": "這項$3.5B投資擴大Nvidia在亞洲供應鏈的布局。",
+                "headline": "Nvidia takes a stake in MediaTek",
+                "body": "The $3.5B investment widens Nvidia's Asian supply-chain footprint.",
                 "source_date": "2026-09-09",
             }],
         }
@@ -375,15 +378,15 @@ class AiQualityTests(unittest.TestCase):
     def test_industry_duplicate_does_not_repeat_top_story(self):
         data = {
             "top_stories": [{
-                "headline": "TSMC擴先進封裝產能",
-                "body": "TSMC將CoWoS產能擴大50%。",
+                "headline": "TSMC expands advanced packaging capacity",
+                "body": "TSMC will raise CoWoS capacity by 50%.",
                 "source_date": "2026-09-09",
             }],
             "industry_developments": [{
-                "industry": "半導體",
-                "headline": "TSMC將CoWoS產能擴大50%",
-                "body": "TSMC擴先進封裝產能，產能增加50%。",
-                "development": "產能",
+                "industry": "Semiconductors",
+                "headline": "TSMC to raise CoWoS capacity by 50%",
+                "body": "TSMC is expanding advanced packaging, lifting capacity by 50%.",
+                "development": "capacity",
                 "source_date": "2026-09-09",
             }],
         }
@@ -394,19 +397,19 @@ class AiQualityTests(unittest.TestCase):
     def test_deep_dive_becomes_extension_but_different_event_survives(self):
         data = {
             "top_stories": [{
-                "headline": "台積電與ASML導入High NA EUV設備",
-                "body": "雙方合作導入單價$400M設備，規劃2030年量產。",
+                "headline": "TSMC and ASML bring in High NA EUV tools",
+                "body": "The two will deploy $400M-a-unit tools, targeting volume production in 2030.",
                 "source_date": "2026-09-09",
             }],
             "ai_industry": [{
-                "headline": "ASML擴建德國服務中心",
-                "body": "ASML投資$2B擴充維修產能。",
+                "headline": "ASML expands its German service centre",
+                "body": "ASML is investing $2B to add repair capacity.",
                 "source_date": "2026-09-09",
             }],
             "daily_deep_dive": [{
-                "theme": "High NA EUV供應鏈",
-                "headline": "ASML新設備獲台積電採用",
-                "situation": "台積電與ASML合作導入單價$400M的High NA EUV設備，規劃2030年量產。",
+                "theme": "High NA EUV supply chain",
+                "headline": "TSMC adopts ASML's newest tool",
+                "situation": "TSMC and ASML are deploying $400M-a-unit High NA EUV tools, targeting volume production in 2030.",
                 "key_data": [],
                 "source_date": "2026-09-09",
             }],
@@ -419,13 +422,13 @@ class AiQualityTests(unittest.TestCase):
 
     def test_same_company_and_amount_with_different_actions_survive(self):
         investment = ai_processor._event_features({
-            "headline": "Meta投資AI新創$1B",
-            "body": "Meta以$1B入股新創公司。",
+            "headline": "Meta invests $1B in an AI startup",
+            "body": "Meta took a $1B stake in the startup.",
             "source_date": "2026-09-09",
         })
         acquisition = ai_processor._event_features({
-            "headline": "Meta收購數據中心$1B",
-            "body": "Meta以$1B收購另一座數據中心。",
+            "headline": "Meta acquires a $1B data centre",
+            "body": "Meta acquired another data centre for $1B.",
             "source_date": "2026-09-09",
         })
         self.assertFalse(ai_processor._same_event(investment, acquisition))
@@ -449,49 +452,48 @@ class AiQualityTests(unittest.TestCase):
 
     def test_merged_watchlist_reference_renders_on_primary_card(self):
         data = {
-            "date": "2026年09月09日 06:15 TST",
+            "date": "2026-09-09 06:15 TST",
             "top_stories": [{
-                "headline": "Nvidia投資MediaTek強化AI晶片合作",
-                "body": "Nvidia投資MediaTek $3.5B。",
-                "tag": "指數部",
+                "headline": "Nvidia invests in MediaTek to deepen AI chip work",
+                "body": "Nvidia invested $3.5B in MediaTek.",
+                "tag": "Index book",
                 "tag_type": "tech",
                 "source": "Reuters",
                 "source_date": "2026-09-09",
-                "watchlist_refs": [{"ticker": "NVDA", "impact": "擴大亞洲供應鏈布局。"}],
+                "watchlist_refs": [{"ticker": "NVDA", "impact": "Widens its Asian supply-chain footprint."}],
             }],
         }
         rendered = html_template.build_news_html(data)
-        self.assertEqual(rendered.count("Nvidia投資MediaTek強化AI晶片合作"), 1)
-        self.assertIn("對關注股的影響", rendered)
+        self.assertEqual(rendered.count("Nvidia invests in MediaTek to deepen AI chip work"), 1)
+        self.assertIn("What it means for the watchlist", rendered)
         self.assertIn("NVDA", rendered)
 
     def test_fact_news_renders_category_and_evidence_fields(self):
         rendered = html_template.build_news_html({
-            "date": "2026年09月09日 06:15 TST",
+            "date": "2026-09-09 06:15 TST",
             "industry_developments": [{
-                "category": "科技與半導體產業鏈",
-                "industry": "AI基礎設施",
-                "headline": "資料中心電力訂單擴大",
-                "body": "Vertiv取得$2B訂單。",
-                "evidence": "Vertiv於9月9日公告訂單金額$2B。",
-                "fact_status": "已公布",
-                "development": "需求",
-                "value_chain": "發電設備→電力管理→資料中心",
+                "category": "Semis and supply chain",
+                "industry": "AI infrastructure",
+                "headline": "Data-centre power orders widen",
+                "body": "Vertiv won a $2B order.",
+                "evidence": "Vertiv announced a $2B order on Sept 9.",
+                "fact_status": "reported",
+                "development": "demand",
+                "value_chain": "generation to power management to data centre",
                 "market_move": "",
-                "confirmed_impact": "公司將擴充交付排程。",
-                "unknowns": "客戶名稱尚未披露。",
+                "confirmed_impact": "The company will expand its delivery schedule.",
+                "unknowns": "Customer name undisclosed.",
                 "source": "Reuters",
                 "source_date": "2026-09-09",
                 "importance": "high",
             }],
         })
-        self.assertIn("分類事實新聞", rendered)
-        self.assertIn("科技與半導體產業鏈", rendered)
-        self.assertIn("關鍵證據", rendered)
-        self.assertIn("產業鏈", rendered)
-        self.assertIn("已知影響", rendered)
-        self.assertIn("尚待確認", rendered)
-        self.assertNotIn("6–18 個月", rendered)
+        self.assertIn("Industry developments", rendered)
+        self.assertIn("Semis and supply chain", rendered)
+        self.assertIn("Evidence", rendered)
+        self.assertIn("Value chain", rendered)
+        self.assertIn("Confirmed impact", rendered)
+        self.assertIn("Unknowns", rendered)
 
 
 if __name__ == "__main__":

@@ -13,6 +13,51 @@
 
 ---
 
+## 日報語言：英文（2026-09-19 起）
+
+日報輸出全面改英文。分界線是「**誰在看**」：
+
+| 對象 | 語言 |
+|---|---|
+| 模型看的（三個 prompt、market_context、news_text 分段標題、關注清單區塊） | 英文 |
+| 讀者看的（網頁區塊標題、tab、信件主旨、市場數據 label、引言） | 英文 |
+| 持有人看的（終端 log、程式註解、本文件） | **維持中文** |
+
+**素材本來就大多是英文**（Reuters／Bloomberg／FT／TechCrunch…），模型是沿用不是翻譯。真正需要轉寫的只有中文來源：MoneyDJ、中央社、工商時報、以及中文 GN 代理。prompt 的 LANGUAGE 段有專門規則：不要逐句翻、不要帶中文句型，公司一律用英文標準名（台積電→TSMC、聯發科→MediaTek、鴻海→Foxconn、聯準會→Federal Reserve），億／兆換成 B／T。
+
+### 改英文時連帶重做的四件事（不是翻譯，是重寫）
+
+1. **四道把關正則全部改英文**：`_MARKET_SENT_RE`（行情句）、`_INFERENCE_SENT_RE`（推論句）、`_MARKET_MOVE_FACT_RE`（個股波動要有 session 錨點）、`_FACT_ANCHOR_RE`。標題的「這不是行情、是事件數字」例外清單也同步改英文（contract price／pricing／revenue／exports／orders／shipments…）。
+2. **斷句器 `_SENT_SPLIT_RE`（新）**：原本只認中文句號「。；;」。英文句點不算 → 一整段 body 被當成一句 → 只要有一句違規整段被刪光、條目再被 complete 檢查判死。現在補英文句界（句點＋空白＋大寫），零寬度切分，join 回去字元不變，`$1.42B` 不會被誤切。
+3. **去重斷詞器 `_news_tokens`**：原本只抓大寫開頭專名＋中文 2-gram。中文一句產生數十個 2-gram，Jaccard 穩定；英文一句只剩三五個 token，兩則無關新聞共用 "The"／"EU" 就衝到 0.4 被誤判成同一事件。現在英文另抽一組「去虛詞的小寫實詞」(`_EN_WORD_RE`／`_EN_STOP`)。
+4. **`_ACTION_GROUPS` 改成詞幹＋字界比對**：原本是中文固定詞硬塞幾個英文單字，`invests`／`invested` 配不上 `investment`。現在 `_ACTION_TERMS` + `_compile_action_terms()`：ASCII 詞尾補 `[a-z]*`、前面 `(?<![a-z])` 擋 around／urban 誤中。另新增 `pricing` 事件類型（半導體合約價原本在深挖與分類新聞之間配不起來）。
+
+### 列舉值（prompt 與程式必須同步，改一邊會靜默掉條目）
+
+- `industry_developments.category`：US earnings｜Semis and supply chain｜AI in production｜Global startups｜US sector moves｜Industry and finance
+- `industry`：Semiconductors｜AI infrastructure｜Enterprise software and security｜Robotics and automation｜Healthcare and biotech｜Fintech｜Defense and aerospace｜Energy and logistics｜Other
+- `fact_status`：reported｜completed｜approved｜signed｜filed｜scheduled｜in progress｜company guidance
+- `development`：demand｜supply｜capacity｜technology｜pricing｜regulation｜competition｜capex｜M&A
+- `regime.axes`：risk-on/risk-off/neutral、easing/tightening/neutral、suppressed/rising/extreme
+- `vs_regime` 前綴：`Supports|` `Contradicts|` `Neutral|`（半形直線，不是全形「｜」）
+- `regime.review.verdict`：carried over｜revised｜falsified｜no prior day
+- `confidence` / `reliability`：high｜medium｜low
+- `sentiment.stage`：Stage 1–4｜No clear signal
+- `frontier_tech.stage`：lab result｜prototype｜pilot｜limited commercial｜full commercial｜fundraising
+- `startup_news.deal.stage`：Seed｜Series A–D+｜Growth｜IPO filing｜M&A｜Fund close｜Shutdown｜Other；未揭露一律 `undisclosed`
+- 財報 `category`：Financials｜Semiconductors｜Media and streaming｜Industrials and REITs｜Consumer｜Healthcare｜Energy｜Other
+- 類別名刻意不含 `&`，避免 HTML 轉義與比對不一致
+
+market 資料 label 也全改英文（SOX／TAIEX／Gold／US 10Y／IWM/SPY／Bank reserves／Fear & Greed…），趨勢字串改 `rising steadily`／`falling steadily`／`choppy`，流動性評估改 `Liquidity easing/tightening/neutral`。`html_template` 與 `weekly_template` 的 label 比對已同步。
+
+### 刻意沒改英文的三塊
+
+1. **`site_nav_snippet.py`（整站共用導覽列）**——檔頭寫明 do not edit by hand，是從 `financial-analysis-bot/scripts/site_nav.py` 同步來的，整個 research.investmquest.com 共用。改了會弄壞其他中文頁。
+2. **`data/trading_systems.json` / `data/startup_frameworks.json`（100 篇手寫長文，約 10 萬字）**——Founders／Systems 兩個分頁內容仍是中文。tab 與頁面外框已英文。
+3. **Screener 相關頁面的資料欄位**（`rs_trend`、地區名等，來自 `screener/` 子系統）。
+
+---
+
 ## 絕對規則
 
 1. 改完一定推上 GitHub（除非特別說不要）
@@ -66,7 +111,7 @@
   - 素材端加 18 個 RSS feed（新創／創投：TechCrunch Venture・TechCrunch Startups・Crunchbase News・Sifted・Tech in Asia (GN)・Wired 商業科技・Startup Funding (GN)；技術前緣：IEEE Spectrum・IEEE Robotics・MIT Tech Review・Quanta Magazine・Nature 新聞・Science 新聞・New Scientist・SpaceNews・The Quantum Insider・Ars Science・Frontier Tech (GN)），`RSS_TOTAL_CAP` 310→400。
   - `PERPLEXITY_QUERIES` 18→22：新創融資細節（輪次／金額／估值／投資人）、新創生態結構（down round・關門・併購・新基金）、技術前緣里程碑（量子・核融合・機器人・腦機・太空・新型運算・電池材料・合成生物）、可商轉的同儕審查研究。
   - `startup_news` 上限 4→8，每條多 `deal`（stage／amount／valuation／investors／hq）與 `why`；渲染 `_deal_line()`，「未揭露」的估值與投資人不佔版面。
-  - **新區塊 `frontier_tech`（技術前緣）**：走新聞模型（不是分析模型），欄位 field／field_type／who／body／stage／why，最多 5 條、至少涵蓋 3 個不同 field。渲染 `_frontier_tech()`（trends 頁 tech_trends 之後、email 同位置）。因為前緣研究本來就慢，`_sanitize_news` 對它**不做**過期過濾（同 tech_trends），時間窗由 prompt 的 72 小時規則控制。
+  - **新區塊 `frontier_tech`（技術前緣）**：走新聞模型（不是分析模型），欄位 field／field_type／who／body／stage／why，最多 5 條、至少涵蓋 3 個不同 field。渲染 `_frontier_tech()`（trends 頁 Deep tech 之後、email 同位置）。因為前緣研究本來就慢，`_sanitize_news` 對它**不做**過期過濾（同 tech_trends），時間窗由 prompt 的 72 小時規則控制。
   - source_registry 新增 Sifted／Tech in Asia／IEEE Spectrum／Quanta Magazine／New Scientist／SpaceNews／The Quantum Insider（新 group「前緣科技」），並給既有的 Wired／Ars Technica／MIT Tech Review／Nature／Science 補上 `frontier` topic。
 - **本週值得讀 `weekend_reads`（同日新增）**：從 The Economist／FT 等 `weekly`／`longform` feed 挑最多 3 篇長文，欄位 title／source／source_date／why／link；sanitize 不做過期過濾。渲染 `_weekend_reads_section`（trends 頁 tech_trends 之後、email 同位置）。
 - 想加 RSS：先在 `source_registry.py` 加 canonical 名稱、別名、網域與 topics，再在 `RSS_FEEDS` 加一行 tuple；`GEMINI_SYSTEM_PROMPT` 的白名單會由 registry 自動產生。
@@ -181,7 +226,7 @@ trigger.py → Render Cron → GitHub API
 5._sentiment_analysis 6._market_pulse 7._daily_deep_dive
 8.top_stories 8b._watchlist_news_section（關注清單動態） 9.world_news 10.us_market_recap 11.macro
 12.geopolitical 13.ai_industry 14.regional_tech 15.fintech_crypto
-16.system_status 17.tech_trends 17b._frontier_tech（技術前緣） 18.startup_news 18b._weekend_reads_section（本週值得讀） 19.smart_money
+16.system_status（System status） 17.tech_trends（Deep tech） 17b._frontier_tech（Frontier tech） 18.startup_news（Startups） 18b._weekend_reads_section（Weekend reads） 19.smart_money
 20.earnings_preview 21.implied_trends 22.fun_fact 23.today_events 24.footer
 
 ---

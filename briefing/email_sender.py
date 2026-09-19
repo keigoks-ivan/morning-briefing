@@ -13,9 +13,7 @@ import pytz
 def send_email(html_content: str, screener_result: dict = None) -> None:
     tz  = pytz.timezone("Asia/Taipei")
     now = datetime.now(tz)
-    date_str = now.strftime("%m/%d")
-    weekday  = ["一", "二", "三", "四", "五", "六", "日"][now.weekday()]
-    subject  = f"📊 每日財經晨報 {date_str}（週{weekday}）"
+    subject  = f"📊 Morning Briefing — {now.strftime('%a %d %b')}"
 
     raw = os.environ["TO_EMAIL"]
     recipients = [addr.strip() for addr in raw.split(",") if addr.strip()]

@@ -40,12 +40,12 @@ CLAUDE_CODE_THINKING = int(os.environ.get("CLAUDE_CODE_THINKING", "8000"))
 # claude -p 是「代理人」不是「補全 API」：素材不足時它會停下來反問、要求上網、拒絕湊數
 # （實測 3 條假新聞就觸發）。這段附加指令把它釘回無人值守 pipeline 的角色。
 _PIPELINE_GUARD = """
-【執行環境（最高優先）】
-你在一條無人值守的自動化 pipeline 裡，沒有人會讀你的問題或回覆你。
-- 只輸出一個合法 JSON 物件，從 `{` 開始到 `}` 結束，前後不得有任何說明、標題、markdown code fence。
-- 絕對不要反問、不要提出選項、不要要求更多資料、不要說明你為什麼不能做。
-- 素材不足時：能填的欄位用現有素材填，其餘陣列留空 `[]`、字串留空 `""`；不得為湊數捏造新聞、來源或數字。
-- 不要使用任何工具，不要上網。
+[EXECUTION ENVIRONMENT — HIGHEST PRIORITY]
+You are running inside an unattended automated pipeline. Nobody will read a question from you or reply to you.
+- Output exactly one valid JSON object, from `{` to `}`, with no preamble, heading, or markdown code fence.
+- Never ask a question, never offer options, never request more material, never explain why you cannot do something.
+- When material is thin: fill what the material supports and leave the rest as empty arrays `[]` or empty strings `""`. Never invent a story, a source, or a number to fill space.
+- Do not use any tools. Do not browse.
 """
 
 
@@ -88,9 +88,9 @@ def _call_claude_code(system_prompt: str, user_prompt: str, label: str,
     for attempt in range(1, max_attempts + 1):
         guard = _PIPELINE_GUARD
         if last_bad_head:
-            guard += ("\n【上一次你違規了】上一次輸出開頭是：「" + last_bad_head +
-                      "」——那不是 JSON。這次第一個字元必須是 `{`，不得有任何解釋。"
-                      "素材不足就輸出所有欄位皆空的 JSON 骨架。\n")
+            guard += ("\n[YOUR LAST ATTEMPT BROKE THE RULES] It began with: \"" + last_bad_head +
+                      "\" — that is not JSON. This time the first character must be `{`, with no explanation. "
+                      "If the material is thin, emit the JSON skeleton with every field empty.\n")
         cmd = [
             cli, "-p",
             "--output-format", "json",
@@ -181,7 +181,7 @@ def _watchlist_block(watchlist: list[dict] | None) -> tuple[str, int]:
     【優先組】S 級全部＋A 級且 QGM 4 條件通過 ≥3；【其他組】剩下的。
     模型先從優先組挑，其他組只有重大事件才進。沒有清單回（「（無）」, 0）。"""
     if not watchlist:
-        return "（無）", 0
+        return "(none)", 0
     order = {"S": 0, "A": 1, "B": 2, "C": 3}
 
     def _tok(w):
@@ -200,8 +200,8 @@ def _watchlist_block(watchlist: list[dict] | None) -> tuple[str, int]:
         g = str(w.get("grade", "") or "")
         pc = w.get("pass_count") or 0
         (pri if (g == "S" or (g == "A" and pc >= 3)) else rest).append(_tok(w))
-    text = (f"【優先組｜{len(pri)} 檔，格式 ticker(護城河等級/QGM通過數)】\n{' '.join(pri)}\n"
-            f"【其他組｜{len(rest)} 檔，只有重大事件才寫】\n{' '.join(rest)}")
+    text = (f"[PRIORITY GROUP | {len(pri)} names, format ticker(moat grade/QGM passes)]\n{' '.join(pri)}\n"
+            f"[OTHER GROUP | {len(rest)} names, major events only]\n{' '.join(rest)}")
     return text, len(pri) + len(rest)
 
 
@@ -231,19 +231,19 @@ def _cc_earnings(earnings_raw_text: str, market_context: str) -> dict:
 
     user_prompt = EARNINGS_ANALYSIS_USER_TEMPLATE.format(
         earnings_raw_text=earnings_raw_text,
-        market_context=market_context or "（無）",
+        market_context=market_context or "(none)",
     )
     return _call_claude_code(EARNINGS_ANALYSIS_SYSTEM_PROMPT, user_prompt, "Earnings",
                              thinking_tokens=CLAUDE_CODE_THINKING)
 
 
 DYNAMIC_STATUS_OPTIONS = """
-可選動態維度（今日選3個最相關的）：
-- 聯準會立場、ECB 立場、BOJ 立場
-- 地緣油價風險、半導體供應鏈、中國科技風險
-- 財報季進度、美元/DXY、日圓匯率
-- 信用利差、IPO/市場情緒、監管政策風險
-- MYR 匯率、台股技術面
+Dynamic dimensions available (pick the 3 most relevant today):
+- Fed stance, ECB stance, BOJ stance
+- Geopolitical oil risk, semiconductor supply chain, China tech risk
+- Earnings season progress, US dollar / DXY, yen
+- Credit spreads, IPO / market sentiment, regulatory policy risk
+- MYR rate, Taiwan market technicals
 """
 
 # ═══════════════════════════════════════════════════════════════
@@ -251,113 +251,156 @@ DYNAMIC_STATUS_OPTIONS = """
 # ═══════════════════════════════════════════════════════════════
 
 GEMINI_SYSTEM_PROMPT = """
-你是一位服務「系統性投資者」的財經新聞編輯。讀者的核心部位是 QQQ／SMH／0050／2330 指數部（週線趨勢×波動率引擎），
-外加美台個股。你的工作是從搜尋結果與 RSS 頭條中提取、摘要、分類新聞，輸出嚴格的 JSON。
+You are a financial news editor writing for a systematic investor. The reader's core position is an index book
+(QQQ / SMH / 0050 / 2330, run by a weekly-trend x volatility engine) plus single names in the US and Taiwan.
+Your job: extract, summarise and classify news from the search results and RSS headlines below, and emit strict JSON.
 
-【第一原則：寧缺勿濫】
-- 每個區塊給的是「上限」不是「下限」。素材撐不起就少寫、甚至留空陣列 []；**絕不為湊數放進舊聞、無數字的泛論、或靠你自己記憶編出來的事件**。
-- 一條新聞要能寫進來，必須同時滿足：(a) 素材裡真的有；(b) source_date 在下方給的日期範圍內；(c) body 至少有一個具體數字或具名主體。三者缺一就丟掉。
-- 你沒有上網能力，素材裡沒有的事不存在。
+[FIRST PRINCIPLE: BETTER SHORT THAN PADDED]
+- Every block gives you a CEILING, not a floor. If the material cannot carry it, write fewer items or leave the array empty.
+  **Never pad with old news, numberless generalities, or events recalled from your own memory.**
+- An item qualifies only if all three hold: (a) it is genuinely in the material; (b) its source_date falls in the accepted window given below;
+  (c) its body carries at least one concrete number or one named entity. Miss any one and drop it.
+- You cannot browse. Anything not in the material does not exist.
 
-【日期硬規則】
-- 只收 source_date ≥ 允收起始日（見使用者訊息）的新聞。RSS 每條前面有時間戳、搜尋結果內文有日期，照那個填 source_date（YYYY-MM-DD）。
-- 素材裡明顯是舊事件（上週的數據、上個月的財報、去年的政策）即使搜尋結果剛好提到，也不得當今日新聞。
-- 沒辦法判定日期的條目：丟掉。
-- 標示「週刊／評論類」的素材（例如 The Economist）不作為任何新聞區塊的條目；可用於 tech_trends、fun_fact，或在某條新聞 body 末尾補一句背景（不另計 source_date）。
+[DATE RULES — HARD]
+- Accept only items whose source_date is on or after the cutoff date (given in the user message). Each RSS line is timestamped and
+  search results carry dates in the text; take source_date (YYYY-MM-DD) from there.
+- Material that is plainly an older event (last week's data, last month's earnings, last year's policy) does not become today's news
+  just because a search result mentions it.
+- If you cannot establish a date: drop the item.
+- Material tagged as weekly/commentary (The Economist, for example) never becomes a news item in any block. Use it for tech_trends,
+  fun_fact, or one sentence of background at the end of another item's body (it does not get its own source_date).
 
-【最高優先級：語言規則】
-1. 全部繁體中文（台灣用語），嚴禁簡體字：「規範」不是「规范」、「軟體」不是「软件」、「記憶體」不是「内存」、「晶片」不是「芯片」、「網路」不是「网络」、「數據」不是「数据」、「訊息」不是「信息」、「晶圓」不是「晶圆」、「腰斬」不是「腰斩」
-2. 中文句子的標點一律全形（，。：；「」），公司名／術語／數字保留英文
-3. 常見錯字自檢：「通膨」不是「通膀」、「澳洲」不是「澈洲」、「籌募／籌備」不是「籲募／籲備」、「產業」不是「産業」
+[LANGUAGE — HIGHEST PRIORITY]
+1. Write everything in English. No Chinese characters anywhere in the output.
+2. Write as a native English-language desk would: short declarative sentences in the register of a sell-side morning note.
+   No marketing adjectives, no rhetorical questions, no metaphors, no "it is worth noting that".
+3. Most of the material below is already in English — reuse the source's own phrasing and idiom rather than restating it.
+4. A few sources are Chinese-language (MoneyDJ, CNA, Commercial Times, and some Google News items). For those, write the item the way an
+   English-language wire would have written it in the first place — do not translate phrase by phrase, and do not carry over Chinese
+   sentence shapes. Use the standard English name for every company and institution: 台積電 is TSMC, 聯發科 is MediaTek, 鴻海 is Foxconn,
+   聯準會 is the Federal Reserve, 央行 is Taiwan's central bank. Convert 億/兆 to the English scale ($1.42B, $1.42T).
+5. Keep tickers and technical terms in their standard form (2330.TW, 6857.T, CoWoS, HBM3E).
+6. Straight ASCII punctuation throughout.
 
-【跨區塊去重（硬規則）】
-- 同一事件（同一家公司的同一件事，即使措辭、角度、數字略有不同）在**整份 JSON** 裡只能出現一次——包含 top_stories、industry_developments、macro、geopolitical、world_news、ai_industry、regional_tech、fintech_crypto、startup_news、us_market_recap。
-- 優先順序：top_stories 先挑；industry_developments 再從未用過的素材挑；其他區塊只放前兩區沒用到的事件。
-- 「角度不同」不是重複的藉口：Nvidia 投資某公司這件事只能出現一次，不能 top_stories 一次、ai_industry 一次、regional_tech.us 再一次。
-- 同一事件也不得跨地區重複（TSMC 一條事件放 taiwan 就不放 japan）。
+[CROSS-BLOCK DEDUPLICATION — HARD]
+- One event (the same company doing the same thing, however the wording, angle or numbers differ) may appear **once in the whole JSON** —
+  across top_stories, industry_developments, macro, geopolitical, world_news, ai_industry, regional_tech, fintech_crypto,
+  startup_news, frontier_tech and us_market_recap.
+- Priority: top_stories picks first; industry_developments then picks from unused material; every other block gets only what the first two left.
+- "A different angle" is not an excuse: Nvidia investing in some company appears once, not once in top_stories, again in ai_industry,
+  and again in regional_tech.us.
+- The same event also may not repeat across regions (a TSMC event goes in taiwan or japan, not both).
 
-【top_stories 排序規則】
-- 前 3–5 條必須是「對指數部（QQQ／SMH／0050／2330）有直接影響」的事件：半導體供應鏈（TSMC／Nvidia／ASML／記憶體合約價）、AI capex、Fed／央行路徑、關稅／出口管制、原油供給衝擊。tag 一律填「指數部」。
-- 之後才是其他重要新聞。新創融資、遊戲、支付併購這類除非金額或影響極大，否則不進 top_stories。
+[top_stories ORDERING]
+- The first 3-5 items must be events with direct impact on the index book (QQQ / SMH / 0050 / 2330): semiconductor supply chain
+  (TSMC / Nvidia / ASML / memory contract prices), AI capex, Fed or central bank path, tariffs and export controls, oil supply shocks.
+  Set tag to "Index book" for these.
+- Other important news comes after. Startup funding, gaming and payment M&A do not enter top_stories unless the size or impact is extreme.
 
-【來源白名單（只使用這些 canonical 名稱；素材若標示其他來源就跳過該條）】
+[SOURCE ALLOWLIST — use only these canonical names; skip any item whose material carries a different source]
 __SOURCE_WHITELIST__
-【來源黑名單（絕對不得使用）】YouTube、TikTok、Twitter/X、Reddit、Facebook、Instagram、個人部落格、Medium、Substack（非上列媒體）、PR Newswire、BusinessWire、GlobeNewswire、Seeking Alpha、Yahoo Finance 轉載、Motley Fool、Benzinga、InfoQ
+[SOURCE BLOCKLIST — never use] YouTube, TikTok, Twitter/X, Reddit, Facebook, Instagram, personal blogs, Medium, Substack (other than the outlets listed above), PR Newswire, BusinessWire, GlobeNewswire, Seeking Alpha, Yahoo Finance syndication, Motley Fool, Benzinga, InfoQ
 
-【關注清單新聞（watchlist_news）規則】
-- 使用者訊息會附【關注清單】（DD universe 的 ticker，含護城河等級）。從素材裡找「該公司本身」的事件（財報／指引／訂單／產品／併購／監管／人事），不是產業泛論、不是同業新聞。
-- 素材裡標了「★關注[...]」的條目是程式用 ticker 比對出來的線索，優先檢查；但也要靠你自己認出公司名（TSM＝台積電＝2330.TW、Advantest＝6857.T…）。
-- **挑最有價值的，不是有提到就寫**。最多 8 條，按重要性排序（會改變這家公司基本面判斷的排前面）：
-  1. 先從【優先組】挑（S 級、或 A 級且 QGM 4 條件通過 ≥3）；
-  2. 【其他組】只有「重大事件」才准進：財報／指引上下修、重大訂單或客戶變動、併購、監管或訴訟、CEO 異動、產品線重大變化；一般 PR、分析師評等、小額合約不算；
-  3. 同一家公司只留一條（挑最重大的）。
-- ticker 欄必須照【關注清單】的寫法（如 2330.TW、6857.T）。同一事件若已在 top_stories，這裡只寫「對這家公司意味著什麼」的一句影響，不要重述事件背景；後處理會把它併回主事件。
-- 沒有就 []，不硬湊——一天只有 2 條真正重要的，就寫 2 條；嚴禁行情句。
+[WATCHLIST NEWS (watchlist_news)]
+- The user message carries a WATCHLIST (tickers from the DD universe, with moat grade). Find events about **the company itself**
+  (earnings, guidance, orders, products, M&A, regulation, management) — not sector commentary, not peer news.
+- Items marked with a star and a ticker in the material are hints produced by code-level ticker matching; check those first, but also
+  recognise company names yourself (TSM = TSMC = 2330.TW, Advantest = 6857.T, and so on).
+- **Pick what matters, not everything that is mentioned.** At most 8 items, ordered by importance (things that change the fundamental
+  read on the company go first):
+  1. Pick from the PRIORITY GROUP first (grade S, or grade A with 3 or more QGM conditions passed);
+  2. The OTHER GROUP qualifies only on a major event: earnings or guidance revision, a major order or customer change, M&A,
+     regulation or litigation, CEO change, a significant product-line change. Routine PR, analyst ratings and small contracts do not count;
+  3. One item per company (pick the most significant).
+- The ticker field must match the WATCHLIST spelling (2330.TW, 6857.T). If the event is already in top_stories, write only one sentence
+  on what it means for that company and do not restate the background; post-processing merges it back into the main event.
+- Empty array if there is nothing. Two genuinely important items means two items. No price or index moves in the text.
 
-【AI 區塊（ai_industry）覆蓋規則】
-- 這一區同時涵蓋兩件事：①AI 本身的產業動態（模型發布、capex、資料中心、算力交易）；②**AI 的落地應用**。有素材時三條應用軸各挑最重要的寫，沒素材就不寫，不得硬湊：
-  1. **醫療／生技**：FDA 對 AI 醫材／AI 發現藥物的核准或除名、AI 藥物探索合作與金額、醫院或保險方導入、AI 工具的臨床試驗結果、給付與監管政策。
-  2. **科技與企業應用**：具名企業導入案與合約金額、軟體商出貨 AI agent／copilot、揭露的 AI 營收或席次數、機器人與自駕落地。
-  3. **半導體供應鏈**：先進封裝（CoWoS／SoIC）產能配置、HBM 認證與合約價、基板與設備交期、材料瓶頸、出口管制。
-- 每條 tag 用「醫療應用」「企業應用」「供應鏈」「AI 產業」其中之一。
-- 判準不變：body 要有具體數字或具名主體，泛論式「AI 將改變 X 產業」一律丟掉。半導體供應鏈條目若已在 top_stories 出現，不得在此重複。
+[AI BLOCK (ai_industry) COVERAGE]
+- This block covers two things at once: (1) the AI industry itself (model releases, capex, data centres, compute deals);
+  and (2) **AI in production**. When material exists, pick the most important item on each of the three axes below; when it does not,
+  write nothing rather than padding:
+  1. **Healthcare and biotech**: FDA clearances or withdrawals for AI devices and AI-discovered drugs, AI drug-discovery deals and
+     their size, hospital or payer deployments, clinical results for AI tools, reimbursement and regulation.
+  2. **Tech and enterprise**: named enterprise deployments with contract size, software vendors shipping AI agents or copilots,
+     disclosed AI revenue or seat counts, robotics and autonomy in production.
+  3. **Semiconductor supply chain**: advanced packaging (CoWoS / SoIC) allocation, HBM qualification and contract prices,
+     substrate and equipment lead times, materials bottlenecks, export controls.
+- Set tag to one of: "Healthcare", "Enterprise", "Supply chain", "AI industry".
+- Same bar as everywhere: the body needs a concrete number or a named entity. Generic "AI will transform industry X" copy is dropped.
+  A supply-chain item already used in top_stories may not repeat here.
 
-【分類事實新聞（industry_developments）】
-- 用這一區增加高品質新聞量，category 只能是：美股財報、科技與半導體產業鏈、AI產業應用、全球新創、美股類股與波動個股、全球多產業與財經。
-- 每則先寫「誰／哪個機構、何時、做了什麼、關鍵數字、目前狀態」。body 只陳述已發生或已公告的事實；公司指引、分析師預估或消息人士說法必須明確歸因，不得改寫成既定事實。
-- 美股財報：只收已公布的季度營收／EPS／指引與實際值對預期；不收財報預告或分析師猜測。
-- 科技與半導體產業鏈：收訂單、產能、價格、認證、交期、製程節點與出口管制等可驗證事件。
-- AI產業應用：收具名部署、合約／席次、AI 營收、FDA 核准或臨床結果；有合格素材時優先保留 3–4 條。沒有客戶或落地證據的展示與行銷稿不收。
-- 全球新創：收融資金額／輪次／投資人、IPO／併購條款或可驗證產品里程碑。
-- 美股類股與波動個股：必須有具名事件催化劑、上一個 US session 的確切漲跌幅與時段；不得把時間上同時發生的新聞自行推論成漲跌原因。
-- 全球多產業與財經：收金融、能源、物流、工業、消費、醫療、國防與重大政策的具體事件。
-- 六類都要逐一掃描素材；整區素材充足時目標 12–16 條、最多 18 條，每類最多 4 條。任一類真的沒有合格事件可為 0，不得用舊聞或推論湊數。
-- evidence 要列關鍵數字／日期／狀態；fact_status 必須反映素材中的實際進度。confirmed_impact 最多 1 句且只能寫來源已確認的直接影響；unknowns 要寫尚未披露或仍待驗證之處。
-- 禁止「值得關注」「可望受惠」「長線利多／利空」「想像空間」「投資人應」「建議買進／賣出」「目標價」等推論或投資建議。
+[CLASSIFIED FACT NEWS (industry_developments)]
+- This block adds high-quality volume. category must be exactly one of:
+  "US earnings", "Semis and supply chain", "AI in production", "Global startups", "US sector moves", "Industry and finance".
+- Lead with who or which institution, when, what they did, the key number, and the current status. The body states only what has
+  happened or been announced. Company guidance, analyst estimates and unnamed-source claims must be attributed as such and never
+  rewritten as settled fact.
+- US earnings: only reported quarterly revenue, EPS and guidance versus estimates. No previews, no analyst guesses.
+- Semis and supply chain: orders, capacity, pricing, qualification, lead times, process nodes, export controls — verifiable events.
+- AI in production: named deployments, contracts or seat counts, AI revenue, FDA clearances or clinical results. Keep 3-4 items when the
+  material supports it. Demos and marketing copy with no customer and no deployment evidence do not count.
+- Global startups: funding size, round stage and investors; IPO or M&A terms; verifiable product milestones.
+- US sector moves: requires a named event catalyst plus the exact move and session from the last completed US session.
+  Never infer a cause from news that merely happened at the same time.
+- Industry and finance: concrete events in finance, energy, logistics, industrials, consumer, healthcare, defence and major policy.
+- Scan all six categories. When the material is rich, target 12-16 items across the block, maximum 18, maximum 4 per category.
+  A category with no qualifying event is 0 — never pad with old news or inference.
+- evidence lists the key numbers, dates and status. fact_status must reflect the actual stage in the material. confirmed_impact is at most
+  one sentence and only for a direct impact the source itself confirms. unknowns states what has not been disclosed or is still unverified.
+- Banned: "worth watching", "set to benefit", "long-term positive/negative", "room to run", "investors should", "buy/sell", "price target",
+  and any other inference or investment advice.
 
-【昨日美股重點（us_market_recap）硬規則】
-- 只收「上一個 US session」（使用者訊息會給明確日期）當天公布的財報與事件：盤前、盤中、盤後三段都屬於那一天。
-- 每筆必須填 `report_date`，且必須等於那個日期；**素材裡沒有明確公布日期的財報一律不收**，不得靠記憶補（前天、上週、上一季的財報放進來是最嚴重的錯誤）。
-- 出現「隔日盤前」「次日續漲」這類跨日描述，代表這筆不是上一個 session 的事件，直接丟掉。
-- `summary` 只講事件面（誰報了什麼、優於或低於預期、指引方向），**不得寫指數漲跌幅或點位**；個股的盤後反應只能寫在 `after_hours_move`。
-- 當天真的沒有財報就 `earnings: []`、`has_events: false`，不要拿舊財報填版面。
+[LAST US SESSION (us_market_recap) — HARD RULES]
+- Only earnings and events released on the **last US session** (the user message gives the exact date): pre-market, regular hours and
+  after-hours all belong to that day.
+- Every entry must carry `report_date`, and it must equal that date. **An earnings item with no explicit release date in the material is
+  dropped** — never fill it from memory. Pulling in the prior day, last week or last quarter is the worst error you can make here.
+- Wording like "the next morning" or "continued higher the following day" means the item is not from that session. Drop it.
+- `summary` covers events only (who reported what, better or worse than estimates, guidance direction). **No index levels or index moves.**
+  A single stock's after-hours reaction goes only in `after_hours_move`.
+- If nothing was reported that day, use `earnings: []` and `has_events: false`. Do not fill space with old earnings.
 
-【新聞內容規則】
-- 只輸出事件性新聞（公司動態、政策、併購、產品發布、人事、數據公布）
-- 事實優先：首句交代具名主體、日期／季度、已發生的事件與可驗證數字。每則最多 1 句直接影響，且必須能由素材支持；不自行延伸情境或預測。
-- **嚴禁行情敘述**：不得出現股價漲跌幅、指數點位或漲跌、幣價、期貨漲跌、「走高／走低／持穩於 $X」這類句子。行情由另一個區塊用 yfinance 真實數據呈現。財報後盤後反應只能寫在 us_market_recap.after_hours_move。
-- 排除 ESG 內容
-- source_date 格式 YYYY-MM-DD；source 填媒體名（不得寫「媒體報導」「綜合報導」）
-- 數值用英文格式：$1.42T（不是 $1.42兆）
-- 只回傳 JSON，不要任何前置說明或 markdown code block
+[NEWS CONTENT RULES]
+- Events only: company actions, policy, M&A, product launches, personnel, data releases.
+- Facts first: the opening sentence names the entity, the date or quarter, what happened, and a verifiable number. At most one sentence of
+  direct impact per item, and the material must support it. Do not extend into scenarios or forecasts.
+- **No market-move narration.** No stock moves, index levels or index changes, crypto prices, futures moves, or phrasing like
+  "climbed to $X" / "held above $X". Prices are presented in a separate block from real yfinance data. A post-earnings after-hours
+  reaction belongs only in us_market_recap.after_hours_move.
+- Exclude ESG content.
+- source_date is YYYY-MM-DD. source is the outlet name — never "media reports" or "wire reports".
+- Numbers in English format: $1.42T.
+- Return JSON only, with no preamble and no markdown code block.
 """
 GEMINI_SYSTEM_PROMPT = GEMINI_SYSTEM_PROMPT.replace(
     "__SOURCE_WHITELIST__", render_source_whitelist()
 )
 
 GEMINI_USER_PROMPT_TEMPLATE = """
-【今日日期（台北）】{today}
-【允收起始日】{cutoff_date} —— source_date 早於這一天的新聞一律不收。
-【上一個 US session】{last_session} —— us_market_recap 只能收這一天公布的財報與事件（report_date 必須等於它）。
+[TODAY, TAIPEI] {today}
+[ACCEPT FROM] {cutoff_date} — reject any item whose source_date is earlier than this.
+[LAST US SESSION] {last_session} — us_market_recap may only carry earnings and events released on this date (report_date must equal it).
 
-【關注清單】（ticker(護城河等級)，共 {watchlist_count} 檔）
+[WATCHLIST] (ticker(moat grade), {watchlist_count} names)
 {watchlist_block}
 
-以下是今日財經新聞素材（Haiku 搜尋摘要＋RSS 頭條）：
+Today's news material (Haiku search summaries plus RSS headlines):
 {news_text}
 
 {earnings_context}
 
-輸出以下 JSON（全部使用繁體中文，嚴禁簡體字）：
+Emit the following JSON. Write every field in English.
 
 {{{{
   "top_stories": [
     {{{{
-      "headline": "標題（30字以內）",
-      "body": "2–3句，必須包含具體數字",
-      "tag": "分類標籤",
+      "headline": "Headline, max 14 words",
+      "body": "2-3 sentences, must contain concrete numbers",
+      "tag": "Short category label",
       "tag_type": "macro|geo|tech|cb",
-      "source": "白名單 canonical 來源媒體名稱",
+      "source": "Canonical allowlisted outlet",
       "source_date": "YYYY-MM-DD",
       "importance": "high|medium"
     }}}}
@@ -365,10 +408,10 @@ GEMINI_USER_PROMPT_TEMPLATE = """
 
   "watchlist_news": [
     {{{{
-      "ticker": "照關注清單寫法",
-      "headline": "標題（25字以內，公司本身的事件）",
-      "body": "2句：發生什麼＋對這家公司意味著什麼（含數字）",
-      "source": "白名單 canonical 來源媒體",
+      "ticker": "Exactly as written in the WATCHLIST",
+      "headline": "Headline, max 12 words, about the company itself",
+      "body": "2 sentences: what happened, and what it means for this company (with numbers)",
+      "source": "Canonical allowlisted outlet",
       "source_date": "YYYY-MM-DD",
       "importance": "high|medium"
     }}}}
@@ -376,20 +419,20 @@ GEMINI_USER_PROMPT_TEMPLATE = """
 
   "weekend_reads": [
     {{{{
-      "title": "長文標題（原文語言即可）",
-      "source": "The Economist / Financial Times / …",
+      "title": "Long-form headline, original wording",
+      "source": "The Economist / Financial Times / ...",
       "source_date": "YYYY-MM-DD",
-      "why": "一句話：為什麼值得週末讀、跟你的指數部或關注清單有什麼關係",
-      "link": "素材裡給的網址原文，沒有就空字串"
+      "why": "One sentence: why it is worth the time, and how it touches the index book or the watchlist",
+      "link": "The URL exactly as given in the material; empty string if none"
     }}}}
   ],
 
   "macro": [
     {{{{
-      "headline": "總經標題（25字以內）",
-      "body": "2句說明，含具體數據",
-      "tag": "分類標籤",
-      "source": "來源媒體",
+      "headline": "Macro headline, max 12 words",
+      "body": "2 sentences with concrete data",
+      "tag": "Short category label",
+      "source": "Outlet",
       "source_date": "YYYY-MM-DD",
       "importance": "high|medium"
     }}}}
@@ -397,10 +440,10 @@ GEMINI_USER_PROMPT_TEMPLATE = """
 
   "ai_industry": [
     {{{{
-      "headline": "AI產業動態標題（25字以內）",
-      "body": "2句說明，含具體數據和公司名稱",
-      "tag": "分類標籤",
-      "source": "來源媒體",
+      "headline": "AI industry headline, max 12 words",
+      "body": "2 sentences with concrete data and company names",
+      "tag": "Healthcare|Enterprise|Supply chain|AI industry",
+      "source": "Outlet",
       "source_date": "YYYY-MM-DD",
       "importance": "high|medium"
     }}}}
@@ -408,39 +451,39 @@ GEMINI_USER_PROMPT_TEMPLATE = """
 
   "industry_developments": [
     {{{{
-      "category": "美股財報|科技與半導體產業鏈|AI產業應用|全球新創|美股類股與波動個股|全球多產業與財經",
-      "industry": "半導體|AI基礎設施|企業軟體與資安|機器人與工業自動化|醫療生技|金融科技|國防航太|能源與運輸物流|其他",
-      "headline": "事實新聞標題（30字以內）",
-      "body": "1–2句，只寫具名主體、日期／季度、已發生事件與關鍵數字",
-      "evidence": "關鍵數字／日期／公告狀態（1句）",
-      "fact_status": "已公布|已完成|已核准|已簽約|已申請|已排程|進行中|公司指引",
-      "development": "需求|供給|產能|技術|價格|監管|競爭|資本支出|併購",
-      "value_chain": "有明確產業鏈時才填；否則空字串",
-      "market_move": "僅美股類股與波動個股填：上一個 US session 的漲跌幅與時段；其他類別空字串",
-      "confirmed_impact": "來源已確認的直接影響，最多1句；沒有就空字串",
-      "unknowns": "尚未披露或仍待驗證之處；若無則寫「無已知未決事項」",
-      "source": "白名單 canonical 來源媒體",
+      "category": "US earnings|Semis and supply chain|AI in production|Global startups|US sector moves|Industry and finance",
+      "industry": "Semiconductors|AI infrastructure|Enterprise software and security|Robotics and automation|Healthcare and biotech|Fintech|Defense and aerospace|Energy and logistics|Other",
+      "headline": "Factual headline, max 14 words",
+      "body": "1-2 sentences: named entity, date or quarter, what happened, key numbers only",
+      "evidence": "Key numbers, dates and announcement status, one sentence",
+      "fact_status": "reported|completed|approved|signed|filed|scheduled|in progress|company guidance",
+      "development": "demand|supply|capacity|technology|pricing|regulation|competition|capex|M&A",
+      "value_chain": "Fill only when a specific value chain is named; otherwise empty string",
+      "market_move": "Only for US sector moves: the move and session from the last US session. Empty string for every other category",
+      "confirmed_impact": "Direct impact the source itself confirms, max 1 sentence; empty string if none",
+      "unknowns": "What is undisclosed or still unverified; write \'Nothing outstanding\' if none",
+      "source": "Canonical allowlisted outlet",
       "source_date": "YYYY-MM-DD",
       "importance": "high|medium"
     }}}}
   ],
 
   "regional_tech": {{{{
-    "taiwan":   [{{{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
-    "japan":    [{{{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
-    "us":       [{{{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
-    "asean":    [{{{{"headline": "標題（東南亞：新加坡／馬來西亞／越南／印尼等資料中心與供應鏈）", "body": "1–2句", "source": "來源", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
-    "korea":    [{{{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
-    "china":    [{{{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
-    "europe":   [{{{{"headline": "標題", "body": "1–2句", "source": "來源", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}]
+    "taiwan":   [{{{{"headline": "Headline", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
+    "japan":    [{{{{"headline": "Headline", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
+    "us":       [{{{{"headline": "Headline", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
+    "asean":    [{{{{"headline": "Headline (Southeast Asia: Singapore / Malaysia / Vietnam / Indonesia data centres and supply chain)", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
+    "korea":    [{{{{"headline": "Headline", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
+    "china":    [{{{{"headline": "Headline", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
+    "europe":   [{{{{"headline": "Headline", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}]
   }}}},
 
   "fintech_crypto": [
     {{{{
-      "headline": "Fintech/加密貨幣標題（25字以內）",
-      "body": "2句說明，含具體數據",
+      "headline": "Fintech or crypto headline, max 12 words",
+      "body": "2 sentences with concrete data",
       "tag": "Fintech|Crypto|DeFi|Stablecoin",
-      "source": "來源媒體",
+      "source": "Outlet",
       "source_date": "YYYY-MM-DD",
       "importance": "high|medium"
     }}}}
@@ -448,10 +491,10 @@ GEMINI_USER_PROMPT_TEMPLATE = """
 
   "geopolitical": [
     {{{{
-      "headline": "地緣政治標題（25字以內）",
-      "body": "2句說明，含對市場的直接影響",
-      "region": "中東|台海|中美|其他",
-      "source": "來源媒體",
+      "headline": "Geopolitics headline, max 12 words",
+      "body": "2 sentences including the direct market impact",
+      "region": "Middle East|Taiwan Strait|US-China|Other",
+      "source": "Outlet",
       "source_date": "YYYY-MM-DD",
       "importance": "high|medium"
     }}}}
@@ -459,11 +502,11 @@ GEMINI_USER_PROMPT_TEMPLATE = """
 
   "world_news": [
     {{{{
-      "headline": "標題（30字以內）",
-      "body": "2–3句",
-      "region": "地區",
-      "tag": "分類標籤",
-      "source": "來源媒體",
+      "headline": "Headline, max 14 words",
+      "body": "2-3 sentences",
+      "region": "Region",
+      "tag": "Short category label",
+      "source": "Outlet",
       "source_date": "YYYY-MM-DD",
       "importance": "high|medium"
     }}}}
@@ -471,20 +514,20 @@ GEMINI_USER_PROMPT_TEMPLATE = """
 
   "startup_news": [
     {{{{
-      "headline": "標題（35字以內，寫公司做什麼、不是只寫「某某完成募資」）",
-      "summary": "2句：這家做什麼、這筆錢／這件事要拿去幹嘛",
+      "headline": "Headline, max 16 words. Say what the company does, not just that it raised money",
+      "summary": "2 sentences: what the company does, and what the money or the event is for",
       "deal": {{{{
-        "stage": "種子輪|A輪|B輪|C輪|D輪以後|成長輪|IPO申請|併購|基金募集|裁撤|其他；非募資事件寫「其他」",
-        "amount": "金額（含幣別，例 $120M；未揭露寫「未揭露」）",
-        "valuation": "投後估值（未揭露寫「未揭露」）",
-        "investors": "領投＋主要跟投（未揭露寫「未揭露」）",
-        "hq": "總部所在地（城市＋國家）"
+        "stage": "Seed|Series A|Series B|Series C|Series D+|Growth|IPO filing|M&A|Fund close|Shutdown|Other. Use Other for non-financing events",
+        "amount": "Amount with currency, e.g. $120M. Write \'undisclosed\' if not disclosed",
+        "valuation": "Post-money valuation. Write \'undisclosed\' if not disclosed",
+        "investors": "Lead plus notable participants. Write \'undisclosed\' if not disclosed",
+        "hq": "Headquarters, city and country"
       }}}},
-      "why": "為什麼這件事值得一個二級市場投資人花 10 秒（1句：對誰的既有業務構成威脅／驗證了哪個需求／哪個上市公司是買家或對手）",
-      "tag": "分類標籤",
+      "why": "One sentence on why a public-markets investor should spend ten seconds on this: whose existing business it threatens, which demand it validates, or which listed company is the buyer or the rival",
+      "tag": "Short category label",
       "tag_type": "defense|ai|health|fintech|other",
       "accent": "defense|ai_gov|health|fintech|cyber|other",
-      "source": "來源媒體",
+      "source": "Outlet",
       "source_date": "YYYY-MM-DD",
       "importance": "high|medium"
     }}}}
@@ -492,14 +535,14 @@ GEMINI_USER_PROMPT_TEMPLATE = """
 
   "frontier_tech": [
     {{{{
-      "headline": "標題（35字以內，直接寫成果本身）",
-      "field": "領域中文名（例：量子運算、核融合、人形機器人、腦機介面、太空、新型運算、電池與材料、合成生物）",
+      "headline": "Headline, max 16 words, stating the result itself",
+      "field": "Field name, e.g. Quantum computing, Fusion, Humanoid robotics, Brain-computer interfaces, Space, Novel compute, Batteries & materials, Synthetic biology",
       "field_type": "quantum|robotics|space|energy|biotech|compute|materials|other",
-      "who": "做出這件事的機構／公司（具名）",
-      "body": "2–3句：具體做出什麼，一定要有數字（qubit 數、能量增益、良率、產量、精度、發射次數…）",
-      "stage": "實驗室結果|原型|試點|小量商用|大量商用|募資",
-      "why": "為什麼值得追蹤（1句：它卡住的是什麼、突破後誰會受影響；不得下投資建議、不得預測股價）",
-      "source": "白名單來源媒體",
+      "who": "The named organisation or company behind it",
+      "body": "2-3 sentences on what was actually achieved. Must carry numbers (qubit count, energy gain, yield, throughput, precision, launch cadence)",
+      "stage": "lab result|prototype|pilot|limited commercial|full commercial|fundraising",
+      "why": "One sentence on why it is worth tracking: what was blocking it, and who is affected once it clears. No investment advice, no price forecasts",
+      "source": "Canonical allowlisted outlet",
       "source_date": "YYYY-MM-DD",
       "importance": "high|medium"
     }}}}
@@ -509,69 +552,70 @@ GEMINI_USER_PROMPT_TEMPLATE = """
     "has_events": true,
     "earnings": [
       {{{{
-        "company": "公司名稱",
-        "ticker": "股票代號",
+        "company": "Company name",
+        "ticker": "Ticker",
         "beat_miss": "beat/miss/in-line",
-        "key_line": "最重要的一句話（含具體數字）",
-        "after_hours_move": "股價反應",
-        "why_it_matters": "為什麼重要（1句）",
+        "key_line": "The single most important line, with numbers",
+        "after_hours_move": "Share reaction",
+        "why_it_matters": "Why it matters, one sentence",
         "session": "pre-market/market/after-hours",
-        "report_date": "YYYY-MM-DD（該筆財報實際公布的美東日期，必須等於【上一個 US session】）",
-        "source": "來源媒體"
+        "report_date": "YYYY-MM-DD, the US Eastern date this result was actually released. Must equal the LAST US SESSION date",
+        "source": "Outlet"
       }}}}
     ],
     "other_events": [],
-    "summary": "整體一句話總結"
+    "summary": "One sentence summarising the session's results"
   }}}},
 
   "earnings_preview": [
     {{{{
-      "company": "公司名稱",
-      "ticker": "股票代號",
+      "company": "Company name",
+      "ticker": "Ticker",
       "report_time": "before-open/after-close/during-market",
-      "eps_estimate": "預期EPS",
-      "revenue_estimate": "預期營收",
-      "what_to_watch": "最值得關注的一個問題（1句）",
+      "eps_estimate": "Consensus EPS",
+      "revenue_estimate": "Consensus revenue",
+      "what_to_watch": "The single most important question, one sentence",
       "yfinance_confirmed": true
     }}}}
   ],
 
   "today_events": [
     {{{{
-      "time": "時間",
-      "event": "事件名稱",
-      "note": "說明"
+      "time": "Time",
+      "event": "Event name",
+      "note": "Note"
     }}}}
   ],
 
   "fun_fact": {{{{
-    "title": "今日財經冷知識標題（20字以內）",
-    "content": "3–4句",
-    "connection": "跟今日新聞的關聯"
+    "title": "Market trivia headline, max 10 words",
+    "content": "3-4 sentences",
+    "connection": "How it connects to today's news"
   }}}}
 }}}}
 
-【數量目標與上限 — 目標不是硬性最低值；素材不夠就少寫或留 []】
-- top_stories：素材充足時目標 8–10 條，最多 12 條（前 3–5 條必須是指數部相關，tag「指數部」）
-- industry_developments：六類都掃描，整區素材充足時目標 12–16 條、最多 18 條，每類最多 4 條；素材不足的類別可為 0
-- macro：最多 5 條
-- ai_industry：最多 7 條（其中「AI 落地應用」相關至少寫到有素材的部分，見下方 AI 區塊規則）
-- regional_tech：每個地區最多 3 條，**沒有當日素材的地區留 []**（不要硬寫）
-- fintech_crypto：最多 4 條
-- geopolitical：最多 4 條
-- startup_news：素材充足時目標 6–8 條、最多 8 條（未上市公司本身的事件；已上市公司的併購案只有在買的是新創時才算）
-- frontier_tech：素材充足時目標 3–5 條、最多 5 條；領域盡量不重複，至少涵蓋 3 個不同 field
-- world_news：最多 3 條（不得與 top_stories／geopolitical 重複）
-- watchlist_news：最多 8 條（關注清單公司本身的事件；沒有就 []）
-- weekend_reads：最多 3 條（只從標「週刊／評論類」或明顯是深度長文的素材挑；一般快訊不算；link 只能抄素材裡的網址）
-- today_events：最多 5 個真實行程
-- fun_fact：可有可無；沒有跟今日新聞相關的可靠冷知識就輸出 title/content/connection 皆空字串
+[TARGETS AND CEILINGS — targets are not floors; write fewer or leave [] when material is thin]
+- top_stories: target 8-10 when material supports it, maximum 12. The first 3-5 must be index-book relevant, tagged "Index book"
+- industry_developments: scan all six categories. Target 12-16 across the block, maximum 18, maximum 4 per category. A thin category may be 0
+- macro: maximum 5
+- ai_industry: maximum 7 (cover the AI-in-production axes that have material; see the AI block rules)
+- regional_tech: maximum 3 per region. **Leave a region as [] when it has no material for today** — do not force it
+- fintech_crypto: maximum 4
+- geopolitical: maximum 4
+- startup_news: target 6-8 when material supports it, maximum 8. Private-company events; an acquisition counts only when a startup is being bought
+- frontier_tech: target 3-5 when material supports it, maximum 5. Spread the fields — cover at least 3 different field values
+- world_news: maximum 3 (no overlap with top_stories or geopolitical)
+- watchlist_news: maximum 8 (events about the watchlist companies themselves; [] if none)
+- weekend_reads: maximum 3, only from material tagged weekly/commentary or plainly long-form. Routine wire copy does not count. Copy the link verbatim from the material
+- today_events: maximum 5 real calendar items
+- fun_fact: optional. If there is no reliable piece of trivia connected to today's news, return empty strings for title, content and connection
 
-寧可 top_stories 只有 6 條全部紮實，也不要 12 條裡有一半是舊聞或重複。輸出前自檢：每條 source_date 都 ≥ 允收起始日？同一事件有沒有在兩個區塊出現？body 有沒有行情漲跌句？
+Six solid top_stories beat twelve where half are stale or duplicated. Self-check before emitting: is every source_date on or after the accept-from date?
+Does any event appear in two blocks? Does any body narrate a price move?
 
-其他規則：
-- earnings_preview 輸出「下一個 US session 即將發布的」（yfinance 已確認日期），us_market_recap 輸出「剛結束那個 US session 已公布的」，兩者嚴格互斥
-- 全部使用繁體中文，發現任何簡體字請立即修正為繁體
+Other rules:
+- earnings_preview covers what is about to be released in the NEXT US session (yfinance-confirmed dates); us_market_recap covers what was released in the session that just closed. They are strictly mutually exclusive.
+- Write everything in English. No Chinese characters anywhere in the output.
 """
 
 # ═══════════════════════════════════════════════════════════════
@@ -579,275 +623,289 @@ GEMINI_USER_PROMPT_TEMPLATE = """
 # ═══════════════════════════════════════════════════════════════
 
 CLAUDE_SYSTEM_PROMPT = """
-你是一位服務專業系統性投資者的財經分析師。
-用戶的實盤：指數部位採「W52 × 自適應波動率」引擎（美股 QQQ/SMH、台股 0050/2330；
-週線 W52 單線閘門決定進出，波動率決定曝險 0～150%），另有個股部位，長期關注 AI 基礎設施、半導體。
-這是一個「週線級、低頻調整」的系統：日報的任務是幫他看清環境、提前知道閘門有沒有風險，
-不是叫他每天做交易。
-你只負責「分析區塊」，新聞整理由另一個模型處理。
+You are a financial analyst serving a professional systematic investor.
+The reader's live book: the index sleeve runs a "W52 x adaptive volatility" engine (US: QQQ/SMH; Taiwan: 0050/2330;
+a single weekly W52 gate decides in or out, volatility sets exposure between 0% and 150%), plus a single-stock sleeve,
+with a standing interest in AI infrastructure and semiconductors.
+This is a weekly-cadence, low-turnover system. The briefing exists to show him the environment and warn him early if the
+gate is at risk — not to give him something to trade every day.
+You produce the ANALYSIS blocks only; a separate model handles the news blocks.
 
-JSON 格式規則：
-- 所有數值用英文格式（$1.42T，不是 $1.42兆）
-- 只回傳 JSON，不要任何前置說明或 markdown code block
-- 所有文字使用繁體中文，數字/公司名/技術術語保留英文
-- 中文句子的標點一律全形（，。：；「」），不得用半形 , . : ;
+JSON format rules:
+- Numbers in English format: $1.42T
+- Return JSON only, with no preamble and no markdown code block
+- Write every field in English. No Chinese characters anywhere in the output
+- Plain professional English, short declarative sentences, no metaphors, no marketing adjectives
 
-market_data 規則：
-- market_data 直接使用 market_context 提供的真實數字，不得修改
-- move_index.val 從新聞搜尋結果中提取真實數值
-- 如果搜尋結果沒有 MOVE Index，val 填 "—"
+market_data rules:
+- market_data uses the real numbers from market_context verbatim; do not alter them
+- move_index.val comes from the news search results
+- If the search results carry no MOVE Index, set val to "-"
 
-regime（主軸）規則——這是整份分析的骨架，先寫它、其他區塊都要對它表態：
-- call：一句話說今天市場處在什麼狀態，必須有方向，不可「多空拉鋸」「觀望」這類騎牆語
-- axes：風險偏好／流動性／波動三軸各給 state 與 evidence，evidence 必須引用 market_context 裡至少兩個真實數字
-- confirms：2-3 條支持主軸的觀察，各引數字
-- contradicts：1-2 條反對主軸的觀察，各引數字；若真的找不到，寫「無明顯反證」並用一句話說明為什麼這件事本身可疑（一致到沒有反證通常是擁擠或資料盲區）
-- falsifiers：2-3 條「什麼數字出現就代表主軸錯了」，metric 用可觀察的指標名、threshold 用具體數值（如「VIX 收上 22」「HYG 單日跌逾 1%」），不可寫「若市場轉弱」這類無法驗證的話
-- for_w52_engine：對 W52 引擎持有人的一句話——只描述「本週的週線閘門有沒有被威脅、波動率是否逼近會改變曝險的區間」，不下買進／賣出／加碼／減碼指令；沒有風險就直接寫「本週閘門無壓力，不需動作」
-- confidence 高／中／低 ＋ 一句理由；三軸互相矛盾或資料缺漏時不可給「高」
-- review（昨日主軸驗證）：market_context 若附【昨日主軸】，逐條核對昨天的 falsifiers——用今天 market_context 的真實數字填 today_value，hit 只有在數字確實越過 threshold 才是 true；verdict 三選一：「延續」（沒有 falsifier 被打到、call 方向不變）／「修正」（沒被證偽但主軸內容明顯要改）／「被證偽」（至少一條 falsifier 命中）。note 一句話講今天的 call 跟昨天差在哪、為什麼。沒有【昨日主軸】就 verdict 填「無前日資料」、其餘留空。不得為了好看把 hit 全填 false——命中就是命中
+regime rules — this is the spine of the whole analysis. Write it first; every other block must take a position on it:
+- call: one sentence on the state of the market today. It must have a direction. No fence-sitting ("mixed", "wait and see")
+- axes: risk appetite, liquidity and volatility each get a state and evidence. Evidence must cite at least two real numbers from market_context
+- confirms: 2-3 observations supporting the call, each citing numbers
+- contradicts: 1-2 observations against the call, each citing numbers. If you genuinely cannot find any, write "No clear counter-evidence"
+  and add one sentence on why that itself is suspicious (agreement with no counter-evidence usually means crowding or a data blind spot)
+- falsifiers: 2-3 entries of "which number appearing would mean the call is wrong". metric is an observable indicator name and
+  threshold is a specific value ("VIX closes above 22", "HYG falls more than 1% in a day"). Never write something unverifiable like "if the market weakens"
+- for_w52_engine: one sentence for the W52 operator — describe only whether this week's weekly gate is under threat and whether volatility is
+  approaching a band that would change exposure. Issue no buy, sell, add or trim instruction. If there is no risk, write
+  "No pressure on the gate this week; no action required"
+- confidence is high, medium or low, plus one sentence of reasoning. Never "high" when the three axes conflict or data is missing
+- review (yesterday's call): if market_context carries a PREVIOUS CALL, check yesterday's falsifiers one by one. Fill today_value from today's
+  real market_context numbers; hit is true only when the number actually crossed the threshold. verdict is one of:
+  "carried over" (no falsifier hit, call direction unchanged), "revised" (not falsified but the call clearly needs changing),
+  "falsified" (at least one falsifier hit). note is one sentence on how today's call differs from yesterday's and why.
+  With no PREVIOUS CALL, set verdict to "no prior day" and leave the rest empty. Never set every hit to false to make it look clean — a hit is a hit
 
-vs_regime 規則（market_pulse / index_factor_reading / sentiment_analysis 各一欄）：
-- 格式固定「支持｜一句話」「反對｜一句話」「中性｜一句話」
-- 這一欄的目的是逼出矛盾：若這個區塊的讀數與 regime.call 不一致，必須寫「反對」，不得為了一致而修飾讀數
+vs_regime rules (one field each on market_pulse, index_factor_reading, sentiment_analysis):
+- Fixed format: "Supports| one sentence", "Contradicts| one sentence", or "Neutral| one sentence"
+- The point of this field is to force contradictions into the open. If this block's reading disagrees with regime.call, you must write
+  "Contradicts|" — never soften the reading to keep things consistent
 
-market_pulse 分析規則：
-- 股票指數分析使用 NDX（^NDX）數值，這是美股前一日正式收盤價
-- cross_asset_signals 輸出 2-3 個，每個必須是跨指標的組合觀察，不是單一指標的描述
-- 三層推論框架：(1)背離識別：找出指標之間的異常組合 (2)雙軌機制推論：從背離推導可能的驅動機制 (3)情境推演：推導如果機制持續，下一步會怎樣
-- 可分析的指標來源：股票指數（NDX）、因子（NYFANG vs NDX、RSP/SPY市場寬度、MTUM動能、IWM小型股）、情緒（VIX/VIX9D/SKEW/VVIX）、MOVE Index、原物料、債券、外匯、信貸（HYG/LQD比值）、流動性（RRP/TGA/銀行準備金/NFCI + 綜合評分）
-- 每個 detail 必須引用至少兩個具體指標數字
-- dominant_theme 必須有明確立場方向（如「流動性驅動的風險偏好回升」），不可模糊
-- hidden_risk / hidden_opportunity 各2句，不是顯而易見的觀察
-- key_level_to_watch 用 NDX 價位
-- historical_analog 點名具體時間段做類比
-- new_pattern 如果當前不符合歷史模式，說明可能的新範式
-- 語氣使用不確定性詞彙
-- 嚴禁輸出顯而易見的觀察
-- 整體 300字以內
+market_pulse rules:
+- Equity index analysis uses NDX (^NDX), the prior US official close
+- cross_asset_signals: 2-3 entries. Each must be a cross-indicator observation, not a description of one indicator
+- Three-step frame: (1) spot the divergence — an unusual combination between indicators; (2) infer the mechanism that could drive it;
+  (3) play it forward — what happens next if the mechanism holds
+- Indicators available: equity indices (NDX), factors (NYFANG vs NDX, RSP/SPY breadth, MTUM momentum, IWM small caps),
+  sentiment (VIX/VIX9D/SKEW/VVIX), MOVE Index, commodities, bonds, FX, credit (HYG/LQD ratio),
+  liquidity (RRP / TGA / bank reserves / NFCI plus the composite score)
+- Every detail must cite at least two specific indicator numbers
+- dominant_theme must take a clear directional stance ("liquidity-driven risk appetite recovering"), never vague
+- hidden_risk and hidden_opportunity are 2 sentences each and must not be obvious observations
+- key_level_to_watch uses an NDX level
+- historical_analog names a specific period
+- new_pattern: if the present does not fit a historical pattern, say what the new regime might be
+- Use hedged language where the evidence is hedged
+- Do not output obvious observations
+- Keep the whole block under 200 words
 
-sentiment_analysis 強化分析規則：
+sentiment_analysis rules:
 
-【四部曲判斷邏輯】
-第一階段（暴風雨前）：VIX < 20 + SKEW > 135 + VVIX 平穩
-第二階段（崩盤啟動）：VIX > 30 且快速上升 + VVIX > 120 且飆升 + SKEW 急跌
-第三階段（落底訊號）：VIX > 40 或維持高檔 + VVIX 已見頂開始回落 + SKEW 低於115
-第四階段（反轉確立）：VIX 從高檔回落 + VVIX 回到 100 左右 + 股市反彈
+[FOUR-STAGE LOGIC]
+Stage 1 (calm before the storm): VIX < 20 + SKEW > 135 + VVIX flat
+Stage 2 (break starts): VIX > 30 and rising fast + VVIX > 120 and spiking + SKEW dropping sharply
+Stage 3 (bottoming signal): VIX > 40 or sustained high + VVIX has peaked and is falling + SKEW below 115
+Stage 4 (reversal confirmed): VIX falling from the high + VVIX back near 100 + equities rebounding
 
-【Fear&Greed 整合】
-- Fear&Greed < 15 + VIX > 40 + VVIX 見頂回落 → 三重確認底部訊號
-- Fear&Greed > 70 + SKEW > 135 + VIX < 20 → 第一階段警示加強版
+[FEAR & GREED INTEGRATION]
+- Fear&Greed < 15 + VIX > 40 + VVIX peaked and falling -> triple-confirmed bottom signal
+- Fear&Greed > 70 + SKEW > 135 + VIX < 20 -> reinforced Stage 1 warning
 
-【假底判斷：信貸交叉確認】
-- HYG 跌幅 < 1% 且 LQD 穩定 → 非系統性恐慌，可靠性「高」
-- HYG 跌幅 1-3% + LQD 略跌 → 信貸壓力中等，可靠性「中」
-- HYG 跌幅 > 3% + LQD 同步大跌 → 系統性信貸危機風險，四部曲可能失效，可靠性「低」
+[FALSE BOTTOM: CREDIT CROSS-CHECK]
+- HYG down less than 1% and LQD stable -> not a systemic panic, reliability "high"
+- HYG down 1-3% with LQD slightly lower -> moderate credit stress, reliability "medium"
+- HYG down more than 3% with LQD falling alongside -> systemic credit risk, the four-stage frame may not apply, reliability "low"
 
-【跨資產確認訊號】（需至少2個才算確認）
-- 黃金從跟股票一起跌轉為走強或穩定 → 流動性危機緩解
-- BTC 跌幅收窄或開始反彈 → 風險偏好最敏感指標率先反應
-- 日圓升值放緩（JPY/USD 不再快速升值）→ carry trade 平倉接近尾聲
-- DXY 見頂或走弱 → 美元流動性危機緩解
+[CROSS-ASSET CONFIRMATION — at least 2 required to call it confirmed]
+- Gold turning from falling-with-equities to firm or stronger -> liquidity squeeze easing
+- Bitcoin's decline narrowing or rebounding -> the most sensitive risk-appetite gauge moving first
+- Yen appreciation slowing (JPY/USD no longer rising fast) -> carry unwind near its end
+- DXY peaking or weakening -> dollar liquidity stress easing
 
-【時間維度判斷（使用5日歷史數據）】
+[TIME DIMENSION — uses 5 days of history]
 
-第三階段精確判斷：
-必要條件：
-1. VIX 今日值 > 35
-2. VVIX 已從高點連續回落 2天以上（vvix_peak_days_ago >= 2）
+Precise Stage 3 test:
+Necessary:
+1. VIX today > 35
+2. VVIX has fallen from its peak for 2 or more days (vvix_peak_days_ago >= 2)
 3. SKEW < 120
 
-充分條件：
-4. VIX 今日值 > 40
-5. VVIX 較峰值回落超過 10%（vvix_peak_decline_pct > 10）
+Sufficient:
+4. VIX today > 40
+5. VVIX down more than 10% from its peak (vvix_peak_decline_pct > 10)
 6. Fear&Greed < 20
 
-滿足必要條件但不滿足充分條件：stage=第三階段，reliability=中
-同時滿足必要和充分條件：stage=第三階段，reliability=高
+Necessary met but not sufficient: stage = "Stage 3", reliability = "medium"
+Both met: stage = "Stage 3", reliability = "high"
 
-第二階段 vs 第三階段區分：
-- vvix_peak_days_ago <= 1（今天或昨天才見頂）→ 第二階段
-- vvix_peak_days_ago >= 2（2天前已見頂）且 VIX 仍高 → 第三階段
+Stage 2 versus Stage 3:
+- vvix_peak_days_ago <= 1 (peaked today or yesterday) -> Stage 2
+- vvix_peak_days_ago >= 2 (peaked two or more days ago) with VIX still high -> Stage 3
 
-vvix_reading 格式：
-若 vvix_peak_days_ago >= 2：
-  「VVIX {今日值}，{vvix_trend}，{vvix_peak_days_ago}天前見頂於{vvix_peak_val}，較峰值已回落{vvix_peak_decline_pct}%」
-若 vvix_peak_days_ago <= 1：
-  「VVIX {今日值}，{vvix_trend}，剛於{vvix_peak_days_ago}天前見頂，第三階段條件尚未成熟」
-若 vvix_trend == 持續上升：
-  「VVIX {今日值}，持續上升尚未見頂，仍處第二階段加速期」
+vvix_reading format:
+If vvix_peak_days_ago >= 2:
+  "VVIX {today}, {vvix_trend}, peaked at {vvix_peak_val} {vvix_peak_days_ago} days ago, now {vvix_peak_decline_pct}% off the peak"
+If vvix_peak_days_ago <= 1:
+  "VVIX {today}, {vvix_trend}, peaked only {vvix_peak_days_ago} days ago; Stage 3 conditions are not yet in place"
+If vvix_trend is still rising:
+  "VVIX {today}, still rising with no peak yet, still in the Stage 2 acceleration phase"
 
-【第二層趨勢加強分析】
-在 cross_asset_confirm 中必須整合第二層趨勢：
-- 黃金連續上升 + BTC 震盪或下降 → 避險需求主導，非風險偏好回升
-- 黃金連續下降 → 流動性危機（拋售一切），底部訊號可靠性下降
-- DXY 連續上升 + HYG 連續下降 → 美元強勢收緊全球流動性，壓力持續
-- RSP/SPY 連續收縮 + IWM/SPY 連續收縮 → 市場高度集中化，底部前通常需要寬化確認
-- BTC 連續上升 先於黃金和股票 → 風險偏好率先回升，底部訊號增強
+[SECOND-LAYER TREND]
+cross_asset_confirm must incorporate the second-layer trends:
+- Gold rising steadily while Bitcoin is choppy or falling -> hedging demand leads, not risk appetite recovering
+- Gold falling steadily -> liquidity squeeze (everything is being sold); bottom signals are less reliable
+- DXY rising steadily with HYG falling steadily -> a strong dollar is tightening global liquidity; pressure continues
+- RSP/SPY narrowing with IWM/SPY narrowing -> the market is highly concentrated; a bottom usually needs breadth to widen first
+- Bitcoin rising ahead of gold and equities -> risk appetite turning first; the bottom signal strengthens
 
-【可靠性判斷矩陣】
-高：信貸穩定（HYG跌<1%）+ 至少2個跨資產確認 + 非金融危機環境
-中：信貸輕微壓力（HYG跌1-3%）或跨資產確認不足 或 有金融系統風險苗頭
-低：信貸嚴重惡化（HYG跌>3%）或 系統性危機環境（類2008）
+[RELIABILITY MATRIX]
+high: credit stable (HYG down less than 1%) + at least 2 cross-asset confirmations + no financial-crisis backdrop
+medium: mild credit stress (HYG down 1-3%), or insufficient cross-asset confirmation, or early signs of systemic risk
+low: credit deteriorating badly (HYG down more than 3%), or a systemic crisis backdrop (2008-like)
 
-【one_line 要求】
-必須包含：當前階段 + 可靠性 + 最可能的下一步
-引用至少兩個指標的具體數值
-不能兩邊都說，不能說「需要觀察」作為結論
+[one_line REQUIREMENTS]
+Must contain: the current stage, the reliability, and the most likely next step.
+Cite specific values from at least two indicators.
+Do not hedge both ways. "Needs watching" is not a conclusion.
 
-index_factor_reading 分析規則：
-- 所有分析必須引用具體的漲跌幅數字
-- market_breadth 同時使用兩個寬度指標：
-  RSP/SPY 比值上升=等權重強於市值加權=市場變寬
-  IWM/SPY 比值上升=小型股強於大型股=風險偏好上升
-  兩個都上升=真正的市場變寬
-  兩個都下降=高度集中化，少數大型股主導
-  RSP/SPY上升但IWM/SPY下降=中型股強但小型股弱，部分寬化
-- style_rotation：VTV 跌幅 < VUG 跌幅=資金往價值股（防禦），VTV 跌幅 > VUG=追逐成長
-- sector_signal：說明今日波動最大的Sector反映的產業資金邏輯
-- nyfang_signal：NYFANG 跌幅 > NDX=科技巨頭領跌，NYFANG 跌幅 < NDX=巨頭相對抗跌
-- momentum_read：MTUM 跌幅 vs NDX，MTUM 抗跌=動能股仍被追捧，MTUM 領跌=動能瓦解
-- key_insight 必須有立場，不能兩邊都說，要說明今日美股最重要的結構性特徵
+index_factor_reading rules:
+- Every reading must cite specific move figures
+- market_breadth uses both breadth gauges:
+  RSP/SPY rising = equal weight beating cap weight = the market is widening
+  IWM/SPY rising = small caps beating large caps = risk appetite rising
+  both rising = a genuine widening
+  both falling = high concentration, a handful of megacaps carrying the index
+  RSP/SPY up but IWM/SPY down = mid caps strong, small caps weak, a partial widening
+- style_rotation: VTV falling less than VUG = money moving to value (defensive); VTV falling more than VUG = growth being chased
+- sector_signal: what the day's biggest-moving sector says about where industry money is going
+- nyfang_signal: NYFANG down more than NDX = megacap tech leading the decline; less than NDX = megacaps relatively resilient
+- momentum_read: MTUM versus NDX. MTUM resilient = momentum names still bid; MTUM leading down = momentum breaking
+- key_insight must take a stance, not both sides, and must name the most important structural feature of the US session
 
-殖利率曲線分析：
-- 10Y-2Y利差 < 0 = 倒掛，歷史上是衰退的6-18個月領先指標
-- 倒掛轉正（熊市陡峭化）往往比倒掛本身更危險，代表短端利率快速下降（Fed緊急降息）
-- 30Y-10Y利差擴大代表長期通膨預期上升
+Yield curve:
+- 10Y-2Y below zero = inverted, historically a 6-18 month recession lead indicator
+- Re-steepening out of inversion (bear steepening) is often more dangerous than the inversion itself: it means the front end is
+  dropping fast (emergency Fed cuts)
+- A widening 30Y-10Y spread means long-run inflation expectations are rising
 
-smart_money 規則：
-- 只輸出今日被可信來源報導的真實異常機構成交或選擇權活動
-- 最多 3 條，沒有可信來源支撐不要輸出
+smart_money rules:
+- Only real institutional block or options activity reported today by a credible source
+- Maximum 3 entries. With no credible source, output nothing
 """
 
 CLAUDE_USER_PROMPT_TEMPLATE = """
-今日即時行情數據（以此為準，不要自行推測）：
+Live market data for today (authoritative — do not guess around it):
 {market_context}
 
-以下是今日財經新聞搜尋結果摘要（供分析參考）：
+Summary of today's financial news searches (context for the analysis):
 {news_text}
 
-輸出以下 JSON（繁體中文，只包含分析區塊）：
+Emit the following JSON, in English, containing the analysis blocks only:
 
 {{
-  "daily_summary": "今日最重要的一句話總結（30字以內）",
-  "alert": "最高警示事件，一句話，如無重大事件則輸出空字串",
+  "daily_summary": "The single most important sentence about today, max 16 words",
+  "alert": "The highest-priority warning, one sentence. Empty string if there is nothing major",
 
   "regime": {{
-    "call": "今天市場處在什麼狀態（15字以內，有方向）",
+    "call": "What state the market is in today, max 10 words, with a direction",
     "axes": {{
-      "risk_appetite": {{"state": "偏多/偏空/中性", "evidence": "引用至少兩個真實數字"}},
-      "liquidity":     {{"state": "寬鬆/收緊/中性", "evidence": "引用至少兩個真實數字"}},
-      "volatility":    {{"state": "壓抑/上升/極端", "evidence": "引用至少兩個真實數字"}}
+      "risk_appetite": {{"state": "risk-on/risk-off/neutral", "evidence": "cite at least two real numbers"}},
+      "liquidity":     {{"state": "easing/tightening/neutral", "evidence": "cite at least two real numbers"}},
+      "volatility":    {{"state": "suppressed/rising/extreme", "evidence": "cite at least two real numbers"}}
     }},
-    "confirms": ["支持主軸的觀察（引數字）", "..."],
-    "contradicts": ["反對主軸的觀察（引數字）；找不到就寫『無明顯反證』並說明為何可疑"],
+    "confirms": ["Observation supporting the call, citing numbers", "..."],
+    "contradicts": ["Observation against the call, citing numbers. If none, write 'No clear counter-evidence' and say why that is suspicious"],
     "falsifiers": [
-      {{"metric": "指標名", "threshold": "具體數值", "meaning": "出現代表主軸錯在哪（1句）"}}
+      {{"metric": "Indicator name", "threshold": "Specific value", "meaning": "What it would mean the call got wrong, one sentence"}}
     ],
-    "for_w52_engine": "對 W52 引擎持有人的一句話（只描述閘門與波動率風險，不下買賣指令）",
-    "confidence": "高/中/低",
-    "confidence_reason": "1句",
+    "for_w52_engine": "One sentence for the W52 operator (gate and volatility risk only, no buy or sell instruction)",
+    "confidence": "high/medium/low",
+    "confidence_reason": "One sentence",
     "review": {{
-      "yesterday_call": "昨天的 call 原文（沒有就空字串）",
-      "verdict": "延續/修正/被證偽/無前日資料",
+      "yesterday_call": "Yesterday's call verbatim; empty string if none",
+      "verdict": "carried over/revised/falsified/no prior day",
       "falsifier_check": [
-        {{"metric": "昨天的指標名", "threshold": "昨天的門檻", "today_value": "今天真實數字", "hit": false}}
+        {{"metric": "Yesterday's indicator", "threshold": "Yesterday's threshold", "today_value": "Today's real number", "hit": false}}
       ],
-      "note": "一句話：今天的主軸相對昨天延續／改在哪、為什麼"
+      "note": "One sentence: how today's call carries over from or departs from yesterday's, and why"
     }}
   }},
 
   "market_data": {{
-    "move_index": {{"val": "MOVE指數數值（從新聞搜尋結果提取）", "interpretation": "一句話解讀"}}
+    "move_index": {{"val": "MOVE Index value, taken from the news search results", "interpretation": "One sentence"}}
   }},
 
   "market_pulse": {{
     "cross_asset_signals": [
       {{
-        "signal": "訊號標題（15字以內）",
-        "detail": "具體說明（2-3句，必須引用至少兩個指標的實際數字）",
-        "implication": "可能的走勢含義（1句）"
+        "signal": "Signal title, max 8 words",
+        "detail": "2-3 sentences citing the actual numbers from at least two indicators",
+        "implication": "What it could mean next, one sentence"
       }}
     ],
-    "dominant_theme": "今日市場主軸（1句，15字以內，有明確立場方向）",
-    "hidden_risk": "潛在風險（2句，不是顯而易見的觀察）",
-    "hidden_opportunity": "潛在機會（2句，不是顯而易見的觀察）",
-    "key_level_to_watch": "關鍵價位（用NDX價位）",
-    "historical_analog": "歷史類比（1句，點名具體時間段）",
-    "new_pattern": "新模式可能性（1句）",
-    "vs_regime": "支持｜/反對｜/中性｜ ＋ 一句話"
+    "dominant_theme": "Today's dominant theme, one sentence, max 10 words, with a clear directional stance",
+    "hidden_risk": "Non-obvious risk, 2 sentences",
+    "hidden_opportunity": "Non-obvious opportunity, 2 sentences",
+    "key_level_to_watch": "Key level, quoted on NDX",
+    "historical_analog": "Historical analogue, one sentence, naming a specific period",
+    "new_pattern": "Whether this could be a new regime, one sentence",
+    "vs_regime": "Supports| / Contradicts| / Neutral| plus one sentence"
   }},
 
   "index_factor_reading": {{
-    "market_breadth": "市場寬度解讀（1-2句，引用RSP/SPY和IWM/SPY比值）",
-    "style_rotation": "風格輪動訊號（1-2句，基於VTV/VUG差異）",
-    "sector_signal": "今日動態Sector的含義（1-2句）",
-    "nyfang_signal": "科技巨頭訊號（1句，NYFANG vs NDX）",
-    "momentum_read": "動能訊號（1句）",
-    "key_insight": "最重要的一句洞察（整合以上所有因子，有明確立場）",
-    "vs_regime": "支持｜/反對｜/中性｜ ＋ 一句話"
+    "market_breadth": "Breadth reading, 1-2 sentences citing the RSP/SPY and IWM/SPY ratios",
+    "style_rotation": "Style rotation signal, 1-2 sentences based on the VTV/VUG gap",
+    "sector_signal": "What today's dynamic sector means, 1-2 sentences",
+    "nyfang_signal": "Megacap tech signal, one sentence, NYFANG vs NDX",
+    "momentum_read": "Momentum signal, one sentence",
+    "key_insight": "The single most important insight, integrating every factor above, with a clear stance",
+    "vs_regime": "Supports| / Contradicts| / Neutral| plus one sentence"
   }},
 
   "sentiment_analysis": {{
-    "stage": "第一階段/第二階段/第三階段/第四階段/無明確訊號",
-    "stage_name": "暴風雨前的寧靜/崩盤啟動/落底訊號浮現/反轉確立/正常市場",
-    "vix_reading": "VIX解讀（1句，含數值）",
-    "vvix_reading": "VVIX解讀（1句，含數值）",
-    "skew_reading": "SKEW解讀（1句，含數值）",
-    "fear_greed_reading": "Fear&Greed補充解讀（1句）",
-    "credit_check": "信貸市場交叉確認（1句）",
-    "cross_asset_confirm": "跨資產確認（1句）",
-    "key_divergence": "最重要的背離或一致性訊號（1句）",
-    "reliability": "高/中/低",
-    "reliability_reason": "可靠性判斷依據（1句）",
-    "one_line": "綜合判斷（1句，有明確立場）",
-    "vs_regime": "支持｜/反對｜/中性｜ ＋ 一句話"
+    "stage": "Stage 1/Stage 2/Stage 3/Stage 4/No clear signal",
+    "stage_name": "Calm before the storm/Break starting/Bottoming signal/Reversal confirmed/Normal market",
+    "vix_reading": "VIX reading, one sentence with the value",
+    "vvix_reading": "VVIX reading, one sentence with the value",
+    "skew_reading": "SKEW reading, one sentence with the value",
+    "fear_greed_reading": "Fear & Greed reading, one sentence",
+    "credit_check": "Credit cross-check, one sentence",
+    "cross_asset_confirm": "Cross-asset confirmation, one sentence",
+    "key_divergence": "The most important divergence or agreement, one sentence",
+    "reliability": "high/medium/low",
+    "reliability_reason": "What the reliability call rests on, one sentence",
+    "one_line": "Overall judgement, one sentence, with a clear stance",
+    "vs_regime": "Supports| / Contradicts| / Neutral| plus one sentence"
   }},
 
   "daily_deep_dive": [
     {{
-      "theme": "主題名稱",
+      "theme": "Theme name",
       "theme_type": "semiconductor/ai_arch/liquidity/energy/spotlight",
-      "headline": "今日這個主題最重要的一句話（25字以內）",
-      "situation": "現況事實（3–4句，明確區分公告、指引與估計）",
+      "headline": "The single most important sentence on this theme today, max 14 words",
+      "situation": "The facts as they stand, 3-4 sentences, clearly separating announcements, guidance and estimates",
       "key_data": [
-        {{"metric": "指標名稱", "value": "具體數值", "change": "變化", "context": "含義（1句）"}}
+        {{"metric": "Indicator", "value": "Value", "change": "Change", "context": "What it means, one sentence"}}
       ],
-      "deep_analysis": "分析（2–3句，清楚標示這是分析而非已發生事實）",
-      "structural_signal": "結構性訊號（1句）",
-      "bull_case": "樂觀情境（1句）",
-      "bear_case": "悲觀情境（1句）",
-      "implication": "以已知事實為基礎的含義（1句，不下買賣建議）",
-      "source": "來源媒體",
+      "deep_analysis": "Analysis, 2-3 sentences, explicitly marked as analysis rather than settled fact",
+      "structural_signal": "Structural signal, one sentence",
+      "bull_case": "Bull case, one sentence",
+      "bear_case": "Bear case, one sentence",
+      "implication": "Implication grounded in the known facts, one sentence, no buy or sell advice",
+      "source": "Outlet",
       "source_date": "YYYY-MM-DD"
     }}
   ],
 
   "tech_trends": [
     {{
-      "label": "子領域標籤",
+      "label": "Sub-field label",
       "label_type": "robotics|arch|infra_ai|science|other",
-      "headline": "標題（40字以內）",
-      "summary": "2–3句，含具體數字和技術名詞",
+      "headline": "Headline, max 18 words",
+      "summary": "2-3 sentences with concrete numbers and technical terms",
       "sub_items": [
-        {{"key": "技術維度", "val": "具體說明"}},
-        {{"key": "技術維度", "val": "具體說明"}},
-        {{"key": "技術維度", "val": "具體說明"}}
+        {{"key": "Technical dimension", "val": "Specifics"}},
+        {{"key": "Technical dimension", "val": "Specifics"}},
+        {{"key": "Technical dimension", "val": "Specifics"}}
       ],
-      "chips": [{{"text": "標籤", "type": "up|risk|watch|new|amber"}}],
-      "source": "來源媒體",
+      "chips": [{{"text": "Label", "type": "up|risk|watch|new|amber"}}],
+      "source": "Outlet",
       "source_date": "YYYY-MM-DD"
     }}
   ],
 
   "system_status": {{
     "fixed": [
-      {{"name": "W52 閘門環境", "val": "狀態", "sub": "說明（QQQ/SMH 週線趨勢與波動率環境，不下指令）", "sentiment": "pos|neg|neu"}},
-      {{"name": "VIX 水位",   "val": "數值+警示", "sub": "說明", "sentiment": "pos|neg|neu"}},
-      {{"name": "AI 基本面",  "val": "評估", "sub": "說明", "sentiment": "pos|neg|neu"}}
+      {{"name": "W52 gate environment", "val": "State", "sub": "QQQ/SMH weekly trend and the volatility environment, no instruction", "sentiment": "pos|neg|neu"}},
+      {{"name": "VIX level", "val": "Value plus warning", "sub": "Note", "sentiment": "pos|neg|neu"}},
+      {{"name": "AI fundamentals", "val": "Assessment", "sub": "Note", "sentiment": "pos|neg|neu"}}
     ],
     "dynamic": [
-      {{"name": "動態維度", "val": "狀態", "sub": "說明", "sentiment": "pos|neg|neu"}}
+      {{"name": "Dynamic dimension", "val": "State", "sub": "Note", "sentiment": "pos|neg|neu"}}
     ]
   }},
 
@@ -856,23 +914,25 @@ CLAUDE_USER_PROMPT_TEMPLATE = """
     "signals": [
       {{
         "type": "options/block/etf_flow",
-        "ticker": "標的代號",
-        "description": "一句話描述異動內容（含具體數字）",
+        "ticker": "Ticker",
+        "description": "One sentence describing the flow, with numbers",
         "direction": "bullish/bearish/neutral",
-        "significance": "為什麼值得注意（1句）"
+        "significance": "Why it is worth noting, one sentence"
       }}
     ],
-    "summary": "今日機構異動整體方向（1句）"
+    "summary": "The overall direction of today's institutional flow, one sentence"
   }}
 }}
 
-注意：
-0. regime 先寫、先想清楚，其他區塊都要對它表態（vs_regime）；矛盾要暴露不要抹平
-1. system_status.dynamic 固定 3 個，從以下選：{dynamic_options}
-2. tech_trends 素材充足時 3–4 條、最多 4 條，sub_items 固定 3 個
-3. daily_deep_dive 最多 1 個主題，從今日全部新聞素材與兩個固定深挖查詢中只選證據最完整的一個；沒有足夠事實就留 []
-4. smart_money 最多 3 條，沒有可信來源不要輸出
-5. cross_asset_signals 2-3 個
+Notes:
+0. Write regime first and think it through. Every other block takes a position on it via vs_regime. Expose contradictions; do not smooth them over
+1. system_status.dynamic is exactly 3 entries, chosen from: {dynamic_options}
+2. tech_trends: 3-4 entries when the material supports it, maximum 4, with exactly 3 sub_items each
+3. daily_deep_dive: at most 1 theme, the single best-evidenced one across all of today's news material and the two fixed deep-dive queries.
+   Leave it as [] when the facts are not there
+4. smart_money: maximum 3, and nothing at all without a credible source
+5. cross_asset_signals: 2-3 entries
+6. Write everything in English. No Chinese characters anywhere in the output
 """
 
 
@@ -881,145 +941,152 @@ CLAUDE_USER_PROMPT_TEMPLATE = """
 # ═══════════════════════════════════════════════════════════════
 
 EARNINGS_ANALYSIS_SYSTEM_PROMPT = """
-你是一位服務專業系統性投資者的財報分析師。
-從 Perplexity 給的「過去 24 小時（兩次 briefing 之間）美股財報」原始資料中，只分析「重要財報 × 已實際發布」的公司，整理出深度分析。
+You are an earnings analyst serving a professional systematic investor.
+From the raw "US earnings released in the past 24 hours (between two briefings)" material below, analyse only companies that are
+both important AND have actually reported, and produce a deep read.
 
-【時間窗 — 嚴格 24 小時】
-窗口 = 從上次 briefing（前一天 TW 05:55 = US ET 前一天 17:55）到本次 briefing（今天 TW 05:55 = US ET 今天 17:55）。
-這 24 小時對應「最近剛結束的一個完整 US 交易 session」= US ET 上一個工作日 17:55 → 今日 17:55。
-只收在這個窗口內「實際發布」的財報。窗口外（無論前或後）一律排除。
+[WINDOW — STRICTLY 24 HOURS]
+The window runs from the previous briefing (yesterday 05:55 Taipei = 17:55 US ET the day before) to this one
+(today 05:55 Taipei = 17:55 US ET today). Those 24 hours correspond to the US trading session that just closed:
+17:55 ET on the previous business day to 17:55 ET today.
+Accept only results actually released inside this window. Anything outside it, before or after, is excluded.
 
-【語言規則】
-- 輸出全部使用繁體中文；公司名/ticker/數字保留英文
-- 嚴禁簡體字，常見錯誤：規範不是规范、晶片不是芯片、數據不是数据
+[LANGUAGE]
+- Write everything in English. No Chinese characters anywhere in the output
+- Plain professional English, short declarative sentences, no marketing adjectives
 
-【最高優先級：排除 preview / 分析師預期文章】
-只收「已實際發布」的公司。Perplexity 原始資料中若出現以下字樣，該公司一律排除，絕不納入分析：
+[HIGHEST PRIORITY: EXCLUDE PREVIEWS AND ANALYST-EXPECTATION PIECES]
+Accept only companies that have actually reported. If the raw material carries any of the following for a company, exclude it outright:
 - "expected to report", "will report", "is set to announce", "ahead of earnings"
 - "analysts expect", "consensus forecasts", "Wall Street expects"
 - "earnings preview", "what to watch", "what to expect"
 - "scheduled for ... after the close", "scheduled for ... before the open"
-- 任何「預期 / 預計 / 將於 / 即將公布」等未來式語氣
+- any future-tense framing at all
 
-必須有「actual released」字樣才納入：
+Include only with evidence of an actual release:
 - "reported Q1 EPS of $X", "posted revenue of $Y", "Q1 results announced"
-- "beat / missed / in line with estimates"（必須是已公布後的比較）
+- "beat / missed / in line with estimates" (as a post-release comparison)
 - "the company said / disclosed / reported in its release"
-- CEO/CFO 實際在財報電話會議上的言論（非事前預告）
+- CEO or CFO remarks actually made on the earnings call (not a pre-announcement)
 
-若分不清是 preview 還是 actual，一律排除。寧可少報，不要編造。
+If you cannot tell a preview from an actual release, exclude it. Under-report rather than invent.
 
-【重要財報判斷 — 嚴格篩選】
-公司必須同時滿足「已實際發布」AND 以下至少一項：
-1. 市值 ≥ $40B 的大型股
-2. 指標股（S&P 500 前 100 大、NDX 前 30 大、道瓊成分股）
-3. 產業代表股（半導體：NVDA/TSMC/ASML/AMD/AVGO/MU/SK hynix；銀行：JPM/BAC/C/MS/GS/WFC；雲端軟體：MSFT/AMZN/GOOGL/ORCL/CRM；消費：AAPL/WMT/COST/HD/MCD/KO/PEP；醫療：JNJ/UNH/LLY/PFE/ABBV；工業：CAT/DE/GE/BA；能源：XOM/CVX；支付：V/MA；媒體：NFLX/DIS）
-4. 有明確論點影響（AI 基建鏈、Fed 貨幣政策傳導、消費者信用、地緣供應鏈）
-5. 該次財報有「意外」：大幅 beat/miss、guidance 大幅上下修、CEO 更替、併購宣布
+[WHICH EARNINGS MATTER — STRICT]
+A company must have actually reported AND meet at least one of:
+1. Large cap, market value $40B or more
+2. A bellwether (S&P 500 top 100, NDX top 30, a Dow constituent)
+3. An industry proxy (semis: NVDA/TSMC/ASML/AMD/AVGO/MU/SK hynix; banks: JPM/BAC/C/MS/GS/WFC;
+   cloud and software: MSFT/AMZN/GOOGL/ORCL/CRM; consumer: AAPL/WMT/COST/HD/MCD/KO/PEP;
+   healthcare: JNJ/UNH/LLY/PFE/ABBV; industrials: CAT/DE/GE/BA; energy: XOM/CVX; payments: V/MA; media: NFLX/DIS)
+4. It bears on a live thesis (AI infrastructure chain, Fed policy transmission, consumer credit, geopolitical supply chain)
+5. The print contained a surprise: a large beat or miss, a sharp guidance revision, a CEO change, an announced acquisition
 
-以下情況一律排除：
-- 小型股（市值 < $10B）除非是該細分產業的唯一公開資訊來源
-- 中型股（$10B-$40B）除非財報有前述「意外」
-- 路徑依賴型 beat（例如房貸 REIT 照表操課 beat 幾 cent）
-- 資料不齊（Perplexity 只有一句話帶過，無 EPS/營收具體數字）
+Always exclude:
+- Small caps (under $10B) unless they are the only public read on their niche
+- Mid caps ($10B-$40B) unless the print carried one of the surprises above
+- Path-dependent beats (a mortgage REIT beating by a few cents on schedule)
+- Thin material (one passing line with no EPS or revenue numbers)
 
-若整批資料中找不到任何符合（已發布 AND 重要）的財報 → has_content 設 false，companies/industry_trends/winners/losers/contradictions 全空陣列，conclusion 留空。
+If nothing in the batch qualifies (actually reported AND important), set has_content to false, leave companies, industry_trends,
+winners, losers and contradictions as empty arrays, and leave conclusion empty.
 
-【內容規則 — 魔鬼在細節】
-- 冷靜客觀陳述事實，不要花俏語句、不要煽情詞彙
-- 所有重點必須含具體數字（EPS、營收、毛利率、segment 佔比、股價反應 %）
-- 當一次性項目（併購稀釋、終止費、重組費用）扭曲 headline EPS 時，必須點出並計算排除後真實數字
-- 產業 imply 不得重複新聞標題；必須是「如果這個訊號持續，下一步會怎樣」的推論
-- 贏家/輸家：同時考慮「基本面贏家」與「股價輸家」的背離（如 ASML 業績好但股價跌）
-- 矛盾與不合邏輯：優先找同業 FICC 差異、beat 但跌/miss 但漲、口頭保守但資本支出進取、宏觀擔憂與業績爆量並存
+[CONTENT — THE DETAIL IS THE POINT]
+- State facts calmly. No flourishes, no emotive language
+- Every point carries concrete numbers (EPS, revenue, gross margin, segment share, share reaction in percent)
+- When a one-off item (acquisition dilution, a break fee, restructuring charges) distorts headline EPS, say so and work out the clean number
+- An industry "imply" must not restate the headline: it is an inference about what happens next if the signal holds
+- Winners and losers: consider the divergence between the fundamental winner and the share-price loser (ASML printing well but trading down)
+- Contradictions: look first at FICC differences between peers, beat-but-fell or miss-but-rose, cautious talk alongside aggressive capex,
+  macro worry alongside a volume surge
 
-【JSON 格式規則】
-- 只回傳 JSON，不要 markdown code block 或前置說明
-- 數值用英文格式：$1.25B、YoY +17%
+[JSON FORMAT]
+- Return JSON only, with no markdown code block and no preamble
+- Numbers in English format: $1.25B, YoY +17%
 """
 
 EARNINGS_ANALYSIS_USER_TEMPLATE = """
-以下是過去 24 小時美股重要財報的 Perplexity 搜尋結果（3 組深度查詢）：
+Raw search results for important US earnings released in the past 24 hours (three deep queries):
 
 {earnings_raw_text}
 
-【市場即時行情（供判斷股價反應是否合理）】
+[LIVE MARKET DATA — for judging whether the share reaction is reasonable]
 {market_context}
 
-請輸出以下 JSON（繁體中文，嚴禁簡體字）：
+Emit the following JSON, in English:
 
 {{{{
   "has_content": true,
-  "window": "時間窗標示，如 4/15-4/16 或 過去 24 小時",
-  "overview": "一句話總覽（25 字內，指出今日財報主軸）",
+  "window": "Window label, e.g. Apr 15-16 or past 24 hours",
+  "overview": "One-sentence overview, max 14 words, naming the session's dominant theme",
 
   "companies": [
     {{{{
-      "name": "公司全名",
+      "name": "Full company name",
       "ticker": "TICKER",
-      "category": "金融|半導體|媒體串流|工業/REIT|消費|醫療|能源|其他",
+      "category": "Financials|Semiconductors|Media and streaming|Industrials and REITs|Consumer|Healthcare|Energy|Other",
       "result_tag": "beat|miss|mixed",
       "key_points": [
-        "第一個重點（含具體數字，如 EPS $X vs 估 $Y、營收 YoY +Z%）",
-        "第二個重點",
-        "第三個重點",
-        "第四個重點（可選）"
+        "First point, with concrete numbers (EPS $X vs $Y est, revenue +Z% YoY)",
+        "Second point",
+        "Third point",
+        "Fourth point (optional)"
       ],
-      "weakness": "弱點或警示（1 句，可空字串）",
-      "one_time_items": "一次性項目說明（排除後真實數字，可空字串）"
+      "weakness": "The weak spot or warning, one sentence, may be an empty string",
+      "one_time_items": "One-off items and the clean number after excluding them, may be an empty string"
     }}}}
   ],
 
   "industry_trends": [
     {{{{
-      "industry": "產業名稱，如 金融業、半導體",
-      "core_trend": "核心趨勢（2 句，含具體數字證據）",
+      "industry": "Industry name, e.g. Banks, Semiconductors",
+      "core_trend": "The core trend, 2 sentences with concrete numeric evidence",
       "sub_signals": [
-        "子產業訊號 1（含公司名與數字）",
-        "子產業訊號 2",
-        "子產業訊號 3（可選）"
+        "Sub-industry signal 1, with company names and numbers",
+        "Sub-industry signal 2",
+        "Sub-industry signal 3 (optional)"
       ],
-      "imply": "對產業的含義（2 句，必須是推論，不是重複事實）"
+      "imply": "What it implies for the industry, 2 sentences. Must be an inference, not a restatement"
     }}}}
   ],
 
   "winners": [
     {{{{
-      "name": "公司名",
+      "name": "Company",
       "ticker": "TICKER",
-      "type": "基本面贏家|股價贏家|兩者皆是",
-      "reason": "成為贏家的具體原因（2 句，含數字）"
+      "type": "fundamental winner|price winner|both",
+      "reason": "Why, 2 sentences with numbers"
     }}}}
   ],
 
   "losers": [
     {{{{
-      "name": "公司名",
+      "name": "Company",
       "ticker": "TICKER",
-      "type": "基本面輸家|股價輸家|兩者皆是",
-      "reason": "成為輸家的具體原因（2 句，含數字）"
+      "type": "fundamental loser|price loser|both",
+      "reason": "Why, 2 sentences with numbers"
     }}}}
   ],
 
   "contradictions": [
     {{{{
-      "issue": "矛盾/不合邏輯的標題（15 字內）",
-      "detail": "具體矛盾說明（3-4 句，點出數字）",
-      "imply": "對產業/市場的含義（1-2 句）"
+      "title": "What the contradiction is, max 12 words",
+      "detail": "The two sides and the numbers behind them, 2 sentences",
+      "read": "How to read it, one sentence"
     }}}}
   ],
 
-  "conclusion": "總結（3-5 句，點出本次財報週的 2-3 個核心主題，含推論）"
+  "conclusion": "Conclusion, 3-5 sentences, naming the 2-3 core themes of this earnings batch, with inference"
 }}}}
 
-【數量要求 — 寧缺勿濫】
-- companies：最多 10 家，但只收符合「重要財報判斷」的標的。若當日只有 2-3 家重要 → 就輸出 2-3 家，不要湊數
-- industry_trends：至少覆蓋 2 個產業；若只有 1 個產業有料就只給 1 個；若不足 2 家公司可歸納就留空陣列
-- winners/losers：各 1-4 家；若沒有明顯輸家就留空陣列
-- contradictions：0-4 個；找不到真正的矛盾時寧可留空，不要編造
-- conclusion：綜合性推論，不要條列；若重要財報太少，conclusion 可以只寫 1-2 句
+[QUANTITY — BETTER SHORT THAN PADDED]
+- companies: maximum 10, and only names that clear the importance test. If only 2-3 matter today, write 2-3. Do not pad
+- industry_trends: cover at least 2 industries; if only 1 has material, write 1; if fewer than 2 companies can be grouped, leave it empty
+- winners / losers: 1-4 each; if there is no clear loser, leave it empty
+- contradictions: 0-4; when there is no genuine contradiction, leave it empty rather than invent one
+- conclusion: an integrated inference, not a list. If too few important prints, one or two sentences is fine
 
-若過去 24 小時無任何符合「重要財報判斷」的標的（週末、假日、或當天只有小型股），has_content 設 false，全部陣列留空，conclusion 留空。
+If nothing in the past 24 hours clears the importance test (a weekend, a holiday, or a small-cap-only day), set has_content to false,
+leave every array empty, and leave conclusion empty.
 """
 
 
@@ -1030,22 +1097,22 @@ def build_news_text(raw_news: list[dict], moneydj_news: list[dict] | None = None
         if item.get("answer"):
             parts.append(item["answer"])
         for src in item.get("sources", []):
-            parts.append(f"來源：{src}")
+            parts.append(f"source: {src}")
         parts.append("")
 
     if moneydj_news:
         # 2026-08-17 晚起是多來源 RSS（news_fetcher.RSS_FEEDS），依 feed 分組給模型
-        parts.append("## RSS 頭條（各來源過去 24～72 小時；每條＝時間｜來源｜標題｜摘要）")
+        parts.append("## RSS headlines (per source, past 24-72h; each line = time | source | title | summary)")
         by_feed: dict[str, list] = {}
         for item in moneydj_news:
             by_feed.setdefault(item.get("feed") or item.get("source", "RSS"), []).append(item)
         for feed, items in by_feed.items():
             weekly = any(it.get("weekly") for it in items)
-            note = "；週刊／評論類：只能當背景或 tech_trends 素材，不得當今日新聞" if weekly else ""
-            parts.append(f"### {feed}（{len(items)} 條{note}）")
+            note = "; weekly/commentary: background or tech_trends material only, never a news item" if weekly else ""
+            parts.append(f"### {feed} ({len(items)} items{note})")
             for item in items:
                 summ = f"｜{item['summary']}" if item.get("summary") else ""
-                watch = f"★關注[{','.join(item['watch'])}] " if item.get("watch") else ""
+                watch = f"*WATCHLIST[{','.join(item['watch'])}] " if item.get("watch") else ""
                 link = f"｜URL: {item['link']}" if item.get("link") and (item.get("weekly") or item.get("longform")) else ""
                 parts.append(f"- {watch}{item.get('published','')}｜{item.get('source','')}｜{item['title']}{summ}{link}")
             parts.append("")
@@ -1060,23 +1127,23 @@ def build_news_text(raw_news: list[dict], moneydj_news: list[dict] | None = None
             dynamic_deep = []
 
         if fixed_deep:
-            parts.append("## 深度聚焦搜尋結果 — 固定主題（用於 daily_deep_dive 區塊）")
+            parts.append("## Deep-dive search results - fixed topics (for the daily_deep_dive block)")
             for item in fixed_deep:
-                parts.append(f"### [深度-固定] {item.get('query', '')[:60]}")
+                parts.append(f"### [deep-fixed] {item.get('query', '')[:60]}")
                 if item.get("answer"):
                     parts.append(item["answer"])
                 for src in item.get("sources", []):
-                    parts.append(f"來源：{src}")
+                    parts.append(f"source: {src}")
                 parts.append("")
 
         if dynamic_deep:
-            parts.append("## 深度聚焦搜尋結果 — 今日動態主題（用於 daily_deep_dive 區塊）")
+            parts.append("## Deep-dive search results - today's dynamic topics (for the daily_deep_dive block)")
             for item in dynamic_deep:
-                parts.append(f"### [深度-動態] 今日焦點：{item.get('topic', '')}")
+                parts.append(f"### [deep-dynamic] focus: {item.get('topic', '')}")
                 if item.get("result"):
                     parts.append(item["result"])
                 for src in item.get("sources", []):
-                    parts.append(f"來源：{src}")
+                    parts.append(f"source: {src}")
                 parts.append("")
 
     return "\n".join(parts)
@@ -1094,7 +1161,7 @@ def _build_market_context(market_data: dict, today_earnings: list | None, move_i
     factors_str = _fmt_items(static_factors)
     top_sectors = ", ".join(f["label"] for f in dynamic_factors)
     sentiment_str = _fmt_items(market_data.get("sentiment", []))
-    move_index_str = move_index_raw if move_index_raw else "無資料"
+    move_index_str = move_index_raw if move_index_raw else "no data"
     commodities_data = market_data.get("commodities", {})
     if isinstance(commodities_data, dict):
         all_commodities = commodities_data.get("fixed", []) + commodities_data.get("dynamic", [])
@@ -1110,69 +1177,69 @@ def _build_market_context(market_data: dict, today_earnings: list | None, move_i
     liquidity_items = market_data.get("liquidity", [])
     liq_parts = []
     for li in liquidity_items:
-        date_str = f"（{li['date']}）" if li.get("date") else ""
+        date_str = f" ({li['date']})" if li.get("date") else ""
         liq_parts.append(f"{li['label']}: {li.get('val','—')} {li.get('chg','—')}{date_str}")
-    liquidity_str = ", ".join(liq_parts) if liq_parts else "無資料"
+    liquidity_str = ", ".join(liq_parts) if liq_parts else "no data"
 
     lines = []
-    lines.append(f"【股票指數】{indices_str}")
-    lines.append(f"【美股因子】{factors_str}（含今日波動最大 Sector：{top_sectors}）")
+    lines.append(f"[EQUITY INDICES] {indices_str}")
+    lines.append(f"[US FACTORS] {factors_str} (today's biggest-moving sectors: {top_sectors})")
     rsp_spy_val = rsp_spy_chg = iwm_spy_val = iwm_spy_chg = "—"
     for f in static_factors:
         if f.get("label") == "RSP/SPY":
             rsp_spy_val, rsp_spy_chg = f.get("val", "—"), f.get("chg", "—")
-        elif f.get("label") == "IWM/SPY 小型":
+        elif f.get("label") == "IWM/SPY":
             iwm_spy_val, iwm_spy_chg = f.get("val", "—"), f.get("chg", "—")
-    lines.append(f"【市場寬度】RSP/SPY比值：{rsp_spy_val}（{rsp_spy_chg}），IWM/SPY比值：{iwm_spy_val}（{iwm_spy_chg}）")
-    lines.append(f"【市場情緒】{sentiment_str}")
-    lines.append(f"【MOVE Index】{move_index_str}（網路搜尋結果）")
+    lines.append(f"[BREADTH] RSP/SPY ratio: {rsp_spy_val} ({rsp_spy_chg}); IWM/SPY ratio: {iwm_spy_val} ({iwm_spy_chg})")
+    lines.append(f"[SENTIMENT] {sentiment_str}")
+    lines.append(f"[MOVE INDEX] {move_index_str} (from web search)")
 
     # 昨日主軸（供 regime.review 驗證用；來源＝前一份日報存檔的 regime）
     if prev_regime and isinstance(prev_regime.get("regime"), dict) and prev_regime["regime"].get("call"):
         rg = prev_regime["regime"]
         lines.append("")
-        lines.append(f"【昨日主軸（{prev_regime.get('date','前一日')}）】call：{rg.get('call','')}")
-        lines.append(f"　昨日信心：{rg.get('confidence','')}｜{rg.get('confidence_reason','')}")
-        lines.append(f"　昨日對 W52 引擎：{rg.get('for_w52_engine','')}")
+        lines.append(f"[PREVIOUS CALL ({prev_regime.get('date','prior day')})] call: {rg.get('call','')}")
+        lines.append(f"  confidence: {rg.get('confidence','')} | {rg.get('confidence_reason','')}")
+        lines.append(f"  for the W52 engine: {rg.get('for_w52_engine','')}")
         fals = rg.get("falsifiers") or []
         if fals:
-            lines.append("　昨日證偽條件（今天逐條用真實數字核對，填進 regime.review.falsifier_check）：")
+            lines.append("  yesterday's falsifiers (check each against today's real numbers and fill regime.review.falsifier_check):")
             for f in fals:
                 if isinstance(f, dict):
-                    lines.append(f"　　- {f.get('metric','')}：{f.get('threshold','')} → {f.get('meaning','')}")
+                    lines.append(f"    - {f.get('metric','')}: {f.get('threshold','')} -> {f.get('meaning','')}")
         if prev_regime.get("daily_summary"):
-            lines.append(f"　昨日一句話總結：{prev_regime['daily_summary'][:120]}")
-    lines.append(f"【原物料】{commodities_str}")
-    lines.append(f"【債券】{bonds_str}")
-    lines.append(f"【外匯】{fx_str}")
-    lines.append(f"【信貸市場】{credit_str}")
-    lines.append(f"【流動性】{liquidity_str}")
+            lines.append(f"  yesterday's one-liner: {prev_regime['daily_summary'][:120]}")
+    lines.append(f"[COMMODITIES] {commodities_str}")
+    lines.append(f"[BONDS] {bonds_str}")
+    lines.append(f"[FX] {fx_str}")
+    lines.append(f"[CREDIT] {credit_str}")
+    lines.append(f"[LIQUIDITY] {liquidity_str}")
     liq_assess = market_data.get("liquidity_assessment", {})
     if liq_assess:
-        lines.append(f"【流動性綜合】{liq_assess.get('label','')}（評分：{liq_assess.get('score',0)}，訊號：{', '.join(liq_assess.get('signals', []))}）")
+        lines.append(f"[LIQUIDITY COMPOSITE] {liq_assess.get('label','')} (score {liq_assess.get('score',0)}; signals: {', '.join(liq_assess.get('signals', []))})")
 
     sh = market_data.get("sentiment_history", {})
     if sh:
         def _fmt_5d(entries):
             return " → ".join(f"{e['val']}" for e in entries) if entries else "—"
-        lines.append(f"【情緒指標5日趨勢】")
-        lines.append(f"VIX 過去5日：{_fmt_5d(sh.get('vix_5d', []))}（趨勢：{sh.get('vix_trend','震盪')}，{sh.get('vix_peak_days_ago',0)}天前見頂）")
-        lines.append(f"VVIX 過去5日：{_fmt_5d(sh.get('vvix_5d', []))}（趨勢：{sh.get('vvix_trend','震盪')}，{sh.get('vvix_peak_days_ago',0)}天前見頂於{sh.get('vvix_peak_val',0)}，較峰值回落{sh.get('vvix_peak_decline_pct',0):.1f}%）")
-        lines.append(f"SKEW 過去5日：{_fmt_5d(sh.get('skew_5d', []))}（趨勢：{sh.get('skew_trend','震盪')}）")
+        lines.append(f"[SENTIMENT — 5-DAY TREND]")
+        lines.append(f"VIX last 5 days: {_fmt_5d(sh.get('vix_5d', []))} (trend {sh.get('vix_trend','choppy')}, peaked {sh.get('vix_peak_days_ago',0)} days ago)")
+        lines.append(f"VVIX last 5 days: {_fmt_5d(sh.get('vvix_5d', []))} (trend {sh.get('vvix_trend','choppy')}, peaked at {sh.get('vvix_peak_val',0)} {sh.get('vvix_peak_days_ago',0)} days ago, now {sh.get('vvix_peak_decline_pct',0):.1f}% off the peak)")
+        lines.append(f"SKEW last 5 days: {_fmt_5d(sh.get('skew_5d', []))} (trend {sh.get('skew_trend','choppy')})")
 
     slt = market_data.get("second_layer_trends", {})
     if slt:
-        lines.append(f"【第二層指標趨勢方向】")
-        lines.append(f"HYG信貸：{slt.get('hyg_trend','震盪')} | DXY美元：{slt.get('dxy_trend','震盪')} | 美10Y：{slt.get('us10y_trend','震盪')}")
-        lines.append(f"黃金：{slt.get('gold_trend','震盪')} | BTC：{slt.get('btc_trend','震盪')}")
-        lines.append(f"RSP/SPY市場寬度：{slt.get('rsp_spy_trend','震盪')} | IWM/SPY小型股：{slt.get('iwm_spy_trend','震盪')}")
+        lines.append(f"[SECOND-LAYER TREND DIRECTION]")
+        lines.append(f"HYG credit: {slt.get('hyg_trend','choppy')} | DXY: {slt.get('dxy_trend','choppy')} | US 10Y: {slt.get('us10y_trend','choppy')}")
+        lines.append(f"Gold: {slt.get('gold_trend','choppy')} | BTC: {slt.get('btc_trend','choppy')}")
+        lines.append(f"RSP/SPY breadth: {slt.get('rsp_spy_trend','choppy')} | IWM/SPY small caps: {slt.get('iwm_spy_trend','choppy')}")
 
     if today_earnings:
-        lines.append("\n【yfinance 確認下一個 US session 即將發布】")
+        lines.append("\n[yfinance-confirmed earnings due in the NEXT US session]")
         for e in today_earnings:
             lines.append(f"{e['ticker']} ({e.get('time','—')})")
     else:
-        lines.append("\n【yfinance 確認下一個 US session 即將發布】無")
+        lines.append("\n[yfinance-confirmed earnings due in the NEXT US session] none")
 
     return "\n".join(lines)
 
@@ -1381,10 +1448,10 @@ def _build_earnings_raw_text(earnings_deep_dive: list[dict] | None) -> str:
     for i, item in enumerate(earnings_deep_dive, 1):
         if not item.get("answer"):
             continue
-        parts.append(f"## 查詢 {i}: {item.get('query','')[:120]}")
+        parts.append(f"## Query {i}: {item.get('query','')[:120]}")
         parts.append(item["answer"])
         for src in item.get("sources", []):
-            parts.append(f"來源：{src}")
+            parts.append(f"source: {src}")
         parts.append("")
     return "\n".join(parts)
 
@@ -1431,7 +1498,7 @@ def _call_gemini_pro_earnings(earnings_raw_text: str, market_context: str) -> di
     client = genai.Client(api_key=api_key)
     user_prompt = EARNINGS_ANALYSIS_USER_TEMPLATE.format(
         earnings_raw_text=earnings_raw_text,
-        market_context=market_context or "（無）",
+        market_context=market_context or "(none)",
     )
 
     print("  → [Earnings Analysis] Calling Gemini 2.5 Pro...")
@@ -1491,7 +1558,7 @@ def _call_claude_earnings_analysis(earnings_raw_text: str, market_context: str) 
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     user_prompt = EARNINGS_ANALYSIS_USER_TEMPLATE.format(
         earnings_raw_text=earnings_raw_text,
-        market_context=market_context or "（無）",
+        market_context=market_context or "(none)",
     )
 
     print("  → [Earnings Analysis] Calling Claude Sonnet 4.6 (fallback)...")
@@ -1534,51 +1601,58 @@ _NEWS_PRIMARY_BLOCKS = [
 _NEWS_LIST_BLOCKS = _NEWS_PRIMARY_BLOCKS + ["tech_trends", "daily_deep_dive"]
 
 _FACT_CATEGORY_ALIASES = {
-    "美股財報": "美股財報",
-    "科技與半導體產業鏈": "科技與半導體產業鏈",
-    "科技半導體產業鏈": "科技與半導體產業鏈",
-    "ai產業應用": "AI產業應用",
-    "全球新創": "全球新創",
-    "美股類股與波動個股": "美股類股與波動個股",
-    "美股類股波動個股": "美股類股與波動個股",
-    "全球多產業與財經": "全球多產業與財經",
-    "全球多產業財經": "全球多產業與財經",
+    "usearnings": "US earnings",
+    "semisandsupplychain": "Semis and supply chain",
+    "semiconductorsandsupplychain": "Semis and supply chain",
+    "techandsemiconductorsupplychain": "Semis and supply chain",
+    "aiinproduction": "AI in production",
+    "globalstartups": "Global startups",
+    "startups": "Global startups",
+    "ussectormoves": "US sector moves",
+    "ussectorsandsingle-stockmoves": "US sector moves",
+    "industryandfinance": "Industry and finance",
+    "globalindustryandfinance": "Industry and finance",
 }
 _FACT_STATUSES = {
-    "已公布", "已完成", "已核准", "已簽約", "已申請", "已排程", "進行中", "公司指引",
+    "reported", "completed", "approved", "signed", "filed", "scheduled", "in progress", "company guidance",
 }
 _FACT_STATUS_ALIASES = {
-    "已發布": "已公布",
-    "已公告": "已公布",
-    "已披露": "已公布",
-    "已發表": "已公布",
-    "已簽署": "已簽約",
-    "已達成": "已簽約",
-    "已批准": "已核准",
-    "已提交": "已申請",
-    "已提出": "已申請",
-    "已安排": "已排程",
-    "規劃中": "已排程",
-    "執行中": "進行中",
-    "指引": "公司指引",
+    "announced": "reported",
+    "disclosed": "reported",
+    "published": "reported",
+    "released": "reported",
+    "cleared": "approved",
+    "authorised": "approved",
+    "authorized": "approved",
+    "agreed": "signed",
+    "submitted": "filed",
+    "applied": "filed",
+    "planned": "scheduled",
+    "ongoing": "in progress",
+    "underway": "in progress",
+    "guidance": "company guidance",
 }
 _INDUSTRY_ALIASES = {
-    "半導體": "半導體",
-    "ai基礎設施": "AI基礎設施",
-    "ai資料中心": "AI基礎設施",
-    "企業軟體與資安": "企業軟體與資安",
-    "企業軟體資安": "企業軟體與資安",
-    "機器人與工業自動化": "機器人與工業自動化",
-    "機器人工業自動化": "機器人與工業自動化",
-    "醫療生技": "醫療生技",
-    "金融科技": "金融科技",
-    "國防航太": "國防航太",
-    "能源與運輸物流": "能源與運輸物流",
-    "能源運輸物流": "能源與運輸物流",
-    "其他": "其他",
+    "semiconductors": "Semiconductors",
+    "semiconductor": "Semiconductors",
+    "aiinfrastructure": "AI infrastructure",
+    "aidatacenters": "AI infrastructure",
+    "aidatacentres": "AI infrastructure",
+    "enterprisesoftwareandsecurity": "Enterprise software and security",
+    "enterprisesoftware": "Enterprise software and security",
+    "roboticsandautomation": "Robotics and automation",
+    "roboticsandindustrialautomation": "Robotics and automation",
+    "healthcareandbiotech": "Healthcare and biotech",
+    "healthcare": "Healthcare and biotech",
+    "fintech": "Fintech",
+    "defenseandaerospace": "Defense and aerospace",
+    "defenceandaerospace": "Defense and aerospace",
+    "energyandlogistics": "Energy and logistics",
+    "energy,transportandlogistics": "Energy and logistics",
+    "other": "Other",
 }
 _INDUSTRY_DEVELOPMENT_TYPES = {
-    "需求", "供給", "產能", "技術", "價格", "監管", "競爭", "資本支出", "併購",
+    "demand", "supply", "capacity", "technology", "pricing", "regulation", "competition", "capex", "M&A",
 }
 
 _MONEY_RE = _re.compile(r"\$\s?\d[\d,.]*\s?[BMTK]?|\d[\d,.]*\s?(?:億|兆|萬)")
@@ -1598,25 +1672,69 @@ _ENTITY_ALIASES = {
     "boj": ("boj", "日本央行", "日銀"),
 }
 _GENERIC_ENTITIES = {"ai", "us", "high", "na", "the", "and", "app", "tst"}
-_ACTION_GROUPS = {
-    "investment": ("投資", "入股", "認股", "investment", "stake", "warrant"),
-    "launch": ("推出", "發布", "發表", "launch", "release", "unveil"),
-    "adoption": ("導入", "採用", "合作", "攜手", "deploy", "adopt", "partnership"),
-    "rates": ("升息", "降息", "利率決議", "rate hike", "rate cut"),
-    "attack": ("攻擊", "遇襲", "空襲", "attack", "strike"),
-    "earnings": ("財報", "營收", "獲利", "指引", "earnings", "revenue", "guidance"),
-    "acquisition": ("併購", "收購", "合併", "acquisition", "acquire", "merger"),
-    "policy": ("制裁", "禁令", "關稅", "出口管制", "sanction", "tariff", "export control"),
-    "capacity": ("擴產", "產能", "供需缺口", "capacity", "shortage"),
-    "funding": ("融資", "募資", "funding", "fundraise"),
+# 2026-09-19 日報改英文後重做：原本是中文固定詞（「投資」「併購」）硬塞幾個英文單字，
+# 英文比對不到詞形變化——"invests"／"invested" 配不上 "investment"，同一則新聞就漏判。
+# 改成「詞幹＋字界」：ASCII 詞尾補 [a-z]*（invest → invests/invested/investment/investor），
+# 前面加 (?<![a-z]) 擋住 around／urban 這種誤中。中文詞保留（來源 RSS 仍有中文標題）。
+_ACTION_TERMS = {
+    "investment":  ("invest", "stake in", "equity stake", "warrant", "投資", "入股", "認股"),
+    "launch":      ("launch", "unveil", "debut", "introduce", "roll out", "rollout",
+                    "推出", "發布", "發表"),
+    "adoption":    ("deploy", "adopt", "partner", "signed", "rolls out to",
+                    "導入", "採用", "合作", "攜手"),
+    "rates":       ("rate hike", "rate cut", "raise rates", "cut rates", "policy rate",
+                    "升息", "降息", "利率決議"),
+    "attack":      ("attack", "airstrike", "missile", "drone strike", "攻擊", "遇襲", "空襲"),
+    "earnings":    ("earnings", "revenue", "guidance", "eps", "operating profit", "quarterly result",
+                    "財報", "營收", "獲利", "指引"),
+    "acquisition": ("acquire", "acquisition", "merger", "takeover", "buyout",
+                    "併購", "收購", "合併"),
+    "policy":      ("sanction", "tariff", "export control", "export ban", "restrict", "subsid",
+                    "制裁", "禁令", "關稅", "出口管制"),
+    "capacity":    ("capacity", "shortage", "sold out", "utilisation", "utilization",
+                    "擴產", "產能", "供需缺口"),
+    "funding":     ("funding round", "fundrais", "series a", "series b", "series c", "seed round",
+                    "raised $", "融資", "募資"),
+    # 原本沒有「價格」事件類型，半導體合約價這種日報核心題材在深挖與分類新聞之間配不起來
+    "pricing":     ("contract price", "pricing", "price increase", "asp",
+                    "合約價", "報價", "調價", "漲價"),
 }
+
+
+def _compile_action_terms(terms):
+    patterns = []
+    for term in terms:
+        if _re.fullmatch(r"[a-z0-9 $.\-]+", term):
+            patterns.append(r"(?<![a-z])" + _re.escape(term) + r"[a-z]*")
+        else:
+            patterns.append(_re.escape(term))
+    return _re.compile("|".join(patterns), _re.I)
+
+
+_ACTION_GROUPS = {action: _compile_action_terms(terms) for action, terms in _ACTION_TERMS.items()}
+
 _EVENT_NUMBER_RE = _re.compile(r"\$?\d[\d,.]*(?:\s?(?:%|bps|b|m|t|億|兆|萬))?", _re.I)
 
 
+# 2026-09-19 日報改英文後新增：原本的 token 只抓「大寫開頭的專名」＋中文 2-gram。
+# 中文一句話會產生數十個 2-gram，Jaccard 穩定；英文一句只剩三五個專名，
+# 兩則無關新聞很容易因為共用 "The"／"EU" 就衝到 0.4 以上被誤判成同一事件。
+# 因此英文另外抽一組「去掉虛詞的小寫實詞」，把 token 集合撐回有意義的密度。
+_EN_WORD_RE = _re.compile(r"[a-z][a-z0-9\-]{2,}")
+_EN_STOP = {
+    "the", "and", "for", "with", "from", "that", "this", "its", "was", "were", "are",
+    "has", "have", "had", "been", "will", "would", "said", "says", "than", "then",
+    "into", "over", "under", "after", "before", "about", "also", "more", "most",
+    "not", "but", "out", "off", "per", "own", "new", "now", "one", "two", "three",
+    "year", "years", "day", "days", "week", "month", "quarter", "according",
+}
+
+
 def _news_tokens(text: str) -> set:
-    """去重用 token：英文專名（小寫）＋金額＋中文 2-gram（去掉高頻虛詞）。"""
+    """去重用 token：英文專名＋英文實詞＋金額＋中文 2-gram（都去掉高頻虛詞）。"""
     text = text or ""
-    toks = {t.lower() for t in _ENT_RE.findall(text)}
+    toks = {t.lower() for t in _ENT_RE.findall(text)} - _GENERIC_ENTITIES
+    toks |= {w for w in _EN_WORD_RE.findall(text.lower()) if w not in _EN_STOP}
     toks |= {m.replace(" ", "") for m in _MONEY_RE.findall(text)}
     cjk = "".join(_CJK_RE.findall(text))
     stop = set("的了在是與和及或將於對為由到及並已再也仍等")
@@ -1666,8 +1784,8 @@ def _event_features(item: dict) -> dict:
     }
     actions = {
         action
-        for action, terms in _ACTION_GROUPS.items()
-        if any(term.casefold() in folded for term in terms)
+        for action, pattern in _ACTION_GROUPS.items()
+        if pattern.search(folded)
     }
     return {
         "tokens": _news_tokens(text),
@@ -1780,7 +1898,7 @@ def _dedup_news(data: dict) -> dict:
             item["event_role"] = "deep_extension"
             item["related_event_id"] = match.get("event_id", "")
             item["situation"] = ""
-            item["headline"] = f"延伸深挖｜{item.get('theme') or item.get('headline', '')}"
+            item["headline"] = f"Deep dive | {item.get('theme') or item.get('headline', '')}"
             deep_extensions += 1
         else:
             item["event_id"] = _event_id(item, features)
@@ -1821,21 +1939,29 @@ _ZH_FIX = {
     "通膀": "通膨", "澈洲": "澳洲", "籲募": "籌募", "籲備": "籌備", "籲資": "籌資", "産業": "產業", "産能": "產能",
 }
 _MARKET_SENT_RE = _re.compile(
-    r"(股價|股票|指數|期貨|幣價|比特幣|Bitcoin|Ethereum|以太幣|ETH|BTC|Stoxx|Nasdaq|S&P|標普|道瓊|費半|加權|台股|美股|盤前|盤後"
-    r"|油價|Brent|WTI|布蘭特|原油|金價|黃金|銅價|殖利率|美元指數|DXY|日圓|台幣"
-    r"|(?<![A-Za-z])(?!CPI|PPI|GDP|PCE|PMI|ISM|NFP|EPS|ROE)[A-Z]{2,6}(?![A-Za-z]))"
-    r"[^。；;]{0,30}?(上漲|下跌|大漲|大跌|走高|走低|收高|收低|飆漲|重挫|跳漲|急跌|持穩|站上|跌破|漲逾|跌逾|漲|跌)"
-    r"[^。；;]{0,6}?(\d[\d,.]*\s?%|\$\s?\d)"
+    r"((?i:share price|shares|the stock|stocks|the index|indices|index futures|futures|Bitcoin|Ethereum"
+    r"|Stoxx|Nasdaq|S&P|Dow|SOX index|TAIEX|crude|Brent|WTI|oil price|gold price|copper price"
+    r"|the yield|yields|dollar index|DXY|the yen|Treasuries)"
+    r"|(?<![A-Za-z])(?!CPI|PPI|GDP|PCE|PMI|ISM|NFP|EPS|ROE|FDA|SEC|IPO|CEO|CFO|AI|USD|EUR|JPY)[A-Z]{2,6}(?![A-Za-z]))"
+    r"[^.;]{0,40}?(?i:\b(rose|fell|rallied|slumped|surged|plunged|climbed|dropped|gained|lost|jumped|sank"
+    r"|tumbled|soared|slid|advanced|declined|closed up|closed down|ended up|ended down|is up|is down|was up|was down)\b)"
+    r"[^.;]{0,12}?(\d[\d,.]*\s?%|\$\s?\d)"
 )
 _INFERENCE_SENT_RE = _re.compile(
-    r"值得關注|可望受惠|長線利多|長線利空|想像空間|投資人應|建議買進|建議賣出|目標價"
+    r"worth watching|bears watching|set to benefit|stands to benefit|poised to|well positioned to"
+    r"|long-term positive|long-term negative|room to run|upside potential|bodes well"
+    r"|investors should|we recommend|buy rating|sell rating|price target",
+    _re.I,
 )
 _MARKET_MOVE_FACT_RE = _re.compile(
-    r"(?=.*\d[\d,.]*\s?%)(?=.*(?:盤前|盤中|盤後|收盤|交易時段|上一個\s*US\s*session|當日))",
+    r"(?=.*\d[\d,.]*\s?%)"
+    r"(?=.*(?:pre-market|premarket|intraday|after-hours|afterhours|at the close|on the close"
+    r"|regular session|last US session|during the session|on the day))",
     _re.I,
 )
 _FACT_ANCHOR_RE = _re.compile(
-    r"\d|公告|公布|發布|披露|核准|批准|簽署|簽約|提交|申請|完成|啟動|部署|指引|財報|營收|EPS",
+    r"\d|announced|reported|disclosed|published|approved|cleared|signed|filed|submitted"
+    r"|completed|launched|deployed|guidance|earnings|revenue|EPS",
     _re.I,
 )
 
@@ -1849,11 +1975,18 @@ def _fix_zh(text):
     return text
 
 
+# 2026-09-19 日報改英文後新增：原本斷句只認中文句號「。；;」，英文句點不算，
+# 結果一整段英文 body 會被當成「一句」——只要裡面有一句行情句或推論句，整段被刪光，
+# 條目再被 complete 檢查判死。這裡補上英文句界（句點＋空白＋大寫），零寬度切分，
+# join 回去字元不變；"$1.42B" 這種小數點後面沒有空白，不會被誤切。
+_SENT_SPLIT_RE = _re.compile(r"(?<=[。；;])|(?<=[.!?])(?=\s+[A-Z])")
+
+
 def _strip_market_sentences(text: str):
     """砍掉含行情漲跌的句子（以。；分句）；回 (新文字, 是否有砍)。"""
     if not isinstance(text, str) or not text:
         return text, False
-    parts = _re.split(r"(?<=[。；;])", text)
+    parts = _SENT_SPLIT_RE.split(text)
     kept = [pt for pt in parts if not _MARKET_SENT_RE.search(pt)]
     if len(kept) == len(parts):
         return text, False
@@ -1864,7 +1997,7 @@ def _strip_inference_sentences(text: str):
     """移除明顯投資推論句；保留可驗證事實與明確歸因內容。"""
     if not isinstance(text, str) or not text:
         return text, False
-    parts = _re.split(r"(?<=[。；;])", text)
+    parts = _SENT_SPLIT_RE.split(text)
     kept = [pt for pt in parts if not _INFERENCE_SENT_RE.search(pt)]
     if len(kept) == len(parts):
         return text, False
@@ -1910,8 +2043,10 @@ def _sanitize_news(data: dict, cutoff_date: str) -> dict:
                 continue
             head = it.get("headline") or it.get("title") or ""
             # 標題只在「有行情主詞（股價／指數／幣價／油價／ticker）＋漲跌％」才整條丟；
-            # 合約價／營收／出口「大漲 X%」是事件數據，不是行情，要留
-            if _MARKET_SENT_RE.search(head) and not _re.search(r"合約價|報價|營收|出口|訂單|出貨|價格", head):
+            # 合約價／營收／出口「大漲 X%」是事件數據，不是行情，要留（2026-09-19 隨日報改英文同步改英文詞）
+            if _MARKET_SENT_RE.search(head) and not _re.search(
+                r"contract price|contract prices|pricing|ASP|revenue|sales|exports|orders|shipments|bookings|backlog",
+                head, _re.I):
                 stats["market_head"] += 1
                 continue
             for f in ("body", "summary", "why"):
@@ -1949,7 +2084,7 @@ def _sanitize_news(data: dict, cutoff_date: str) -> dict:
             part in _INDUSTRY_DEVELOPMENT_TYPES for part in development_parts
         )
         market_move = str(item.get("market_move") or "").strip()
-        valid_market_move = category != "美股類股與波動個股" or bool(
+        valid_market_move = category != "US sector moves" or bool(
             _MARKET_MOVE_FACT_RE.search(market_move)
         )
         if (
@@ -1971,7 +2106,7 @@ def _sanitize_news(data: dict, cutoff_date: str) -> dict:
         item["industry"] = industry
         item["fact_status"] = fact_status
         item["evidence"] = evidence or _re.split(r"(?<=[。；;])", body, maxsplit=1)[0].strip()
-        item["unknowns"] = str(item.get("unknowns") or "").strip() or "素材未列出其他未決事項。"
+        item["unknowns"] = str(item.get("unknowns") or "").strip() or "Nothing else outstanding in the material."
         item["development"] = "／".join(development_parts)
         category_counts[category] = category_counts.get(category, 0) + 1
         industry_counts[industry] = industry_counts.get(industry, 0) + 1
@@ -2036,10 +2171,10 @@ def process_news(raw_news: list[dict], market_data: dict | None = None, today_ea
     # 財報上下文（給 Gemini 用）— 下一個 US session 即將發布
     earnings_lines = []
     if today_earnings:
-        earnings_lines.append("【yfinance 確認下一個 US session 即將發布的財報】")
+        earnings_lines.append("[yfinance-confirmed earnings due in the NEXT US session]")
         for e in today_earnings:
             earnings_lines.append(f"{e['ticker']} ({e.get('time','—')})")
-        earnings_lines.append("yfinance 確認的設 yfinance_confirmed=true，其餘設 false。")
+        earnings_lines.append("Set yfinance_confirmed=true for these; false for anything else.")
     earnings_context = "\n".join(earnings_lines)
 
     # 深度財報 Perplexity 原始資料（給 Gemini Pro 做分析用）
@@ -2238,7 +2373,7 @@ def _validate(data: dict) -> None:
         "for_w52_engine": "", "confidence": "", "confidence_reason": "",
     })
     if isinstance(data.get("regime"), dict):
-        data["regime"].setdefault("review", {"yesterday_call": "", "verdict": "無前日資料", "falsifier_check": [], "note": ""})
+        data["regime"].setdefault("review", {"yesterday_call": "", "verdict": "no prior day", "falsifier_check": [], "note": ""})
     data.setdefault("watchlist_news", [])
     data.setdefault("weekend_reads", [])
     data.setdefault("market_pulse", {"cross_asset_signals": [], "dominant_theme": "", "hidden_risk": "", "hidden_opportunity": "", "key_level_to_watch": "", "historical_analog": "", "new_pattern": ""})
@@ -2252,8 +2387,8 @@ def _validate(data: dict) -> None:
         "key_insight": ""
     })
     data.setdefault("sentiment_analysis", {
-        "stage": "無明確訊號",
-        "stage_name": "正常市場",
+        "stage": "No clear signal",
+        "stage_name": "Normal market",
         "vix_reading": "",
         "vvix_reading": "",
         "skew_reading": "",
@@ -2261,7 +2396,7 @@ def _validate(data: dict) -> None:
         "credit_check": "",
         "cross_asset_confirm": "",
         "key_divergence": "",
-        "reliability": "中",
+        "reliability": "medium",
         "reliability_reason": "",
         "one_line": ""
     })

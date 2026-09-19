@@ -730,7 +730,7 @@ def _wk_rrp_cell(item: dict) -> str:
     date_html = f'<div style="font-size:9px;color:#aaa;margin-top:1px;">{date_str}</div>' if date_str else ""
     return (f'<td style="padding:8px 10px;border-right:0.5px solid #f0f0f0;vertical-align:top;">'
             f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;'
-            f'color:#888;margin-bottom:3px;">{item.get("label","RRP餘額")}</div>'
+            f'color:#888;margin-bottom:3px;">{item.get("label","RRP")}</div>'
             f'<div style="font-size:18px;font-weight:500;color:#222;margin-bottom:2px;">{item.get("val","—")}</div>'
             f'<div style="font-size:12px;color:{color};">{item.get("chg","—")}</div>'
             f'{date_html}'
@@ -810,9 +810,9 @@ def _index_market_strip(market_data: dict) -> str:
             v = float(it.get("val", "—").replace(",", "").replace("%", "").replace("$", ""))
         except (ValueError, TypeError):
             continue
-        if it.get("label", "") == "美2Y":
+        if it.get("label", "") == "US 2Y":
             us2y_val = v
-        elif it.get("label", "") == "美10Y":
+        elif it.get("label", "") == "US 10Y":
             us10y_val = v
     inversion_warning = ""
     if us2y_val is not None and us10y_val is not None and us2y_val > us10y_val:

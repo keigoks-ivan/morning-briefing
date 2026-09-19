@@ -187,16 +187,16 @@ FIXED_TICKERS = {
     # 股票指數
     "ndx":       {"ticker": "^NDX",      "label": "NDX",      "prefix": "",  "type": "index"},
     "sp500":     {"ticker": "^GSPC",     "label": "S&P500",   "prefix": "",  "type": "index"},
-    "sox":       {"ticker": "^SOX",      "label": "費半",      "prefix": "",  "type": "index"},
-    "twii":      {"ticker": "^TWII",     "label": "台灣加權",  "prefix": "",  "type": "index"},
-    "dax":       {"ticker": "^GDAXI",    "label": "歐洲DAX",  "prefix": "",  "type": "index"},
+    "sox":       {"ticker": "^SOX",      "label": "SOX",      "prefix": "",  "type": "index"},
+    "twii":      {"ticker": "^TWII",     "label": "TAIEX",  "prefix": "",  "type": "index"},
+    "dax":       {"ticker": "^GDAXI",    "label": "DAX",  "prefix": "",  "type": "index"},
     "vt":        {"ticker": "VT",        "label": "VT",       "prefix": "$", "type": "etf"},
     "vo":        {"ticker": "VO",        "label": "VO",       "prefix": "$", "type": "etf"},
     "btc":       {"ticker": "BTC-USD",   "label": "BTC",      "prefix": "$", "type": "crypto"},
     # 美股因子
     "nyfang":    {"ticker": "FNGS",      "label": "NYFANG",   "prefix": "",  "type": "factor"},
-    "vtv":       {"ticker": "VTV",       "label": "VTV 價值",  "prefix": "$", "type": "factor"},
-    "vug":       {"ticker": "VUG",       "label": "VUG 成長",  "prefix": "$", "type": "factor"},
+    "vtv":       {"ticker": "VTV",       "label": "VTV Value",  "prefix": "$", "type": "factor"},
+    "vug":       {"ticker": "VUG",       "label": "VUG Growth",  "prefix": "$", "type": "factor"},
     "rsp":       {"ticker": "RSP",       "label": "RSP",      "prefix": "$", "type": "factor"},
     "spy":       {"ticker": "SPY",       "label": "SPY",      "prefix": "$", "type": "factor"},
     "mtum":      {"ticker": "MTUM",      "label": "MTUM",     "prefix": "$", "type": "factor"},
@@ -207,16 +207,16 @@ FIXED_TICKERS = {
     "skew":      {"ticker": "^SKEW",     "label": "SKEW",     "prefix": "",  "type": "sentiment"},
     "vvix":      {"ticker": "^VVIX",     "label": "VVIX",     "prefix": "",  "type": "sentiment", "invert": True},
     # 原物料
-    "brent":     {"ticker": "BZ=F",      "label": "Brent油",  "prefix": "$", "type": "commodity"},
-    "wti":       {"ticker": "CL=F",      "label": "WTI油",    "prefix": "$", "type": "commodity"},
-    "gold":      {"ticker": "GC=F",      "label": "黃金",      "prefix": "$", "type": "commodity"},
-    "silver":    {"ticker": "SI=F",      "label": "白銀",      "prefix": "$", "type": "commodity"},
-    "copper":    {"ticker": "HG=F",      "label": "銅",        "prefix": "$", "type": "commodity"},
-    "alum":      {"ticker": "ALI=F",     "label": "鋁",        "prefix": "$", "type": "commodity"},
+    "brent":     {"ticker": "BZ=F",      "label": "Brent",  "prefix": "$", "type": "commodity"},
+    "wti":       {"ticker": "CL=F",      "label": "WTI",    "prefix": "$", "type": "commodity"},
+    "gold":      {"ticker": "GC=F",      "label": "Gold",      "prefix": "$", "type": "commodity"},
+    "silver":    {"ticker": "SI=F",      "label": "Silver",      "prefix": "$", "type": "commodity"},
+    "copper":    {"ticker": "HG=F",      "label": "Copper",        "prefix": "$", "type": "commodity"},
+    "alum":      {"ticker": "ALI=F",     "label": "Aluminium",        "prefix": "$", "type": "commodity"},
     # 債券
-    "us2y":      {"ticker": "^IRX",      "label": "美2Y",     "prefix": "",  "type": "bond", "use_bps": True},
-    "us10y":     {"ticker": "^TNX",      "label": "美10Y",    "prefix": "",  "type": "bond", "use_bps": True},
-    "us30y":     {"ticker": "^TYX",      "label": "美30Y",    "prefix": "",  "type": "bond", "use_bps": True},
+    "us2y":      {"ticker": "^IRX",      "label": "US 2Y",     "prefix": "",  "type": "bond", "use_bps": True},
+    "us10y":     {"ticker": "^TNX",      "label": "US 10Y",    "prefix": "",  "type": "bond", "use_bps": True},
+    "us30y":     {"ticker": "^TYX",      "label": "US 30Y",    "prefix": "",  "type": "bond", "use_bps": True},
     "tlt":       {"ticker": "TLT",       "label": "TLT",      "prefix": "$", "type": "bond"},
     # 外匯
     "dxy":       {"ticker": "DX-Y.NYB",  "label": "DXY",      "prefix": "",  "type": "fx"},
@@ -229,9 +229,9 @@ FIXED_TICKERS = {
 }
 
 COMMODITY_POOL = {
-    "NG=F": "天然氣", "PA=F": "鈀金", "PL=F": "鉑金",
-    "ZW=F": "小麥", "ZC=F": "玉米", "ZS=F": "黃豆",
-    "CC=F": "可可", "KC=F": "咖啡", "SB=F": "糖",
+    "NG=F": "Nat gas", "PA=F": "Palladium", "PL=F": "Platinum",
+    "ZW=F": "Wheat", "ZC=F": "Corn", "ZS=F": "Soybeans",
+    "CC=F": "Cocoa", "KC=F": "Coffee", "SB=F": "Sugar",
 }
 
 FX_DYNAMIC_POOL = {
@@ -246,10 +246,10 @@ FX_DYNAMIC_POOL = {
 }
 
 SECTOR_ETFS = {
-    "XLE": "能源", "XLF": "金融", "XLK": "科技",
-    "XLV": "醫療", "XLI": "工業", "XLY": "非必需消費",
-    "XLP": "必需消費", "XLU": "公用事業", "XLB": "材料",
-    "XLRE": "房地產", "XLC": "通訊", "XBI": "生技",
+    "XLE": "Energy", "XLF": "Financials", "XLK": "Tech",
+    "XLV": "Healthcare", "XLI": "Industrials", "XLY": "Cons. disc.",
+    "XLP": "Cons. staples", "XLU": "Utilities", "XLB": "Materials",
+    "XLRE": "Real estate", "XLC": "Comms", "XBI": "Biotech",
 }
 
 
@@ -281,7 +281,7 @@ def fetch_fred_data() -> dict:
         "tga":      "WTREGEN",    # 財政部一般帳戶
         "reserves": "WRESBAL",    # 銀行準備金
     }
-    LABELS = {"rrp": "RRP餘額", "nfci": "NFCI", "tga": "TGA", "reserves": "銀行準備金"}
+    LABELS = {"rrp": "RRP", "nfci": "NFCI", "tga": "TGA", "reserves": "Bank reserves"}
     for key, series_id in fred_series.items():
         try:
             url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
@@ -314,7 +314,7 @@ def fetch_fred_data() -> dict:
                     }
                 elif key == "reserves":
                     result[key] = {
-                        "label": "銀行準備金",
+                        "label": "Bank reserves",
                         "val": f"${latest:.0f}B",
                         "chg": f"{'▲' if change > 0 else '▼'} {abs(change):.0f}B",
                         "dir": "pos" if change > 0 else "neg",  # 準備金增加=流動性充裕
@@ -322,7 +322,7 @@ def fetch_fred_data() -> dict:
                     }
                 else:  # rrp
                     result[key] = {
-                        "label": "RRP餘額",
+                        "label": "RRP",
                         "val": f"${latest:.0f}B",
                         "chg": f"{'▲' if change > 0 else '▼'} {abs(change):.0f}B",
                         "dir": "pos" if change < 0 else "neg",  # RRP下降=流動性釋放
@@ -347,8 +347,8 @@ def assess_liquidity(fred: dict) -> dict:
     for key, up_label, down_label in [
         ("rrp", "RRP↑", "RRP↓"),
         ("tga", "TGA↑", "TGA↓"),
-        ("reserves", "準備金↑", "準備金↓"),
-        ("nfci", "NFCI收緊", "NFCI改善"),
+        ("reserves", "reserves up", "reserves down"),
+        ("nfci", "NFCI tightening", "NFCI easing"),
     ]:
         item = fred.get(key, {})
         d = item.get("dir", "neu")
@@ -359,10 +359,10 @@ def assess_liquidity(fred: dict) -> dict:
             score -= 1
             signals.append(up_label if key in ("rrp", "tga") else down_label if key == "reserves" else up_label)
     if score >= 2:
-        return {"label": "流動性寬鬆", "color": "pos", "score": score, "signals": signals}
+        return {"label": "Liquidity easing", "color": "pos", "score": score, "signals": signals}
     elif score <= -2:
-        return {"label": "流動性收縮", "color": "neg", "score": score, "signals": signals}
-    return {"label": "流動性中性", "color": "neu", "score": score, "signals": signals}
+        return {"label": "Liquidity tightening", "color": "neg", "score": score, "signals": signals}
+    return {"label": "Liquidity neutral", "color": "neu", "score": score, "signals": signals}
 
 
 def _download_symbols(symbols: list[str], period: str = "5d") -> dict:
@@ -512,14 +512,14 @@ def fetch_market_data() -> dict:
             else:
                 iwm_spy_chg_str, iwm_spy_dir = "—", "neu"
             iwm_spy_item = {
-                "label": "IWM/SPY 小型",
+                "label": "IWM/SPY",
                 "val": f"{iwm_spy_today:.4f}",
                 "chg": iwm_spy_chg_str,
                 "dir": iwm_spy_dir,
                 "is_dynamic": False,
             }
         else:
-            iwm_spy_item = {"label": "IWM/SPY 小型", "val": "—", "chg": "—", "dir": "neu", "is_dynamic": False}
+            iwm_spy_item = {"label": "IWM/SPY", "val": "—", "chg": "—", "dir": "neu", "is_dynamic": False}
         # Insert after RSP/SPY (index 5: ..., RSP/SPY, → IWM/SPY)
         result["factors"].append(iwm_spy_item)
 
@@ -588,7 +588,7 @@ def fetch_market_data() -> dict:
         # Fear & Greed → sentiment
         fear_greed = _fetch_fear_greed()
         fg_item = {
-            "label": "Fear&Greed",
+            "label": "Fear & Greed",
             "val": fear_greed.get("val", "—"),
             "chg": fear_greed.get("chg", "—"),
             "dir": fear_greed.get("dir", "neu"),
@@ -647,9 +647,9 @@ def fetch_market_data() -> dict:
         fred = fetch_fred_data()
         _empty = lambda lbl: {"label": lbl, "val": "—", "chg": "—", "dir": "neu", "date": ""}
         result["liquidity"] = [
-            fred.get("rrp", _empty("RRP餘額")),
+            fred.get("rrp", _empty("RRP")),
             fred.get("tga", _empty("TGA")),
-            fred.get("reserves", _empty("銀行準備金")),
+            fred.get("reserves", _empty("Bank reserves")),
             fred.get("nfci", _empty("NFCI")),
         ]
         result["liquidity_assessment"] = assess_liquidity(fred)
@@ -665,15 +665,15 @@ def fetch_market_data() -> dict:
                     for idx, v in zip(recent.index, recent.values)]
 
         def _calc_trend(entries):
-            """Trend from last 3 entries: 持續上升 / 連續回落 / 震盪."""
+            """Trend from last 3 entries: rising steadily / falling steadily / choppy."""
             if len(entries) < 3:
-                return "震盪"
+                return "choppy"
             v = [e["val"] for e in entries[-3:]]
             if v[2] > v[1] > v[0]:
-                return "持續上升"
+                return "rising steadily"
             if v[2] < v[1] < v[0]:
-                return "連續回落"
-            return "震盪"
+                return "falling steadily"
+            return "choppy"
 
         def _peak_info(entries):
             """Return (days_ago, peak_val, decline_pct) from 5d entries."""
@@ -714,32 +714,32 @@ def fetch_market_data() -> dict:
             """Last 3 closes → 連續上升 / 連續下降 / 震盪."""
             closes = closes_cache.get(symbol)
             if closes is None or len(closes) < 3:
-                return "震盪"
+                return "choppy"
             v = [closes.iloc[i].item() for i in range(-3, 0)]
             if v[2] > v[1] > v[0]:
-                return "連續上升"
+                return "rising steadily"
             if v[2] < v[1] < v[0]:
-                return "連續下降"
-            return "震盪"
+                return "falling steadily"
+            return "choppy"
 
         def _ratio_trend(sym_a, sym_b):
             """Ratio trend from last 3 closes of sym_a/sym_b."""
             ca = closes_cache.get(sym_a)
             cb = closes_cache.get(sym_b)
             if ca is None or cb is None or len(ca) < 3 or len(cb) < 3:
-                return "震盪"
+                return "choppy"
             ratios = []
             for i in range(-3, 0):
                 a_val = ca.iloc[i].item()
                 b_val = cb.iloc[i].item()
                 if b_val == 0:
-                    return "震盪"
+                    return "choppy"
                 ratios.append(a_val / b_val)
             if ratios[2] > ratios[1] > ratios[0]:
-                return "連續擴大"
+                return "widening"
             if ratios[2] < ratios[1] < ratios[0]:
-                return "連續收縮"
-            return "震盪"
+                return "narrowing"
+            return "choppy"
 
         result["second_layer_trends"] = {
             "hyg_trend": _simple_trend("HYG"),
@@ -914,9 +914,9 @@ def fetch_weekly_market_data() -> dict:
                 iwm_spy_dir = "pos" if iwm_spy_chg > 0 else ("neg" if iwm_spy_chg < 0 else "neu")
             else:
                 iwm_spy_chg_str, iwm_spy_dir = "—", "neu"
-            iwm_spy_item = {"label": "IWM/SPY 小型", "val": f"{iwm_spy_last:.4f}", "chg": iwm_spy_chg_str, "dir": iwm_spy_dir, "is_dynamic": False}
+            iwm_spy_item = {"label": "IWM/SPY", "val": f"{iwm_spy_last:.4f}", "chg": iwm_spy_chg_str, "dir": iwm_spy_dir, "is_dynamic": False}
         else:
-            iwm_spy_item = {"label": "IWM/SPY 小型", "val": "—", "chg": "—", "dir": "neu", "is_dynamic": False}
+            iwm_spy_item = {"label": "IWM/SPY", "val": "—", "chg": "—", "dir": "neu", "is_dynamic": False}
         result["factors"].append(iwm_spy_item)
 
         # Sector ETFs top 3
@@ -960,7 +960,7 @@ def fetch_weekly_market_data() -> dict:
         # Fear & Greed
         fear_greed = _fetch_fear_greed()
         fg_item = {
-            "label": "Fear&Greed",
+            "label": "Fear & Greed",
             "val": fear_greed.get("val", "—"),
             "chg": fear_greed.get("chg", "—"),
             "dir": fear_greed.get("dir", "neu"),
@@ -1005,9 +1005,9 @@ def fetch_weekly_market_data() -> dict:
         fred = fetch_fred_data()
         _empty = lambda lbl: {"label": lbl, "val": "—", "chg": "—", "dir": "neu", "date": ""}
         result["liquidity"] = [
-            fred.get("rrp", _empty("RRP餘額")),
+            fred.get("rrp", _empty("RRP")),
             fred.get("tga", _empty("TGA")),
-            fred.get("reserves", _empty("銀行準備金")),
+            fred.get("reserves", _empty("Bank reserves")),
             fred.get("nfci", _empty("NFCI")),
         ]
         result["liquidity_assessment"] = assess_liquidity(fred)
@@ -1224,15 +1224,15 @@ RSS_FEEDS = [
     ("Crunchbase News",     "https://news.crunchbase.com/feed/", 8, 72),
     ("Sifted",              "https://sifted.eu/feed", 6, 48),
     ("Tech in Asia (GN)",   _GN.format(q="site:techinasia.com+when:2d"), 5, 48),
-    ("Wired 商業科技",       "https://www.wired.com/feed/category/business/latest/rss", 5, 48),
+    ("Wired Business",      "https://www.wired.com/feed/category/business/latest/rss", 5, 48),
     ("Startup Funding (GN)", _GN.format(q="(%22Series+A%22+OR+%22Series+B%22+OR+%22Series+C%22+OR+%22seed+round%22+OR+%22funding+round%22+OR+%22raises%22)+when:1d+(site:techcrunch.com+OR+site:crunchbase.com+OR+site:theinformation.com+OR+site:sifted.eu+OR+site:axios.com+OR+site:reuters.com+OR+site:bloomberg.com)"), 10, 24),
     # 技術前緣（2026-09-19 新增：量子／機器人／太空／能源／新運算／合成生物）
     ("IEEE Spectrum",       "https://spectrum.ieee.org/feeds/feed.rss", 6, 72),
     ("IEEE Robotics",       "https://spectrum.ieee.org/feeds/topic/robotics.rss", 5, 72),
     ("MIT Tech Review",     "https://www.technologyreview.com/feed/", 6, 72),
     ("Quanta Magazine",     "https://api.quantamagazine.org/feed/", 4, 168),
-    ("Nature 新聞",          "https://www.nature.com/nature.rss", 6, 72),
-    ("Science 新聞",         "https://www.science.org/rss/news_current.xml", 6, 72),
+    ("Nature News",         "https://www.nature.com/nature.rss", 6, 72),
+    ("Science News",        "https://www.science.org/rss/news_current.xml", 6, 72),
     ("New Scientist",       "https://www.newscientist.com/feed/home/", 5, 72),
     ("SpaceNews",           "https://spacenews.com/feed/", 5, 48),
     ("The Quantum Insider", "https://thequantuminsider.com/feed/", 5, 72),
@@ -1242,8 +1242,8 @@ RSS_FEEDS = [
 RSS_TOTAL_CAP = 400
 _LONGFORM_FEEDS = {"Financial Times", "FT Markets", "FT Tech", "FT Asia", "The Economist (GN)",
                    "The Information", "SemiAnalysis", "Ars Technica",
-                   "IEEE Spectrum", "MIT Tech Review", "Quanta Magazine", "Nature 新聞",
-                   "Science 新聞", "New Scientist"}
+                   "IEEE Spectrum", "MIT Tech Review", "Quanta Magazine", "Nature News",
+                   "Science News", "New Scientist"}
 _RSS_NOISE = re.compile(r"開獎|中獎號碼|彩券|統一發票|訃聞|Podcast|podcast|The Download:|Crossword|Newsletter")
 _LAST_RSS_QUALITY: dict = {}
 
@@ -1294,7 +1294,7 @@ def _feed_topics(label: str, source: str) -> list[str]:
     if any(term in folded for term in ("venture", "startup", "crunchbase", "sifted", "tech in asia", "funding")):
         topics.add("startup")
     if any(term in folded for term in ("spectrum", "quanta", "new scientist", "spacenews", "quantum",
-                                       "nature", "science 新聞", "ars science", "frontier", "mit tech")):
+                                       "nature", "science news", "ars science", "frontier", "mit tech")):
         topics.add("frontier")
     if any(term in folded for term in ("politico", "央行", "economist")):
         topics.update(("macro", "geopolitics"))

@@ -107,7 +107,7 @@ def main() -> None:
 
     # 注入日期供多頁 builder 使用
     tz_now = datetime.now(tz)
-    data["date"] = tz_now.strftime("%Y年%m月%d日 %H:%M TST")
+    data["date"] = tz_now.strftime("%a %d %b %Y, %H:%M TST")
 
     # 3. 生成多頁 HTML + Email 用單頁
     print("\n[3/4] Building HTML pages...")
@@ -171,14 +171,14 @@ def main() -> None:
     print("\n[4/4] Sending email...")
     nav_links = """
 <div style="margin:20px 0;padding:16px;background:#F8F9FC;border-radius:8px;text-align:center;">
-  <div style="font-size:11px;color:#888;margin-bottom:10px;">完整晨報請到網站查看</div>
+  <div style="font-size:11px;color:#888;margin-bottom:10px;">Full briefing on the site</div>
   <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
-    <a href="https://research.investmquest.com/briefing/news.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">要聞・深度</a>
-    <a href="https://research.investmquest.com/briefing/geo.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">地緣・國際</a>
-    <a href="https://research.investmquest.com/briefing/tech.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">科技・AI</a>
-    <a href="https://research.investmquest.com/briefing/trends.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">新創・趨勢</a>
-    <a href="https://research.investmquest.com/briefing/misc.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">財報</a>
-    <a href="https://research.investmquest.com/briefing/trading.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">交易系統</a>
+    <a href="https://research.investmquest.com/briefing/news.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">Top stories</a>
+    <a href="https://research.investmquest.com/briefing/geo.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">Geopolitics</a>
+    <a href="https://research.investmquest.com/briefing/tech.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">Tech &amp; AI</a>
+    <a href="https://research.investmquest.com/briefing/trends.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">Startups</a>
+    <a href="https://research.investmquest.com/briefing/misc.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">Earnings</a>
+    <a href="https://research.investmquest.com/briefing/trading.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">Systems</a>
     <a href="https://research.investmquest.com/briefing/screener.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">Screener</a>
   </div>
 </div>

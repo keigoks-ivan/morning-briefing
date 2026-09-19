@@ -81,18 +81,18 @@ FRONTIER_TAG_STYLE = {
 }
 
 STAGE_STYLE = {
-    "實驗室結果": "background:#e8e8e8;color:#555;",
-    "原型":      "background:#FAF0DA;color:#854F0B;",
-    "試點":      "background:#EBF2FA;color:#185FA5;",
-    "小量商用":   "background:#E1F5EE;color:#0F6E56;",
-    "大量商用":   "background:#EAF3DE;color:#3B6D11;",
-    "募資":      "background:#F0EDF8;color:#534AB7;",
+    "lab result": "background:#e8e8e8;color:#555;",
+    "prototype": "background:#FAF0DA;color:#854F0B;",
+    "pilot":     "background:#EBF2FA;color:#185FA5;",
+    "limited commercial": "background:#E1F5EE;color:#0F6E56;",
+    "full commercial":    "background:#EAF3DE;color:#3B6D11;",
+    "fundraising":        "background:#F0EDF8;color:#534AB7;",
 }
 
 REGION_LABEL = {
-    "taiwan": "🇹🇼 台灣", "japan": "🇯🇵 日本",
-    "us": "🇺🇸 美國", "asean": "🌏 東南亞", "malaysia": "🇲🇾 馬來西亞",
-    "korea": "🇰🇷 韓國", "china": "🇨🇳 中國", "europe": "🇪🇺 歐洲",
+    "taiwan": "🇹🇼 Taiwan", "japan": "🇯🇵 Japan",
+    "us": "🇺🇸 US", "asean": "🌏 SE Asia", "malaysia": "🇲🇾 Malaysia",
+    "korea": "🇰🇷 Korea", "china": "🇨🇳 China", "europe": "🇪🇺 Europe",
 }
 
 REGION_COLOR = {
@@ -134,31 +134,31 @@ def _source_line(source: str, source_date: str) -> str:
 
 def _importance_badge(importance: str) -> str:
     if importance == "high":
-        return '''<span style="background:#FEF3CD;color:#856404;font-size:12px;padding:1px 6px;border-radius:3px;font-weight:500;margin-left:6px;">重要</span>'''
+        return '''<span style="background:#FEF3CD;color:#856404;font-size:12px;padding:1px 6px;border-radius:3px;font-weight:500;margin-left:6px;">Key</span>'''
     return ""
 
 
 INVESTMENT_QUOTES = [
-    ("投資最重要的事，是避免永久性資本損失。", "Howard Marks"),
-    ("價格是你付出的，價值是你得到的。", "Warren Buffett"),
-    ("市場短期是投票機，長期是體重機。", "Benjamin Graham"),
-    ("風險來自於你不知道自己在做什麼。", "Warren Buffett"),
-    ("在別人恐懼時貪婪，在別人貪婪時恐懼。", "Warren Buffett"),
-    ("複利是世界第八大奇蹟。", "Albert Einstein"),
-    ("不要預測市場，要為各種情境做好準備。", "Howard Marks"),
-    ("好公司不等於好股票，關鍵是價格。", "Peter Lynch"),
-    ("持有現金是讓你在機會來臨時有能力行動。", "Charlie Munger"),
-    ("投資的第一條規則：不要虧錢。第二條：不要忘記第一條。", "Warren Buffett"),
-    ("分散投資是無知者的保護，但對於知道自己在做什麼的人則無意義。", "Warren Buffett"),
-    ("市場先生是你的僕人，不是你的嚮導。", "Benjamin Graham"),
-    ("耐心是投資人最被低估的美德。", "Charlie Munger"),
-    ("你不需要做很多事情是對的，你只需要避免做錯事。", "Charlie Munger"),
-    ("在牛市中賺錢很容易，但在熊市中保住本金才是功夫。", "Howard Marks"),
-    ("偉大的投資機會來自於優秀的公司陷入暫時的困境。", "Peter Lynch"),
-    ("知道自己不知道什麼，比假裝什麼都知道更有價值。", "Howard Marks"),
-    ("股票市場是把錢從急躁者轉移到有耐心者手中的裝置。", "Warren Buffett"),
-    ("第一步是理解周期在哪裡，第二步是知道該怎麼應對。", "Howard Marks"),
-    ("最危險的投資話語是：這次不一樣。", "John Templeton"),
+    ("The most important thing is avoiding permanent loss of capital.", "Howard Marks"),
+    ("Price is what you pay. Value is what you get.", "Warren Buffett"),
+    ("In the short run the market is a voting machine, in the long run a weighing machine.", "Benjamin Graham"),
+    ("Risk comes from not knowing what you are doing.", "Warren Buffett"),
+    ("Be greedy when others are fearful, and fearful when others are greedy.", "Warren Buffett"),
+    ("Compound interest is the eighth wonder of the world.", "Albert Einstein"),
+    ("You cannot predict. You can prepare.", "Howard Marks"),
+    ("A great company is not a great investment if you pay too much.", "Peter Lynch"),
+    ("Holding cash is what lets you act when the opportunity arrives.", "Charlie Munger"),
+    ("Rule number one: never lose money. Rule number two: never forget rule number one.", "Warren Buffett"),
+    ("Diversification is protection against ignorance.", "Warren Buffett"),
+    ("Mr. Market is there to serve you, not to guide you.", "Benjamin Graham"),
+    ("Patience is the most underrated virtue an investor has.", "Charlie Munger"),
+    ("You do not have to be right often. You have to avoid being wrong.", "Charlie Munger"),
+    ("Making money in a bull market is easy. Keeping it in a bear market is the skill.", "Howard Marks"),
+    ("The best opportunities come from good companies in temporary trouble.", "Peter Lynch"),
+    ("Knowing what you do not know is worth more than pretending to know it all.", "Howard Marks"),
+    ("The stock market transfers money from the impatient to the patient.", "Warren Buffett"),
+    ("Step one is knowing where we are in the cycle. Step two is knowing what to do about it.", "Howard Marks"),
+    ("The four most dangerous words in investing are: this time it is different.", "John Templeton"),
 ]
 
 def _quote_of_day(date_str: str) -> str:
@@ -187,7 +187,7 @@ def _masthead(now_str: str) -> str:
     <div style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase;
                 color:#888;margin-bottom:4px;">MORNING BRIEFING</div>
     <div style="font-family:Georgia,serif;font-size:26px;font-weight:700;
-                color:#1B3A5C;">每日財經晨報</div>
+                color:#1B3A5C;">Morning Briefing</div>
   </div>
   <div style="font-size:13px;color:#888;text-align:right;line-height:1.8;">
     Ivan's Financial Daily<br>US · Asia · Europe · NQ100<br>
@@ -220,11 +220,11 @@ def _vs_regime_line(text: str) -> str:
     """各分析區塊對主軸的表態（支持｜／反對｜／中性｜ ＋ 一句）。"""
     if not text:
         return ""
-    head = text.split("｜", 1)[0].strip()
-    color = {"支持": "#0F6E56", "反對": "#C0392B"}.get(head, "#888")
+    head = text.split("|", 1)[0].strip()
+    color = {"Supports": "#0F6E56", "Contradicts": "#C0392B"}.get(head, "#888")
     return (f'<div style="font-size:12px;color:#555;line-height:1.5;margin-top:8px;padding-top:6px;'
             f'border-top:0.5px dashed #ddd;">'
-            f'<span style="font-size:10px;letter-spacing:1px;color:#888;">對主軸 ▶ </span>'
+            f'<span style="font-size:10px;letter-spacing:1px;color:#888;">vs regime &#9654; </span>'
             f'<span style="font-weight:600;color:{color};">{text}</span></div>')
 
 
@@ -233,9 +233,9 @@ def _regime_block(rg: dict) -> str:
     if not rg or not rg.get("call"):
         return ""
     axes = rg.get("axes", {}) or {}
-    ax_meta = [("risk_appetite", "風險偏好", "#1B3A5C"),
-               ("liquidity", "流動性", "#085041"),
-               ("volatility", "波動", "#BA7517")]
+    ax_meta = [("risk_appetite", "Risk appetite", "#1B3A5C"),
+               ("liquidity", "Liquidity", "#085041"),
+               ("volatility", "Volatility", "#BA7517")]
     ax_cells = ""
     for key, label, color in ax_meta:
         a = axes.get(key, {}) or {}
@@ -256,8 +256,8 @@ def _regime_block(rg: dict) -> str:
                 f'<div style="font-size:11px;font-weight:600;color:{color};margin-bottom:4px;">{title}</div>'
                 f'<ul style="margin:0;padding-left:16px;font-size:12px;color:#555;line-height:1.55;">{lis}</ul>'
                 f'</div></td>')
-    conf_td = _list(rg.get("confirms"), "#0F6E56", "支持主軸")
-    contra_td = _list(rg.get("contradicts"), "#C0392B", "反對主軸")
+    conf_td = _list(rg.get("confirms"), "#0F6E56", "Confirms")
+    contra_td = _list(rg.get("contradicts"), "#C0392B", "Contradicts")
     cc_html = ""
     if conf_td or contra_td:
         empty_td = '<td width="50%"></td>'
@@ -272,7 +272,7 @@ def _regime_block(rg: dict) -> str:
             f'<td style="padding:4px 8px;font-size:12px;color:#C0392B;font-weight:600;white-space:nowrap;">{f.get("threshold","")}</td>'
             f'<td style="padding:4px 8px;font-size:12px;color:#555;line-height:1.5;">{f.get("meaning","")}</td></tr>'
             for f in fals)
-        fals_html = (f'<div style="font-size:11px;font-weight:600;color:#888;margin-bottom:4px;">什麼數字出現就代表主軸錯了</div>'
+        fals_html = (f'<div style="font-size:11px;font-weight:600;color:#888;margin-bottom:4px;">What would prove this call wrong</div>'
                      f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#fff;'
                      f'border-radius:4px;margin-bottom:10px;">{rows}</table>')
 
@@ -281,14 +281,14 @@ def _regime_block(rg: dict) -> str:
     if w52:
         w52_html = (f'<div style="background:#1B3A5C;color:#fff;border-radius:4px;padding:8px 12px;'
                     f'font-size:13px;line-height:1.55;">'
-                    f'<span style="font-size:10px;letter-spacing:1px;opacity:.75;">W52 引擎 ▶ </span>{w52}</div>')
+                    f'<span style="font-size:10px;letter-spacing:1px;opacity:.75;">W52 engine &#9654; </span>{w52}</div>')
 
     # 昨日主軸驗證：verdict＋證偽條件逐項對照
     rv = rg.get("review") or {}
     review_html = ""
     verdict = (rv.get("verdict") or "").strip() if isinstance(rv, dict) else ""
-    if verdict and verdict != "無前日資料":
-        v_color = {"延續": "#0F6E56", "修正": "#BA7517", "被證偽": "#C0392B"}.get(verdict, "#888")
+    if verdict and verdict != "no prior day":
+        v_color = {"carried over": "#0F6E56", "revised": "#BA7517", "falsified": "#C0392B"}.get(verdict, "#888")
         chips = ""
         for c in (rv.get("falsifier_check") or []):
             if not isinstance(c, dict) or not c.get("metric"):
@@ -296,29 +296,29 @@ def _regime_block(rg: dict) -> str:
             hit = bool(c.get("hit"))
             chip_bg = "#fdecea" if hit else "#eef5f1"
             chip_fg = "#C0392B" if hit else "#0F6E56"
-            mark = "✕ 觸發" if hit else "✓ 未觸發"
+            mark = "&#10007; hit" if hit else "&#10003; not hit"
             chips += (f'<span style="display:inline-block;margin:0 6px 4px 0;padding:2px 8px;border-radius:10px;'
                       f'background:{chip_bg};color:{chip_fg};font-size:11px;">'
-                      f'{c.get("metric","")}｜門檻 {c.get("threshold","")}｜今 {c.get("today_value","")}｜{mark}</span>')
+                      f'{c.get("metric","")} | threshold {c.get("threshold","")} | today {c.get("today_value","")} | {mark}</span>')
         y_call = rv.get("yesterday_call", "")
         note = rv.get("note", "")
         review_html = (f'<div style="border-top:1px dashed #ddd;margin-top:10px;padding-top:8px;">'
-                       f'<div style="font-size:11px;font-weight:600;color:#888;margin-bottom:4px;">昨日主軸驗證 '
+                       f'<div style="font-size:11px;font-weight:600;color:#888;margin-bottom:4px;">Yesterday&rsquo;s call '
                        f'<span style="display:inline-block;padding:1px 8px;border-radius:3px;background:{v_color};color:#fff;'
                        f'font-size:11px;font-weight:700;margin-left:4px;">{verdict}</span></div>'
-                       + (f'<div style="font-size:12px;color:#777;margin-bottom:4px;">昨：{y_call}</div>' if y_call else "")
+                       + (f'<div style="font-size:12px;color:#777;margin-bottom:4px;">Yesterday: {y_call}</div>' if y_call else "")
                        + (f'<div style="margin-bottom:4px;">{chips}</div>' if chips else "")
                        + (f'<div style="font-size:12px;color:#555;line-height:1.5;">{note}</div>' if note else "")
                        + '</div>')
 
     conf = rg.get("confidence", "")
     conf_reason = rg.get("confidence_reason", "")
-    conf_color = {"高": "#0F6E56", "低": "#C0392B"}.get(conf, "#BA7517")
+    conf_color = {"high": "#0F6E56", "low": "#C0392B"}.get(conf, "#BA7517")
     conf_html = ""
     if conf:
-        conf_html = (f'<span style="font-size:12px;color:#888;">信心 '
+        conf_html = (f'<span style="font-size:12px;color:#888;">Confidence '
                      f'<span style="font-weight:700;color:{conf_color};">{conf}</span>'
-                     f'{"｜" + conf_reason if conf_reason else ""}</span>')
+                     f'{" | " + conf_reason if conf_reason else ""}</span>')
 
     return f'''
 <div class="section">
@@ -326,7 +326,7 @@ def _regime_block(rg: dict) -> str:
     <div style="display:flex;justify-content:space-between;align-items:baseline;
                 margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid #e8e8e8;">
       <span style="font-size:12px;letter-spacing:1.8px;text-transform:uppercase;
-                   font-weight:500;color:#888;">今日主軸</span>
+                   font-weight:500;color:#888;">TODAY&rsquo;S CALL</span>
       {conf_html}
     </div>
     <div style="font-size:17px;font-weight:700;color:#1B3A5C;line-height:1.4;margin-bottom:10px;">{rg.get("call","")}</div>
@@ -348,7 +348,7 @@ def _mkt_cell(item: dict, extra_tag: str = "") -> str:
     color = MKT_CHG_COLOR.get(d, "#888")
     is_dyn = item.get("is_dynamic", False)
     dyn_html = ('<span style="font-size:9px;color:#C0392B;font-weight:600;'
-                'position:absolute;top:4px;right:6px;">動態</span>') if is_dyn else ""
+                'position:absolute;top:4px;right:6px;">dyn</span>') if is_dyn else ""
     return (f'<td style="padding:8px 10px;border-right:0.5px solid #f0f0f0;vertical-align:top;'
             f'position:relative;">'
             f'{dyn_html}'
@@ -442,9 +442,9 @@ def _sentiment_extra_tags(items: list[dict]) -> dict:
         except (ValueError, TypeError):
             continue
         if "SKEW" in label and num > 140:
-            tags[i] = '<div style="font-size:9px;color:#854F0B;font-weight:600;margin-top:2px;">尾部風險</div>'
+            tags[i] = '<div style="font-size:9px;color:#854F0B;font-weight:600;margin-top:2px;">tail risk</div>'
         elif "VVIX" in label and num > 120:
-            tags[i] = '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">高波動</div>'
+            tags[i] = '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">high vol</div>'
     return tags
 
 
@@ -487,10 +487,10 @@ def _credit_cell(item: dict) -> str:
     # HYG/LQD ratio: ↑ = spread narrowing (green), ↓ = spread widening (red)
     if label == "HYG/LQD" and chg != "—":
         if "▲" in chg:
-            chg = chg.replace("▲", "↑利差收窄")
+            chg = chg.replace("▲", "↑spread tighter")
             color = "#0F6E56"
         elif "▼" in chg:
-            chg = chg.replace("▼", "↓利差擴大")
+            chg = chg.replace("▼", "↓spread wider")
             color = "#C0392B"
     return (f'<td style="padding:8px 10px;border-right:0.5px solid #f0f0f0;vertical-align:top;">'
             f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;'
@@ -520,8 +520,8 @@ def _vix9d_tag(sentiment: list[dict]) -> str:
     if abs(diff) < 1:
         return ""
     if diff < 0:
-        return '<div style="font-size:9px;color:#888;font-weight:600;margin-top:2px;">短期恐慌</div>'
-    return '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">持續風險</div>'
+        return '<div style="font-size:9px;color:#888;font-weight:600;margin-top:2px;">near-term fear</div>'
+    return '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">sustained risk</div>'
 
 
 def _parse_chg_pct(chg_str: str) -> float | None:
@@ -548,9 +548,9 @@ def _nyfang_tag(factors: list[dict], indices: list[dict]) -> str:
     if ndx_chg is None or nyfang_chg is None:
         return ""
     if ndx_chg < 0 and nyfang_chg < ndx_chg:
-        return '<div style="font-size:9px;color:#854F0B;font-weight:600;margin-top:2px;">科技巨頭領跌</div>'
+        return '<div style="font-size:9px;color:#854F0B;font-weight:600;margin-top:2px;">megacaps lead down</div>'
     if ndx_chg < 0 and nyfang_chg > ndx_chg:
-        return '<div style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:2px;">巨頭相對抗跌</div>'
+        return '<div style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:2px;">megacaps resilient</div>'
     return ""
 
 
@@ -560,21 +560,21 @@ def _rsp_spy_tag(factors: list[dict]) -> str:
         if it.get("label", "") == "RSP/SPY":
             chg = _parse_chg_pct(it.get("chg", ""))
             if chg is not None and chg > 0:
-                return '<div style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:2px;">市場變寬</div>'
+                return '<div style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:2px;">breadth widening</div>'
             elif chg is not None and chg < 0:
-                return '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">市場集中</div>'
+                return '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">concentrated</div>'
     return ""
 
 
 def _iwm_spy_tag(factors: list[dict]) -> str:
     """IWM/SPY ratio tag: up = risk-on small caps, down = large-cap dominance."""
     for it in factors:
-        if it.get("label", "") == "IWM/SPY 小型":
+        if it.get("label", "") == "IWM/SPY":
             chg = _parse_chg_pct(it.get("chg", ""))
             if chg is not None and chg > 0:
-                return '<div style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:2px;">小型股強</div>'
+                return '<div style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:2px;">small caps lead</div>'
             elif chg is not None and chg < 0:
-                return '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">大型股主導</div>'
+                return '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">large caps lead</div>'
     return ""
 
 
@@ -587,15 +587,15 @@ def _nfci_cell(item: dict) -> str:
         num = float(val_str)
         if num > 0.5:
             bg = "#FFF0F0"
-            label_tag = '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">金融條件偏緊</div>'
+            label_tag = '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">conditions tight</div>'
         elif num > 0:
             bg = "#FFF8F0"
-            label_tag = '<div style="font-size:9px;color:#854F0B;font-weight:600;margin-top:2px;">略偏緊</div>'
+            label_tag = '<div style="font-size:9px;color:#854F0B;font-weight:600;margin-top:2px;">mildly tight</div>'
         elif num > -0.5:
             bg = "#fff"
         else:
             bg = "#F0FFF4"
-            label_tag = '<div style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:2px;">金融條件寬鬆</div>'
+            label_tag = '<div style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:2px;">conditions easy</div>'
     except (ValueError, TypeError):
         pass
     d = item.get("dir", "neu")
@@ -620,7 +620,7 @@ def _rrp_cell(item: dict) -> str:
     date_html = f'<div style="font-size:9px;color:#aaa;margin-top:1px;">{date_str}</div>' if date_str else ""
     return (f'<td style="padding:8px 10px;border-right:0.5px solid #f0f0f0;vertical-align:top;">'
             f'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;'
-            f'color:#888;margin-bottom:3px;">{item.get("label","RRP餘額")}</div>'
+            f'color:#888;margin-bottom:3px;">{item.get("label","RRP")}</div>'
             f'<div style="font-size:18px;font-weight:500;color:#222;margin-bottom:2px;">{item.get("val","—")}</div>'
             f'<div style="font-size:12px;color:{color};">{item.get("chg","—")}</div>'
             f'{date_html}'
@@ -676,7 +676,7 @@ def _market_strip(market_data: dict) -> str:
             factor_tags[i] = nyfang_extra
         elif it.get("label", "") == "RSP/SPY":
             factor_tags[i] = rsp_spy_extra
-        elif it.get("label", "") == "IWM/SPY 小型":
+        elif it.get("label", "") == "IWM/SPY":
             factor_tags[i] = iwm_spy_extra
 
     # Sentiment cells
@@ -695,14 +695,14 @@ def _market_strip(market_data: dict) -> str:
             v = float(it.get("val", "—").replace(",", "").replace("%", "").replace("$", ""))
         except (ValueError, TypeError):
             continue
-        if it.get("label", "") == "美2Y":
+        if it.get("label", "") == "US 2Y":
             us2y_val = v
-        elif it.get("label", "") == "美10Y":
+        elif it.get("label", "") == "US 10Y":
             us10y_val = v
     inversion_warning = ""
     if us2y_val is not None and us10y_val is not None and us2y_val > us10y_val:
         inversion_warning = ('<span style="font-size:9px;color:#C0392B;font-weight:600;'
-                             'margin-left:8px;">⚠ 殖利率倒掛</span>')
+                             'margin-left:8px;">&#9888; Curve inverted</span>')
 
     bond_cells = ""
     for it in bonds:
@@ -716,13 +716,13 @@ def _market_strip(market_data: dict) -> str:
                 spread_num = 0
             if spread_num < -0.1:
                 val_color = "#C0392B"
-                tag = '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">倒掛⚠</div>'
+                tag = '<div style="font-size:9px;color:#C0392B;font-weight:600;margin-top:2px;">inverted</div>'
             elif spread_num > 0.1:
                 val_color = "#0F6E56"
-                tag = '<div style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:2px;">正常</div>'
+                tag = '<div style="font-size:9px;color:#0F6E56;font-weight:600;margin-top:2px;">normal</div>'
             else:
                 val_color = "#854F0B"
-                tag = '<div style="font-size:9px;color:#854F0B;font-weight:600;margin-top:2px;">趨平</div>'
+                tag = '<div style="font-size:9px;color:#854F0B;font-weight:600;margin-top:2px;">flattening</div>'
             d = it.get("dir", "neu")
             chg_color = MKT_CHG_COLOR.get(d, "#888")
             bond_cells += (f'<td style="padding:8px 10px;border-right:0.5px solid #f0f0f0;vertical-align:top;">'
@@ -739,7 +739,7 @@ def _market_strip(market_data: dict) -> str:
     for it in fx:
         if it.get("is_dynamic"):
             dyn_tag = ('<div style="font-size:9px;color:#534AB7;font-weight:600;'
-                       'margin-top:2px;">今日波動</div>')
+                       'margin-top:2px;">today&rsquo;s mover</div>')
             fx_cells += _mkt_cell(it, extra_tag=dyn_tag)
         else:
             fx_cells += _mkt_cell(it)
@@ -788,7 +788,7 @@ def _market_strip(market_data: dict) -> str:
     if liquidity:
         liq_section = f'''
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
-    {_mkt_section_label("流動性", "#0F6E56")}
+    {_mkt_section_label("Liquidity", "#0F6E56")}
     <tr>{liq_cells}</tr>
     {assess_bar}'''
 
@@ -803,47 +803,47 @@ def _market_strip(market_data: dict) -> str:
             today = _date_cls.today()
             if d < today:
                 date_notice = (f'<span style="font-size:11px;color:#888;font-weight:400;">'
-                               f'數據截至 {data_date}（最近交易日）</span>')
+                               f'data as of {data_date} (latest session)</span>')
         except (ValueError, IndexError):
             pass
 
     return f'''
 <div class="section">
-  <div class="section-label">市場即時數據{date_notice}</div>
+  <div class="section-label">Markets{date_notice}</div>
   <table width="100%" cellpadding="0" cellspacing="0"
          style="background:#fff;border:0.5px solid #e8e8e8;border-radius:8px;
                 overflow:hidden;border-collapse:collapse;">
-    {_mkt_section_label("股票指數", "#1B3A5C")}
+    {_mkt_section_label("Equity indices", "#1B3A5C")}
     {_mkt_row(indices)}
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
-    {_mkt_section_label("美股市場因子", "#7F77DD")}
+    {_mkt_section_label("US factors", "#7F77DD")}
     {_mkt_row(factors_fixed, extra_tags=factor_tags)}
     {_mkt_row(factors_dynamic) if factors_dynamic else ""}
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
-    {_mkt_section_label("市場情緒", "#BA7517")}
+    {_mkt_section_label("Sentiment", "#BA7517")}
     {_wrap_cells_in_rows(sent_cells, 6)}
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
-    {_mkt_section_label("原物料", "#854F0B")}
+    {_mkt_section_label("Commodities", "#854F0B")}
     {_mkt_row(commodities_fixed)}
     {_mkt_row(commodities_dynamic) if commodities_dynamic else ""}
     <tr><td colspan="99" style="border-bottom:0.5px solid #f0f0f0;"></td></tr>
     <tr><td colspan="99" style="padding:12px 10px 6px 10px;">
       <div style="display:flex;align-items:center;gap:6px;">
         <div style="width:3px;height:12px;background:#185FA5;border-radius:1px;"></div>
-        <span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;color:#888;">債券</span>
+        <span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;color:#888;">Bonds</span>
         {inversion_warning}
       </div></td></tr>
     {_wrap_cells_in_rows(bond_cells, 6).replace('<tr>', '<tr style="background:#EBF2FA;">')}
     <tr><td colspan="99" style="padding:8px 10px 6px 10px;">
       <div style="display:flex;align-items:center;gap:6px;">
         <div style="width:3px;height:12px;background:#534AB7;border-radius:1px;"></div>
-        <span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;color:#888;">外匯</span>
+        <span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;color:#888;">FX</span>
       </div></td></tr>
     {_wrap_cells_in_rows(fx_cells, 6).replace('<tr>', '<tr style="background:#F7F5FF;">')}
     <tr><td colspan="99" style="padding:8px 10px 6px 10px;">
       <div style="display:flex;align-items:center;gap:6px;">
         <div style="width:3px;height:12px;background:#0F6E56;border-radius:1px;"></div>
-        <span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;color:#888;">信貸</span>
+        <span style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;color:#888;">Credit</span>
       </div></td></tr>
     {_wrap_cells_in_rows(credit_cells, 6).replace('<tr>', '<tr style="background:#E8F5EE;">')}
     {liq_section}
@@ -866,7 +866,7 @@ def _market_pulse(pulse: dict) -> str:
         dom_html = f'''
 <div style="background:#1B3A5C;color:#fff;border-radius:4px;padding:8px 14px;margin-bottom:10px;
             font-size:14px;font-weight:600;">
-  今日主軸：{dominant}
+  Dominant theme: {dominant}
 </div>'''
 
     # Cross-asset signals
@@ -885,7 +885,7 @@ def _market_pulse(pulse: dict) -> str:
     if hidden_risk:
         risk_td = (f'<td width="50%" style="vertical-align:top;padding-right:5px;">'
                    f'<div style="border-left:3px solid #854F0B;padding:8px 12px;background:#fff;">'
-                   f'<div style="font-size:12px;font-weight:600;color:#854F0B;margin-bottom:4px;">潛在風險</div>'
+                   f'<div style="font-size:12px;font-weight:600;color:#854F0B;margin-bottom:4px;">Hidden risk</div>'
                    f'<div style="font-size:13px;color:#555;line-height:1.6;">{hidden_risk}</div>'
                    f'</div></td>')
     else:
@@ -894,7 +894,7 @@ def _market_pulse(pulse: dict) -> str:
     if hidden_opp:
         opp_td = (f'<td width="50%" style="vertical-align:top;padding-left:5px;">'
                   f'<div style="border-left:3px solid #0F6E56;padding:8px 12px;background:#fff;">'
-                  f'<div style="font-size:12px;font-weight:600;color:#0F6E56;margin-bottom:4px;">潛在機會</div>'
+                  f'<div style="font-size:12px;font-weight:600;color:#0F6E56;margin-bottom:4px;">Hidden opportunity</div>'
                   f'<div style="font-size:13px;color:#555;line-height:1.6;">{hidden_opp}</div>'
                   f'</div></td>')
     else:
@@ -913,7 +913,7 @@ def _market_pulse(pulse: dict) -> str:
         key_html = f'''
 <div style="background:#FEF9E7;border-radius:4px;padding:8px 14px;margin-top:10px;
             font-size:13px;color:#856404;">
-  <span style="font-weight:600;">關鍵價位：</span>{key_level}
+  <span style="font-weight:600;">Key level:</span> {key_level}
 </div>'''
 
     hist_analog = pulse.get("historical_analog", "")
@@ -922,9 +922,9 @@ def _market_pulse(pulse: dict) -> str:
     if hist_analog or new_pat:
         parts = []
         if hist_analog:
-            parts.append(f'<span style="color:#534AB7;">歷史類比：</span>{hist_analog}')
+            parts.append(f'<span style="color:#534AB7;">Historical analogue:</span> {hist_analog}')
         if new_pat:
-            parts.append(f'<span style="color:#854F0B;">新模式：</span>{new_pat}')
+            parts.append(f'<span style="color:#854F0B;">New pattern:</span> {new_pat}')
         analog_html = f'''
 <div style="font-size:12px;color:#555;line-height:1.5;margin-top:8px;padding-top:8px;
             border-top:0.5px solid #e8e8e8;">
@@ -937,8 +937,8 @@ def _market_pulse(pulse: dict) -> str:
     <div style="display:flex;justify-content:space-between;align-items:baseline;
                 margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid #e8e8e8;">
       <span style="font-size:12px;letter-spacing:1.8px;text-transform:uppercase;
-                   font-weight:500;color:#888;">市場脈絡</span>
-      <span style="font-size:12px;color:#888;">跨指標訊號分析</span>
+                   font-weight:500;color:#888;">MARKET PULSE</span>
+      <span style="font-size:12px;color:#888;">cross-indicator signals</span>
     </div>
     {dom_html}
     {sig_html}
@@ -967,16 +967,16 @@ def _index_factor_reading(ifr: dict) -> str:
                 f'<div style="font-size:13px;color:#333;line-height:1.6;">{content}</div></td>')
 
     row1 = (f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
-            f'<tr>{_ifr_cell("市場寬度", ifr.get("market_breadth", ""))}'
-            f'{_ifr_cell("風格輪動", ifr.get("style_rotation", ""))}'
-            f'{_ifr_cell("SECTOR訊號", ifr.get("sector_signal", ""))}'
-            f'{_ifr_cell("科技巨頭", ifr.get("nyfang_signal", ""))}</tr></table>')
+            f'<tr>{_ifr_cell("Breadth", ifr.get("market_breadth", ""))}'
+            f'{_ifr_cell("Style rotation", ifr.get("style_rotation", ""))}'
+            f'{_ifr_cell("Sector signal", ifr.get("sector_signal", ""))}'
+            f'{_ifr_cell("Megacap tech", ifr.get("nyfang_signal", ""))}</tr></table>')
 
     momentum = ifr.get("momentum_read", "")
     mom_html = ""
     if momentum:
         mom_html = (f'<div style="padding-top:8px;border-top:0.5px solid #EEE;margin-top:8px;">'
-                    f'<span style="font-size:10px;color:#888;">動能 ▶ </span>'
+                    f'<span style="font-size:10px;color:#888;">Momentum &#9654; </span>'
                     f'<span style="font-size:13px;color:#333;">{momentum}</span></div>')
 
     key = ifr.get("key_insight", "")
@@ -1002,8 +1002,8 @@ def _sentiment_analysis(sa: dict) -> str:
     if not sa or not sa.get("one_line"):
         return ""
 
-    stage = sa.get("stage", "無明確訊號")
-    stage_name = sa.get("stage_name", "正常市場")
+    stage = sa.get("stage", "No clear signal")
+    stage_name = sa.get("stage_name", "Normal market")
     vix_reading = sa.get("vix_reading", "")
     vvix_reading = sa.get("vvix_reading", "")
     skew_reading = sa.get("skew_reading", "")
@@ -1011,17 +1011,17 @@ def _sentiment_analysis(sa: dict) -> str:
     credit_check = sa.get("credit_check", "")
     cross_asset = sa.get("cross_asset_confirm", "")
     key_div = sa.get("key_divergence", "")
-    reliability = sa.get("reliability", "中")
+    reliability = sa.get("reliability", "medium")
     reliability_reason = sa.get("reliability_reason", "")
     one_line = sa.get("one_line", "")
 
     # Reliability color mapping
     rel_colors = {
-        "高": {"bg": "#E8F8EE", "text": "#0F6E56", "dot": "#0F6E56"},
-        "中": {"bg": "#FFF8F0", "text": "#854F0B", "dot": "#E67E22"},
-        "低": {"bg": "#FFF0F0", "text": "#C0392B", "dot": "#C0392B"},
+        "high":   {"bg": "#E8F8EE", "text": "#0F6E56", "dot": "#0F6E56"},
+        "medium": {"bg": "#FFF8F0", "text": "#854F0B", "dot": "#E67E22"},
+        "low":    {"bg": "#FFF0F0", "text": "#C0392B", "dot": "#C0392B"},
     }
-    rc = rel_colors.get(reliability, rel_colors["中"])
+    rc = rel_colors.get(reliability, rel_colors["medium"])
 
     # Stage badge
     stage_html = (f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
@@ -1037,16 +1037,16 @@ def _sentiment_analysis(sa: dict) -> str:
                 f'<div style="font-size:13px;color:#333;line-height:1.5;">{content}</div></td>')
 
     row1 = (f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
-            f'<tr>{_reading_cell("VIX 解讀", vix_reading)}'
-            f'{_reading_cell("VVIX 解讀", vvix_reading)}'
-            f'{_reading_cell("SKEW 解讀", skew_reading)}</tr></table>')
+            f'<tr>{_reading_cell("VIX", vix_reading)}'
+            f'{_reading_cell("VVIX", vvix_reading)}'
+            f'{_reading_cell("SKEW", skew_reading)}</tr></table>')
 
     # Row 2: Fear&Greed / Credit / Cross-asset
     row2 = (f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;'
             f'margin-top:6px;border-top:0.5px solid #e8e8e8;">'
-            f'<tr>{_reading_cell("FEAR&GREED 補充", fg_reading)}'
-            f'{_reading_cell("信貸確認", credit_check)}'
-            f'{_reading_cell("跨資產確認", cross_asset)}</tr></table>')
+            f'<tr>{_reading_cell("FEAR &amp; GREED", fg_reading)}'
+            f'{_reading_cell("Credit check", credit_check)}'
+            f'{_reading_cell("Cross-asset", cross_asset)}</tr></table>')
 
     # Key divergence
     div_html = ""
@@ -1054,13 +1054,13 @@ def _sentiment_analysis(sa: dict) -> str:
         div_html = (f'<div style="font-size:13px;color:#555;line-height:1.5;padding:8px 10px;'
                     f'margin-top:6px;border-top:0.5px solid #e8e8e8;">'
                     f'<span style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;'
-                    f'color:#888;">關鍵背離/一致性</span><br>{key_div}</div>')
+                    f'color:#888;">Key divergence</span><br>{key_div}</div>')
 
     # Reliability row
     rel_html = (f'<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;'
                 f'margin-top:6px;border-top:0.5px solid #e8e8e8;">'
                 f'<span style="font-size:12px;font-weight:600;padding:2px 8px;border-radius:3px;'
-                f'background:{rc["bg"]};color:{rc["text"]};">可靠性：{reliability}</span>'
+                f'background:{rc["bg"]};color:{rc["text"]};">Reliability: {reliability}</span>'
                 f'<span style="font-size:13px;color:#888;">{reliability_reason}</span></div>')
 
     # One-line conclusion with reliability dot
@@ -1076,8 +1076,8 @@ def _sentiment_analysis(sa: dict) -> str:
     <div style="display:flex;justify-content:space-between;align-items:baseline;
                 margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid #e8e8e8;">
       <span style="font-size:12px;letter-spacing:1.8px;text-transform:uppercase;
-                   font-weight:500;color:#888;">情緒四部曲分析</span>
-      <span style="font-size:12px;color:#888;">VIX·VVIX·SKEW·信貸·跨資產</span>
+                   font-weight:500;color:#888;">VOLATILITY REGIME</span>
+      <span style="font-size:12px;color:#888;">VIX &middot; VVIX &middot; SKEW &middot; credit &middot; cross-asset</span>
     </div>
     {stage_html}
     {row1}
@@ -1111,7 +1111,7 @@ def _watchlist_news_section(items: list) -> str:
 </div>'''
     return f'''
 <div class="section">
-  <div class="section-label">關注清單動態 <span style="font-weight:400;color:#888;font-size:12px;">DD universe・S／A 級優先・只列重大事件</span></div>{rows}
+  <div class="section-label">Watchlist <span style="font-weight:400;color:#888;font-size:12px;">DD universe &middot; company events only</span></div>{rows}
 </div>'''
 
 
@@ -1135,7 +1135,7 @@ def _weekend_reads_section(items: list) -> str:
 </div>'''
     return f'''
 <div class="section">
-  <div class="section-label">本週值得讀 <span style="font-weight:400;color:#888;font-size:12px;">週刊／長文・今天沒空、週末補</span></div>{rows}
+  <div class="section-label">Weekend reads <span style="font-weight:400;color:#888;font-size:12px;">long-form, saved for the weekend</span></div>{rows}
 </div>'''
 
 
@@ -1163,7 +1163,7 @@ def _news_section(title: str, items: list, tag_style_map: dict | None = None) ->
             )
             watchlist_html = f'''<div style="margin-top:8px;padding:7px 10px;background:#F3F6FA;
                                       border-left:3px solid #1B3A5C;border-radius:0 4px 4px 0;">
-              <div style="font-size:10px;color:#6B7C8F;letter-spacing:1px;font-weight:600;">對關注股的影響</div>
+              <div style="font-size:10px;color:#6B7C8F;letter-spacing:1px;font-weight:600;">What it means for the watchlist</div>
               {ref_rows}
             </div>'''
         rows += f'''
@@ -1186,31 +1186,31 @@ def _news_section(title: str, items: list, tag_style_map: dict | None = None) ->
 
 
 _INDUSTRY_COLORS = {
-    "半導體": ("#E6F1FB", "#185FA5"),
-    "AI基礎設施": ("#EEEDFE", "#534AB7"),
-    "企業軟體與資安": ("#E1F5EE", "#0F6E56"),
-    "機器人與工業自動化": ("#FAEEDA", "#854F0B"),
-    "醫療生技": ("#FBEAF0", "#993556"),
-    "金融科技": ("#E8F2F7", "#1B3A5C"),
-    "國防航太": ("#FCEBEB", "#A32D2D"),
-    "能源與運輸物流": ("#FFF3E0", "#8A4B08"),
+    "Semiconductors": ("#E6F1FB", "#185FA5"),
+    "AI infrastructure": ("#EEEDFE", "#534AB7"),
+    "Enterprise software and security": ("#E1F5EE", "#0F6E56"),
+    "Robotics and automation": ("#FAEEDA", "#854F0B"),
+    "Healthcare and biotech": ("#FBEAF0", "#993556"),
+    "Fintech": ("#E8F2F7", "#1B3A5C"),
+    "Defense and aerospace": ("#FCEBEB", "#A32D2D"),
+    "Energy and logistics": ("#FFF3E0", "#8A4B08"),
 }
 
 _FACT_CATEGORY_ORDER = [
-    "美股財報",
-    "科技與半導體產業鏈",
-    "AI產業應用",
-    "全球新創",
-    "美股類股與波動個股",
-    "全球多產業與財經",
+    "US earnings",
+    "Semis and supply chain",
+    "AI in production",
+    "Global startups",
+    "US sector moves",
+    "Industry and finance",
 ]
 _FACT_CATEGORY_COLORS = {
-    "美股財報": "#185FA5",
-    "科技與半導體產業鏈": "#534AB7",
-    "AI產業應用": "#0F6E56",
-    "全球新創": "#854F0B",
-    "美股類股與波動個股": "#A32D2D",
-    "全球多產業與財經": "#1B3A5C",
+    "US earnings": "#185FA5",
+    "Semis and supply chain": "#534AB7",
+    "AI in production": "#0F6E56",
+    "Global startups": "#854F0B",
+    "US sector moves": "#A32D2D",
+    "Industry and finance": "#1B3A5C",
 }
 
 
@@ -1220,7 +1220,7 @@ def _industry_developments_section(items: list) -> str:
     rows = ""
     grouped = {category: [] for category in _FACT_CATEGORY_ORDER}
     for item in items:
-        grouped.setdefault(item.get("category", "全球多產業與財經"), []).append(item)
+        grouped.setdefault(item.get("category", "Industry and finance"), []).append(item)
 
     for category, category_items in grouped.items():
         if not category_items:
@@ -1229,10 +1229,10 @@ def _industry_developments_section(items: list) -> str:
         rows += f'''
 <div style="margin-top:16px;padding-bottom:5px;border-bottom:2px solid {category_color};
             font-size:14px;font-weight:700;color:{category_color};">
-  {category} <span style="font-weight:400;color:#888;">{len(category_items)} 則</span>
+  {category} <span style="font-weight:400;color:#888;">{len(category_items)}</span>
 </div>'''
         for item in category_items:
-            industry = item.get("industry", "其他")
+            industry = item.get("industry", "Other")
             bg, color = _INDUSTRY_COLORS.get(industry, ("#F2F2F0", "#555"))
             development = item.get("development", "")
             fact_status = item.get("fact_status", "")
@@ -1245,19 +1245,19 @@ def _industry_developments_section(items: list) -> str:
             source_html = _source_line(item.get("source", ""), item.get("source_date", ""))
             chain_html = (
                 f'''<div style="margin-top:5px;font-size:13px;color:#555;line-height:1.55;">
-                  <span style="font-weight:600;color:#6B7C8F;">產業鏈 ▸</span> {value_chain}
+                  <span style="font-weight:600;color:#6B7C8F;">Value chain &#9656;</span> {value_chain}
                 </div>'''
                 if value_chain else ""
             )
             move_html = (
                 f'''<div style="margin-top:5px;font-size:13px;color:#555;line-height:1.55;">
-                  <span style="font-weight:600;color:#A32D2D;">市場反應 ▸</span> {market_move}
+                  <span style="font-weight:600;color:#A32D2D;">Market reaction &#9656;</span> {market_move}
                 </div>'''
                 if market_move else ""
             )
             impact_html = (
                 f'''<div style="margin-top:5px;font-size:13px;color:#40566f;line-height:1.55;">
-                  <span style="font-weight:600;color:{category_color};">已知影響 ▸</span> {confirmed_impact}
+                  <span style="font-weight:600;color:{category_color};">Confirmed impact &#9656;</span> {confirmed_impact}
                 </div>'''
                 if confirmed_impact else ""
             )
@@ -1271,19 +1271,19 @@ def _industry_developments_section(items: list) -> str:
   <div style="font-size:16px;font-weight:600;color:#222;line-height:1.5;">{item.get("headline", "")}{badge}</div>
   <div style="font-size:15px;color:#555;line-height:1.7;margin-top:5px;">{item.get("body", "")}</div>
   <div style="margin-top:7px;font-size:13px;color:#333;line-height:1.55;">
-    <span style="font-weight:600;color:{category_color};">關鍵證據 ▸</span> {evidence}
+    <span style="font-weight:600;color:{category_color};">Evidence &#9656;</span> {evidence}
   </div>
   {chain_html}
   {move_html}
   {impact_html}
   <div style="margin-top:5px;font-size:13px;color:#777;line-height:1.55;">
-    <span style="font-weight:600;">尚待確認 ▸</span> {unknowns}
+    <span style="font-weight:600;">Unknowns &#9656;</span> {unknowns}
   </div>
   {source_html}
 </div>'''
     return f'''
 <div class="section">
-  <div class="section-label">分類事實新聞 <span style="font-weight:400;color:#888;font-size:12px;">先事實・後脈絡</span></div>
+  <div class="section-label">Industry developments <span style="font-weight:400;color:#888;font-size:12px;">facts, then what is unknown</span></div>
   {rows}
 </div>'''
 
@@ -1295,7 +1295,7 @@ def _geopolitical_section(items: list) -> str:
     for s in items:
         importance = s.get("importance", "medium")
         badge = _importance_badge(importance)
-        region = s.get("region", "其他")
+        region = s.get("region", "Other")
         source_html = _source_line(s.get("source",""), s.get("source_date",""))
         rows += f'''
 <div style="display:grid;grid-template-columns:3px 1fr;gap:12px;
@@ -1313,7 +1313,7 @@ def _geopolitical_section(items: list) -> str:
 </div>'''
     return f'''
 <div class="section">
-  <div class="section-label">地緣政治風險</div>{rows}
+  <div class="section-label">Geopolitics</div>{rows}
 </div>'''
 
 
@@ -1345,7 +1345,7 @@ def _regional_tech_section(regional: dict) -> str:
         return ""
     return f'''
 <div class="section">
-  <div class="section-label">全球科技產業動態</div>{content}
+  <div class="section-label">Tech by region</div>{content}
 </div>'''
 
 
@@ -1375,7 +1375,7 @@ def _fintech_crypto_section(items: list) -> str:
 </div>'''
     return f'''
 <div class="section">
-  <div class="section-label">Fintech · 加密貨幣</div>{rows}
+  <div class="section-label">Fintech and crypto</div>{rows}
 </div>'''
 
 
@@ -1398,9 +1398,9 @@ def _status_grid(status: dict) -> str:
     dynamic = "".join(cell(i, False) for i in status.get("dynamic",[]))
     return f'''
 <div class="section">
-  <div class="section-label">系統狀態評估
+  <div class="section-label">System status
     <span style="font-size:12px;color:#888;font-weight:400;letter-spacing:0;">
-      <span style="width:5px;height:5px;border-radius:50%;background:#888;display:inline-block;margin-right:3px;"></span>固定
+      <span style="width:5px;height:5px;border-radius:50%;background:#888;display:inline-block;margin-right:3px;"></span>fixed
       <span style="width:5px;height:5px;border-radius:50%;background:#7F77DD;display:inline-block;margin:0 3px 0 8px;"></span>動態
     </span>
   </div>
@@ -1444,7 +1444,7 @@ def _tech_trends(trends: list) -> str:
 </div>'''
     return f'''
 <div class="section">
-  <div class="section-label">硬核科技趨勢</div>{items}
+  <div class="section-label">Deep tech</div>{items}
 </div>'''
 
 
@@ -1452,13 +1452,13 @@ def _deal_line(deal: dict) -> str:
     """新創募資明細：只印有值的欄位，「未揭露」的估值／投資人不佔版面。"""
     if not isinstance(deal, dict):
         return ""
-    fields = [("輪次", deal.get("stage", "")), ("金額", deal.get("amount", "")),
-              ("估值", deal.get("valuation", "")), ("投資人", deal.get("investors", "")),
-              ("總部", deal.get("hq", ""))]
+    fields = [("Stage", deal.get("stage", "")), ("Amount", deal.get("amount", "")),
+              ("Valuation", deal.get("valuation", "")), ("Investors", deal.get("investors", "")),
+              ("HQ", deal.get("hq", ""))]
     parts = []
     for label, value in fields:
         value = str(value or "").strip()
-        if not value or (value == "未揭露" and label in ("估值", "投資人")):
+        if not value or (value.casefold() == "undisclosed" and label in ("Valuation", "Investors")):
             continue
         parts.append(f'''<span style="color:#888;">{label}</span> <span style="color:#333;font-weight:500;">{value}</span>''')
     if not parts:
@@ -1467,11 +1467,11 @@ def _deal_line(deal: dict) -> str:
     return f'''<div style="font-size:13px;line-height:1.7;margin-top:6px;padding:6px 10px;background:#FAFAFA;border-radius:4px;">{inner}</div>'''
 
 
-def _why_line(text: str, label: str = "為什麼重要") -> str:
+def _why_line(text: str, label: str = "Why it matters") -> str:
     if not text:
         return ""
     return f'''<div style="font-size:14px;color:#555;line-height:1.6;margin-top:6px;">
-  <span style="color:#888;font-weight:500;">{label}｜</span>{text}</div>'''
+  <span style="color:#888;font-weight:500;">{label} &#9656; </span>{text}</div>'''
 
 
 def _startup_news(startups: list) -> str:
@@ -1493,13 +1493,13 @@ def _startup_news(startups: list) -> str:
     </div>
     <div style="font-size:15px;color:#555;line-height:1.6;">{s.get("summary","")}</div>
     {_deal_line(s.get("deal", {}))}
-    {_why_line(s.get("why",""), "為什麼看它")}
+    {_why_line(s.get("why",""), "Why watch it")}
     {source_html}
   </div>
 </div>'''
     return f'''
 <div class="section">
-  <div class="section-label">新創產業發展</div>{items}
+  <div class="section-label">Startups</div>{items}
 </div>'''
 
 
@@ -1540,7 +1540,7 @@ def _frontier_tech(items_data: list) -> str:
 </div>'''
     return f'''
 <div class="section">
-  <div class="section-label">技術前緣</div>{items}
+  <div class="section-label">Frontier tech</div>{items}
 </div>'''
 
 
@@ -1549,7 +1549,7 @@ DIRECTION_STYLE = {
     "bearish":  "background:#FCF0EC;color:#993C1D;",
     "neutral":  "background:#e8e8e8;color:#555;",
 }
-TYPE_LABEL = {"options": "選擇權", "block": "大宗交易", "etf_flow": "ETF資金流"}
+TYPE_LABEL = {"options": "Options", "block": "Block trade", "etf_flow": "ETF flow"}
 
 
 def _smart_money(data: dict) -> str:
@@ -1570,7 +1570,7 @@ def _smart_money(data: dict) -> str:
     for s in signals:
         d = s.get("direction", "neutral")
         d_style = DIRECTION_STYLE.get(d, DIRECTION_STYLE["neutral"])
-        d_label = {"bullish": "看多", "bearish": "看空", "neutral": "中性"}.get(d, d)
+        d_label = {"bullish": "bullish", "bearish": "bearish", "neutral": "neutral"}.get(d, d)
         t = s.get("type", "")
         t_label = TYPE_LABEL.get(t, t)
         rows += f'''
@@ -1584,15 +1584,15 @@ def _smart_money(data: dict) -> str:
 
     return f'''
 <div class="section">
-  <div class="section-label">機構異動訊號</div>
+  <div class="section-label">Institutional flow</div>
   {summary_html}{rows}
 </div>'''
 
 
 REPORT_TIME_STYLE = {
-    "before-open":    ("background:#FAF0DA;color:#854F0B;", "開盤前"),
-    "after-close":    ("background:#1B3A5C;color:#fff;",    "收盤後"),
-    "during-market":  ("background:#EBF2FA;color:#185FA5;", "盤中"),
+    "before-open":    ("background:#FAF0DA;color:#854F0B;", "Before open"),
+    "after-close":    ("background:#1B3A5C;color:#fff;",    "After close"),
+    "during-market":  ("background:#EBF2FA;color:#185FA5;", "Intraday"),
 }
 
 
@@ -1606,9 +1606,9 @@ def _earnings_preview(items: list) -> str:
 
         confirmed = e.get("yfinance_confirmed", False)
         if confirmed:
-            confirm_html = '<span style="font-size:11px;color:#0F6E56;">● 已確認</span>'
+            confirm_html = '<span style="font-size:11px;color:#0F6E56;">&#9679; confirmed</span>'
         else:
-            confirm_html = '<span style="font-size:11px;color:#aaa;">● 待確認</span>'
+            confirm_html = '<span style="font-size:11px;color:#aaa;">&#9679; unconfirmed</span>'
 
         eps = e.get("eps_estimate", "")
         rev = e.get("revenue_estimate", "")
@@ -1616,9 +1616,9 @@ def _earnings_preview(items: list) -> str:
         if eps or rev:
             parts = []
             if eps:
-                parts.append(f"EPS預期: {eps}")
+                parts.append(f"EPS est: {eps}")
             if rev:
-                parts.append(f"營收預期: {rev}")
+                parts.append(f"Revenue est: {rev}")
             estimates_html = f'<div style="font-size:13px;color:#888;margin-top:2px;">{" · ".join(parts)}</div>'
 
         wtw = e.get("what_to_watch", "")
@@ -1637,21 +1637,21 @@ def _earnings_preview(items: list) -> str:
 </div>'''
     return f'''
 <div class="section">
-  <div class="section-label">即將發布財報預告（下一個 US session）</div>{rows}
+  <div class="section-label">Earnings ahead</div>{rows}
 </div>'''
 
 
 EARNINGS_CATEGORY_COLOR = {
-    "金融": "#185FA5",
-    "半導體": "#C0392B",
-    "媒體串流": "#7F77DD",
-    "工業/REIT": "#854F0B",
-    "工業": "#854F0B",
+    "Financials": "#185FA5",
+    "Semiconductors": "#C0392B",
+    "Media and streaming": "#7F77DD",
+    "Industrials and REITs": "#854F0B",
+    "Industrials": "#854F0B",
     "REIT": "#854F0B",
-    "消費": "#0F6E56",
-    "醫療": "#534AB7",
-    "能源": "#BA7517",
-    "其他": "#555",
+    "Consumer": "#0F6E56",
+    "Healthcare": "#534AB7",
+    "Energy": "#BA7517",
+    "Other": "#555",
 }
 
 EARNINGS_RESULT_STYLE = {
@@ -1694,7 +1694,7 @@ def _earnings_deep_analysis(data: dict) -> str:
     company_cards = ""
     if companies:
         for c in companies:
-            cat = c.get("category", "其他")
+            cat = c.get("category", "Other")
             color = EARNINGS_CATEGORY_COLOR.get(cat, "#555")
             result_tag = c.get("result_tag", "")
             rt_bg, rt_fg, rt_label = EARNINGS_RESULT_STYLE.get(result_tag, ("#F0F0F0", "#666", "—"))
@@ -1712,7 +1712,7 @@ def _earnings_deep_analysis(data: dict) -> str:
                 weakness_html = f'''
 <div style="background:#FCEBEB;border-left:3px solid #C0392B;border-radius:0 4px 4px 0;
             padding:8px 12px;margin-top:10px;font-size:12px;line-height:1.7;color:#791F1F;">
-  <span style="font-weight:600;">弱點：</span>{weakness}
+  <span style="font-weight:600;">Weak spot:</span> {weakness}
 </div>'''
 
             one_time_html = ""
@@ -1720,7 +1720,7 @@ def _earnings_deep_analysis(data: dict) -> str:
                 one_time_html = f'''
 <div style="background:#FFF8EE;border-left:3px solid #BA7517;border-radius:0 4px 4px 0;
             padding:8px 12px;margin-top:8px;font-size:12px;line-height:1.7;color:#7B4A09;">
-  <span style="font-weight:600;">一次性項目：</span>{one_time}
+  <span style="font-weight:600;">One-off items:</span> {one_time}
 </div>'''
 
             company_cards += f'''
@@ -1745,7 +1745,7 @@ def _earnings_deep_analysis(data: dict) -> str:
 <div style="margin-bottom:22px;">
   <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#1B3A5C;
               font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #1B3A5C;">
-    一、公司重點整理</div>
+    1. Company highlights</div>
   {company_cards}
 </div>'''
 
@@ -1778,7 +1778,7 @@ def _earnings_deep_analysis(data: dict) -> str:
 <div style="margin-bottom:22px;">
   <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#1B3A5C;
               font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #1B3A5C;">
-    二、產業趨勢與意涵</div>
+    2. Industry trends and implications</div>
   {cards}
 </div>'''
 
@@ -1809,7 +1809,7 @@ def _earnings_deep_analysis(data: dict) -> str:
 <div style="margin-bottom:22px;">
   <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#1B3A5C;
               font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #1B3A5C;">
-    三、贏家與輸家</div>
+    3. Winners and losers</div>
   <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:8px 0;">
     <tr>
       <td width="50%" style="vertical-align:top;">
@@ -1852,7 +1852,7 @@ def _earnings_deep_analysis(data: dict) -> str:
 <div style="margin-bottom:22px;">
   <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#1B3A5C;
               font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #1B3A5C;">
-    四、矛盾與不合邏輯</div>
+    4. Contradictions</div>
   {cards}
 </div>'''
 
@@ -1863,14 +1863,14 @@ def _earnings_deep_analysis(data: dict) -> str:
 <div style="margin-bottom:10px;">
   <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#1B3A5C;
               font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #1B3A5C;">
-    總結</div>
+    Conclusion</div>
   <div style="background:#1B3A5C;color:#fff;border-radius:8px;padding:14px 18px;
               font-size:14px;line-height:1.85;">{conclusion}</div>
 </div>'''
 
     return f'''
 <div class="section">
-  <div class="section-label">深度財報分析</div>
+  <div class="section-label">Earnings in depth</div>
   {header_html}
   {company_cards}
   {industry_html}
@@ -1889,8 +1889,8 @@ def _implied_trends(trends: list) -> str:
     <div style="display:flex;justify-content:space-between;align-items:baseline;
                 margin-bottom:14px;padding-bottom:8px;border-bottom:0.5px solid #e8e8e8;">
       <span style="font-size:12px;letter-spacing:1.8px;text-transform:uppercase;
-                   font-weight:500;color:#888;">隱含趨勢分析</span>
-      <span style="font-size:13px;color:#888;">整合所有數據萃取的結構性訊號</span>
+                   font-weight:500;color:#888;">IMPLIED TRENDS</span>
+      <span style="font-size:13px;color:#888;">structural signals across the data</span>
     </div>
     <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:10px;">
       <tr>
@@ -1920,7 +1920,7 @@ def _trend_card(t: dict) -> str:
     tc_html = ""
     if tc:
         tc_html = (f'<div style="border-left:2px dashed #BA7517;padding-left:8px;margin-top:8px;">'
-                   f'<div style="font-size:10px;color:#888;">趨勢持續性：</div>'
+                   f'<div style="font-size:10px;color:#888;">Persistence</div>'
                    f'<div style="font-size:12px;color:#888;font-style:italic;line-height:1.5;">{tc}</div></div>')
 
     # Historical analog + new factor side by side
@@ -1930,12 +1930,12 @@ def _trend_card(t: dict) -> str:
     if hist or nf:
         hist_td = (f'<td width="50%" style="vertical-align:top;padding-right:5px;">'
                    f'<div style="border-left:2px dashed #aaa;padding-left:8px;">'
-                   f'<div style="font-size:10px;color:#888;">歷史類比</div>'
+                   f'<div style="font-size:10px;color:#888;">Historical analogue</div>'
                    f'<div style="font-size:12px;color:#555;font-style:italic;line-height:1.5;">{hist}</div>'
                    f'</div></td>') if hist else '<td width="50%"></td>'
         nf_td = (f'<td width="50%" style="vertical-align:top;padding-left:5px;">'
                  f'<div style="border-left:2px solid #BA7517;padding-left:8px;">'
-                 f'<div style="font-size:10px;color:#BA7517;">新模式因素</div>'
+                 f'<div style="font-size:10px;color:#BA7517;">New-pattern factor</div>'
                  f'<div style="font-size:12px;color:#555;line-height:1.5;">{nf}</div>'
                  f'</div></td>') if nf else '<td width="50%"></td>'
         bottom_html = (f'<table width="100%" cellpadding="0" cellspacing="0" '
@@ -1946,7 +1946,7 @@ def _trend_card(t: dict) -> str:
     impl_html = ""
     if impl:
         impl_html = (f'<div style="margin-top:8px;background:#FEF9E7;padding:8px 10px;border-radius:4px;">'
-                     f'<span style="font-size:10px;color:#854F0B;">投資含義 ▸ </span>'
+                     f'<span style="font-size:10px;color:#854F0B;">Implication &#9656; </span>'
                      f'<span style="font-size:13px;color:#555;line-height:1.6;">{impl}</span></div>')
 
     return f'''<div style="background:#fff;border-radius:6px;border:0.5px solid #e8e8e8;padding:14px 16px;">
@@ -1967,7 +1967,7 @@ def _fun_fact(fact: dict) -> str:
         return ""
     return f'''
 <div class="section">
-  <div class="section-label">財經冷知識</div>
+  <div class="section-label">One last thing</div>
   <div style="background:#FFFBEA;border-radius:6px;padding:14px 16px;">
     <div style="font-size:16px;font-weight:500;color:#222;margin-bottom:6px;">💡 {fact.get("title","")}</div>
     <div style="font-size:15px;color:#555;line-height:1.65;margin-bottom:8px;">{fact.get("content","")}</div>
@@ -2028,7 +2028,7 @@ def _daily_deep_dive(items: list) -> str:
             sit_html = f'''
 <div style="background:#F8F8F6;border-radius:6px;padding:12px 14px;margin-bottom:12px;">
   <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;
-              color:#888;margin-bottom:6px;">現況</div>
+              color:#888;margin-bottom:6px;">Situation</div>
   <div style="font-size:14px;color:#555;line-height:1.8;">{situation}</div>
 </div>'''
 
@@ -2039,8 +2039,8 @@ def _daily_deep_dive(items: list) -> str:
             kd_rows = ""
             for kd in key_data:
                 change_str = kd.get("change", "")
-                is_pos = any(c in change_str for c in ["▲", "+", "上升", "增"])
-                is_neg = any(c in change_str for c in ["▼", "-", "下降", "減", "跌"])
+                is_pos = any(c in change_str for c in ["▲", "+", "up", "rose", "higher"])
+                is_neg = any(c in change_str for c in ["▼", "-", "down", "fell", "lower"])
                 val_bg = "#F0FFF4" if is_pos else ("#FFF0F0" if is_neg else "#fff")
                 kd_rows += (f'<tr>'
                             f'<td style="padding:7px 10px;font-size:13px;color:#555;border-bottom:0.5px solid #f0f0f0;'
@@ -2055,7 +2055,7 @@ def _daily_deep_dive(items: list) -> str:
             kd_html = f'''
 <div style="margin-bottom:12px;">
   <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;
-              color:#888;margin-bottom:6px;">關鍵數據</div>
+              color:#888;margin-bottom:6px;">Key data</div>
   <table width="100%" cellpadding="0" cellspacing="0"
          style="border:0.5px solid #e8e8e8;border-radius:4px;border-collapse:collapse;overflow:hidden;">
     {kd_rows}
@@ -2068,7 +2068,7 @@ def _daily_deep_dive(items: list) -> str:
             analysis_html = f'''
 <div style="margin-bottom:12px;">
   <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;
-              color:#1B3A5C;margin-bottom:6px;">深度分析</div>
+              color:#1B3A5C;margin-bottom:6px;">Analysis</div>
   <div style="border-left:3px solid #1B3A5C;padding:8px 12px;background:#f8fafd;">
     <div style="font-size:14px;color:#555;line-height:1.8;">{deep_analysis}</div>
   </div>
@@ -2080,7 +2080,7 @@ def _daily_deep_dive(items: list) -> str:
             signal_html = f'''
 <div style="margin-bottom:12px;">
   <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;
-              color:#7F77DD;margin-bottom:6px;">結構性訊號</div>
+              color:#7F77DD;margin-bottom:6px;">Structural signal</div>
   <div style="border-left:3px solid #7F77DD;padding:8px 12px;">
     <div style="font-size:13px;color:#555;line-height:1.7;font-style:italic;">{structural_signal}</div>
   </div>
@@ -2092,13 +2092,13 @@ def _daily_deep_dive(items: list) -> str:
             bull_td = (f'<td width="50%" style="vertical-align:top;padding-right:5px;">'
                        f'<div style="background:#F0FFF4;border-radius:4px;padding:10px 12px;">'
                        f'<div style="font-size:10px;font-weight:600;color:#0F6E56;margin-bottom:4px;">'
-                       f'樂觀情境 ▲</div>'
+                       f'Bull case &#9650;</div>'
                        f'<div style="font-size:13px;color:#555;line-height:1.65;">{bull_case}</div>'
                        f'</div></td>') if bull_case else '<td width="50%"></td>'
             bear_td = (f'<td width="50%" style="vertical-align:top;padding-left:5px;">'
                        f'<div style="background:#FFF0F0;border-radius:4px;padding:10px 12px;">'
                        f'<div style="font-size:10px;font-weight:600;color:#C0392B;margin-bottom:4px;">'
-                       f'悲觀情境 ▼</div>'
+                       f'Bear case &#9660;</div>'
                        f'<div style="font-size:13px;color:#555;line-height:1.65;">{bear_case}</div>'
                        f'</div></td>') if bear_case else '<td width="50%"></td>'
             bull_bear_html = f'''
@@ -2112,7 +2112,7 @@ def _daily_deep_dive(items: list) -> str:
             impl_html = f'''
 <div style="background:#FEF9E7;border-radius:4px;border-left:3px solid #BA7517;padding:10px 12px;">
   <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;
-              color:#BA7517;margin-bottom:4px;">投資含義</div>
+              color:#BA7517;margin-bottom:4px;">Implication</div>
   <div style="font-size:14px;color:#555;line-height:1.7;">{implication}</div>
 </div>'''
 
@@ -2130,9 +2130,9 @@ def _daily_deep_dive(items: list) -> str:
 
     return f'''
 <div class="section">
-  <div class="section-label">每日深度聚焦
+  <div class="section-label">Deep dive
     <span style="font-size:12px;color:#888;font-weight:400;letter-spacing:0;">
-      今日最值得深挖的兩個主題</span>
+      the one theme with enough evidence to be worth it</span>
   </div>
   {cards}
 </div>'''
@@ -2162,7 +2162,7 @@ def _world_news(items: list) -> str:
 </div>'''
     return f'''
 <div class="section">
-  <div class="section-label">國際新聞</div>{rows}
+  <div class="section-label">World news</div>{rows}
 </div>'''
 
 
@@ -2172,9 +2172,9 @@ SESSION_STYLE = {
     "after-hours": "background:#1B3A5C;color:#fff;",
 }
 SESSION_LABEL = {
-    "pre-market": "盤前",
-    "market": "盤中",
-    "after-hours": "盤後",
+    "pre-market": "Pre-market",
+    "market": "Regular",
+    "after-hours": "After hours",
 }
 
 
@@ -2246,7 +2246,7 @@ def _us_market_recap(recap: dict) -> str:
 
     return f'''
 <div class="section">
-  <div class="section-label">昨日美股重點（盤前・盤中・盤後）</div>
+  <div class="section-label">Last US session</div>
   {summary_html}
   {earnings_html}
   {events_html}
@@ -2266,7 +2266,7 @@ def _today_events(events: list) -> str:
 </div>''' for e in events)
     return f'''
 <div class="section">
-  <div class="section-label">今日重要行程</div>{rows}
+  <div class="section-label">On the calendar</div>{rows}
 </div>'''
 
 
@@ -2449,21 +2449,21 @@ def _footer() -> str:
 <div style="font-size:12px;color:#aaa;border-top:0.5px solid #e8e8e8;
             padding-top:12px;margin-top:4px;display:flex;justify-content:space-between;">
   <span>Perplexity · Claude Sonnet · yfinance</span>
-  <span>AI輔助整理 · 僅供參考</span>
+  <span>AI-assisted &middot; for reference only</span>
 </div>'''
 
 
 _TAB_PAGES = [
-    ("index",        "市場數據",   "index.html"),
+    ("index",        "Markets",   "index.html"),
     ("screener",     "Screener",   "screener.html"),
-    ("tw_screener",  "台股",       "tw_screener.html"),
-    ("news",         "要聞・深度", "news.html"),
-    ("geo",          "地緣・國際", "geo.html"),
-    ("tech",         "科技・AI",   "tech.html"),
-    ("trends",       "新創・趨勢", "trends.html"),
-    ("startup",      "創業",       "startup.html"),
-    ("misc",         "財報",       "misc.html"),
-    ("trading",      "交易系統",   "trading.html"),
+    ("tw_screener",  "TW",        "tw_screener.html"),
+    ("news",         "Top stories", "news.html"),
+    ("geo",          "Geopolitics", "geo.html"),
+    ("tech",         "Tech & AI",  "tech.html"),
+    ("trends",       "Startups",  "trends.html"),
+    ("startup",      "Founders",  "startup.html"),
+    ("misc",         "Earnings",  "misc.html"),
+    ("trading",      "Systems",   "trading.html"),
 ]
 
 
@@ -2481,12 +2481,12 @@ def _page_wrapper(page: str, date: str, content: str, title: str) -> str:
         tabs += f'<a href="{href}" style="{style}">{label}</a>'
 
     return f"""<!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
 <meta name="robots" content="noindex,nofollow">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{title} — 每日財經晨報 {date}</title>
+<title>{title} &mdash; Morning Briefing {date}</title>
 <style>
 * {{ box-sizing:border-box; margin:0; padding:0; }}
 body {{ font-family:Arial,sans-serif; max-width:1140px; margin:0 auto; background:#fff; color:#333; }}
@@ -2502,8 +2502,8 @@ a {{ color:inherit; }}
 <div class="sticky-nav">
   <div style="background:#1B3A5C;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;">
     <div>
-      <div style="font-size:9px;letter-spacing:2px;color:rgba(255,255,255,0.6);text-transform:uppercase;margin-bottom:2px;">Morning Briefing</div>
-      <div style="font-size:18px;font-weight:500;color:#fff;">每日財經晨報</div>
+      <div style="font-size:9px;letter-spacing:2px;color:rgba(255,255,255,0.6);text-transform:uppercase;margin-bottom:2px;">InvestMQuest Research</div>
+      <div style="font-size:18px;font-weight:500;color:#fff;">Morning Briefing</div>
     </div>
     <div style="font-size:11px;color:rgba(255,255,255,0.7);">{date}</div>
   </div>
@@ -2527,17 +2527,17 @@ def build_index_html(data: dict) -> str:
     content += _index_factor_reading(data.get("index_factor_reading", {}))
     content += _sentiment_analysis(data.get("sentiment_analysis", {}))
     content += _market_pulse(data.get("market_pulse", {}))
-    return _page_wrapper("index", date, content, "市場數據")
+    return _page_wrapper("index", date, content, "Markets")
 
 
 def build_news_html(data: dict) -> str:
     """要聞・深度"""
     date = data.get("date", "")
-    content = _news_section("核心要聞", data.get("top_stories", []))
+    content = _news_section("Top stories", data.get("top_stories", []))
     content += _watchlist_news_section(data.get("watchlist_news", []))
     content += _industry_developments_section(data.get("industry_developments", []))
     content += _daily_deep_dive(data.get("daily_deep_dive", []))
-    return _page_wrapper("news", date, content, "要聞・深度")
+    return _page_wrapper("news", date, content, "Top stories")
 
 
 def build_geo_html(data: dict) -> str:
@@ -2545,18 +2545,18 @@ def build_geo_html(data: dict) -> str:
     date = data.get("date", "")
     content = _world_news(data.get("world_news", []))
     content += _geopolitical_section(data.get("geopolitical", []))
-    content += _news_section("總經動態", data.get("macro", []))
-    return _page_wrapper("geo", date, content, "地緣・國際")
+    content += _news_section("Macro", data.get("macro", []))
+    return _page_wrapper("geo", date, content, "Geopolitics")
 
 
 def build_tech_html(data: dict) -> str:
     """科技・AI"""
     date = data.get("date", "")
     ai_tag = {"macro": "background:#EBF2FA;color:#185FA5;", "tech": "background:#EAF3DE;color:#3B6D11;"}
-    content = _news_section("AI 產業動態", data.get("ai_industry", []), ai_tag)
+    content = _news_section("AI industry", data.get("ai_industry", []), ai_tag)
     content += _regional_tech_section(data.get("regional_tech", {}))
     content += _fintech_crypto_section(data.get("fintech_crypto", []))
-    return _page_wrapper("tech", date, content, "科技・AI")
+    return _page_wrapper("tech", date, content, "Tech &amp; AI")
 
 
 def build_trends_html(data: dict) -> str:
@@ -2567,7 +2567,7 @@ def build_trends_html(data: dict) -> str:
     content += _startup_news(data.get("startup_news", []))
     content += _weekend_reads_section(data.get("weekend_reads", []))
     content += _smart_money(data.get("smart_money", {}))
-    return _page_wrapper("trends", date, content, "新創・趨勢")
+    return _page_wrapper("trends", date, content, "Startups &amp; frontier")
 
 
 _FRAMEWORK_COLORS = {
@@ -2600,7 +2600,7 @@ def _startup_dashboard(data: dict) -> str:
     # 10Y 利率
     tnx_item = None
     for it in md.get("bonds", []):
-        if it.get("label", "") == "美10Y":
+        if it.get("label", "") == "US 10Y":
             tnx_item = it
             break
     tnx_val = tnx_item.get("val", "—") if tnx_item else "—"
@@ -2751,7 +2751,7 @@ def build_startup_html(data: dict, today_framework: dict = None) -> str:
     date = data.get("date", "")
     content = _startup_dashboard(data)
     content += _startup_framework_card(today_framework or {})
-    return _page_wrapper("startup", date, content, "創業")
+    return _page_wrapper("startup", date, content, "Founders")
 
 
 def _trading_timeline_html(timeline: list) -> str:
@@ -2937,7 +2937,7 @@ def build_misc_html(data: dict) -> str:
     content += _earnings_deep_analysis(data.get("earnings_deep_analysis", {}))
     content += _fun_fact(data.get("fun_fact", {}))
     content += _today_events(data.get("today_events", []))
-    return _page_wrapper("misc", date, content, "財報")
+    return _page_wrapper("misc", date, content, "Earnings")
 
 
 def build_trading_html(data: dict, today_system: dict = None) -> str:
@@ -2946,7 +2946,7 @@ def build_trading_html(data: dict, today_system: dict = None) -> str:
     content = _trading_system_card(today_system or {})
     if not content:
         content = '<div style="padding:40px;text-align:center;color:#888;font-size:14px;">今日交易系統尚未選出</div>'
-    return _page_wrapper("trading", date, content, "交易系統")
+    return _page_wrapper("trading", date, content, "Systems")
 
 
 def _sector_ranking(sector_ranking: list) -> str:
@@ -3204,7 +3204,7 @@ def build_tw_screener_html(data: dict, screener_result: dict = None) -> str:
     date = data.get("date", "")
     sr = screener_result or {}
     content = _tw_screener_top30(sr)
-    return _page_wrapper("tw_screener", date, content, "台股 Screener")
+    return _page_wrapper("tw_screener", date, content, "TW Screener")
 
 
 def build_all_pages(data: dict, screener_result: dict = None, today_system: dict = None, today_framework: dict = None) -> dict:
@@ -3227,10 +3227,10 @@ def build_all_pages(data: dict, screener_result: dict = None, today_system: dict
 def build_html(data: dict, screener_result: dict = None) -> str:
     """向後相容：產出單頁完整 HTML（供 Email 使用）"""
     tz  = pytz.timezone("Asia/Taipei")
-    now = datetime.now(tz).strftime("%Y年%m月%d日 %H:%M TST")
+    now = datetime.now(tz).strftime("%a %d %b %Y, %H:%M TST")
 
     ai_tag = {"macro": "background:#EBF2FA;color:#185FA5;", "tech": "background:#EAF3DE;color:#3B6D11;"}
-    ai_section = _news_section("AI 產業動態", data.get("ai_industry", []), ai_tag)
+    ai_section = _news_section("AI industry", data.get("ai_industry", []), ai_tag)
     sr = screener_result or {}
 
     return f"""<!DOCTYPE html>
@@ -3251,12 +3251,12 @@ def build_html(data: dict, screener_result: dict = None) -> str:
 {_index_factor_reading(data.get("index_factor_reading", {}))}
 {_market_pulse(data.get("market_pulse", {}))}
 {_sentiment_analysis(data.get("sentiment_analysis", {}))}
-{_news_section("核心要聞", data.get("top_stories",[]))}
+{_news_section("Top stories", data.get("top_stories",[]))}
 {_watchlist_news_section(data.get("watchlist_news",[]))}
 {_industry_developments_section(data.get("industry_developments",[]))}
 {_daily_deep_dive(data.get("daily_deep_dive", []))}
 {_world_news(data.get("world_news", []))}
-{_news_section("總經動態", data.get("macro",[]))}
+{_news_section("Macro", data.get("macro",[]))}
 {_geopolitical_section(data.get("geopolitical",[]))}
 {ai_section}
 {_regional_tech_section(data.get("regional_tech", {}))}
