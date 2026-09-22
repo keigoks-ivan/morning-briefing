@@ -86,12 +86,18 @@ def figure_label(key: str) -> str:
 
 
 # ── 公司與關鍵詞 ─────────────────────────────────────────────────────────
-def _alias_regex(alias: str) -> re.Pattern:
-    if re.fullmatch(r"[A-Za-z0-9 .&'\-]+", alias):
-        # 英文別名：字界比對；全大寫的短代號（AMD、KLA）要大小寫一致，避免 "meta" 這類常用字誤中
-        flags = 0 if (alias.isupper() and len(alias) <= 5) else re.I
-        return re.compile(r"(?<![A-Za-z0-9])" + re.escape(alias) + r"(?![A-Za-z0-9])", flags)
+def _alias_regex(alias: str, case_sensitive: bool | None = None) -> re.Pattern:
+    """case_sensitive=None：全大寫短代號（AMD、KLA）區分大小寫，其他不分；True／False 強制。"""
+    if re.fullmatch(r"[A-Za-z0-9 .&'’\-+]+", alias):
+        if case_sensitive is None:
+            case_sensitive = alias.isupper() and len(alias) <= 5
+        return re.compile(r"(?<![A-Za-z0-9])" + re.escape(alias) + r"(?![A-Za-z0-9])", 0 if case_sensitive else re.I)
     return re.compile(re.escape(alias))
+
+
+def _cased(alias: str) -> bool:
+    """總經主題／國家／自動公司名：有大寫字母就區分大小寫（Fed ≠ fed、Visa ≠ visa），全小寫片語不分。"""
+    return any(ch.isupper() for ch in alias)
 
 
 class EntityMatcher:
@@ -100,12 +106,34 @@ class EntityMatcher:
     def __init__(self, routing: dict, extra_tickers: dict | None = None):
         self.companies = {k: v for k, v in (routing.get("companies") or {}).items() if not k.startswith("_")}
         self.patterns: list[tuple[str, re.Pattern]] = []
+        self.auto_names: dict = {}
         for key, spec in self.companies.items():
             if spec.get("same_as"):
                 continue
             for alias in spec.get("aliases") or []:
                 if len(alias) >= 2:
                     self.patterns.append((key, _alias_regex(alias)))
+        # 2026-09-22：研究主題角色欄抽出的公司名（evidence_routing_auto.json），區分大小寫
+        hand_alias = {a.casefold(): k for k, spec in self.companies.items() if not spec.get("same_as")
+                      for a in spec.get("aliases") or []}
+        for ticker, spec in (routing.get("auto_companies") or {}).items():
+            key = self.canonical(ticker) if ticker in self.companies else ticker
+            dup = [hand_alias[a.casefold()] for a in spec.get("aliases") or [] if a.casefold() in hand_alias]
+            if dup and key not in self.companies:
+                continue   # 同一家公司人工表已經有（例：OpenAI），不再另立一個 key
+            aliases = [a for a in spec.get("aliases") or [] if len(a) >= 3 or re.search(r"[\u4e00-\u9fff]", a)]
+            for alias in aliases:
+                self.patterns.append((key, _alias_regex(alias, case_sensitive=_cased(alias))))
+            if key not in self.companies and aliases:
+                en = [a for a in aliases if not re.search(r"[\u4e00-\u9fff]", a)]
+                self.auto_names[key] = (en or aliases)[-1]
+        # 總經主題與國家
+        self.subject_specs = {k: v for k, v in (routing.get("macro_subjects") or {}).items() if not k.startswith("_")}
+        self.subject_patterns = [(k, _alias_regex(a, case_sensitive=_cased(a)))
+                                 for k, spec in self.subject_specs.items() for a in spec.get("aliases") or []]
+        self.country_patterns = [(c, _alias_regex(a, case_sensitive=_cased(a)))
+                                 for c, aliases in (routing.get("countries") or {}).items() if not c.startswith("_")
+                                 for a in aliases]
         # DD universe 裡對照表沒有的公司：用 ticker（全大寫）＋公司全名比對
         for ticker, name in (extra_tickers or {}).items():
             if ticker in self.companies:
@@ -125,7 +153,44 @@ class EntityMatcher:
 
     def name(self, key: str) -> str:
         spec = self.companies.get(key) or {}
-        return spec.get("name") or key
+        return spec.get("name") or self.auto_names.get(key) or key
+
+    def country(self, text: str) -> str | None:
+        """最早出現的國家；都沒有回 None。"""
+        best = None
+        for c, pat in self.country_patterns:
+            m = pat.search(text or "")
+            if m and (best is None or m.start() < best[0]):
+                best = (m.start(), c)
+        return best[1] if best else None
+
+    def country_near(self, text: str, pos: int) -> str | None:
+        """離 pos 最近的國家（同一句裡「中國 CPI、美國零售銷售」要各自對到自己的國家）。"""
+        best = None
+        for c, pat in self.country_patterns:
+            for m in pat.finditer(text or ""):
+                d = abs(m.start() - pos)
+                if best is None or d < best[0]:
+                    best = (d, c)
+        return best[1] if best else None
+
+    def subjects(self, text: str) -> list[str]:
+        """總經主題 key；scoped 的加國別（CPI@US），沒寫國家就當美國。"""
+        found = []
+        for key, pat in self.subject_patterns:
+            m = pat.search(text or "")
+            if not m:
+                continue
+            spec = self.subject_specs[key]
+            k = f"{key}@{self.country_near(text, m.start()) or 'US'}" if spec.get("scoped") else key
+            if k not in found:
+                found.append(k)
+        return found
+
+    def subject_label(self, key: str) -> str:
+        base, _, country = key.partition("@")
+        label = (self.subject_specs.get(base) or {}).get("label", base)
+        return f"{label} ({country})" if country else label
 
     def match(self, text: str) -> list[str]:
         found = []
@@ -255,7 +320,7 @@ class Ledger:
             age = _days_between(today, r.get("first_seen") or "")
             if age is None or (age > LEDGER_WINDOW_DAYS and r.get("origin") != "seed"):
                 continue
-            shared_c = comp & set(r.get("companies") or [])
+            shared_c = comp & (set(r.get("companies") or []) | set(r.get("subjects") or []))
             if not shared_c:
                 continue
             shared_f = set(figures) & set(r.get("figures") or [])

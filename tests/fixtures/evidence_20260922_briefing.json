@@ -1,5 +1,5 @@
 {
- "_note": "2026-09-22 已發布早報 news.html 的原文（逐字），供事件判斷層離線驗收。RSS 原始條目當天沒有存檔，故不附。",
+ "_note": "2026-09-22 已發布早報 news.html 的原文（逐字），供事件判斷層離線驗收。RSS 原始條目當天沒有存檔，故不附。 2026-09-22 追加四則（總經、美中會談、Paramount、德州資料中心），同樣逐字取自當天已發布的 news.html／tech.html。",
  "top_stories": [
   {
    "headline": "TSMC rallies equipment and material suppliers into Kaohsiung packaging park",
@@ -45,6 +45,33 @@
    "source": "Financial Times",
    "source_date": "2026-09-21",
    "importance": "high"
+  },
+  {
+   "headline": "Fed's Musalem says more rate hikes likely needed to cool inflation",
+   "body": "Federal Reserve Bank of St. Louis President Alberto Musalem said on September 21 that additional interest rate increases are likely necessary to bring inflation back to target. The comments follow the Fed's September 16 hike to a 3.75%-4.00% target range and come as CME FedWatch shows a 55% probability of another 25bp hike at the October 28-29 meeting.",
+   "tag": "Index book",
+   "tag_type": "cb",
+   "source": "Bloomberg",
+   "source_date": "2026-09-21",
+   "importance": "high"
+  },
+  {
+   "headline": "Bessent and He Lifeng hold New York trade talks ahead of Xi-Trump summit",
+   "body": "US Treasury Secretary Scott Bessent and Chinese Vice Premier He Lifeng met in New York on September 20, joined by USTR Jamieson Greer, with progress reported on tariff carve-outs and a new AI dialogue channel ahead of the Trump-Xi summit. Microsoft CEO Satya Nadella is expected to attend the accompanying White House state dinner alongside executives from Apple, Nvidia and Qualcomm.",
+   "tag": "Index book",
+   "tag_type": "geo",
+   "source": "Nikkei Asia",
+   "source_date": "2026-09-21",
+   "importance": "high"
+  },
+  {
+   "headline": "Paramount settles state antitrust suits, clearing $110 billion Warner Bros deal",
+   "body": "Paramount Skydance settled a lawsuit from 12 states that had threatened to delay its $110 billion acquisition of Warner Bros Discovery until mid-2027 and cost hundreds of millions in fees. The settlement, filed September 21, removes the last major legal obstacle to closing the merger.",
+   "tag": "M&A",
+   "tag_type": "macro",
+   "source": "The Information",
+   "source_date": "2026-09-21",
+   "importance": "high"
   }
  ],
  "watchlist_news": [
@@ -72,5 +99,16 @@
    "source_date": "2026-09-21",
    "importance": "high"
   }
- ]
+ ],
+ "regional_tech": {
+  "us": [
+   {
+    "headline": "Texas governor halts new data center permits weeks after moratorium",
+    "body": "Texas Governor Greg Abbott ordered a halt on new data center permits, following an earlier moratorium, as data centers become a flashpoint in the state's 2026 midterm election races.",
+    "source": "CNBC",
+    "source_date": "2026-09-22",
+    "importance": "high"
+   }
+  ]
+ }
 }

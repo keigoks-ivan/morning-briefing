@@ -149,18 +149,20 @@ Google verification`）——那是機器人偵測，不繞。而且就算加成
 目的：每天回答四件事。今天的新聞裡，哪些是過去紀錄沒有的事實；影響哪個經濟變數；該派給哪份 DD、哪個研究主題、哪個系統持倉；還有什麼沒證實。
 
 **分工**
-- 程式：挑候選（沿用 `process_news` 去重後的新聞卡）、對回 RSS 條目拿網址與發布時間、公司辨識、數字正規化（30 million＝30M＝3000萬）、日期、找先前紀錄、SEC 申報查核、派送、「尚未證實」的提醒文字、冪等寫入、來源品質統計。
-- Jev（TypeSafe `jev-1.13.0`，釘版本）：只答預先定義選項的窄問題，題目在 `evidence_questions.py`。新舊、事實階段、每個經濟變數各一題（一則新聞可同時影響多個變數）、方向、重要度、出處類型、候選公司是否當事人。
+- 程式：挑候選（沿用 `process_news` 去重後的新聞卡）、對回 RSS 條目拿網址與發布時間、公司與總經主題辨識、數字正規化（30 million＝30M＝3000萬）、日期、找先前紀錄、一手來源查核、派送、「尚未證實」的提醒文字、冪等寫入、來源品質統計。
+- Jev（TypeSafe `jev-1.13.0`，釘版本）：只答預先定義選項的窄問題，題目在 `evidence_questions.py`。新舊、事實階段、每個經濟變數各一題（一則新聞可同時影響多個變數）、方向、重要度、出處類型、候選公司是否當事人。公司新聞問 10 個公司變數；總經新聞問 9 個總經變數（通膨、成長、就業、政策利率、債券殖利率、匯率、信用與流動性、貿易、財政）加市場估值；兩者都有就兩組都問。
 - Jev 不做：買賣判斷、改寫投資結論、產生公司名或論述。畫面上的「classification confidence」是分類把握度，不是股價機率，頁面有明寫。
 
 **檔案**
 - `briefing/evidence_layer.py`：主流程與判斷規則（`decide`、`unconfirmed_notes`）
 - `briefing/evidence_questions.py`：題目與答案解讀
 - `briefing/evidence_ledger.py`：跨日事實紀錄、數字正規化、找先前紀錄
-- `briefing/evidence_routing.py`：DD／主題／系統持倉派送、可能受影響的產業、SEC 查核
+- `briefing/evidence_routing.py`：DD／研究主題／總經報告／系統持倉派送、可能受影響的產業、SEC 查核
+- `briefing/evidence_sources.py`：一手來源（官方 RSS、證交所與櫃買中心重大訊息、官方網域的 Google News site: 查詢、當事公司新聞稿）
 - `briefing/jev_client.py`：HTTP 客戶端，含快取與每次執行的請求上限
-- `data/evidence_routing.json`：對照表，手動維護；`themes` 段用 `python3 briefing/evidence_build_data.py routing --fab ~/financial-analysis-bot` 重建
-- `data/evidence_seed_ledger.json`：先前已知的種子，來自每檔最新 DD 摘要與過去 60 天已發布早報；用 `python3 briefing/evidence_build_data.py seed --fab ~/financial-analysis-bot --days 60` 重建
+- `data/evidence_routing.json`：人工對照表。人工環節、91 個研究主題的英文辨識詞、27 個總經主題與國家、國別對應的指數部部位、官方來源清單。
+- `data/evidence_routing_auto.json`：自動產生，不要手改。來自 financial-analysis-bot 的研究主題（ID）成員與角色欄公司名、總經報告（MACRO）的關鍵指標。重建：`python3 briefing/evidence_build_data.py routing --fab ~/financial-analysis-bot`
+- `data/evidence_seed_ledger.json`：先前已知的種子，來自每檔最新 DD 摘要與過去 60 天已發布早報（含總經新聞）；用 `python3 briefing/evidence_build_data.py seed --fab ~/financial-analysis-bot --days 60` 重建
 
 **流程**：`main.py` 在 `process_news` 之後、產生 HTML 之前呼叫 `run_evidence_layer`，整段包在 try 裡，出錯只讓這一區塊標未判斷。輸出寫到 `docs/briefing/data/`：`evidence_ledger.json`（跨日紀錄，一筆一行）、`evidence_{date}.json`／`evidence_latest.json`（當日判斷，含 Jev 快取）、`source_quality_{date}.json`／`source_quality_latest.json`。發布步驟原本就會複製 `data/*.json` 到網站，隔天從 `research.investmquest.com/briefing/data/` 抓回來。
 
@@ -172,12 +174,17 @@ Google verification`）——那是機器人偵測，不繞。而且就算加成
 - 來源抓不到時寫「沒讀到」，不寫沒有影響。`news_fetcher._fetch_one_feed` 逐來源記錄 ok／empty／error。
 - 持倉只讀公開的 `/pm/holdings.json`（系統組合），不讀、不輸出任何未公開的券商持倉。
 - 「市場估值」只列直接影響。實測 Jev 會把幾乎每則新聞都標成間接影響估值，沒有資訊量。
+- 研究主題要「當事公司是成員，而且文中點到該主題的辨識詞」才確認；公司在主題裡但文中沒點到，進待審。沒有當事公司時，要兩個辨識詞，或一個三個字以上的明確片語（data center permits）。
+- 一手來源分兩級：內容對上（數字或用字重疊）才升級成「官方文件已對到」；同公司、同日期但內容沒對上，只列為「附近有公告」。當事公司新聞稿只收標題開頭是該公司名的，別家新聞稿順帶提到的不算。
+- 總經提醒由程式加：官員發言不是決策、市場定價不是預測、部分月份資料、初值常修正、談判不是協議、預測不是結果、政策決定要看官方公告。
+
+**DD／研究主題不再更新時**：這一層照常運作，判斷新舊用的是每天累積的事實紀錄，不是報告。每個 DD、研究主題、總經報告連結旁邊標報告日期；超過 120 天標 older report；另標「報告之後紀錄裡又多了幾則新事實」（+N new since）。報告成了基準線，每天的紀錄是它的後續。
 
 **Secrets（兩個都選填）**：`TYPESAFE_API_KEY`（沒有就只標未判斷，不花錢）、`SEC_USER_AGENT`（SEC 要求帶聯絡方式；沒有就跳過查核並標成缺口）。
 
-**成本**：2026-09-22 六則實測約 3 萬 input token，約 0.0013 美元。每次執行上限 30 個請求、40 萬 token（`JevClient` 參數）。
+**成本**：2026-09-22 十則實測約 6.5 萬 input token，約 0.0027 美元。官方來源約 35 個請求、3 秒，不花錢。每次執行上限 30 個請求、40 萬 token（`JevClient` 參數）。
 
-**測試**：`python3.12 -m pytest -q tests`（不呼叫付費 API）。離線重播 9/22 案例：`python3.12 tests/evidence_offline_replay.py --out /tmp/evidence_replay --mode fake`（`--mode nokey` 看沒金鑰的畫面）。fake 模式用的是測試劇本，不是真實 Jev 輸出。
+**測試**：`python3.12 -m pytest -q tests`（不呼叫付費 API）。離線重播 9/22 案例：`python3.12 tests/evidence_offline_replay.py --out /tmp/evidence_replay --mode fake`（`--mode nokey` 看沒金鑰的畫面）。fake 模式用的是測試劇本，不是真實 Jev 輸出。官方來源在測試裡讀 `tests/fixtures/official_20260922/` 的快照，不連網。
 
 ---
 

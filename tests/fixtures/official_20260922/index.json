@@ -1,0 +1,24 @@
+{
+ "_note": "2026-09-22 晚間實際抓到的官方來源原文快照；測試離線讀這些檔，不連網。沒在這裡的網址一律當作抓取失敗。",
+ "urls": {
+  "https://www.federalreserve.gov/feeds/press_all.xml": "fed_press.xml",
+  "https://www.bls.gov/feed/bls_latest.rss": "bls.xml",
+  "https://www.census.gov/economic-indicators/indicator.xml": "census.xml",
+  "https://www.ecb.europa.eu/rss/press.html": "ecb_press.xml",
+  "https://www.boj.or.jp/en/rss/whatsnew.xml": "boj.xml",
+  "https://ustr.gov/rss.xml": "ustr.xml",
+  "https://nvidianews.nvidia.com/rss.xml": "nvidia_news.xml",
+  "https://news.microsoft.com/source/feed/": "microsoft_news.xml",
+  "https://ir.amd.com/news-events/press-releases/rss": "amd_ir.xml",
+  "https://news.skhynix.com/feed/": "skhynix_news.xml",
+  "https://openapi.twse.com.tw/v1/opendata/t187ap04_L": "twse_material.json",
+  "https://news.google.com/rss/search?q=site%3Apr.tsmc.com+when%3A7d&hl=en-US&gl=US&ceid=US:en": "tsmc_pr.xml",
+  "https://news.google.com/rss/search?q=site%3Agroup.softbank+when%3A7d&hl=en-US&gl=US&ceid=US:en": "softbank_ir.xml",
+  "https://news.google.com/rss/search?q=site%3Abis.doc.gov+OR+site%3Acommerce.gov+when%3A5d&hl=en-US&gl=US&ceid=US:en": "us_commerce.xml",
+  "https://news.google.com/rss/search?q=site%3Awhitehouse.gov+when%3A5d&hl=en-US&gl=US&ceid=US:en": "whitehouse.xml",
+  "https://news.google.com/rss/search?q=site%3Ahome.treasury.gov+when%3A5d&hl=en-US&gl=US&ceid=US:en": "us_treasury.xml",
+  "https://news.google.com/rss/search?q=site%3Amotie.go.kr+OR+site%3Acustoms.go.kr+when%3A7d&hl=en-US&gl=US&ceid=US:en": "korea_trade.xml",
+  "https://news.google.com/rss/search?q=site%3Astats.gov.cn+when%3A7d&hl=en-US&gl=US&ceid=US:en": "china_nbs.xml",
+  "https://news.google.com/rss/search?q=site%3Acbc.gov.tw+OR+site%3Adgbas.gov.tw+OR+site%3Amof.gov.tw+when%3A7d&hl=en-US&gl=US&ceid=US:en": "taiwan_official.xml"
+ }
+}

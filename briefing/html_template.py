@@ -1154,13 +1154,35 @@ def _ev_vars(item: dict) -> str:
                             "background:#EAF3DE;color:#3B6D11;") for v in direct)
 
 
-def _ev_research(item: dict, absolute: bool = False) -> str:
+def _ev_fresh(x: dict) -> str:
+    """報告日期＋舊報告標記＋報告之後紀錄裡又多了幾則新事實（報告可能不再更新）。"""
+    bits = []
+    if x.get("date"):
+        bits.append(_esc(x["date"]))
+    if x.get("stale"):
+        bits.append('<span style="color:#856404;">older report</span>')
+    if x.get("new_since"):
+        bits.append(f'+{x["new_since"]} new since')
+    return f' <span style="color:#999;font-size:11px;">({", ".join(bits)})</span>' if bits else ""
+
+
+def _ev_research(item: dict, absolute: bool = False, detail: bool = False) -> str:
     r = item.get("routes") or {}
     parts = []
     for d in r.get("dd") or []:
-        parts.append(_ev_link(d["path"], f"DD {d['ticker']}") if d.get("path") else _esc(f"{d['ticker']} (no DD)"))
+        link = _ev_link(d["path"], f"DD {d['ticker']}") if d.get("path") else _esc(f"{d['ticker']} (no DD)")
+        parts.append(link + (_ev_fresh(d) if detail else ""))
     for t in (r.get("themes") or [])[:3]:
-        parts.append(_ev_link(t.get("path", ""), t["key"]))
+        parts.append(_ev_link(t.get("path", ""), t["key"]) + (_ev_fresh(t) if detail else ""))
+    for m in (r.get("macro") or [])[:2]:
+        label = f"Macro: {m['slug']}"
+        extra = (f' <span style="color:#999;font-size:11px;">(watch: {_esc("; ".join(m["kill_metrics"]))})</span>'
+                 if detail and m.get("kill_metrics") else "")
+        parts.append(_ev_link(m.get("path", ""), label) + extra + (_ev_fresh(m) if detail else ""))
+    if r.get("clock"):
+        parts.append(_ev_link("/macro/", "Macro clock"))
+    if r.get("regime") and detail:
+        parts.append(_esc("Today's regime: " + ", ".join(r["regime"]) + " axis"))
     if not parts and r.get("pending"):
         return '<span style="color:#856404;">pending review</span>'
     return " · ".join(parts) or '<span style="color:#999;">no research link</span>'
@@ -1195,7 +1217,9 @@ def _ev_row_detail(item: dict) -> str:
                   for d in pi.get("direct") or []]
     unconf = "".join(f'<div style="margin-bottom:3px;">• {_esc(n)}</div>' for n in item.get("unconfirmed") or [])
     r = item.get("routes") or {}
-    routing = [f"Research: {_ev_research(item)}"]
+    routing = [f"Research: {_ev_research(item, detail=True)}"]
+    if item.get("topics"):
+        routing.insert(0, "Economic topics: " + _esc(", ".join(x["label"] for x in item["topics"])))
     if r.get("holdings"):
         routing.append("System portfolio (public /pm/ page): " + _esc(", ".join(
             f'{h["position"]} ({h["kind"]}, {h["via"]})' for h in r["holdings"])))
@@ -1217,8 +1241,22 @@ def _ev_row_detail(item: dict) -> str:
         else:
             srcs.append(f'<span style="color:#856404;">SEC EDGAR {_esc(c["company"])}: check {_esc(c["status"])} '
                         f'({_esc(c.get("reason", ""))})</span>')
+    off = pc.get("official") or {}
+    for m in off.get("matched") or []:
+        srcs.append(f'Official source matched: {_ev_link(m.get("url", ""), m["title"][:120])} '
+                    f'<span style="color:#999;">{_esc(m["source"])} · {_esc(m["date"])} · {_esc(m["why"])}</span>')
+    for m in off.get("nearby") or []:
+        srcs.append(f'<span style="color:#777;">Official item near the date, not matched to this claim: '
+                    f'{_ev_link(m.get("url", ""), m["title"][:100])} ({_esc(m["source"])} · {_esc(m["date"])})</span>')
+    if off.get("checked") and not off.get("matched") and not off.get("nearby"):
+        srcs.append('<span style="color:#999;">Official sources checked, nothing matching in the date window: '
+                    + _esc(", ".join(c["source"] for c in off["checked"][:4])) + "</span>")
     for g in pc.get("gaps") or []:
-        srcs.append(f'<span style="color:#999;">Primary source not connected: {_esc(g.get("source", ""))}</span>')
+        reason = g.get("reason", "")
+        if reason.startswith("not read today"):
+            srcs.append(f'<span style="color:#856404;">Official source not read today: {_esc(g.get("source", ""))}</span>')
+        else:
+            srcs.append(f'<span style="color:#999;">Primary source not connected: {_esc(g.get("source", ""))}</span>')
     cl = item.get("classification") or {}
     cls_txt = _esc(cl.get("display", ""))
     if cl.get("confidence") is not None:
@@ -1256,7 +1294,8 @@ def _ev_item(item: dict, open_: bool = False) -> str:
     style = _EV_STATUS_STYLE.get(st.get("code"), _EV_STATUS_STYLE["logged"])
     cl = item.get("classification") or {}
     stage = (item.get("stage") or {}).get("display")
-    sub = " · ".join(x for x in (cl.get("display"), stage) if x)
+    topics = ", ".join(x["label"] for x in item.get("topics") or [])
+    sub = " · ".join(x for x in (cl.get("display"), stage, topics) if x)
     return f'''
 <details {"open" if open_ else ""} style="padding:10px 0;border-bottom:0.5px solid #f0f0f0;">
   <summary style="cursor:pointer;list-style:none;">
@@ -1295,13 +1334,22 @@ def _ev_quality_line(ev: dict) -> str:
         if pc.get("skipped"):
             sec += f', {pc["skipped"]} skipped (SEC access not configured)'
         bits.append(sec)
+    osrc = q.get("official_sources") or {}
+    if osrc.get("total"):
+        bits.append(f'official sources read {osrc.get("ok", 0)}/{osrc["total"]}')
     line = " · ".join(bits)
+    if osrc.get("failed"):
+        failed_off = ", ".join(sorted(osrc["failed"]))[:200]
+    else:
+        failed_off = ""
     failed = q.get("feeds_failed") or []
     empty = q.get("feeds_empty") or []
     extra = ""
     if failed or empty:
         extra += ('<div style="margin-top:3px;color:#856404;">Sources not read today (their topics may be missing, '
                   f'which is not the same as no news): {_esc(", ".join((failed + empty)[:10]))}</div>')
+    if failed_off:
+        extra += f'<div style="margin-top:3px;color:#856404;">Official sources not read today: {_esc(failed_off)}</div>'
     gaps = q.get("primary_source_gaps") or []
     if gaps:
         extra += f'<div style="margin-top:3px;">Primary sources not connected: {_esc("; ".join(gaps[:5]))}</div>'

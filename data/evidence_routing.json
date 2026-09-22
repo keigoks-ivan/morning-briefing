@@ -1,567 +1,2147 @@
 {
  "schema": "evidence-routing-v1",
- "_comment": "早報事件判斷層的派送對照表。segments／companies／holdings_exposure／transmission／primary_sources／term_aliases 手動維護；themes 由 `python3 briefing/evidence_build_data.py routing --fab <financial-analysis-bot 路徑>` 從 portfolio/id_dd_map.json 重建（只收 segments 用到的主題）。不確定的關聯不要加進來，讓程式送待審。segments[].knock_on＝上下游可能連帶影響的環節（2026-09-22 加，給「可能受影響的產業和公司」用，一律標未證實）。",
+ "_comment": "早報事件判斷層的人工對照表（只放判斷過的對照）。自動產生的研究主題成員、公司名、總經報告關鍵指標在 data/evidence_routing_auto.json（python3 briefing/evidence_build_data.py routing --fab ~/financial-analysis-bot 重建）。segments：人工環節（關鍵字、knock_on 上下游、macro_reports）；theme_keywords：每個研究主題在英文新聞裡的辨識詞；macro_subjects／countries：總經主題與國家；country_exposure：總經新聞對應的指數部部位；official_sources：一手來源清單。不確定的關聯不要加進來，讓程式送待審。",
  "segments": {
   "foundry_leading_edge": {
    "label": "Foundry and leading-edge nodes",
-   "companies": ["TSM", "2330.TW", "INTC"],
-   "keywords": ["foundry", "2nm", "3nm", "A16", "wafer", "fab ", "晶圓代工", "製程"],
-   "themes": ["LeadingEdgeNode", "FoundryGeography"],
-   "knock_on": ["semicap_equipment"]
+   "companies": [
+    "TSM",
+    "2330.TW",
+    "INTC"
+   ],
+   "keywords": [
+    "foundry",
+    "2nm",
+    "3nm",
+    "A16",
+    "wafer",
+    "fab ",
+    "晶圓代工",
+    "製程"
+   ],
+   "themes": [
+    "LeadingEdgeNode",
+    "FoundryGeography"
+   ],
+   "knock_on": [
+    "semicap_equipment"
+   ]
   },
   "advanced_packaging": {
    "label": "Advanced packaging",
-   "companies": ["TSM", "2330.TW", "3711.TW", "AMKR"],
-   "keywords": ["CoWoS", "CoPoS", "SoIC", "advanced packaging", "先進封裝", "hybrid bonding", "FOPLP", "panel-level", "Baipu", "白埔"],
-   "themes": ["AdvancedPackaging", "CoWoSCoPoS", "CoPoSFOPLPRace", "HybridBondingSoIC"],
-   "knock_on": ["semicap_equipment"]
+   "companies": [
+    "TSM",
+    "2330.TW",
+    "3711.TW",
+    "AMKR"
+   ],
+   "keywords": [
+    "CoWoS",
+    "CoPoS",
+    "SoIC",
+    "advanced packaging",
+    "先進封裝",
+    "hybrid bonding",
+    "FOPLP",
+    "panel-level",
+    "Baipu",
+    "白埔"
+   ],
+   "themes": [
+    "AdvancedPackaging",
+    "CoWoSCoPoS",
+    "CoPoSFOPLPRace",
+    "HybridBondingSoIC"
+   ],
+   "knock_on": [
+    "semicap_equipment"
+   ]
   },
   "ai_accelerators": {
    "label": "AI accelerators",
-   "companies": ["NVDA", "AMD", "AVGO", "MRVL"],
-   "keywords": ["GPU", "accelerator", "TPU", "AI chip", "Blackwell", "Rubin", "MI450", "MI355"],
-   "themes": ["AIAcceleratorDemand", "CUDARocmMoat", "AIASICDesignService"],
-   "knock_on": ["foundry_leading_edge", "advanced_packaging", "memory_hbm"]
+   "companies": [
+    "NVDA",
+    "AMD",
+    "AVGO",
+    "MRVL"
+   ],
+   "keywords": [
+    "GPU",
+    "accelerator",
+    "TPU",
+    "AI chip",
+    "Blackwell",
+    "Rubin",
+    "MI450",
+    "MI355"
+   ],
+   "themes": [
+    "AIAcceleratorDemand",
+    "CUDARocmMoat",
+    "AIASICDesignService"
+   ],
+   "knock_on": [
+    "foundry_leading_edge",
+    "advanced_packaging",
+    "memory_hbm"
+   ]
   },
   "memory_hbm": {
    "label": "Memory and HBM",
-   "companies": ["MU", "000660.KS", "005930.KS"],
-   "keywords": ["HBM", "DRAM", "NAND", "memory chip", "記憶體"],
-   "themes": ["HBM_Supercycle", "MemorySupercycle"],
-   "knock_on": ["semicap_equipment"]
+   "companies": [
+    "MU",
+    "000660.KS",
+    "005930.KS"
+   ],
+   "keywords": [
+    "HBM",
+    "DRAM",
+    "NAND",
+    "memory chip",
+    "記憶體"
+   ],
+   "themes": [
+    "HBM_Supercycle",
+    "MemorySupercycle"
+   ],
+   "knock_on": [
+    "semicap_equipment"
+   ]
   },
   "semicap_equipment": {
    "label": "Semiconductor equipment",
-   "companies": ["ASML", "AMAT", "LRCX", "KLAC", "TER", "6857.T", "6146.T", "BESI"],
-   "keywords": ["chip equipment", "lithography", "EUV", "semiconductor equipment", "tool validation", "設備"],
-   "themes": ["WaferFabEquipment", "HighNAEUV", "AITestEquipmentATE"],
+   "companies": [
+    "ASML",
+    "AMAT",
+    "LRCX",
+    "KLAC",
+    "TER",
+    "6857.T",
+    "6146.T",
+    "BESI"
+   ],
+   "keywords": [
+    "chip equipment",
+    "lithography",
+    "EUV",
+    "semiconductor equipment",
+    "tool validation",
+    "設備"
+   ],
+   "themes": [
+    "WaferFabEquipment",
+    "HighNAEUV",
+    "AITestEquipmentATE"
+   ],
    "knock_on": []
   },
   "hyperscaler_capex": {
    "label": "Hyperscaler and AI data-centre capex",
-   "companies": ["MSFT", "AMZN", "GOOGL", "META", "ORCL", "CRWV"],
-   "keywords": ["data center", "data centre", "capex", "capital expenditure", "capital spending", "hyperscaler", "資料中心", "Stargate"],
-   "themes": ["AIComputeCapexCycle", "HyperscalerCloudBigThree", "AIDataCenter"],
-   "knock_on": ["ai_accelerators", "memory_hbm", "dc_power_energy"]
+   "companies": [
+    "MSFT",
+    "AMZN",
+    "GOOGL",
+    "META",
+    "ORCL",
+    "CRWV"
+   ],
+   "keywords": [
+    "data center",
+    "data centre",
+    "capex",
+    "capital expenditure",
+    "capital spending",
+    "hyperscaler",
+    "資料中心",
+    "Stargate"
+   ],
+   "themes": [
+    "AIComputeCapexCycle",
+    "HyperscalerCloudBigThree",
+    "AIDataCenter"
+   ],
+   "knock_on": [
+    "ai_accelerators",
+    "memory_hbm",
+    "dc_power_energy"
+   ],
+   "macro_reports": [
+    "AICapexMacro"
+   ],
+   "macro_kill_keywords": [
+    "capex",
+    "折舊",
+    "自由現金流"
+   ]
   },
   "dc_power_energy": {
    "label": "Data-centre power and energy",
-   "companies": ["VRT", "SB_ENERGY"],
-   "keywords": ["power company", "electricity", "power grid", "SB Energy", "gigawatt", "nuclear", "電力"],
-   "themes": ["AIDCPowerElectronics", "NuclearRenaissance", "Transformers"],
+   "companies": [
+    "VRT",
+    "SB_ENERGY"
+   ],
+   "keywords": [
+    "power company",
+    "electricity",
+    "power grid",
+    "SB Energy",
+    "gigawatt",
+    "nuclear",
+    "電力"
+   ],
+   "themes": [
+    "AIDCPowerElectronics",
+    "NuclearRenaissance",
+    "Transformers"
+   ],
    "knock_on": []
   },
   "ai_software_agents": {
    "label": "AI software and agents",
-   "companies": ["MSFT", "CRM", "NOW", "PLTR", "ADBE"],
-   "keywords": ["Copilot", "AI agent", "paid seats", "AI revenue", "seat adds"],
-   "themes": ["ProductivityCopilot", "AgenticAIPlatform", "AgenticAICommercialization"],
-   "knock_on": ["hyperscaler_capex"]
+   "companies": [
+    "MSFT",
+    "CRM",
+    "NOW",
+    "PLTR",
+    "ADBE"
+   ],
+   "keywords": [
+    "Copilot",
+    "AI agent",
+    "paid seats",
+    "AI revenue",
+    "seat adds"
+   ],
+   "themes": [
+    "ProductivityCopilot",
+    "AgenticAIPlatform",
+    "AgenticAICommercialization"
+   ],
+   "knock_on": [
+    "hyperscaler_capex"
+   ]
   },
   "ai_lab_financing": {
    "label": "AI lab funding and credit",
-   "companies": ["SOFTBANK", "OPENAI", "ANTHROPIC"],
-   "keywords": ["OpenAI", "Anthropic", "xAI", "bond sale", "junk bond", "bond deal", "debt", "loan", "credit"],
-   "themes": ["AIComputeCapexCycle"],
-   "knock_on": ["hyperscaler_capex", "ai_accelerators"]
+   "companies": [
+    "SOFTBANK",
+    "OPENAI",
+    "ANTHROPIC"
+   ],
+   "keywords": [
+    "OpenAI",
+    "Anthropic",
+    "xAI",
+    "bond sale",
+    "junk bond",
+    "bond deal",
+    "debt",
+    "loan",
+    "credit"
+   ],
+   "themes": [
+    "AIComputeCapexCycle"
+   ],
+   "knock_on": [
+    "hyperscaler_capex",
+    "ai_accelerators"
+   ],
+   "macro_reports": [
+    "AICapexMacro",
+    "GlobalLiquidity"
+   ],
+   "macro_kill_keywords": [
+    "信用利差",
+    "變現"
+   ]
   },
   "korea_semis_trade": {
    "label": "Korea chip trade",
-   "companies": ["000660.KS", "005930.KS"],
-   "keywords": ["South Korea", "Korean chip", "Korea's chip", "韓國", "南韓"],
-   "themes": ["MemorySupercycle", "HBM_Supercycle"],
-   "knock_on": ["memory_hbm"]
-  },
-  "rates_macro": {
-   "label": "Rates and macro policy",
-   "companies": [],
-   "keywords": ["Federal Reserve", "rate hike", "rate cut", "inflation", "Treasury yields", "聯準會"],
-   "themes": [],
-   "knock_on": []
+   "companies": [
+    "000660.KS",
+    "005930.KS"
+   ],
+   "keywords": [
+    "South Korea",
+    "Korean chip",
+    "Korea's chip",
+    "韓國",
+    "南韓"
+   ],
+   "themes": [
+    "MemorySupercycle",
+    "HBM_Supercycle"
+   ],
+   "knock_on": [
+    "memory_hbm"
+   ]
   }
  },
  "companies": {
-  "TSM": {"name": "TSMC", "aliases": ["TSMC", "Taiwan Semiconductor", "台積電"], "product": "wafer and packaging"},
-  "2330.TW": {"name": "TSMC (TW)", "aliases": [], "same_as": "TSM", "product": "wafer and packaging"},
-  "NVDA": {"name": "NVIDIA", "aliases": ["Nvidia", "NVIDIA", "輝達"], "product": "GPU"},
-  "AMD": {"name": "AMD", "aliases": ["AMD", "Advanced Micro Devices", "超微"], "product": "GPU and CPU"},
-  "MSFT": {"name": "Microsoft", "aliases": ["Microsoft", "微軟"], "product": "cloud and software"},
-  "INTC": {"name": "Intel", "aliases": ["Intel", "英特爾"], "product": "CPU and foundry"},
-  "QCOM": {"name": "Qualcomm", "aliases": ["Qualcomm", "高通"], "product": "mobile chips"},
-  "AVGO": {"name": "Broadcom", "aliases": ["Broadcom", "博通"], "product": "custom AI chips and networking"},
-  "MRVL": {"name": "Marvell", "aliases": ["Marvell"], "product": "custom AI chips"},
-  "MU": {"name": "Micron", "aliases": ["Micron", "美光"], "product": "memory"},
-  "000660.KS": {"name": "SK Hynix", "aliases": ["SK Hynix", "SK hynix", "海力士"], "product": "memory"},
-  "005930.KS": {"name": "Samsung Electronics", "aliases": ["Samsung", "三星"], "product": "memory"},
-  "3711.TW": {"name": "ASE", "aliases": ["ASE Technology", "日月光"], "product": "packaging and test"},
-  "AMKR": {"name": "Amkor", "aliases": ["Amkor"], "product": "packaging and test"},
-  "ASML": {"name": "ASML", "aliases": ["ASML"], "product": "lithography tools"},
-  "AMAT": {"name": "Applied Materials", "aliases": ["Applied Materials", "應用材料"], "product": "fab tools"},
-  "LRCX": {"name": "Lam Research", "aliases": ["Lam Research", "科林"], "product": "fab tools"},
-  "KLAC": {"name": "KLA", "aliases": ["KLA"], "product": "inspection tools"},
-  "TER": {"name": "Teradyne", "aliases": ["Teradyne"], "product": "test equipment"},
-  "6857.T": {"name": "Advantest", "aliases": ["Advantest"], "product": "test equipment"},
-  "6146.T": {"name": "DISCO", "aliases": ["DISCO"], "product": "dicing tools"},
-  "BESI": {"name": "BE Semiconductor", "aliases": ["BE Semiconductor", "Besi"], "product": "bonding tools"},
-  "AMZN": {"name": "Amazon", "aliases": ["Amazon", "AWS", "亞馬遜"], "product": "cloud"},
-  "GOOGL": {"name": "Alphabet", "aliases": ["Alphabet", "Google", "谷歌"], "product": "cloud and TPU"},
-  "META": {"name": "Meta", "aliases": ["Meta Platforms", "Meta"], "product": "ads"},
-  "ORCL": {"name": "Oracle", "aliases": ["Oracle", "甲骨文"], "product": "cloud"},
-  "CRWV": {"name": "CoreWeave", "aliases": ["CoreWeave"], "product": "GPU cloud"},
-  "VRT": {"name": "Vertiv", "aliases": ["Vertiv"], "product": "power and cooling gear"},
-  "CRM": {"name": "Salesforce", "aliases": ["Salesforce"], "product": "software"},
-  "NOW": {"name": "ServiceNow", "aliases": ["ServiceNow"], "product": "software"},
-  "PLTR": {"name": "Palantir", "aliases": ["Palantir"], "product": "software"},
-  "ADBE": {"name": "Adobe", "aliases": ["Adobe"], "product": "software"},
-  "2409.TW": {"name": "AUO", "aliases": ["AUO", "友達"], "product": "display panels"},
-  "SOFTBANK": {"name": "SoftBank Group", "aliases": ["SoftBank", "軟銀"], "ticker": "9984.T", "product": "investments"},
-  "SB_ENERGY": {"name": "SB Energy", "aliases": ["SB Energy", "SB能源"], "ticker": null, "product": "power"},
-  "OPENAI": {"name": "OpenAI", "aliases": ["OpenAI"], "ticker": null, "product": "AI models"},
-  "ANTHROPIC": {"name": "Anthropic", "aliases": ["Anthropic"], "ticker": null, "product": "AI models"}
+  "TSM": {
+   "name": "TSMC",
+   "aliases": [
+    "TSMC",
+    "Taiwan Semiconductor",
+    "台積電"
+   ],
+   "product": "wafer and packaging"
+  },
+  "2330.TW": {
+   "name": "TSMC (TW)",
+   "aliases": [],
+   "same_as": "TSM",
+   "product": "wafer and packaging"
+  },
+  "NVDA": {
+   "name": "NVIDIA",
+   "aliases": [
+    "Nvidia",
+    "NVIDIA",
+    "輝達"
+   ],
+   "product": "GPU"
+  },
+  "AMD": {
+   "name": "AMD",
+   "aliases": [
+    "AMD",
+    "Advanced Micro Devices",
+    "超微"
+   ],
+   "product": "GPU and CPU"
+  },
+  "MSFT": {
+   "name": "Microsoft",
+   "aliases": [
+    "Microsoft",
+    "微軟"
+   ],
+   "product": "cloud and software"
+  },
+  "INTC": {
+   "name": "Intel",
+   "aliases": [
+    "Intel",
+    "英特爾"
+   ],
+   "product": "CPU and foundry"
+  },
+  "QCOM": {
+   "name": "Qualcomm",
+   "aliases": [
+    "Qualcomm",
+    "高通"
+   ],
+   "product": "mobile chips"
+  },
+  "AVGO": {
+   "name": "Broadcom",
+   "aliases": [
+    "Broadcom",
+    "博通"
+   ],
+   "product": "custom AI chips and networking"
+  },
+  "MRVL": {
+   "name": "Marvell",
+   "aliases": [
+    "Marvell"
+   ],
+   "product": "custom AI chips"
+  },
+  "MU": {
+   "name": "Micron",
+   "aliases": [
+    "Micron",
+    "美光"
+   ],
+   "product": "memory"
+  },
+  "000660.KS": {
+   "name": "SK Hynix",
+   "aliases": [
+    "SK Hynix",
+    "SK hynix",
+    "海力士"
+   ],
+   "product": "memory"
+  },
+  "005930.KS": {
+   "name": "Samsung Electronics",
+   "aliases": [
+    "Samsung",
+    "三星"
+   ],
+   "product": "memory"
+  },
+  "3711.TW": {
+   "name": "ASE",
+   "aliases": [
+    "ASE Technology",
+    "日月光"
+   ],
+   "product": "packaging and test"
+  },
+  "AMKR": {
+   "name": "Amkor",
+   "aliases": [
+    "Amkor"
+   ],
+   "product": "packaging and test"
+  },
+  "ASML": {
+   "name": "ASML",
+   "aliases": [
+    "ASML"
+   ],
+   "product": "lithography tools"
+  },
+  "AMAT": {
+   "name": "Applied Materials",
+   "aliases": [
+    "Applied Materials",
+    "應用材料"
+   ],
+   "product": "fab tools"
+  },
+  "LRCX": {
+   "name": "Lam Research",
+   "aliases": [
+    "Lam Research",
+    "科林"
+   ],
+   "product": "fab tools"
+  },
+  "KLAC": {
+   "name": "KLA",
+   "aliases": [
+    "KLA"
+   ],
+   "product": "inspection tools"
+  },
+  "TER": {
+   "name": "Teradyne",
+   "aliases": [
+    "Teradyne"
+   ],
+   "product": "test equipment"
+  },
+  "6857.T": {
+   "name": "Advantest",
+   "aliases": [
+    "Advantest"
+   ],
+   "product": "test equipment"
+  },
+  "6146.T": {
+   "name": "DISCO",
+   "aliases": [
+    "DISCO"
+   ],
+   "product": "dicing tools"
+  },
+  "BESI": {
+   "name": "BE Semiconductor",
+   "aliases": [
+    "BE Semiconductor",
+    "Besi"
+   ],
+   "product": "bonding tools"
+  },
+  "AMZN": {
+   "name": "Amazon",
+   "aliases": [
+    "Amazon",
+    "AWS",
+    "亞馬遜"
+   ],
+   "product": "cloud"
+  },
+  "GOOGL": {
+   "name": "Alphabet",
+   "aliases": [
+    "Alphabet",
+    "Google",
+    "谷歌"
+   ],
+   "product": "cloud and TPU"
+  },
+  "META": {
+   "name": "Meta",
+   "aliases": [
+    "Meta Platforms",
+    "Meta"
+   ],
+   "product": "ads"
+  },
+  "ORCL": {
+   "name": "Oracle",
+   "aliases": [
+    "Oracle",
+    "甲骨文"
+   ],
+   "product": "cloud"
+  },
+  "CRWV": {
+   "name": "CoreWeave",
+   "aliases": [
+    "CoreWeave"
+   ],
+   "product": "GPU cloud"
+  },
+  "VRT": {
+   "name": "Vertiv",
+   "aliases": [
+    "Vertiv"
+   ],
+   "product": "power and cooling gear"
+  },
+  "CRM": {
+   "name": "Salesforce",
+   "aliases": [
+    "Salesforce"
+   ],
+   "product": "software"
+  },
+  "NOW": {
+   "name": "ServiceNow",
+   "aliases": [
+    "ServiceNow"
+   ],
+   "product": "software"
+  },
+  "PLTR": {
+   "name": "Palantir",
+   "aliases": [
+    "Palantir"
+   ],
+   "product": "software"
+  },
+  "ADBE": {
+   "name": "Adobe",
+   "aliases": [
+    "Adobe"
+   ],
+   "product": "software"
+  },
+  "2409.TW": {
+   "name": "AUO",
+   "aliases": [
+    "AUO",
+    "友達"
+   ],
+   "product": "display panels"
+  },
+  "SOFTBANK": {
+   "name": "SoftBank Group",
+   "aliases": [
+    "SoftBank",
+    "軟銀"
+   ],
+   "ticker": "9984.T",
+   "product": "investments"
+  },
+  "SB_ENERGY": {
+   "name": "SB Energy",
+   "aliases": [
+    "SB Energy",
+    "SB能源"
+   ],
+   "ticker": null,
+   "product": "power"
+  },
+  "OPENAI": {
+   "name": "OpenAI",
+   "aliases": [
+    "OpenAI"
+   ],
+   "ticker": null,
+   "product": "AI models"
+  },
+  "ANTHROPIC": {
+   "name": "Anthropic",
+   "aliases": [
+    "Anthropic"
+   ],
+   "ticker": null,
+   "product": "AI models"
+  }
  },
  "holdings_exposure": {
   "_comment": "指數部 ETF／個股對公司或環節的曝險。只用公開的 /pm/holdings.json 裡真的有的部位；不在公開檔裡的部位一律不顯示。",
-  "2330": {"companies": ["TSM", "2330.TW"]},
-  "0050": {"companies": ["TSM", "2330.TW", "2454.TW", "2317.TW", "2308.TW", "2382.TW", "3711.TW"]},
-  "SMH": {"segments": ["foundry_leading_edge", "advanced_packaging", "ai_accelerators", "memory_hbm", "semicap_equipment"]},
-  "QQQ": {"companies": ["MSFT", "NVDA", "AMD", "AMZN", "GOOGL", "META", "AVGO", "INTC", "QCOM", "MU", "AMAT", "LRCX", "KLAC", "ASML"]}
+  "2330": {
+   "companies": [
+    "TSM",
+    "2330.TW"
+   ]
+  },
+  "0050": {
+   "companies": [
+    "TSM",
+    "2330.TW",
+    "2454.TW",
+    "2317.TW",
+    "2308.TW",
+    "2382.TW",
+    "3711.TW"
+   ]
+  },
+  "SMH": {
+   "segments": [
+    "foundry_leading_edge",
+    "advanced_packaging",
+    "ai_accelerators",
+    "memory_hbm",
+    "semicap_equipment"
+   ]
+  },
+  "QQQ": {
+   "companies": [
+    "MSFT",
+    "NVDA",
+    "AMD",
+    "AMZN",
+    "GOOGL",
+    "META",
+    "AVGO",
+    "INTC",
+    "QCOM",
+    "MU",
+    "AMAT",
+    "LRCX",
+    "KLAC",
+    "ASML"
+   ]
+  }
  },
  "transmission": {
   "_comment": "程式提供的「可能傳導」路徑，只從已判定為直接影響的變數出發，一律標示未證實。",
-  "capex": [["demand", "Orders for suppliers (equipment, construction, power gear) rise only if the spending goes ahead"]],
-  "financing": [["capex", "Money raised can pay for later capex or chip purchases; none is spent yet"], ["cost", "More debt raises interest cost and credit risk for the issuer"]],
-  "supply_capacity": [["price", "More capacity can ease tight pricing once output starts"], ["shipments", "Output supports later shipments"]],
-  "shipments": [["demand", "Shipments read through to demand only if they are sell-through, not inventory build"]],
-  "demand": [["capex", "Sustained demand supports more capacity spending"], ["price", "Tight demand can support pricing"]],
-  "price": [["cost", "Higher prices are higher costs for buyers"]],
-  "cost": [["price", "Cost increases may be passed on to prices"]],
-  "competition": [["price", "Competitive pressure can weigh on price and share"]],
-  "rates_policy": [["financing", "Rates and policy change funding cost"], ["market_valuation", "Rates move valuation multiples"]],
-  "market_valuation": [["financing", "A higher share price lowers the cost of equity funding"]]
+  "capex": [
+   [
+    "demand",
+    "Orders for suppliers (equipment, construction, power gear) rise only if the spending goes ahead"
+   ]
+  ],
+  "financing": [
+   [
+    "capex",
+    "Money raised can pay for later capex or chip purchases; none is spent yet"
+   ],
+   [
+    "cost",
+    "More debt raises interest cost and credit risk for the issuer"
+   ]
+  ],
+  "supply_capacity": [
+   [
+    "price",
+    "More capacity can ease tight pricing once output starts"
+   ],
+   [
+    "shipments",
+    "Output supports later shipments"
+   ]
+  ],
+  "shipments": [
+   [
+    "demand",
+    "Shipments read through to demand only if they are sell-through, not inventory build"
+   ]
+  ],
+  "demand": [
+   [
+    "capex",
+    "Sustained demand supports more capacity spending"
+   ],
+   [
+    "price",
+    "Tight demand can support pricing"
+   ]
+  ],
+  "price": [
+   [
+    "cost",
+    "Higher prices are higher costs for buyers"
+   ]
+  ],
+  "cost": [
+   [
+    "price",
+    "Cost increases may be passed on to prices"
+   ]
+  ],
+  "competition": [
+   [
+    "price",
+    "Competitive pressure can weigh on price and share"
+   ]
+  ],
+  "rates_policy": [
+   [
+    "financing",
+    "Rates and policy change funding cost"
+   ],
+   [
+    "market_valuation",
+    "Rates move valuation multiples"
+   ]
+  ],
+  "market_valuation": [
+   [
+    "financing",
+    "A higher share price lowers the cost of equity funding"
+   ]
+  ]
  },
  "primary_sources": {
-  "_comment": "一手來源清單。connected=sec 表示程式會查 SEC EDGAR；false 表示還沒接，當天會列為一手來源缺口。",
+  "_comment": "SEC EDGAR 查核（connected=sec，需 SEC_USER_AGENT）與尚未接上的一手來源（connected=false，當天列為缺口）。其他官方來源在 official_sources。",
   "companies": {
-   "TSM": {"label": "TSMC press releases and TWSE MOPS material information", "connected": "sec", "cik": "0001046179"},
-   "NVDA": {"label": "NVIDIA newsroom and SEC filings", "connected": "sec", "cik": "0001045810"},
-   "AMD": {"label": "AMD investor relations and SEC filings", "connected": "sec", "cik": "0000002488"},
-   "MSFT": {"label": "Microsoft investor relations and SEC filings", "connected": "sec", "cik": "0000789019"},
-   "SOFTBANK": {"label": "SoftBank Group IR and TDnet disclosures", "connected": false},
-   "SB_ENERGY": {"label": "SB Energy IPO registration statement", "connected": false},
-   "000660.KS": {"label": "SK Hynix DART filings", "connected": false},
-   "005930.KS": {"label": "Samsung Electronics DART filings", "connected": false}
+   "TSM": {
+    "label": "TSMC press releases and TWSE MOPS material information",
+    "connected": "sec",
+    "cik": "0001046179"
+   },
+   "NVDA": {
+    "label": "NVIDIA newsroom and SEC filings",
+    "connected": "sec",
+    "cik": "0001045810"
+   },
+   "AMD": {
+    "label": "AMD investor relations and SEC filings",
+    "connected": "sec",
+    "cik": "0000002488"
+   },
+   "MSFT": {
+    "label": "Microsoft investor relations and SEC filings",
+    "connected": "sec",
+    "cik": "0000789019"
+   },
+   "SOFTBANK": {
+    "label": "TDnet timely disclosures",
+    "connected": false
+   },
+   "SB_ENERGY": {
+    "label": "SB Energy IPO registration statement",
+    "connected": false
+   },
+   "000660.KS": {
+    "label": "SK Hynix DART filings",
+    "connected": false
+   },
+   "005930.KS": {
+    "label": "Samsung Electronics DART filings",
+    "connected": false
+   }
   },
   "segments": {
-   "korea_semis_trade": {"label": "Korea Customs Service 20-day trade data and MOTIE releases", "connected": false},
-   "rates_macro": {"label": "Federal Reserve statements and FRED data", "connected": false},
-   "advanced_packaging": {"label": "Kaohsiung city government and MOEA industrial-park notices", "connected": false}
+   "advanced_packaging": {
+    "label": "Kaohsiung city government and MOEA industrial-park notices",
+    "connected": false
+   }
   }
  },
  "term_aliases": {
   "_comment": "跨語言比對先前紀錄用（中文舊早報 ↔ 英文新早報）。",
-  "baipu": ["Baipu", "白埔"],
-  "copilot": ["Copilot"],
-  "sb energy": ["SB Energy", "SB能源"],
-  "cowos": ["CoWoS"],
-  "copos": ["CoPoS"],
-  "junk bond": ["junk bond", "垃圾債", "高收益債"],
-  "exports": ["exports", "出口"],
-  "market cap": ["market cap", "market value", "市值"]
+  "baipu": [
+   "Baipu",
+   "白埔"
+  ],
+  "copilot": [
+   "Copilot"
+  ],
+  "sb energy": [
+   "SB Energy",
+   "SB能源"
+  ],
+  "cowos": [
+   "CoWoS"
+  ],
+  "copos": [
+   "CoPoS"
+  ],
+  "junk bond": [
+   "junk bond",
+   "垃圾債",
+   "高收益債"
+  ],
+  "exports": [
+   "exports",
+   "出口"
+  ],
+  "market cap": [
+   "market cap",
+   "market value",
+   "市值"
+  ]
  },
- "themes": {
-  "AIASICDesignService": {
-   "path": "/id/ID_AIASICDesignService_20260419.html",
-   "date": "2026-04-19",
-   "label": "AI ASIC 設計服務 — 已併入 AI 加速器需求",
-   "tickers": [
-    "2027.TW",
-    "2028.TW",
-    "2454.TW",
-    "3443.TW",
-    "3661.TW",
-    "AMZN",
-    "AVGO",
-    "GOOGL",
-    "GUC",
-    "META",
-    "MRVL",
-    "MSFT",
+ "theme_keywords": {
+  "_comment": "不分大小寫的片語比對；避免太短的字（EV、AI）。研究主題的成員公司另外由自動檔提供。",
+  "ABFSubstrate": [
+   "ABF substrate",
+   "IC substrate",
+   "Ibiden",
+   "Unimicron"
+  ],
+  "AIASICDesignService": [
+   "custom ASIC",
+   "ASIC design",
+   "Alchip",
+   "Global Unichip",
+   "design service"
+  ],
+  "AIAcceleratorDemand": [
+   "AI accelerator",
+   "GPU demand",
+   "AI chip demand",
+   "accelerator orders"
+  ],
+  "AIAdRetailMedia": [
+   "retail media",
+   "ad revenue",
+   "advertising",
+   "Advantage+",
+   "Performance Max"
+  ],
+  "AIComputeCapexCycle": [
+   "AI capex",
+   "capital expenditure",
+   "capital spending",
+   "compute buildout",
+   "AI infrastructure spending"
+  ],
+  "AICrossDomainImpact": [
+   "AI disruption",
+   "AI Overview",
+   "AI search"
+  ],
+  "AICybersecurityDoubleEdge": [
+   "AI security",
+   "agentic SOC",
+   "AI-powered attack",
+   "AI cyberattack"
+  ],
+  "AIDCPowerElectronics": [
+   "800V",
+   "power supply",
+   "power shelf",
+   "power electronics"
+  ],
+  "AIDataCenter": [
+   "data center power",
+   "data centre power",
+   "power grid",
+   "gas turbine",
+   "grid connection",
+   "data center permits"
+  ],
+  "AIEDAIP": [
+   "chip design software",
+   "Synopsys",
+   "Cadence",
+   "Arm licensing"
+  ],
+  "AIInferenceEconomics": [
+   "inference cost",
+   "inference demand",
+   "tokens per"
+  ],
+  "AINetworking": [
+   "AI networking",
+   "Ethernet switch",
+   "NVLink",
+   "optical interconnect",
+   "scale-out network"
+  ],
+  "AIStorage": [
+   "SSD",
+   "NVMe",
+   "enterprise storage",
+   "NAND flash"
+  ],
+  "AITestEquipmentATE": [
+   "chip testing",
+   "test equipment",
+   "burn-in"
+  ],
+  "AdvancedPackaging": [
+   "advanced packaging",
+   "CoWoS",
+   "packaging capacity",
+   "SoIC",
+   "Baipu"
+  ],
+  "AerospaceMetals": [
+   "titanium",
+   "superalloy",
+   "aerospace castings",
+   "forgings"
+  ],
+  "AgenticAICommercialization": [
+   "AI agent pricing",
+   "agent revenue",
+   "consumption pricing"
+  ],
+  "AgenticAIPlatform": [
+   "AI agent",
+   "agentic",
+   "Agentforce"
+  ],
+  "AirlineLoyaltyRepricing": [
+   "airline",
+   "airfare",
+   "loyalty program",
+   "frequent flyer",
+   "air travel"
+  ],
+  "ApparelFootwear": [
+   "apparel",
+   "footwear",
+   "sportswear",
+   "sneaker"
+  ],
+  "AppleIntelligencePlatformThreat": [
+   "Apple Intelligence",
+   "Siri",
+   "App Store"
+  ],
+  "AthleisureNewEntrants": [
+   "athleisure",
+   "Lululemon",
+   "dupe"
+  ],
+  "AthleticFootwearSubsegments": [
+   "running shoes",
+   "athletic footwear",
+   "HOKA"
+  ],
+  "BackEndPackagingEquipment": [
+   "hybrid bonder",
+   "TC bonder",
+   "wire bonding",
+   "back-end equipment"
+  ],
+  "BeefSupercycle": [
+   "beef prices",
+   "cattle",
+   "meatpacker"
+  ],
+  "BeverageEnergyDrink": [
+   "energy drink",
+   "soft drink",
+   "beverage"
+  ],
+  "BoomerTravelSupercycle": [
+   "travel demand",
+   "leisure travel",
+   "baby boomer"
+  ],
+  "CUDARocmMoat": [
+   "CUDA",
+   "ROCm",
+   "software stack"
+  ],
+  "CardNetworkDuopoly": [
+   "card network",
+   "Visa and Mastercard",
+   "interchange fee",
+   "swipe fee",
+   "payment volume"
+  ],
+  "CasinoGamingIR": [
+   "casino",
+   "Macau",
+   "gaming revenue",
+   "integrated resort"
+  ],
+  "CasualDiningTurnaround": [
+   "casual dining",
+   "same-store sales",
+   "restaurant traffic"
+  ],
+  "ChannelPowerReversion": [
+   "wholesale channel",
+   "department store",
+   "direct-to-consumer"
+  ],
+  "ChinaSportswearRise": [
+   "Anta",
+   "Li-Ning",
+   "Chinese sportswear"
+  ],
+  "CoPoSFOPLPRace": [
+   "CoPoS",
+   "panel-level packaging",
+   "FOPLP",
+   "glass panel"
+  ],
+  "CoWoSCoPoS": [
+   "CoWoS",
+   "CoPoS"
+  ],
+  "CobrandCardEcosystem": [
+   "co-brand card",
+   "credit card rewards",
+   "card issuer"
+  ],
+  "CommercialAerospace": [
+   "aircraft deliveries",
+   "jet engine",
+   "aircraft orders"
+  ],
+  "CopperSupercycle": [
+   "copper",
+   "copper price",
+   "copper mine",
+   "copper supply"
+  ],
+  "CybersecurityPlatformConsolidation": [
+   "cybersecurity",
+   "security platform",
+   "XDR",
+   "SASE"
+  ],
+  "DataCenterREITDuopoly": [
+   "data center REIT",
+   "colocation",
+   "data center leasing"
+  ],
+  "DataSecurityBackupConvergence": [
+   "data backup",
+   "cyber resilience",
+   "ransomware recovery"
+  ],
+  "DefenseAerospaceUpgrade": [
+   "defense budget",
+   "military spending",
+   "defence spending"
+  ],
+  "DefenseModernization": [
+   "defense budget",
+   "defence budget",
+   "military spending",
+   "missile",
+   "munitions",
+   "NATO spending"
+  ],
+  "DiscountRetailKShape": [
+   "off-price",
+   "dollar store",
+   "discount retail"
+  ],
+  "EdgeAI": [
+   "on-device AI",
+   "edge AI",
+   "AI PC",
+   "NPU"
+  ],
+  "FastCasualBifurcation": [
+   "fast casual",
+   "Chipotle",
+   "Sweetgreen"
+  ],
+  "FertilizerSeeds": [
+   "fertilizer",
+   "potash",
+   "nitrogen fertilizer",
+   "crop protection"
+  ],
+  "FoundryGeography": [
+   "fab in Arizona",
+   "foundry subsidy",
+   "CHIPS Act",
+   "overseas fab",
+   "reshoring"
+  ],
+  "FusionCommercialization": [
+   "fusion energy",
+   "fusion power",
+   "tokamak"
+  ],
+  "GLP1Master": [
+   "GLP-1",
+   "obesity drug",
+   "weight-loss drug",
+   "Wegovy",
+   "Zepbound",
+   "Ozempic",
+   "Mounjaro"
+  ],
+  "GLP1PackagedFood": [
+   "packaged food",
+   "snack volumes",
+   "GLP-1 users"
+  ],
+  "GLP1RestaurantImpact": [
+   "GLP-1 users",
+   "restaurant visits"
+  ],
+  "GLP1Treatment": [
+   "GLP-1",
+   "obesity drug",
+   "orforglipron",
+   "retatrutide",
+   "semaglutide",
+   "tirzepatide"
+  ],
+  "GlassSubstrate": [
+   "glass substrate",
+   "glass core"
+  ],
+  "GlobalBankROE": [
+   "bank earnings",
+   "net interest income",
+   "investment banking fees",
+   "capital rules",
+   "Basel"
+  ],
+  "GlobalEcommerce": [
+   "e-commerce",
+   "online retail",
+   "Temu",
+   "Shein"
+  ],
+  "GlobalLuxury": [
+   "luxury goods",
+   "luxury demand",
+   "LVMH",
+   "Hermès",
+   "Hermes"
+  ],
+  "GrainsOilseeds": [
+   "soybeans",
+   "corn prices",
+   "wheat",
+   "grain exports",
+   "crush margin"
+  ],
+  "HBM4CustomBaseDie": [
+   "HBM4",
+   "base die",
+   "custom HBM"
+  ],
+  "HBM_Supercycle": [
+   "HBM",
+   "high-bandwidth memory",
+   "HBM3E",
+   "HBM4"
+  ],
+  "HeavyMachineryMining": [
+   "construction equipment",
+   "mining equipment",
+   "Caterpillar",
+   "Komatsu"
+  ],
+  "HighNAEUV": [
+   "High-NA",
+   "EUV",
+   "lithography"
+  ],
+  "HotelChains": [
+   "hotel",
+   "RevPAR",
+   "room rates"
+  ],
+  "HumanoidIndustrialRobotics": [
+   "humanoid",
+   "Optimus",
+   "industrial robot"
+  ],
+  "HybridBondingSoIC": [
+   "hybrid bonding",
+   "SoIC",
+   "3D stacking"
+  ],
+  "HydrogenFuelCell": [
+   "hydrogen",
+   "fuel cell",
+   "electrolyzer"
+  ],
+  "HyperscalerCloudBigThree": [
+   "AWS",
+   "Azure",
+   "Google Cloud",
+   "cloud revenue",
+   "cloud growth"
+  ],
+  "IdentityNewPerimeter": [
+   "identity security",
+   "Okta",
+   "CyberArk",
+   "access management"
+  ],
+  "IndustrialAutomation": [
+   "factory automation",
+   "industrial automation",
+   "robot orders"
+  ],
+  "LATAMEcommerce": [
+   "MercadoLibre",
+   "Latin America e-commerce",
+   "Nubank"
+  ],
+  "LLMVendorSecurityEconomics": [
+   "AI safety",
+   "model security",
+   "LLM security",
+   "AI firewall",
+   "safety audits"
+  ],
+  "LeadingEdgeNode": [
+   "2nm",
+   "3nm",
+   "A16",
+   "leading-edge node"
+  ],
+  "LiquidCooling": [
+   "liquid cooling",
+   "cold plate",
+   "coolant distribution"
+  ],
+  "LuxuryTravelCruise": [
+   "cruise",
+   "cruise line",
+   "Royal Caribbean"
+  ],
+  "MemorySupercycle": [
+   "DRAM",
+   "NAND",
+   "memory prices",
+   "memory chip",
+   "Korean chip exports",
+   "Korea's chip exports"
+  ],
+  "NuclearRenaissance": [
+   "nuclear power",
+   "nuclear plant",
+   "uranium",
+   "small modular reactor",
+   "reactor"
+  ],
+  "OTAandAITravel": [
+   "online travel",
+   "Booking Holdings",
+   "Expedia",
+   "travel bookings"
+  ],
+  "ProductivityCopilot": [
+   "Copilot",
+   "Microsoft 365",
+   "Gemini for Workspace",
+   "paid seats"
+  ],
+  "PublicBuilderEntryLevel": [
+   "homebuilder",
+   "home builder",
+   "new home sales",
+   "housing starts",
+   "first-time buyer"
+  ],
+  "PublishersStructuralReset": [
+   "publisher",
+   "news publisher",
+   "licensing deal",
+   "copyright",
+   "media company"
+  ],
+  "QuantumComputing": [
+   "quantum computing",
+   "quantum computer",
+   "qubit"
+  ],
+  "RestaurantTechSaaS": [
+   "restaurant software",
+   "point-of-sale",
+   "Toast"
+  ],
+  "RobotaxiAutonomous": [
+   "robotaxi",
+   "Waymo",
+   "self-driving",
+   "autonomous driving"
+  ],
+  "SiliconPhotonicsCPO": [
+   "silicon photonics",
+   "co-packaged optics",
+   "optical transceiver"
+  ],
+  "SpaceEconomy": [
+   "SpaceX",
+   "satellite",
+   "Starlink",
+   "space economy",
+   "rocket launch"
+  ],
+  "StablecoinPayments": [
+   "stablecoin",
+   "USDC",
+   "Clarity Act",
+   "GENIUS Act"
+  ],
+  "TokenEconomics": [
+   "token pricing",
+   "tokens per",
+   "inference revenue",
+   "API pricing"
+  ],
+  "Transformers": [
+   "transformer shortage",
+   "power transformer",
+   "grid equipment",
+   "switchgear"
+  ],
+  "USRestaurantChains": [
+   "restaurant chain",
+   "same-store sales",
+   "McDonald",
+   "quick-service"
+  ],
+  "WaferFabEquipment": [
+   "wafer fab equipment",
+   "chip equipment",
+   "chipmaking equipment",
+   "etch",
+   "deposition"
+  ],
+  "WealthTransfer25Year": [
+   "wealth management",
+   "wealth transfer",
+   "net new assets"
+  ]
+ },
+ "countries": {
+  "_comment": "總經主題的國家判定（找第一個出現的）；沒有明寫就當美國。",
+  "US": [
+   "U.S.",
+   "US",
+   "United States",
+   "Federal Reserve",
+   "Fed's",
+   "Washington",
+   "美國",
+   "聯準會"
+  ],
+  "CN": [
+   "China",
+   "Chinese",
+   "Beijing",
+   "PBOC",
+   "中國",
+   "大陸"
+  ],
+  "JP": [
+   "Japan",
+   "Japanese",
+   "Tokyo",
+   "BOJ",
+   "日本",
+   "日銀"
+  ],
+  "EA": [
+   "euro zone",
+   "eurozone",
+   "euro area",
+   "ECB",
+   "歐元區"
+  ],
+  "UK": [
+   "Britain",
+   "British",
+   "U.K.",
+   "Bank of England",
+   "英國"
+  ],
+  "KR": [
+   "South Korea",
+   "Korea's",
+   "Korean",
+   "韓國",
+   "南韓"
+  ],
+  "TW": [
+   "Taiwan",
+   "Taiwanese",
+   "台灣"
+  ],
+  "DE": [
+   "Germany",
+   "German",
+   "德國"
+  ]
+ },
+ "macro_subjects": {
+  "_comment": "總經主題：aliases 比對（全大寫縮寫區分大小寫）；scoped=true 表示要加國別（CPI@US）。reports／reports_by_country 指向 /macro/ 報告；kill_keywords 用來點名報告裡被碰到的關鍵指標；clock=true 表示屬於總經時鐘（成長／通膨象限）的輸入。",
+  "FED": {
+   "label": "Federal Reserve",
+   "aliases": [
+    "Federal Reserve",
+    "FOMC",
+    "Fed",
+    "Fed's",
+    "Powell",
+    "聯準會"
+   ],
+   "country": "US",
+   "reports": [
+    "GlobalLiquidity",
+    "USEconomy"
+   ],
+   "kill_keywords": [
+    "聯邦基金利率",
+    "Fed 政策"
+   ]
+  },
+  "ECB": {
+   "label": "European Central Bank",
+   "aliases": [
+    "European Central Bank",
+    "ECB",
+    "Lagarde",
+    "歐洲央行"
+   ],
+   "country": "EA",
+   "reports": [
+    "GlobalLiquidity"
+   ],
+   "kill_keywords": []
+  },
+  "BOJ": {
+   "label": "Bank of Japan",
+   "aliases": [
+    "Bank of Japan",
+    "BOJ",
+    "BoJ",
+    "Ueda",
+    "日銀",
+    "日本央行"
+   ],
+   "country": "JP",
+   "reports": [
+    "YenCarry",
+    "GlobalLiquidity"
+   ],
+   "kill_keywords": [
+    "BoJ",
+    "USDJPY"
+   ]
+  },
+  "BOE": {
+   "label": "Bank of England",
+   "aliases": [
+    "Bank of England",
+    "BoE",
+    "英國央行"
+   ],
+   "country": "UK",
+   "reports": [
+    "GlobalLiquidity"
+   ]
+  },
+  "PBOC": {
+   "label": "People's Bank of China",
+   "aliases": [
+    "People's Bank of China",
+    "PBOC",
+    "PBoC",
+    "人民銀行"
+   ],
+   "country": "CN",
+   "reports": [
+    "ChinaEconomy"
+   ],
+   "kill_keywords": [
+    "社融",
+    "信用脈衝"
+   ]
+  },
+  "CBC_TW": {
+   "label": "Taiwan central bank",
+   "aliases": [
+    "Taiwan's central bank",
+    "Central Bank of the Republic of China",
+    "台灣央行",
+    "中央銀行"
+   ],
+   "country": "TW",
+   "reports": [
+    "TaiwanEconomy"
+   ],
+   "kill_keywords": [
+    "CBC"
+   ]
+  },
+  "BOK": {
+   "label": "Bank of Korea",
+   "aliases": [
+    "Bank of Korea",
+    "BOK",
+    "韓國央行"
+   ],
+   "country": "KR",
+   "reports": []
+  },
+  "CPI": {
+   "label": "Consumer prices",
+   "aliases": [
+    "CPI",
+    "consumer price index",
+    "consumer prices",
+    "消費者物價"
+   ],
+   "scoped": true,
+   "clock": true,
+   "reports_by_country": {
+    "US": [
+     "USEconomy"
+    ],
+    "CN": [
+     "ChinaEconomy"
+    ],
+    "TW": [
+     "TaiwanEconomy"
+    ],
+    "JP": [
+     "YenCarry"
+    ]
+   },
+   "kill_keywords": [
+    "PCE",
+    "CPI",
+    "通膨"
+   ]
+  },
+  "PCE": {
+   "label": "PCE prices",
+   "aliases": [
+    "PCE",
+    "personal consumption expenditures"
+   ],
+   "country": "US",
+   "clock": true,
+   "reports": [
+    "USEconomy"
+   ],
+   "kill_keywords": [
+    "PCE"
+   ]
+  },
+  "PPI": {
+   "label": "Producer prices",
+   "aliases": [
+    "PPI",
+    "producer price",
+    "producer prices"
+   ],
+   "scoped": true,
+   "clock": true,
+   "reports_by_country": {
+    "US": [
+     "USEconomy"
+    ],
+    "CN": [
+     "ChinaEconomy"
+    ]
+   },
+   "kill_keywords": [
+    "PPI"
+   ]
+  },
+  "JOBS": {
+   "label": "Labour market",
+   "aliases": [
+    "payrolls",
+    "nonfarm",
+    "non-farm",
+    "jobs report",
+    "unemployment rate",
+    "jobless claims",
+    "非農",
+    "失業率"
+   ],
+   "scoped": true,
+   "clock": true,
+   "reports_by_country": {
+    "US": [
+     "USEconomy"
+    ]
+   },
+   "kill_keywords": [
+    "非農",
+    "失業"
+   ]
+  },
+  "GDP": {
+   "label": "GDP",
+   "aliases": [
+    "GDP",
+    "gross domestic product",
+    "經濟成長率"
+   ],
+   "scoped": true,
+   "clock": true,
+   "reports_by_country": {
+    "US": [
+     "USEconomy"
+    ],
+    "CN": [
+     "ChinaEconomy"
+    ],
+    "TW": [
+     "TaiwanEconomy"
+    ]
+   },
+   "kill_keywords": [
+    "GDP",
+    "增長"
+   ]
+  },
+  "RETAIL_SALES": {
+   "label": "Retail sales",
+   "aliases": [
+    "retail sales",
+    "零售銷售"
+   ],
+   "scoped": true,
+   "clock": true,
+   "reports_by_country": {
+    "US": [
+     "USEconomy"
+    ],
+    "CN": [
+     "ChinaEconomy"
+    ]
+   },
+   "kill_keywords": [
+    "零售"
+   ]
+  },
+  "PMI": {
+   "label": "Business surveys (PMI)",
+   "aliases": [
+    "PMI",
+    "ISM",
+    "purchasing managers"
+   ],
+   "scoped": true,
+   "clock": true,
+   "reports_by_country": {
+    "US": [
+     "USEconomy"
+    ],
+    "CN": [
+     "ChinaEconomy"
+    ]
+   }
+  },
+  "INDUSTRIAL_OUTPUT": {
+   "label": "Industrial output",
+   "aliases": [
+    "industrial production",
+    "industrial output",
+    "factory output",
+    "工業生產"
+   ],
+   "scoped": true,
+   "clock": true,
+   "reports_by_country": {
+    "US": [
+     "USEconomy"
+    ],
+    "CN": [
+     "ChinaEconomy"
+    ]
+   }
+  },
+  "TRADE_DATA": {
+   "label": "Trade data",
+   "aliases": [
+    "exports",
+    "imports",
+    "trade surplus",
+    "trade deficit",
+    "trade balance",
+    "出口",
+    "進口"
+   ],
+   "scoped": true,
+   "reports_by_country": {
+    "TW": [
+     "TaiwanEconomy"
+    ],
+    "CN": [
+     "ChinaEconomy"
+    ]
+   },
+   "kill_keywords": [
+    "外銷訂單",
+    "出口"
+   ]
+  },
+  "HOUSING": {
+   "label": "Housing",
+   "aliases": [
+    "housing starts",
+    "home sales",
+    "home prices",
+    "mortgage rates",
+    "房價"
+   ],
+   "scoped": true,
+   "reports_by_country": {
+    "US": [
+     "USEconomy"
+    ]
+   },
+   "kill_keywords": [
+    "房價"
+   ]
+  },
+  "YIELDS": {
+   "label": "Bond yields",
+   "aliases": [
+    "Treasury yield",
+    "Treasury yields",
+    "10-year yield",
+    "bond yields",
+    "美債殖利率",
+    "殖利率"
+   ],
+   "scoped": true,
+   "reports_by_country": {
+    "US": [
+     "GlobalLiquidity",
+     "USFiscalDeficit"
+    ],
+    "JP": [
+     "YenCarry"
+    ]
+   },
+   "kill_keywords": [
+    "殖利率",
+    "term premium",
+    "拍賣"
+   ]
+  },
+  "DOLLAR": {
+   "label": "US dollar",
+   "aliases": [
+    "dollar index",
+    "U.S. dollar",
+    "greenback",
+    "DXY",
+    "美元指數"
+   ],
+   "country": "US",
+   "reports": [
+    "DollarCycle"
+   ],
+   "kill_keywords": [
+    "DXY",
+    "美元"
+   ]
+  },
+  "YEN": {
+   "label": "Yen",
+   "aliases": [
+    "yen",
+    "日圓",
+    "日元"
+   ],
+   "country": "JP",
+   "reports": [
+    "YenCarry"
+   ],
+   "kill_keywords": [
+    "USDJPY",
+    "carry",
+    "MoF"
+   ]
+  },
+  "YUAN": {
+   "label": "Yuan",
+   "aliases": [
+    "yuan",
+    "renminbi",
+    "人民幣"
+   ],
+   "country": "CN",
+   "reports": [
+    "ChinaEconomy"
+   ],
+   "kill_keywords": [
+    "CNY"
+   ]
+  },
+  "TWD": {
+   "label": "Taiwan dollar",
+   "aliases": [
+    "Taiwan dollar",
+    "新台幣"
+   ],
+   "country": "TW",
+   "reports": [
+    "TaiwanEconomy"
+   ],
+   "kill_keywords": [
+    "台幣"
+   ]
+  },
+  "CREDIT": {
+   "label": "Credit conditions",
+   "aliases": [
+    "credit spread",
+    "credit spreads",
+    "high-yield",
+    "junk bond",
+    "bank lending",
+    "private credit",
+    "信用利差"
+   ],
+   "country": "US",
+   "reports": [
+    "USEconomy"
+   ],
+   "kill_keywords": [
+    "OAS",
+    "信用利差"
+   ]
+  },
+  "TARIFFS": {
+   "label": "Tariffs and trade talks",
+   "aliases": [
+    "tariff",
+    "tariffs",
+    "trade talks",
+    "trade deal",
+    "trade war",
+    "關稅"
+   ],
+   "country": "US",
+   "reports": [
+    "USEconomy",
+    "ChinaEconomy"
+   ]
+  },
+  "EXPORT_CONTROLS": {
+   "label": "Export controls",
+   "aliases": [
+    "export control",
+    "export controls",
+    "Entity List",
+    "chip curbs",
+    "export ban",
+    "出口管制"
+   ],
+   "country": "US",
+   "reports": []
+  },
+  "FISCAL": {
+   "label": "Fiscal policy",
+   "aliases": [
+    "budget deficit",
+    "fiscal deficit",
+    "government shutdown",
+    "debt ceiling",
+    "Treasury auction",
+    "national debt",
+    "財政赤字"
+   ],
+   "country": "US",
+   "reports": [
+    "USFiscalDeficit"
+   ],
+   "kill_keywords": [
+    "赤字",
+    "淨利息",
+    "拍賣"
+   ]
+  },
+  "OIL": {
+   "label": "Oil",
+   "aliases": [
+    "oil prices",
+    "crude oil",
+    "OPEC",
+    "Brent",
+    "WTI",
+    "油價"
+   ],
+   "reports": []
+  }
+ },
+ "country_exposure": {
+  "_comment": "總經新聞 → 公開系統組合的指數部部位（國別曝險）。只在有直接影響的總經變數時才列，標示 via country。",
+  "US": [
+   "QQQ",
+   "SMH"
+  ],
+  "TW": [
+   "0050",
+   "2330"
+  ]
+ },
+ "official_sources": {
+  "_comment": "一手來源。rss＝直接抓官方 feed；gn＝官方網域擋爬蟲，改用 Google News 的 site: 查詢找到官方頁；twse_json＝證交所／櫃買中心重大訊息；company_wires＝當事公司的新聞稿（Business Wire／GlobeNewswire／PR Newswire，公司自己發的）。covers＝這個來源負責的公司 key 或總經主題 key（總經可加 @國別）。",
+  "fed_press": {
+   "label": "Federal Reserve press releases",
+   "kind": "rss",
+   "url": "https://www.federalreserve.gov/feeds/press_all.xml",
+   "covers": [
+    "FED"
+   ]
+  },
+  "bls": {
+   "label": "BLS releases",
+   "kind": "rss",
+   "url": "https://www.bls.gov/feed/bls_latest.rss",
+   "covers": [
+    "CPI@US",
+    "PPI@US",
+    "JOBS@US"
+   ]
+  },
+  "bea": {
+   "label": "BEA releases",
+   "kind": "rss",
+   "url": "https://apps.bea.gov/rss/rss.xml",
+   "covers": [
+    "GDP@US",
+    "PCE"
+   ]
+  },
+  "census": {
+   "label": "Census economic indicators",
+   "kind": "rss",
+   "url": "https://www.census.gov/economic-indicators/indicator.xml",
+   "covers": [
+    "RETAIL_SALES@US",
+    "HOUSING@US",
+    "TRADE_DATA@US"
+   ]
+  },
+  "ecb_press": {
+   "label": "ECB press releases",
+   "kind": "rss",
+   "url": "https://www.ecb.europa.eu/rss/press.html",
+   "covers": [
+    "ECB"
+   ]
+  },
+  "ecb_stats": {
+   "label": "ECB statistical releases",
+   "kind": "rss",
+   "url": "https://www.ecb.europa.eu/rss/statpress.html",
+   "covers": [
+    "CPI@EA",
+    "GDP@EA"
+   ]
+  },
+  "boj": {
+   "label": "Bank of Japan releases",
+   "kind": "rss",
+   "url": "https://www.boj.or.jp/en/rss/whatsnew.xml",
+   "covers": [
+    "BOJ",
+    "YEN"
+   ]
+  },
+  "boe": {
+   "label": "Bank of England news",
+   "kind": "rss",
+   "url": "https://www.bankofengland.co.uk/rss/news",
+   "covers": [
+    "BOE"
+   ]
+  },
+  "ustr": {
+   "label": "USTR press releases",
+   "kind": "rss",
+   "url": "https://ustr.gov/rss.xml",
+   "covers": [
+    "TARIFFS"
+   ]
+  },
+  "sec_press": {
+   "label": "SEC press releases",
+   "kind": "rss",
+   "url": "https://www.sec.gov/news/pressreleases.rss",
+   "covers": []
+  },
+  "nvidia_news": {
+   "label": "NVIDIA newsroom",
+   "kind": "rss",
+   "url": "https://nvidianews.nvidia.com/rss.xml",
+   "covers": [
     "NVDA"
    ]
   },
-  "AIAcceleratorDemand": {
-   "path": "/id/ID_AIAcceleratorDemand_20260905.html",
-   "date": "2026-09-05",
-   "label": "AI 加速器需求 — 漲的是第二層，不是龍頭",
-   "tickers": [
-    "2330.TW",
-    "2454.TW",
-    "3443.TW",
-    "3661.TW",
-    "AMD",
-    "AMZN",
-    "AVGO",
-    "GOOGL",
-    "MRVL",
-    "NVDA"
+  "microsoft_news": {
+   "label": "Microsoft news",
+   "kind": "rss",
+   "url": "https://news.microsoft.com/source/feed/",
+   "covers": [
+    "MSFT"
    ]
   },
-  "AIComputeCapexCycle": {
-   "path": "/id/ID_AIComputeCapexCycle_20260903.html",
-   "date": "2026-09-03",
-   "label": "AI 算力資本週期 — 短缺是真的，但市場已經改付給別人",
-   "tickers": [
-    "AMD",
-    "AMZN",
-    "ANET",
-    "AVGO",
-    "DELL",
-    "GEV",
-    "GOOGL",
-    "META",
-    "MRVL",
-    "MSFT",
-    "MU",
-    "NVDA",
-    "ORCL",
-    "TSM",
-    "VRT"
+  "amd_ir": {
+   "label": "AMD press releases",
+   "kind": "rss",
+   "url": "https://ir.amd.com/news-events/press-releases/rss",
+   "covers": [
+    "AMD"
    ]
   },
-  "AIDCPowerElectronics": {
-   "path": "/id/ID_AIDCPowerElectronics_20260905.html",
-   "date": "2026-09-05",
-   "label": "AI 資料中心供電電子 — 需求更確定，利潤歸屬被開放規格打折",
-   "tickers": [
-    "2301.TW",
-    "2308.TW",
-    "6105.TW",
-    "6230.TW",
-    "ETN",
-    "FLEX",
-    "NVTS",
-    "ON",
-    "SU.PA",
-    "TXN",
-    "VRT"
+  "samsung_news": {
+   "label": "Samsung newsroom",
+   "kind": "rss",
+   "url": "https://news.samsung.com/global/feed",
+   "covers": [
+    "005930.KS"
    ]
   },
-  "AIDataCenter": {
-   "path": "/id/ID_AIDataCenter_20260905.html",
-   "date": "2026-09-05",
-   "label": "AI 資料中心電力基建 — 短缺是真的，租金已經付完",
-   "tickers": [
-    "6501.T",
-    "7011.T",
-    "ABB",
-    "BE",
-    "CEG",
-    "ENR.DE",
-    "ETN",
-    "GEV",
-    "HWM",
-    "PWR",
-    "SMR",
-    "SU.PA",
-    "TLN",
-    "VRT",
-    "VST"
+  "skhynix_news": {
+   "label": "SK hynix newsroom",
+   "kind": "rss",
+   "url": "https://news.skhynix.com/feed/",
+   "covers": [
+    "000660.KS"
    ]
   },
-  "AITestEquipmentATE": {
-   "path": "/id/ID_AITestEquipmentATE_20260427.html",
-   "date": "2026-04-27",
-   "label": "AI 測試設備 ATE — 已併入半導體設備五寡占",
-   "tickers": [
-    "ATE"
+  "twse_material": {
+   "label": "TWSE material information (listed companies)",
+   "kind": "twse_json",
+   "url": "https://openapi.twse.com.tw/v1/opendata/t187ap04_L",
+   "covers": [
+    "*TW"
    ]
   },
-  "AdvancedPackaging": {
-   "path": "/id/ID_AdvancedPackaging_20260905.html",
-   "date": "2026-09-05",
-   "label": "先進封裝 — 租金收到了，收租的時鐘也開始倒數",
-   "tickers": [
-    "0522.HK",
-    "2330.TW",
-    "3037.TW",
-    "3711.TW",
-    "4062.T",
-    "6146.T",
-    "AMAT",
-    "AMKR",
-    "AVGO",
-    "BESI",
-    "CRDO",
-    "INTC",
-    "KLIC",
-    "NVDA",
-    "ONTO"
+  "tpex_material": {
+   "label": "TPEx material information (OTC companies)",
+   "kind": "twse_json",
+   "url": "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap04_O",
+   "covers": [
+    "*TWO"
    ]
   },
-  "AgenticAICommercialization": {
-   "path": "/id/ID_AgenticAICommercialization_20260429.html",
-   "date": "2026-04-29",
-   "label": "Agentic AI 商業化 — 已併入「Agentic AI 平台」母題",
-   "tickers": [
-    "ROI"
-   ]
-  },
-  "AgenticAIPlatform": {
-   "path": "/id/ID_AgenticAIPlatform_20260903.html",
-   "date": "2026-09-03",
-   "label": "Agentic AI 平台 — 市場殺的是計價基礎，不是應用層",
-   "tickers": [
-    "ACN",
-    "ADBE",
-    "CRM",
-    "CRWD",
-    "DDOG",
-    "GOOGL",
-    "HUBS",
-    "MSFT",
-    "NET",
-    "NOW",
-    "PLTR",
-    "SNOW",
-    "WDAY"
-   ]
-  },
-  "CUDARocmMoat": {
-   "path": "/id/ID_CUDARocmMoat_20260905.html",
-   "date": "2026-09-05",
-   "label": "CUDA／ROCm 軟體護城河 — 功能鎖定已破，經濟鎖定未破",
-   "tickers": [
-    "AMD",
-    "AMZN",
-    "ARM",
-    "AVGO",
-    "GOOGL",
-    "INTC",
-    "META",
-    "MRVL",
-    "MSFT",
-    "NVDA"
-   ]
-  },
-  "CoPoSFOPLPRace": {
-   "path": "/id/ID_CoPoSFOPLPRace_20260505.html",
-   "date": "2026-05-05",
-   "label": "CoPoS / FOPLP 量產競賽 — 已併入先進封裝",
-   "tickers": [
-    "FOPLP"
-   ]
-  },
-  "CoWoSCoPoS": {
-   "path": "/id/ID_CoWoSCoPoS_20260501.html",
-   "date": "2026-05-01",
-   "label": "CoWoS / CoPoS 細分 — 已併入先進封裝",
-   "tickers": [
-    "2027.TW",
-    "EMIB",
-    "OSAT"
-   ]
-  },
-  "FoundryGeography": {
-   "path": "/id/ID_FoundryGeography_20260905.html",
-   "date": "2026-09-05",
-   "label": "晶圓代工的地理重分配 — 誰在付這張帳單",
-   "tickers": [
-    "005930.KS",
-    "0981.HK",
-    "2303.TW",
-    "2330.TW",
-    "8035.T",
-    "AAPL",
-    "AMAT",
-    "ASML",
-    "GFS",
-    "INTC",
-    "LRCX",
-    "NVDA",
-    "TSLA"
-   ]
-  },
-  "HBM_Supercycle": {
-   "path": "/id/ID_HBM_Supercycle_20260904.html",
-   "date": "2026-09-04",
-   "label": "HBM 超級循環 — 缺貨還在，計分板換了",
-   "tickers": [
-    "000660.KS",
-    "005930.KS",
-    "AMD",
-    "ASML",
-    "AVGO",
-    "BESI.AS",
-    "LRCX",
-    "MU",
-    "NVDA",
+  "tsmc_pr": {
+   "label": "TSMC press releases",
+   "kind": "gn",
+   "query": "site:pr.tsmc.com",
+   "days": 7,
+   "covers": [
     "TSM"
    ]
   },
-  "HighNAEUV": {
-   "path": "/id/ID_HighNAEUV_20260505.html",
-   "date": "2026-05-05",
-   "label": "High-NA EUV — 已併入先進製程節點競賽",
-   "tickers": [
-    "AGC",
-    "EUV",
-    "JSR",
-    "MOR",
-    "NA",
-    "TSMC"
+  "micron_ir": {
+   "label": "Micron press releases",
+   "kind": "gn",
+   "query": "site:investors.micron.com",
+   "days": 7,
+   "covers": [
+    "MU"
    ]
   },
-  "HybridBondingSoIC": {
-   "path": "/id/ID_HybridBondingSoIC_20260905.html",
-   "date": "2026-09-05",
-   "label": "混合鍵合與 SoIC — 邏輯堆疊撐住的租金，記憶體還沒進場",
-   "tickers": [
-    "000660.KS",
-    "005930.KS",
-    "0522.HK",
-    "2330.TW",
-    "6146.T",
-    "AAPL",
-    "ADEA",
-    "AMAT",
-    "AMD",
-    "BESI.AS",
-    "CAMT",
-    "INTC",
-    "KLIC",
-    "MU",
-    "ONTO",
-    "SMHN.DE"
+  "intel_news": {
+   "label": "Intel newsroom",
+   "kind": "gn",
+   "query": "site:newsroom.intel.com OR site:intc.com",
+   "days": 7,
+   "covers": [
+    "INTC"
    ]
   },
-  "HyperscalerCloudBigThree": {
-   "path": "/id/ID_HyperscalerCloudBigThree_20260505.html",
-   "date": "2026-05-05",
-   "label": "Hyperscaler 雲端三巨頭（精煉版）— 分化與情境分析",
-   "tickers": [
-    "AAPL",
-    "AMD",
-    "AMZN",
-    "AVGO",
-    "BABA",
-    "CRWV",
-    "GOOGL",
-    "META",
-    "MRVL",
-    "MSFT",
-    "NVDA",
-    "ORCL"
+  "softbank_ir": {
+   "label": "SoftBank Group news",
+   "kind": "gn",
+   "query": "site:group.softbank",
+   "days": 7,
+   "covers": [
+    "SOFTBANK"
    ]
   },
-  "LeadingEdgeNode": {
-   "path": "/id/ID_LeadingEdgeNode_20260905.html",
-   "date": "2026-09-05",
-   "label": "先進製程節點 — 稀缺換了位置",
-   "tickers": [
-    "005930.KS",
-    "2330.TW",
-    "4063.T",
-    "6920.T",
-    "7741.T",
-    "8035.T",
-    "AMAT",
-    "AMD",
-    "ASML",
-    "INTC",
-    "KLAC",
-    "LRCX",
-    "NVDA"
+  "us_commerce": {
+   "label": "US Commerce Department and BIS",
+   "kind": "gn",
+   "query": "site:bis.doc.gov OR site:commerce.gov",
+   "days": 5,
+   "covers": [
+    "EXPORT_CONTROLS",
+    "TARIFFS"
    ]
   },
-  "MemorySupercycle": {
-   "path": "/id/ID_MemorySupercycle_20260905.html",
-   "date": "2026-09-05",
-   "label": "記憶體大循環母題 — 價格還在漲，庫存已經開始堆",
-   "tickers": [
-    "000660.KS",
-    "005930.KS",
-    "285A.T",
-    "603986.SS",
-    "6857.T",
-    "LRCX",
-    "MU",
-    "SNDK",
-    "STX",
-    "WDC"
+  "whitehouse": {
+   "label": "White House releases",
+   "kind": "gn",
+   "query": "site:whitehouse.gov",
+   "days": 5,
+   "covers": [
+    "TARIFFS",
+    "FISCAL",
+    "EXPORT_CONTROLS"
    ]
   },
-  "NuclearRenaissance": {
-   "path": "/id/ID_NuclearRenaissance_20260430.html",
-   "date": "2026-04-30",
-   "label": "核能復興：AI 電力 backbone 的真贏家（精煉版）— 結構性推論與情境分析",
-   "tickers": [
-    "BAM",
-    "BWXT",
-    "CCJ",
-    "CEG",
-    "D",
-    "GEV",
-    "KAP.LSE",
-    "LEU",
-    "NEE",
-    "NXE",
-    "OKLO",
-    "SIE.DE",
-    "SMR",
-    "TLN",
-    "UEC",
-    "URA",
-    "URNM",
-    "VST"
+  "us_treasury": {
+   "label": "US Treasury press releases",
+   "kind": "gn",
+   "query": "site:home.treasury.gov",
+   "days": 5,
+   "covers": [
+    "FISCAL",
+    "TARIFFS",
+    "YIELDS@US"
    ]
   },
-  "ProductivityCopilot": {
-   "path": "/id/ID_ProductivityCopilot_20260427.html",
-   "date": "2026-04-27",
-   "label": "生產力 Copilot（精煉版）— 商業模式相變與情境分析",
-   "tickers": [
-    "AAPL",
-    "ADBE",
-    "BOX",
-    "CRM",
-    "DOCU",
-    "GOOGL",
-    "HUBS",
-    "MSFT",
-    "TEAM",
-    "WDAY",
-    "ZM"
+  "korea_trade": {
+   "label": "Korea trade ministry and customs",
+   "kind": "gn",
+   "query": "site:motie.go.kr OR site:customs.go.kr",
+   "days": 7,
+   "covers": [
+    "TRADE_DATA@KR"
    ]
   },
-  "Transformers": {
-   "path": "/id/ID_Transformers_20260419.html",
-   "date": "2026-04-19",
-   "label": "AI DC 電力變壓器 — 已併入 AI 資料中心基建",
-   "tickers": [
-    "GEV",
-    "GOES"
+  "china_nbs": {
+   "label": "China National Bureau of Statistics",
+   "kind": "gn",
+   "query": "site:stats.gov.cn",
+   "days": 7,
+   "covers": [
+    "GDP@CN",
+    "CPI@CN",
+    "PPI@CN",
+    "INDUSTRIAL_OUTPUT@CN",
+    "RETAIL_SALES@CN"
    ]
   },
-  "WaferFabEquipment": {
-   "path": "/id/ID_WaferFabEquipment_20260905.html",
-   "date": "2026-09-05",
-   "label": "晶圓廠設備 — 結構是對的，價格已經照結構付過一次",
-   "tickers": [
-    "002371.SZ",
-    "6501.T",
-    "6857.T",
-    "688012.SS",
-    "7735.T",
-    "8035.T",
-    "AMAT",
-    "ASML",
-    "BESI.AS",
-    "FORM",
-    "KLAC",
-    "LRCX",
-    "ONTO",
-    "TER"
+  "taiwan_official": {
+   "label": "Taiwan central bank, DGBAS and Ministry of Finance",
+   "kind": "gn",
+   "query": "site:cbc.gov.tw OR site:dgbas.gov.tw OR site:mof.gov.tw",
+   "days": 7,
+   "covers": [
+    "CBC_TW",
+    "GDP@TW",
+    "CPI@TW",
+    "TRADE_DATA@TW",
+    "TWD"
    ]
+  },
+  "japan_official": {
+   "label": "Japan METI and Ministry of Finance",
+   "kind": "gn",
+   "query": "site:meti.go.jp OR site:mof.go.jp",
+   "days": 7,
+   "covers": [
+    "TRADE_DATA@JP",
+    "YEN"
+   ]
+  },
+  "company_wires": {
+   "label": "Company press releases (Business Wire, GlobeNewswire, PR Newswire)",
+   "kind": "company_wires",
+   "query": "\"{name}\" (site:businesswire.com OR site:globenewswire.com OR site:prnewswire.com)",
+   "days": 4,
+   "max_companies": 12
   }
  }
 }

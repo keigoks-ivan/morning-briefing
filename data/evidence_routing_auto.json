@@ -1,0 +1,9386 @@
+{
+ "schema": "evidence-routing-auto-v1",
+ "_comment": "自動產生，不要手改。重建：python3 briefing/evidence_build_data.py routing --fab ~/financial-analysis-bot",
+ "built_from": "financial-analysis-bot",
+ "themes": {
+  "ABFSubstrate": {
+   "label": "ABF 載板 — 已併入先進封裝",
+   "path": "/id/ID_ABFSubstrate_20260501.html",
+   "date": "2026-05-01",
+   "mega": "",
+   "sub_group": "",
+   "sisters": [],
+   "members": {
+    "ABF": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "AIASICDesignService": {
+   "label": "AI ASIC 設計服務 — 已併入 AI 加速器需求",
+   "path": "/id/ID_AIASICDesignService_20260419.html",
+   "date": "2026-04-19",
+   "mega": "",
+   "sub_group": "",
+   "sisters": [],
+   "members": {
+    "2027.TW": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "2028.TW": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "2454.TW": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "3443.TW": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "3661.TW": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "AMZN": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "AVGO": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "GOOGL": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "GUC": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "META": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "MRVL": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "MSFT": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "NVDA": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "AIAcceleratorDemand": {
+   "label": "AI Accelerator Demand",
+   "path": "/id/ID_AIAcceleratorDemand_20260905.html",
+   "date": "2026-09-05",
+   "mega": "semi",
+   "sub_group": "compute_demand",
+   "sisters": [
+    "AIComputeCapexCycle",
+    "HBM_Supercycle",
+    "AdvancedPackaging",
+    "AIInferenceEconomics",
+    "CUDARocmMoat"
+   ],
+   "members": {
+    "NVDA": {
+     "depth": "🔴",
+     "purity": 80,
+     "name": ""
+    },
+    "AVGO": {
+     "depth": "🔴",
+     "purity": 56,
+     "name": ""
+    },
+    "AMD": {
+     "depth": "🔴",
+     "purity": 30,
+     "name": ""
+    },
+    "MRVL": {
+     "depth": "🔴",
+     "purity": 40,
+     "name": ""
+    },
+    "3443.TW": {
+     "depth": "🟡",
+     "purity": 70,
+     "name": ""
+    },
+    "3661.TW": {
+     "depth": "🟡",
+     "purity": 80,
+     "name": "世芯"
+    },
+    "2454.TW": {
+     "depth": "🟡",
+     "purity": 10,
+     "name": ""
+    },
+    "2330.TW": {
+     "depth": "🟡",
+     "purity": 25,
+     "name": "台積電"
+    },
+    "GOOGL": {
+     "depth": "🟢",
+     "purity": 5,
+     "name": ""
+    },
+    "AMZN": {
+     "depth": "🟢",
+     "purity": 5,
+     "name": ""
+    }
+   }
+  },
+  "AIAdRetailMedia": {
+   "label": "AI 廣告 / 零售媒體",
+   "path": "/id/ID_AIAdRetailMedia_20260429.html",
+   "date": "2026-04-29",
+   "mega": "cloud",
+   "sub_group": "ai_cross_domain",
+   "sisters": [
+    "AICrossDomainImpact",
+    "AppleIntelligencePlatformThreat",
+    "HyperscalerCloudBigThree"
+   ],
+   "members": {
+    "META": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "GOOGL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Performance Max"
+    },
+    "AMZN": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "WMT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "TTD": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Trade Desk"
+    },
+    "AAPL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "TGT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Target Roundel"
+    },
+    "PINS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Pinterest"
+    },
+    "ROKU": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Roku"
+    },
+    "NFLX": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Netflix"
+    },
+    "APP": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "AppLovin"
+    },
+    "WPP": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "WPP"
+    },
+    "OMC": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Omnicom"
+    },
+    "IPG": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Interpublic"
+    }
+   }
+  },
+  "AIComputeCapexCycle": {
+   "label": "AI 算力資本週期",
+   "path": "/id/ID_AIComputeCapexCycle_20260903.html",
+   "date": "2026-09-03",
+   "mega": "semi",
+   "sub_group": "compute_demand",
+   "sisters": [
+    "AIAcceleratorDemand",
+    "AIInferenceEconomics"
+   ],
+   "members": {
+    "NVDA": {
+     "depth": "🔴",
+     "purity": 88,
+     "name": ""
+    },
+    "TSM": {
+     "depth": "🔴",
+     "purity": 55,
+     "name": ""
+    },
+    "AVGO": {
+     "depth": "🔴",
+     "purity": 45,
+     "name": ""
+    },
+    "MU": {
+     "depth": "🔴",
+     "purity": 45,
+     "name": ""
+    },
+    "AMD": {
+     "depth": "🟡",
+     "purity": 35,
+     "name": ""
+    },
+    "MRVL": {
+     "depth": "🟡",
+     "purity": 45,
+     "name": ""
+    },
+    "ANET": {
+     "depth": "🟡",
+     "purity": 40,
+     "name": ""
+    },
+    "GEV": {
+     "depth": "🟡",
+     "purity": 30,
+     "name": ""
+    },
+    "VRT": {
+     "depth": "🟡",
+     "purity": 55,
+     "name": ""
+    },
+    "DELL": {
+     "depth": "🟡",
+     "purity": 30,
+     "name": ""
+    },
+    "MSFT": {
+     "depth": "🟡",
+     "purity": 15,
+     "name": ""
+    },
+    "GOOGL": {
+     "depth": "🟡",
+     "purity": 12,
+     "name": ""
+    },
+    "AMZN": {
+     "depth": "🟡",
+     "purity": 12,
+     "name": ""
+    },
+    "META": {
+     "depth": "🟡",
+     "purity": 8,
+     "name": ""
+    },
+    "ORCL": {
+     "depth": "🟡",
+     "purity": 30,
+     "name": ""
+    }
+   }
+  },
+  "AICrossDomainImpact": {
+   "label": "AI 跨領域衝擊（Master）",
+   "path": "/id/ID_AICrossDomainImpact_20260429.html",
+   "date": "2026-04-29",
+   "mega": "cloud",
+   "sub_group": "ai_cross_domain",
+   "sisters": [
+    "AppleIntelligencePlatformThreat",
+    "AIAdRetailMedia",
+    "HyperscalerCloudBigThree"
+   ],
+   "members": {
+    "GOOGL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "MSFT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "AMZN": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "AAPL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "META": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "NOW": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "CRM": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "PLTR": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "NVDA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "SHOP": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "TRI": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Thomson Reuters"
+    },
+    "CHGG": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Chegg"
+    },
+    "NYT": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "NY Times"
+    },
+    "TWLO": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Twilio"
+    }
+   }
+  },
+  "AICybersecurityDoubleEdge": {
+   "label": "AI × 資安雙刃",
+   "path": "/id/ID_AICybersecurityDoubleEdge_20260423.html",
+   "date": "2026-04-23",
+   "mega": "cloud",
+   "sub_group": "cybersecurity",
+   "sisters": [
+    "CybersecurityPlatformConsolidation",
+    "IdentityNewPerimeter",
+    "DataSecurityBackupConvergence",
+    "LLMVendorSecurityEconomics"
+   ],
+   "members": {
+    "CRWD": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "PANW": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "S": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "ZS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "NET": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "MSFT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Security Copilot"
+    },
+    "FTNT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "FFIV": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "CSCO": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "CHKP": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "OKTA": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "VRNS": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "RBRK": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "AIDCPowerElectronics": {
+   "label": "AI 資料中心供電電子",
+   "path": "/id/ID_AIDCPowerElectronics_20260905.html",
+   "date": "2026-09-05",
+   "mega": "semi",
+   "sub_group": "dc_infra",
+   "sisters": [
+    "AIDataCenter",
+    "LiquidCooling",
+    "Transformers"
+   ],
+   "members": {
+    "2308.TW": {
+     "depth": "🔴",
+     "purity": 30,
+     "name": "台達電"
+    },
+    "VRT": {
+     "depth": "🔴",
+     "purity": 45,
+     "name": "Vertiv"
+    },
+    "ETN": {
+     "depth": "🔴",
+     "purity": 18,
+     "name": "艾頓"
+    },
+    "SU.PA": {
+     "depth": "🔴",
+     "purity": 20,
+     "name": "施耐德"
+    },
+    "2301.TW": {
+     "depth": "🟡",
+     "purity": 30,
+     "name": "光寶科"
+    },
+    "FLEX": {
+     "depth": "🟡",
+     "purity": 24,
+     "name": "Flex"
+    },
+    "6230.TW": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "6105.TW": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "康舒"
+    },
+    "ON": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "安森美"
+    },
+    "TXN": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "德州儀器"
+    },
+    "NVTS": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Navitas"
+    }
+   }
+  },
+  "AIDataCenter": {
+   "label": "AI Data Center Power Infrastructure",
+   "path": "/id/ID_AIDataCenter_20260905.html",
+   "date": "2026-09-05",
+   "mega": "semi",
+   "sub_group": "dc_infra",
+   "sisters": [
+    "AIComputeCapexCycle",
+    "AIDCPowerElectronics",
+    "NuclearRenaissance",
+    "Transformers",
+    "LiquidCooling"
+   ],
+   "members": {
+    "VRT": {
+     "depth": "🔴",
+     "purity": 55,
+     "name": ""
+    },
+    "ETN": {
+     "depth": "🔴",
+     "purity": 22,
+     "name": ""
+    },
+    "GEV": {
+     "depth": "🔴",
+     "purity": 40,
+     "name": ""
+    },
+    "PWR": {
+     "depth": "🔴",
+     "purity": 30,
+     "name": ""
+    },
+    "ENR.DE": {
+     "depth": "🔴",
+     "purity": 30,
+     "name": ""
+    },
+    "HWM": {
+     "depth": "🟡",
+     "purity": 20,
+     "name": ""
+    },
+    "6501.T": {
+     "depth": "🟡",
+     "purity": 10,
+     "name": ""
+    },
+    "SU.PA": {
+     "depth": "🟡",
+     "purity": 20,
+     "name": ""
+    },
+    "ABB": {
+     "depth": "🟡",
+     "purity": 12,
+     "name": ""
+    },
+    "7011.T": {
+     "depth": "🟡",
+     "purity": 8,
+     "name": ""
+    },
+    "CEG": {
+     "depth": "🟡",
+     "purity": 25,
+     "name": ""
+    },
+    "VST": {
+     "depth": "🟡",
+     "purity": 20,
+     "name": ""
+    },
+    "TLN": {
+     "depth": "🟢",
+     "purity": 25,
+     "name": ""
+    },
+    "BE": {
+     "depth": "🟢",
+     "purity": 30,
+     "name": ""
+    },
+    "SMR": {
+     "depth": "🟢",
+     "purity": 60,
+     "name": ""
+    }
+   }
+  },
+  "AIEDAIP": {
+   "label": "AI EDA + IP",
+   "path": "/id/ID_AIEDAIP_20260427.html",
+   "date": "2026-04-27",
+   "mega": "semi",
+   "sub_group": "eda_ip",
+   "sisters": [
+    "AIComputeCapexCycle",
+    "AdvancedPackaging",
+    "HBM_Supercycle"
+   ],
+   "members": {
+    "SNPS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Synopsys"
+    },
+    "CDNS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Cadence"
+    },
+    "ARM": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "ARM"
+    },
+    "QCOM": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Qualcomm"
+    },
+    "688521.SH": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "301269.SZ": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "NVDA": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "AVGO": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "AIInferenceEconomics": {
+   "label": "AI Inference Economics",
+   "path": "/id/ID_AIInferenceEconomics_20260720.html",
+   "date": "2026-07-20",
+   "mega": "semi",
+   "sub_group": "compute_demand",
+   "sisters": [
+    "AIComputeCapexCycle",
+    "AIAcceleratorDemand",
+    "CUDARocmMoat"
+   ],
+   "members": {
+    "GOOGL": {
+     "depth": "🔴",
+     "purity": 18,
+     "name": ""
+    },
+    "AVGO": {
+     "depth": "🔴",
+     "purity": 49,
+     "name": ""
+    },
+    "NVDA": {
+     "depth": "🔴",
+     "purity": 92,
+     "name": ""
+    },
+    "MSFT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "AMZN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "META": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "MRVL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "NET": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "AMD": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "AINetworking": {
+   "label": "AI Networking",
+   "path": "/id/ID_AINetworking_20260419.html",
+   "date": "2026-04-19",
+   "mega": "semi",
+   "sub_group": "networking",
+   "sisters": [
+    "AIAcceleratorDemand",
+    "AIComputeCapexCycle",
+    "AdvancedPackaging",
+    "HBM_Supercycle",
+    "LeadingEdgeNode"
+   ],
+   "members": {
+    "NVDA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "AVGO": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "CRDO": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "MRVL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "ALAB": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "ANET": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "COHR": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "APH": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "LITE": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "FN": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "AIStorage": {
+   "label": "AI Storage SSD NVMe",
+   "path": "/id/ID_AIStorage_20260427.html",
+   "date": "2026-04-27",
+   "mega": "semi",
+   "sub_group": "storage",
+   "sisters": [
+    "AIAcceleratorDemand",
+    "HBM_Supercycle",
+    "MemorySupercycle",
+    "AIDataCenter"
+   ],
+   "members": {
+    "SNDK": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "SanDisk"
+    },
+    "000660.KS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "005930.KS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Samsung"
+    },
+    "PSTG": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Pure Storage"
+    },
+    "8299.TWO": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "MRVL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Marvell"
+    },
+    "NTAP": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "NetApp"
+    },
+    "MU": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Micron"
+    },
+    "DELL": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Dell"
+    },
+    "SMCI": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Super Micro"
+    },
+    "WDC": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Western Digital"
+    },
+    "VAST Data": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "AITestEquipmentATE": {
+   "label": "AI 測試設備 ATE — 已併入半導體設備五寡占",
+   "path": "/id/ID_AITestEquipmentATE_20260427.html",
+   "date": "2026-04-27",
+   "mega": "",
+   "sub_group": "",
+   "sisters": [],
+   "members": {
+    "ATE": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "AdvancedPackaging": {
+   "label": "AdvancedPackaging",
+   "path": "/id/ID_AdvancedPackaging_20260905.html",
+   "date": "2026-09-05",
+   "mega": "semi",
+   "sub_group": "advanced_packaging",
+   "sisters": [
+    "HBM_Supercycle",
+    "AIComputeCapexCycle",
+    "HybridBondingSoIC",
+    "GlassSubstrate",
+    "BackEndPackagingEquipment",
+    "WaferFabEquipment"
+   ],
+   "members": {
+    "2330.TW": {
+     "depth": "🔴",
+     "purity": 10,
+     "name": "台積電"
+    },
+    "4062.T": {
+     "depth": "🔴",
+     "purity": 75,
+     "name": "Ibiden"
+    },
+    "3037.TW": {
+     "depth": "🔴",
+     "purity": 55,
+     "name": "欣興"
+    },
+    "3711.TW": {
+     "depth": "🔴",
+     "purity": 20,
+     "name": "日月光"
+    },
+    "AMKR": {
+     "depth": "🔴",
+     "purity": 65,
+     "name": "Amkor"
+    },
+    "NVDA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "AVGO": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "ONTO": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Onto Innovation"
+    },
+    "BESI": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "BE Semiconductor"
+    },
+    "6146.T": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "0522.HK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "AMAT": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "應用材料"
+    },
+    "KLIC": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Kulicke & Soffa"
+    },
+    "INTC": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "英特爾"
+    },
+    "CRDO": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Credo"
+    }
+   }
+  },
+  "AerospaceMetals": {
+   "label": "Aerospace Specialty Metals",
+   "path": "/id/ID_AerospaceMetals_20260427.html",
+   "date": "2026-04-27",
+   "mega": "materials",
+   "sub_group": "aerospace_defense_metals",
+   "sisters": [
+    "CommercialAerospace",
+    "DefenseModernization",
+    "AITestEquipmentATE"
+   ],
+   "members": {
+    "HWM": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Howmet Aerospace"
+    },
+    "ATI": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "ATI Inc"
+    },
+    "CRS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Carpenter Tech"
+    },
+    "CSTM": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Constellium"
+    },
+    "MTRN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Materion"
+    },
+    "RS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Reliance"
+    },
+    "PKX": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "X": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "U.S. Steel"
+    },
+    "HXL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Hexcel"
+    },
+    "5713.T": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "5711.T": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "ALC": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Alcoa"
+    }
+   }
+  },
+  "AgenticAICommercialization": {
+   "label": "Agentic AI 商業化 — 已併入「Agentic AI 平台」母題",
+   "path": "/id/ID_AgenticAICommercialization_20260429.html",
+   "date": "2026-04-29",
+   "mega": "",
+   "sub_group": "",
+   "sisters": [],
+   "members": {
+    "ROI": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "AgenticAIPlatform": {
+   "label": "Agentic AI 平台",
+   "path": "/id/ID_AgenticAIPlatform_20260903.html",
+   "date": "2026-09-03",
+   "mega": "cloud",
+   "sub_group": "agentic_ai",
+   "sisters": [
+    "TokenEconomics",
+    "ProductivityCopilot"
+   ],
+   "members": {
+    "PLTR": {
+     "depth": "🔴",
+     "purity": 42,
+     "name": ""
+    },
+    "CRM": {
+     "depth": "🔴",
+     "purity": 8,
+     "name": ""
+    },
+    "NOW": {
+     "depth": "🔴",
+     "purity": 6,
+     "name": ""
+    },
+    "MSFT": {
+     "depth": "🔴",
+     "purity": 3,
+     "name": ""
+    },
+    "GOOGL": {
+     "depth": "🟡",
+     "purity": 2,
+     "name": ""
+    },
+    "SNOW": {
+     "depth": "🟡",
+     "purity": 10,
+     "name": ""
+    },
+    "DDOG": {
+     "depth": "🟡",
+     "purity": 12,
+     "name": ""
+    },
+    "NET": {
+     "depth": "🟡",
+     "purity": 8,
+     "name": ""
+    },
+    "CRWD": {
+     "depth": "🟡",
+     "purity": 6,
+     "name": ""
+    },
+    "ADBE": {
+     "depth": "🟡",
+     "purity": 4,
+     "name": ""
+    },
+    "WDAY": {
+     "depth": "🟡",
+     "purity": 5,
+     "name": ""
+    },
+    "HUBS": {
+     "depth": "🟡",
+     "purity": 6,
+     "name": ""
+    },
+    "ACN": {
+     "depth": "🟢",
+     "purity": 3,
+     "name": ""
+    }
+   }
+  },
+  "AirlineLoyaltyRepricing": {
+   "label": "Airlines + Loyalty Repricing",
+   "path": "/id/ID_AirlineLoyaltyRepricing_20260429.html",
+   "date": "2026-04-29",
+   "mega": "transport",
+   "sub_group": "airline",
+   "sisters": [
+    "BoomerTravelSupercycle",
+    "HotelChains",
+    "LuxuryTravelCruise",
+    "OTAandAITravel",
+    "CobrandCardEcosystem"
+   ],
+   "members": {
+    "DAL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "UAL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "AAL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "LUV": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "ALK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Alaska"
+    },
+    "JBLU": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "JetBlue"
+    },
+    "RYAAY": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Ryanair"
+    },
+    "LHA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Lufthansa"
+    },
+    "IAG": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "International Airlines Group"
+    },
+    "AF.PA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Air France-KLM"
+    },
+    "AXP": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "American Express"
+    },
+    "JPM": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "JPMorgan Chase"
+    },
+    "C": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Citigroup"
+    },
+    "SAVE": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Spirit Airlines"
+    },
+    "FRO": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Frontier Group"
+    },
+    "BA": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Boeing"
+    },
+    "AIR.PA": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Airbus"
+    },
+    "CPA": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Copa Holdings"
+    }
+   }
+  },
+  "ApparelFootwear": {
+   "label": "Apparel & Footwear",
+   "path": "/id/ID_ApparelFootwear_20260427.html",
+   "date": "2026-04-27",
+   "mega": "consumer",
+   "sub_group": "apparel",
+   "sisters": [
+    "AthleticFootwearSubsegments",
+    "AthleisureNewEntrants",
+    "ChannelPowerReversion"
+   ],
+   "members": {
+    "NKE": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "LULU": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "ONON": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "DECK": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "RL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "URBN": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "UAA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "ANF": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "GAP": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "AEO": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "LEVI": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "VFC": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "PVH": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "GOOS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "ROOT": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "AppleIntelligencePlatformThreat": {
+   "label": "Apple Intelligence 平台威脅",
+   "path": "/id/ID_AppleIntelligencePlatformThreat_20260429.html",
+   "date": "2026-04-29",
+   "mega": "cloud",
+   "sub_group": "ai_cross_domain",
+   "sisters": [
+    "AICrossDomainImpact",
+    "AIAdRetailMedia",
+    "HyperscalerCloudBigThree"
+   ],
+   "members": {
+    "AAPL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "GOOGL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "MTCH": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "BMBL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Bumble"
+    },
+    "YELP": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Yelp"
+    },
+    "BKNG": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Booking"
+    },
+    "EXPE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Expedia"
+    },
+    "ABNB": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Airbnb"
+    },
+    "DASH": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "DoorDash"
+    },
+    "UBER": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Uber"
+    },
+    "AMZN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "SHOP": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Shopify"
+    },
+    "META": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "CRM": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Salesforce"
+    }
+   }
+  },
+  "AthleisureNewEntrants": {
+   "label": "Athleisure Private Entrants & Dupe Ecosystem",
+   "path": "/id/ID_AthleisureNewEntrants_20260427.html",
+   "date": "2026-04-27",
+   "mega": "consumer",
+   "sub_group": "apparel",
+   "sisters": [
+    "ApparelFootwear",
+    "AthleticFootwearSubsegments",
+    "ChannelPowerReversion"
+   ],
+   "members": {
+    "LULU": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Lululemon"
+    },
+    "Vuori": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "Alo-Yoga": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "Skims": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "NKE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Nike"
+    },
+    "GAP": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "ONON": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "On Holding"
+    },
+    "DECK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Deckers HOKA"
+    },
+    "Halara": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "COST": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Costco"
+    },
+    "Bandit": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "AthleticFootwearSubsegments": {
+   "label": "Athletic Footwear Sub-Segments",
+   "path": "/id/ID_AthleticFootwearSubsegments_20260427.html",
+   "date": "2026-04-27",
+   "mega": "consumer",
+   "sub_group": "apparel",
+   "sisters": [
+    "ApparelFootwear",
+    "AthleisureNewEntrants",
+    "ChinaSportswearRise"
+   ],
+   "members": {
+    "DECK": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "ONON": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "On Holding"
+    },
+    "NKE": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Nike Running"
+    },
+    "AS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Amer Sports"
+    },
+    "BIRK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Birkenstock"
+    },
+    "WWW": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Wolverine Worldwide"
+    },
+    "PUM": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Puma"
+    },
+    "SKX": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Skechers"
+    }
+   }
+  },
+  "BackEndPackagingEquipment": {
+   "label": "後段組裝與封裝設備（Back-End Assembly & Packaging Equipment）",
+   "path": "/id/ID_BackEndPackagingEquipment_20260702.html",
+   "date": "2026-07-02",
+   "mega": "semi",
+   "sub_group": "equipment_test",
+   "sisters": [],
+   "members": {
+    "KLIC": {
+     "depth": "🔴",
+     "purity": 100,
+     "name": ""
+    },
+    "ASMPT": {
+     "depth": "🔴",
+     "purity": 55,
+     "name": ""
+    },
+    "BESI": {
+     "depth": "🔴",
+     "purity": 100,
+     "name": ""
+    },
+    "042700.KS": {
+     "depth": "🔴",
+     "purity": 100,
+     "name": "Hanmi"
+    },
+    "AMAT": {
+     "depth": "🟢",
+     "purity": 5,
+     "name": ""
+    },
+    "6146.T": {
+     "depth": "🟡",
+     "purity": 40,
+     "name": ""
+    },
+    "ONTO": {
+     "depth": "🟢",
+     "purity": 30,
+     "name": "Onto Innovation"
+    }
+   }
+  },
+  "BeefSupercycle": {
+   "label": "美國牛肉超級循環產業鏈",
+   "path": "/id/ID_BeefSupercycle_20260629.html",
+   "date": "2026-06-29",
+   "mega": "agri",
+   "sub_group": "livestock_meat",
+   "sisters": [],
+   "members": {
+    "PPC": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "TSN": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "TXRH": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Texas Roadhouse"
+    },
+    "DRI": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Darden"
+    },
+    "JBS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "ZTS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "MCD": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "HRL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "WEN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "COLD": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "WING": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "BYND": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "BeverageEnergyDrink": {
+   "label": "Beverage + Energy Drink Landscape",
+   "path": "/id/ID_BeverageEnergyDrink_20260428.html",
+   "date": "2026-04-28",
+   "mega": "staples",
+   "sub_group": "beverage",
+   "sisters": [
+    "GLP1RestaurantImpact",
+    "USRestaurantChains"
+   ],
+   "members": {
+    "KO": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Coca-Cola"
+    },
+    "PEP": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "PepsiCo"
+    },
+    "MNST": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Monster"
+    },
+    "CELH": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Celsius"
+    },
+    "KDP": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Keurig Dr Pepper"
+    },
+    "STZ": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Constellation"
+    },
+    "BUD": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "AB InBev"
+    },
+    "FIZZ": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "National Beverage"
+    },
+    "TAP": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Molson Coors"
+    },
+    "DEO": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Diageo"
+    },
+    "SBUX": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Starbucks"
+    },
+    "BFI": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "BellRing Brands"
+    }
+   }
+  },
+  "BoomerTravelSupercycle": {
+   "label": "Baby Boomer Travel Supercycle (Master)",
+   "path": "/id/ID_BoomerTravelSupercycle_20260429.html",
+   "date": "2026-04-29",
+   "mega": "transport",
+   "sub_group": "travel_master",
+   "sisters": [
+    "HotelChains",
+    "OTAandAITravel",
+    "LuxuryTravelCruise",
+    "GlobalLuxury"
+   ],
+   "members": {
+    "DAL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "RCL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Royal Caribbean"
+    },
+    "VIK": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Viking"
+    },
+    "H": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Hyatt"
+    },
+    "HLT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Hilton"
+    },
+    "MAR": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Marriott"
+    },
+    "AENA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Aena"
+    },
+    "BKNG": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Booking"
+    },
+    "RMS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "AXP": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "American Express"
+    },
+    "JPM": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "JPMorgan Chase"
+    },
+    "HST": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Host Hotels REIT"
+    },
+    "RHP": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Ryman"
+    },
+    "UAL": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "United Airlines"
+    },
+    "NCLH": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Norwegian Cruise"
+    },
+    "CCL": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Carnival"
+    },
+    "CFR": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Richemont"
+    },
+    "SIX": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Six Senses"
+    }
+   }
+  },
+  "CUDARocmMoat": {
+   "label": "CUDA / ROCm Moat",
+   "path": "/id/ID_CUDARocmMoat_20260905.html",
+   "date": "2026-09-05",
+   "mega": "semi",
+   "sub_group": "compute_demand",
+   "sisters": [
+    "AIAcceleratorDemand",
+    "AIComputeCapexCycle",
+    "AIInferenceEconomics",
+    "HBM_Supercycle"
+   ],
+   "members": {
+    "NVDA": {
+     "depth": "🔴",
+     "purity": 90,
+     "name": ""
+    },
+    "AVGO": {
+     "depth": "🔴",
+     "purity": 56,
+     "name": ""
+    },
+    "AMD": {
+     "depth": "🔴",
+     "purity": 48,
+     "name": ""
+    },
+    "GOOGL": {
+     "depth": "🟡",
+     "purity": 5,
+     "name": ""
+    },
+    "AMZN": {
+     "depth": "🟡",
+     "purity": 4,
+     "name": ""
+    },
+    "MRVL": {
+     "depth": "🟡",
+     "purity": 45,
+     "name": ""
+    },
+    "META": {
+     "depth": "🟢",
+     "purity": 2,
+     "name": ""
+    },
+    "MSFT": {
+     "depth": "🟢",
+     "purity": 2,
+     "name": ""
+    },
+    "INTC": {
+     "depth": "🟢",
+     "purity": 2,
+     "name": ""
+    },
+    "ARM": {
+     "depth": "🟢",
+     "purity": 3,
+     "name": ""
+    }
+   }
+  },
+  "CardNetworkDuopoly": {
+   "label": "Card Network Duopoly (Visa / Mastercard)",
+   "path": "/id/ID_CardNetworkDuopoly_20260428.html",
+   "date": "2026-04-28",
+   "mega": "finance",
+   "sub_group": "payment_network",
+   "sisters": [
+    "GlobalBankROE"
+   ],
+   "members": {
+    "V": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Visa"
+    },
+    "MA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Mastercard"
+    },
+    "AXP": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "American Express"
+    },
+    "COF": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Capital One"
+    },
+    "PYPL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "PayPal"
+    },
+    "FI": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Fiserv"
+    },
+    "FOUR": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Shift4 Payments"
+    },
+    "GPN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Global Payments"
+    },
+    "ADYEN": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Adyen"
+    },
+    "SQ": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "DLO": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "DLocal"
+    },
+    "STNE": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "StoneCo"
+    },
+    "PAGS": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "PagSeguro"
+    },
+    "0388.HK": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "CasinoGamingIR": {
+   "label": "Casino + Gaming + Integrated Resorts",
+   "path": "/id/ID_CasinoGamingIR_20260429.html",
+   "date": "2026-04-29",
+   "mega": "transport",
+   "sub_group": "casino_gaming",
+   "sisters": [
+    "BoomerTravelSupercycle",
+    "HotelChains",
+    "LuxuryTravelCruise",
+    "OTAandAITravel"
+   ],
+   "members": {
+    "LVS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Las Vegas Sands"
+    },
+    "WYNN": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Wynn Resorts"
+    },
+    "MGM": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "MGM Resorts"
+    },
+    "CZR": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Caesars Entertainment"
+    },
+    "DKNG": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "DraftKings"
+    },
+    "FLUT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Flutter"
+    },
+    "PENN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Penn Entertainment"
+    },
+    "BYD": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Boyd Gaming"
+    },
+    "BALY": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Bally's Corporation"
+    },
+    "027.HK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Galaxy Entertainment"
+    },
+    "1928.HK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Sands China"
+    },
+    "1128.HK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Wynn Macau"
+    },
+    "880.HK": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "SJM Holdings"
+    },
+    "6883.HK": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Melco Resorts"
+    },
+    "2282.HK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "MGM China"
+    },
+    "GENS.SI": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Genting Singapore"
+    },
+    "4661.T": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Oriental Land"
+    },
+    "NCLH": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Norwegian Cruise"
+    }
+   }
+  },
+  "CasualDiningTurnaround": {
+   "label": "Casual Dining Turnaround",
+   "path": "/id/ID_CasualDiningTurnaround_20260427.html",
+   "date": "2026-04-27",
+   "mega": "consumer",
+   "sub_group": "restaurant",
+   "sisters": [
+    "USRestaurantChains",
+    "FastCasualBifurcation",
+    "RestaurantTechSaaS"
+   ],
+   "members": {
+    "TXRH": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "EAT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "CMG": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Chipotle"
+    },
+    "DPZ": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Domino's"
+    },
+    "WING": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Wingstop"
+    },
+    "DRI": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Darden"
+    },
+    "BLMN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "CBRL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Cracker Barrel"
+    },
+    "CAKE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Cheesecake Factory"
+    },
+    "CAVA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "SHAK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Shake Shack"
+    },
+    "BROS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Dutch Bros"
+    },
+    "FWRG": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "First Watch"
+    },
+    "SG": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Sweetgreen"
+    },
+    "KRUS": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Kura Sushi"
+    },
+    "O": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Realty Income"
+    },
+    "TOST": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Toast"
+    }
+   }
+  },
+  "ChannelPowerReversion": {
+   "label": "Apparel Channel Power Reversion",
+   "path": "/id/ID_ChannelPowerReversion_20260427.html",
+   "date": "2026-04-27",
+   "mega": "consumer",
+   "sub_group": "apparel",
+   "sisters": [
+    "ApparelFootwear",
+    "ChinaSportswearRise",
+    "AthleticFootwearSubsegments"
+   ],
+   "members": {
+    "DKS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Dick's Sporting Goods"
+    },
+    "AMZN": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "JD": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "JD Sports Fashion"
+    },
+    "KSS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Kohl's"
+    },
+    "M": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Macy's"
+    },
+    "JWN": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Nordstrom"
+    },
+    "NKE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Nike"
+    },
+    "LULU": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Lululemon"
+    },
+    "DECK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Deckers"
+    }
+   }
+  },
+  "ChinaSportswearRise": {
+   "label": "China Domestic Sportswear Rise",
+   "path": "/id/ID_ChinaSportswearRise_20260427.html",
+   "date": "2026-04-27",
+   "mega": "consumer",
+   "sub_group": "apparel",
+   "sisters": [
+    "ApparelFootwear",
+    "ChannelPowerReversion",
+    "AthleticFootwearSubsegments"
+   ],
+   "members": {
+    "2020.HK": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Anta Sports"
+    },
+    "AS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Amer Sports"
+    },
+    "2331.HK": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Li-Ning"
+    },
+    "1361.HK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "1368.HK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Xtep"
+    },
+    "6110.HK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "NKE": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Nike"
+    },
+    "ADDYY": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Adidas"
+    },
+    "LULU": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Lululemon"
+    }
+   }
+  },
+  "CoPoSFOPLPRace": {
+   "label": "CoPoS / FOPLP 量產競賽 — 已併入先進封裝",
+   "path": "/id/ID_CoPoSFOPLPRace_20260505.html",
+   "date": "2026-05-05",
+   "mega": "",
+   "sub_group": "",
+   "sisters": [],
+   "members": {
+    "FOPLP": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "CoWoSCoPoS": {
+   "label": "CoWoS / CoPoS 細分 — 已併入先進封裝",
+   "path": "/id/ID_CoWoSCoPoS_20260501.html",
+   "date": "2026-05-01",
+   "mega": "",
+   "sub_group": "",
+   "sisters": [],
+   "members": {
+    "2027.TW": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "EMIB": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "OSAT": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "CobrandCardEcosystem": {
+   "label": "Co-brand Credit Card Ecosystem (Master)",
+   "path": "/id/ID_CobrandCardEcosystem_20260429.html",
+   "date": "2026-04-29",
+   "mega": "finance",
+   "sub_group": "payment_network",
+   "sisters": [
+    "HotelChains",
+    "AirlineLoyaltyRepricing",
+    "BoomerTravelSupercycle",
+    "CardNetworkDuopoly"
+   ],
+   "members": {
+    "AXP": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "American Express"
+    },
+    "JPM": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "JPMorgan Chase"
+    },
+    "C": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Citigroup"
+    },
+    "COF": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Capital One"
+    },
+    "V": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Visa"
+    },
+    "MA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Mastercard"
+    },
+    "BAC": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Bank of America"
+    },
+    "MAR": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Marriott"
+    },
+    "HLT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Hilton"
+    },
+    "H": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Hyatt"
+    },
+    "IHG": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "IHG"
+    },
+    "DAL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "UAL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "AAL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "LUV": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "COST": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Costco"
+    },
+    "DFS": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Discover"
+    }
+   }
+  },
+  "CommercialAerospace": {
+   "label": "Commercial Aerospace Recovery",
+   "path": "/id/ID_CommercialAerospace_20260427.html",
+   "date": "2026-04-27",
+   "mega": "industrial",
+   "sub_group": "commercial_aero",
+   "sisters": [
+    "DefenseModernization",
+    "AerospaceMetals"
+   ],
+   "members": {
+    "BA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Boeing"
+    },
+    "GE": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "GE Aerospace"
+    },
+    "RTX": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "RTX Corp"
+    },
+    "AIR.PA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Airbus SE"
+    },
+    "SAF.PA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Safran"
+    },
+    "MTU.DE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "MTU Aero Engines"
+    },
+    "RR.L": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Rolls-Royce"
+    },
+    "TDG": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "TransDigm"
+    },
+    "HEI": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Heico"
+    },
+    "SPR": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Spirit AeroSystems"
+    },
+    "GD": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "General Dynamics"
+    },
+    "ERJ": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Embraer"
+    }
+   }
+  },
+  "CopperSupercycle": {
+   "label": "Copper Supercycle (AI + Grid + EV)",
+   "path": "/id/ID_CopperSupercycle_20260428.html",
+   "date": "2026-04-28",
+   "mega": "materials",
+   "sub_group": "industrial_metals",
+   "sisters": [
+    "AIDataCenter"
+   ],
+   "members": {
+    "FCX": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Freeport-McMoRan"
+    },
+    "SCCO": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Southern Copper"
+    },
+    "BHP": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "BHP Group"
+    },
+    "RIO": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Rio Tinto"
+    },
+    "TECK": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Teck Resources"
+    },
+    "GLEN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Glencore"
+    },
+    "AAL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Anglo American"
+    },
+    "ANTO": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Antofagasta"
+    },
+    "FM": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "First Quantum"
+    },
+    "VALE": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Vale"
+    },
+    "IVN": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Ivanhoe Mines"
+    },
+    "HBM": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Hudbay Minerals"
+    },
+    "CMP": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Codelco"
+    },
+    "ENGN": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "CybersecurityPlatformConsolidation": {
+   "label": "資安 SaaS 平台化整併",
+   "path": "/id/ID_CybersecurityPlatformConsolidation_20260423.html",
+   "date": "2026-04-23",
+   "mega": "cloud",
+   "sub_group": "cybersecurity",
+   "sisters": [
+    "AICybersecurityDoubleEdge",
+    "IdentityNewPerimeter",
+    "DataSecurityBackupConvergence",
+    "LLMVendorSecurityEconomics"
+   ],
+   "members": {
+    "CRWD": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "PANW": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "ZS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "MSFT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "S": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "NET": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Zero Trust"
+    },
+    "FTNT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "OKTA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "RBRK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "GOOGL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "VRNS": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "CSCO": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "CHKP": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "DataCenterREITDuopoly": {
+   "label": "Data Center REIT Duopoly",
+   "path": "/id/ID_DataCenterREITDuopoly_20260629.html",
+   "date": "2026-06-29",
+   "mega": "reits",
+   "sub_group": "data_center",
+   "sisters": [
+    "AIDataCenter",
+    "AIDCPowerElectronics",
+    "Transformers",
+    "AIComputeCapexCycle"
+   ],
+   "members": {
+    "DLR": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "EQIX": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "IRM": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "AMT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "VRT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "ETN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "GEV": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "BXDC": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "CCJ": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "CCI": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "SBAC": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "DataSecurityBackupConvergence": {
+   "label": "資料安全 × 備份匯流",
+   "path": "/id/ID_DataSecurityBackupConvergence_20260423.html",
+   "date": "2026-04-23",
+   "mega": "cloud",
+   "sub_group": "cybersecurity",
+   "sisters": [
+    "CybersecurityPlatformConsolidation",
+    "AICybersecurityDoubleEdge",
+    "IdentityNewPerimeter",
+    "LLMVendorSecurityEconomics"
+   ],
+   "members": {
+    "RBRK": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "VRNS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "CVLT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Commvault"
+    },
+    "CRWD": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Falcon Data Protection"
+    },
+    "PANW": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "S": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "MSFT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "NET": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "CHKP": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "GOOGL": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "FTNT": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "CSCO": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "DefenseAerospaceUpgrade": {
+   "label": "全球國防航太升級週期 — 已併入國防現代化母題",
+   "path": "/id/ID_DefenseAerospaceUpgrade_20260427.html",
+   "date": "2026-04-27",
+   "mega": "",
+   "sub_group": "",
+   "sisters": [],
+   "members": {
+    "2027.TW": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "AVAV": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "BAE": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "GD": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "GMLRS": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "KNDS": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "LMT": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "NATO": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "NOC": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "RTX": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "SAIC": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "DefenseModernization": {
+   "label": "Defense Modernization Master（全球國防現代化母題）",
+   "path": "/id/ID_DefenseModernization_20260430.html",
+   "date": "2026-04-30",
+   "mega": "industrial",
+   "sub_group": "defense",
+   "sisters": [
+    "CNTW_Master",
+    "CNTW_S7_DefenseIndustry",
+    "AerospaceMetals",
+    "CommercialAerospace"
+   ],
+   "members": {
+    "LMT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Lockheed Martin"
+    },
+    "RTX": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "RTX Corp"
+    },
+    "NOC": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Northrop Grumman"
+    },
+    "GD": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "General Dynamics"
+    },
+    "HII": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Huntington Ingalls"
+    },
+    "PLTR": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Palantir"
+    },
+    "KTOS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Kratos Defense"
+    },
+    "AVAV": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "AeroVironment"
+    },
+    "LDOS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Leidos"
+    },
+    "LDO.MI": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Leonardo"
+    },
+    "RHM.DE": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Rheinmetall"
+    },
+    "KNDS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "KNDS Group"
+    },
+    "BAESY": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "BAE Systems"
+    },
+    "Anduril": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Anduril Industries"
+    },
+    "SAAB-B.ST": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Saab"
+    },
+    "L3HRS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "L3Harris"
+    },
+    "RKLB": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Rocket Lab"
+    },
+    "BKSY": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "BlackSky"
+    },
+    "PL": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Planet Labs"
+    },
+    "MAXR": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Maxar"
+    },
+    "BWXT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "BWX Technologies"
+    },
+    "TXT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Textron"
+    },
+    "BA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Boeing"
+    },
+    "HEI": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "MRCY": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Mercury Systems"
+    },
+    "OSK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Oshkosh"
+    },
+    "BA.L": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "HAG.DE": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Hensoldt"
+    },
+    "DAS.PA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Dassault Aviation"
+    },
+    "AIR.PA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Airbus"
+    },
+    "TKA.DE": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "ThyssenKrupp Marine Systems"
+    },
+    "SAIC": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Science Applications"
+    },
+    "BAH": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Booz Allen Hamilton"
+    }
+   }
+  },
+  "DiscountRetailKShape": {
+   "label": "Discount Retail K-shape — Off-Price + Dollar Store 雙模型",
+   "path": "/id/ID_DiscountRetailKShape_20260430.html",
+   "date": "2026-04-30",
+   "mega": "consumer",
+   "sub_group": "discount_retail",
+   "sisters": [
+    "ApparelFootwear",
+    "GlobalEcommerce"
+   ],
+   "members": {
+    "TJX": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "ROST": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "BURL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "DLTR": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Dollar Tree"
+    },
+    "DG": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Dollar General"
+    },
+    "M": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Macy's"
+    },
+    "KSS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Kohl's"
+    },
+    "FIVE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Five Below"
+    },
+    "OLLI": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Ollie's Bargain Outlet"
+    },
+    "TGT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "WMT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Walmart"
+    },
+    "COST": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Costco"
+    },
+    "NDLS": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Noodles"
+    },
+    "BIG": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Big Lots"
+    }
+   }
+  },
+  "EdgeAI": {
+   "label": "Edge AI / On-Device Inference",
+   "path": "/id/ID_EdgeAI_20260427.html",
+   "date": "2026-04-27",
+   "mega": "semi",
+   "sub_group": "edge_ai",
+   "sisters": [],
+   "members": {
+    "QCOM": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "AAPL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "NVDA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "AMBA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "AMD": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "INTC": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "TSLA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "2454.TW": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "SYNA": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "ARM": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "NXP": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "FastCasualBifurcation": {
+   "label": "Fast Casual Bifurcation",
+   "path": "/id/ID_FastCasualBifurcation_20260427.html",
+   "date": "2026-04-27",
+   "mega": "consumer",
+   "sub_group": "restaurant",
+   "sisters": [
+    "USRestaurantChains",
+    "CasualDiningTurnaround",
+    "RestaurantTechSaaS"
+   ],
+   "members": {
+    "CMG": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Chipotle"
+    },
+    "WING": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Wingstop"
+    },
+    "SHAK": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Shake Shack"
+    },
+    "BROS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Dutch Bros"
+    },
+    "CAVA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "CAVA Mediterranean"
+    },
+    "KRUS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Kura Sushi"
+    },
+    "SG": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Sweetgreen"
+    },
+    "FWRG": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "First Watch"
+    },
+    "DPZ": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Domino's"
+    },
+    "YUM": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Yum Brands"
+    },
+    "JACK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "LOCO": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "El Pollo Loco"
+    },
+    "PZZA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Papa John's"
+    },
+    "BFI": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "BurgerFi"
+    },
+    "MCD": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "McDonald's"
+    },
+    "DRI": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Darden"
+    },
+    "TXRH": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Texas Roadhouse"
+    },
+    "SBUX": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Starbucks"
+    }
+   }
+  },
+  "FertilizerSeeds": {
+   "label": "肥料 / 種子 / 作物保護（Fertilizer · Seeds · Crop Protection）",
+   "path": "/id/ID_FertilizerSeeds_20260629.html",
+   "date": "2026-06-29",
+   "mega": "agri",
+   "sub_group": "fertilizer_seeds",
+   "sisters": [
+    "GrainsOilseeds"
+   ],
+   "members": {
+    "CTVA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "NTR": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "CF": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "MOS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "BAYN.DE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "YARIY": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "ICL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "SDF.DE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "SQM": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "FMC": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "APD": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "ANDE": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "IPI": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "FoundryGeography": {
+   "label": "Foundry Geography",
+   "path": "/id/ID_FoundryGeography_20260905.html",
+   "date": "2026-09-05",
+   "mega": "semi",
+   "sub_group": "foundry_process",
+   "sisters": [
+    "LeadingEdgeNode",
+    "WaferFabEquipment",
+    "AdvancedPackaging",
+    "HBM_Supercycle"
+   ],
+   "members": {
+    "2330.TW": {
+     "depth": "🔴",
+     "purity": 100,
+     "name": ""
+    },
+    "GFS": {
+     "depth": "🔴",
+     "purity": 100,
+     "name": ""
+    },
+    "INTC": {
+     "depth": "🔴",
+     "purity": 36,
+     "name": ""
+    },
+    "005930.KS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "2303.TW": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "ASML": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "AMAT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "LRCX": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "8035.T": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "0981.HK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "NVDA": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "AAPL": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "TSLA": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "FusionCommercialization": {
+   "label": "核融合商業化（Fusion Commercialization）",
+   "path": "/id/ID_FusionCommercialization_20260505.html",
+   "date": "2026-05-05",
+   "mega": "energy",
+   "sub_group": "nuclear",
+   "sisters": [
+    "NuclearRenaissance"
+   ],
+   "members": {
+    "BRKR": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Bruker Energy & Supercon"
+    },
+    "AMSC": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "American Superconductor"
+    },
+    "GEV": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "GE Vernova"
+    },
+    "SIE.DE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Siemens Energy"
+    },
+    "MOG-A": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Moog Inc."
+    },
+    "HEICO": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "HEICO"
+    },
+    "APD": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Air Products"
+    },
+    "LIN": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Linde"
+    },
+    "MSFT": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Microsoft"
+    },
+    "GOOG": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Google"
+    },
+    "CCJ": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Cameco"
+    }
+   }
+  },
+  "GLP1Master": {
+   "label": "GLP-1 跨域擴散母題（Cross-Domain Master）",
+   "path": "/id/ID_GLP1Master_20260429.html",
+   "date": "2026-04-29",
+   "mega": "bio",
+   "sub_group": "glp1",
+   "sisters": [
+    "GLP1Treatment",
+    "GLP1PackagedFood",
+    "GLP1RestaurantImpact"
+   ],
+   "members": {
+    "LLY": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Eli Lilly"
+    },
+    "NVO": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Novo Nordisk"
+    },
+    "STVN": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Stevanato"
+    },
+    "1A8.DE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "SCHOTT Pharma"
+    },
+    "CMG": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Chipotle"
+    },
+    "CAVA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "CAVA"
+    },
+    "DNUT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Krispy Kreme"
+    },
+    "HSY": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Hershey"
+    },
+    "KHC": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Kraft Heinz"
+    },
+    "MDLZ": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Mondelez"
+    },
+    "DAL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Delta Air Lines"
+    },
+    "UAL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "United Airlines"
+    },
+    "AAL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "American Airlines"
+    },
+    "LUV": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Southwest Airlines"
+    },
+    "CCL": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Carnival Cruise"
+    },
+    "RCL": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Royal Caribbean"
+    },
+    "PLNT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Planet Fitness"
+    },
+    "PTON": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Peloton"
+    },
+    "HIMS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Hims & Hers"
+    },
+    "AAPL": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "GRMN": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Garmin"
+    },
+    "MET": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "MetLife"
+    },
+    "PRU": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Prudential Financial"
+    },
+    "AFL": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Aflac"
+    },
+    "RGA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Reinsurance Group of America"
+    },
+    "UNH": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "UnitedHealth"
+    },
+    "CI": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Cigna"
+    },
+    "ELV": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Elevance Health"
+    },
+    "CVS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "CVS Health"
+    },
+    "UNM": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Unum"
+    },
+    "MAR": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Marriott"
+    },
+    "HLT": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Hilton"
+    }
+   }
+  },
+  "GLP1PackagedFood": {
+   "label": "GLP-1 vs Packaged Food",
+   "path": "/id/ID_GLP1PackagedFood_20260428.html",
+   "date": "2026-04-28",
+   "mega": "staples",
+   "sub_group": "packaged_food",
+   "sisters": [
+    "BeverageEnergyDrink",
+    "GLP1RestaurantImpact",
+    "GLP1Master"
+   ],
+   "members": {
+    "KHC": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Kraft Heinz"
+    },
+    "MDLZ": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Mondelez"
+    },
+    "HSY": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Hershey"
+    },
+    "GIS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "General Mills"
+    },
+    "CAG": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Conagra"
+    },
+    "CPB": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Campbell"
+    },
+    "NSRGY": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Nestle"
+    },
+    "KO": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Coca-Cola"
+    },
+    "TSN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Tyson"
+    },
+    "BFI": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "BellRing"
+    },
+    "DANOY": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Danone"
+    },
+    "SJM": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "JM Smucker"
+    },
+    "MKC": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "McCormick"
+    },
+    "PEP": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "PepsiCo"
+    }
+   }
+  },
+  "GLP1RestaurantImpact": {
+   "label": "GLP-1 Restaurant Impact",
+   "path": "/id/ID_GLP1RestaurantImpact_20260427.html",
+   "date": "2026-04-27",
+   "mega": "staples",
+   "sub_group": "restaurant_glp1",
+   "sisters": [
+    "CasualDiningTurnaround",
+    "GLP1PackagedFood",
+    "GLP1Master"
+   ],
+   "members": {
+    "DNUT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Krispy Kreme"
+    },
+    "WING": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Wingstop"
+    },
+    "SBUX": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Starbucks"
+    },
+    "MCD": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "McDonald's"
+    },
+    "DPZ": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Domino's"
+    },
+    "CMG": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Chipotle"
+    },
+    "SHAK": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Shake Shack"
+    },
+    "TXRH": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Texas Roadhouse"
+    },
+    "CAVA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "CAVA"
+    },
+    "DRI": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Darden"
+    },
+    "PZZA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Papa John's"
+    },
+    "BLMN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Bloomin' Outback"
+    },
+    "WEN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Wendy's"
+    },
+    "JACK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "SG": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Sweetgreen"
+    },
+    "EAT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Brinker"
+    },
+    "CAKE": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Cheesecake Factory"
+    },
+    "YUM": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Yum Brands"
+    },
+    "KO": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Coca-Cola"
+    },
+    "PEP": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "PepsiCo"
+    },
+    "LLY": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Eli Lilly"
+    },
+    "NVO": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Novo Nordisk"
+    }
+   }
+  },
+  "GLP1Treatment": {
+   "label": "GLP-1 治療藍圖（Incretin Therapeutics Master）",
+   "path": "/id/ID_GLP1Treatment_20260428.html",
+   "date": "2026-04-28",
+   "mega": "bio",
+   "sub_group": "glp1",
+   "sisters": [
+    "GLP1PackagedFood",
+    "GLP1RestaurantImpact",
+    "GLP1Master"
+   ],
+   "members": {
+    "LLY": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Eli Lilly"
+    },
+    "NVO": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Novo Nordisk"
+    },
+    "AMGN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Amgen"
+    },
+    "RHHBY": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Roche"
+    },
+    "VKTX": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Viking Therapeutics"
+    },
+    "ALT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Altimmune"
+    },
+    "SMMT": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Summit Therapeutics"
+    },
+    "PFE": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Pfizer"
+    },
+    "STVN": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Stevanato Group"
+    },
+    "GXI": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Gerresheimer"
+    },
+    "1A8.DE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "SCHOTT Pharma"
+    },
+    "1801.HK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Innovent Biologics"
+    },
+    "ZEAL.CO": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Zealand Pharma"
+    },
+    "HIMS": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Hims & Hers"
+    }
+   }
+  },
+  "GlassSubstrate": {
+   "label": "GlassSubstrate",
+   "path": "/id/ID_GlassSubstrate_20260420.html",
+   "date": "2026-04-20",
+   "mega": "semi",
+   "sub_group": "advanced_packaging",
+   "sisters": [
+    "AdvancedPackaging",
+    "HBM_Supercycle",
+    "AIComputeCapexCycle"
+   ],
+   "members": {
+    "INTC": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Intel"
+    },
+    "LPK.DE": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "011790.KS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "GLW": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Corning"
+    },
+    "5201.T": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "2330.TW": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "3037.TW": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Unimicron"
+    },
+    "AMD": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "AMD"
+    },
+    "005930.KS": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Samsung"
+    },
+    "6146.T": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "GlobalBankROE": {
+   "label": "Global Bank ROE Structure",
+   "path": "/id/ID_GlobalBankROE_20260428.html",
+   "date": "2026-04-28",
+   "mega": "finance",
+   "sub_group": "banks",
+   "sisters": [
+    "CardNetworkDuopoly",
+    "CobrandCardEcosystem"
+   ],
+   "members": {
+    "JPM": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "JPMorgan"
+    },
+    "MS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Morgan Stanley"
+    },
+    "GS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Goldman Sachs"
+    },
+    "BAC": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Bank of America"
+    },
+    "WFC": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Wells Fargo"
+    },
+    "C": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Citi"
+    },
+    "UBS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "UBS"
+    },
+    "HSBC": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "HSBC"
+    },
+    "BARC": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Barclays"
+    },
+    "DB": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Deutsche Bank"
+    },
+    "MUFG": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "MUFG"
+    },
+    "SMFG": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Sumitomo Mitsui"
+    },
+    "MFG": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Mizuho"
+    },
+    "COF": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Capital One"
+    },
+    "1398.HK": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "0939.HK": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "GlobalEcommerce": {
+   "label": "Global E-commerce Consolidation",
+   "path": "/id/ID_GlobalEcommerce_20260427.html",
+   "date": "2026-04-27",
+   "mega": "consumer",
+   "sub_group": "ecommerce",
+   "sisters": [
+    "LATAMEcommerce",
+    "DiscountRetailKShape"
+   ],
+   "members": {
+    "AMZN": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "SHOP": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Shopify"
+    },
+    "MELI": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "MercadoLibre"
+    },
+    "PDD": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Pinduoduo"
+    },
+    "SE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Sea Limited"
+    },
+    "BABA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Alibaba"
+    },
+    "WMT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Walmart"
+    },
+    "CPNG": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Coupang"
+    },
+    "ETSY": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Etsy"
+    },
+    "JD": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "JD.com"
+    },
+    "BKNG": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Booking"
+    }
+   }
+  },
+  "GlobalLuxury": {
+   "label": "Global Luxury Goods Structure",
+   "path": "/id/ID_GlobalLuxury_20260427.html",
+   "date": "2026-04-27",
+   "mega": "consumer",
+   "sub_group": "luxury",
+   "sisters": [
+    "ApparelFootwear",
+    "AthleisureNewEntrants"
+   ],
+   "members": {
+    "RMS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "MC": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "CFR": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Richemont"
+    },
+    "TPR": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Tapestry"
+    },
+    "KER": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Kering"
+    },
+    "1913.HK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Prada"
+    },
+    "BRBY": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Burberry"
+    },
+    "CPRI": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Capri"
+    },
+    "PNDORA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Pandora"
+    },
+    "ATZ": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Aritzia"
+    },
+    "MONC": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Moncler"
+    }
+   }
+  },
+  "GrainsOilseeds": {
+   "label": "穀物 / 油籽 / 糧食（Grains & Oilseeds）",
+   "path": "/id/ID_GrainsOilseeds_20260629.html",
+   "date": "2026-06-29",
+   "mega": "agri",
+   "sub_group": "grains_oilseeds",
+   "sisters": [
+    "BeefSupercycle"
+   ],
+   "members": {
+    "ADM": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "BG": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "DAR": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "CF": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "NTR": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "CTVA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "DE": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "MOS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "AGCO": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "INGR": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "AGM": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "WLMIY": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "BAYN.DE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "TSN": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "CALM": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "CNH": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "HBM4CustomBaseDie": {
+   "label": "HBM4 客製 Base Die — 已併入 HBM 記憶體超級循環",
+   "path": "/id/ID_HBM4CustomBaseDie_20260430.html",
+   "date": "2026-04-30",
+   "mega": "",
+   "sub_group": "",
+   "sisters": [],
+   "members": {
+    "000660.KS": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "005930.KS": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "1024.TW": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "2026.TW": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "2027.TW": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "2028.TW": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "2048.TW": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "2330.TW": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "6857.T": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "AVGO": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "C": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "CES": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "DRAM": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "IO": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "JEDEC": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "MRVL": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "MU": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "NP": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "NVDA": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "SK": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "TSMC": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "X": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "HBM_Supercycle": {
+   "label": "HBM 超級循環",
+   "path": "/id/ID_HBM_Supercycle_20260904.html",
+   "date": "2026-09-04",
+   "mega": "semi",
+   "sub_group": "memory",
+   "sisters": [
+    "AIComputeCapexCycle",
+    "MemorySupercycle",
+    "AdvancedPackaging",
+    "AIAcceleratorDemand",
+    "HybridBondingSoIC"
+   ],
+   "members": {
+    "000660.KS": {
+     "depth": "🔴",
+     "purity": 75,
+     "name": ""
+    },
+    "MU": {
+     "depth": "🔴",
+     "purity": 70,
+     "name": ""
+    },
+    "005930.KS": {
+     "depth": "🔴",
+     "purity": 55,
+     "name": ""
+    },
+    "TSM": {
+     "depth": "🟡",
+     "purity": 5,
+     "name": ""
+    },
+    "NVDA": {
+     "depth": "🟡",
+     "purity": 10,
+     "name": ""
+    },
+    "AMD": {
+     "depth": "🟡",
+     "purity": 8,
+     "name": ""
+    },
+    "AVGO": {
+     "depth": "🟢",
+     "purity": 6,
+     "name": ""
+    },
+    "BESI.AS": {
+     "depth": "🟢",
+     "purity": 30,
+     "name": ""
+    },
+    "LRCX": {
+     "depth": "🟢",
+     "purity": 20,
+     "name": ""
+    },
+    "ASML": {
+     "depth": "🟢",
+     "purity": 12,
+     "name": ""
+    }
+   }
+  },
+  "HeavyMachineryMining": {
+   "label": "Heavy Machinery & Mining",
+   "path": "/id/ID_HeavyMachineryMining_20260427.html",
+   "date": "2026-04-27",
+   "mega": "industrial",
+   "sub_group": "heavy_machinery",
+   "sisters": [
+    "IndustrialAutomation",
+    "AIDataCenter",
+    "HumanoidIndustrialRobotics"
+   ],
+   "members": {
+    "CAT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Caterpillar"
+    },
+    "DE": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Deere"
+    },
+    "6301.T": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Komatsu"
+    },
+    "AGCO": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "AGCO Corp"
+    },
+    "CNH": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "CNH Industrial"
+    },
+    "OSK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Oshkosh"
+    },
+    "PCAR": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "PACCAR"
+    },
+    "TEX": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Terex"
+    },
+    "URI": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "United Rentals"
+    },
+    "MTW": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Manitowoc"
+    },
+    "600031.SS": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "三一重工"
+    },
+    "AB.ST": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Atlas Copco"
+    }
+   }
+  },
+  "HighNAEUV": {
+   "label": "High-NA EUV — 已併入先進製程節點競賽",
+   "path": "/id/ID_HighNAEUV_20260505.html",
+   "date": "2026-05-05",
+   "mega": "",
+   "sub_group": "",
+   "sisters": [],
+   "members": {
+    "AGC": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "EUV": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "JSR": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "MOR": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "NA": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "TSMC": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "HotelChains": {
+   "label": "Global Hotel Chains",
+   "path": "/id/ID_HotelChains_20260429.html",
+   "date": "2026-04-29",
+   "mega": "transport",
+   "sub_group": "hotel_lodging",
+   "sisters": [
+    "LuxuryTravelCruise",
+    "GlobalLuxury",
+    "BoomerTravelSupercycle",
+    "CobrandCardEcosystem"
+   ],
+   "members": {
+    "MAR": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Marriott"
+    },
+    "HLT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Hilton"
+    },
+    "H": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Hyatt"
+    },
+    "IHG": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "IHG"
+    },
+    "CHH": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Choice Hotels"
+    },
+    "WH": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Wyndham"
+    },
+    "ABNB": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Airbnb"
+    },
+    "BKNG": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Booking Holdings"
+    },
+    "EXPE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Expedia"
+    },
+    "COF": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Capital One"
+    },
+    "AXP": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "American Express"
+    },
+    "JPM": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "JPMorgan Chase"
+    },
+    "HST": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Host Hotels & Resorts"
+    },
+    "RHP": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Ryman Hospitality"
+    }
+   }
+  },
+  "HumanoidIndustrialRobotics": {
+   "label": "Humanoid Industrial Robotics",
+   "path": "/id/ID_HumanoidIndustrialRobotics_20260427.html",
+   "date": "2026-04-27",
+   "mega": "industrial",
+   "sub_group": "robotics",
+   "sisters": [
+    "AIDataCenter",
+    "IndustrialAutomation",
+    "HeavyMachineryMining"
+   ],
+   "members": {
+    "TSLA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Optimus V3"
+    },
+    "HMC": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Hyundai"
+    },
+    "NVDA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "FANUY": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "6506.T": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "6324.T": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Harmonic Drive"
+    },
+    "6268.T": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Nabtesco"
+    },
+    "ABB": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "ABB Robotics"
+    },
+    "TER": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Teradyne"
+    },
+    "Figure": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "Apptronik": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "Unitree": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "HybridBondingSoIC": {
+   "label": "Hybrid Bonding / SoIC",
+   "path": "/id/ID_HybridBondingSoIC_20260905.html",
+   "date": "2026-09-05",
+   "mega": "semi",
+   "sub_group": "advanced_packaging",
+   "sisters": [
+    "AdvancedPackaging",
+    "HBM_Supercycle",
+    "LeadingEdgeNode",
+    "WaferFabEquipment",
+    "GlassSubstrate"
+   ],
+   "members": {
+    "BESI.AS": {
+     "depth": "🔴",
+     "purity": 45,
+     "name": ""
+    },
+    "ADEA": {
+     "depth": "🔴",
+     "purity": 15,
+     "name": ""
+    },
+    "AMAT": {
+     "depth": "🔴",
+     "purity": 5,
+     "name": ""
+    },
+    "2330.TW": {
+     "depth": "🔴",
+     "purity": 3,
+     "name": ""
+    },
+    "CAMT": {
+     "depth": "🟡",
+     "purity": 15,
+     "name": ""
+    },
+    "ONTO": {
+     "depth": "🟡",
+     "purity": 12,
+     "name": ""
+    },
+    "6146.T": {
+     "depth": "🟡",
+     "purity": 10,
+     "name": ""
+    },
+    "0522.HK": {
+     "depth": "🟡",
+     "purity": 8,
+     "name": ""
+    },
+    "INTC": {
+     "depth": "🟡",
+     "purity": 2,
+     "name": ""
+    },
+    "AMD": {
+     "depth": "🟡",
+     "purity": 3,
+     "name": ""
+    },
+    "MU": {
+     "depth": "🟡",
+     "purity": 1,
+     "name": ""
+    },
+    "SMHN.DE": {
+     "depth": "🟢",
+     "purity": 12,
+     "name": ""
+    },
+    "KLIC": {
+     "depth": "🟢",
+     "purity": 8,
+     "name": ""
+    },
+    "AAPL": {
+     "depth": "🟢",
+     "purity": 1,
+     "name": ""
+    },
+    "005930.KS": {
+     "depth": "🟢",
+     "purity": 1,
+     "name": ""
+    },
+    "000660.KS": {
+     "depth": "🟢",
+     "purity": 1,
+     "name": ""
+    }
+   }
+  },
+  "HydrogenFuelCell": {
+   "label": "氫能 / 燃料電池（Hydrogen / Fuel Cell）",
+   "path": "/id/ID_HydrogenFuelCell_20260505.html",
+   "date": "2026-05-05",
+   "mega": "energy",
+   "sub_group": "hydrogen",
+   "sisters": [
+    "NuclearRenaissance"
+   ],
+   "members": {
+    "LIN": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "APD": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "BE": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "CMI": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "HON": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "SIE.DE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "7203.T": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "7267.T": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "336260.KS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "8088.T": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "PLUG": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "FCEL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "BLDP": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "NEL.OL": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "HyperscalerCloudBigThree": {
+   "label": "Hyperscaler 雲端三巨頭 — AWS / Azure / GCP",
+   "path": "/id/ID_HyperscalerCloudBigThree_20260505.html",
+   "date": "2026-05-05",
+   "mega": "cloud",
+   "sub_group": "ai_cross_domain",
+   "sisters": [
+    "AICrossDomainImpact",
+    "AppleIntelligencePlatformThreat",
+    "AIAdRetailMedia"
+   ],
+   "members": {
+    "GOOGL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "MSFT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "AMZN": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "NVDA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "AVGO": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "MRVL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "AMD": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "ORCL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "META": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "BABA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Alibaba Cloud"
+    },
+    "AAPL": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "CRWV": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "CoreWeave"
+    }
+   }
+  },
+  "IdentityNewPerimeter": {
+   "label": "身份是新邊界",
+   "path": "/id/ID_IdentityNewPerimeter_20260423.html",
+   "date": "2026-04-23",
+   "mega": "cloud",
+   "sub_group": "cybersecurity",
+   "sisters": [
+    "CybersecurityPlatformConsolidation",
+    "AICybersecurityDoubleEdge",
+    "DataSecurityBackupConvergence",
+    "LLMVendorSecurityEconomics"
+   ],
+   "members": {
+    "PANW": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "MSFT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Entra"
+    },
+    "OKTA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "CRWD": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "SAIL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "CSCO": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "GOOGL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "FTNT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "NET": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Access"
+    },
+    "VRNS": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "RBRK": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "S": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "IndustrialAutomation": {
+   "label": "Industrial Automation",
+   "path": "/id/ID_IndustrialAutomation_20260427.html",
+   "date": "2026-04-27",
+   "mega": "industrial",
+   "sub_group": "robotics",
+   "sisters": [
+    "HumanoidIndustrialRobotics",
+    "HeavyMachineryMining",
+    "AIDataCenter"
+   ],
+   "members": {
+    "HON": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Honeywell"
+    },
+    "ROK": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Rockwell"
+    },
+    "SIE.DE": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Siemens"
+    },
+    "ABBN.SW": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "SU.PA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Schneider Electric"
+    },
+    "EMR": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Emerson"
+    },
+    "6954.T": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "6506.T": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Yaskawa"
+    },
+    "PH": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Parker Hannifin"
+    },
+    "ETN": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Eaton"
+    },
+    "ITT": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "ITT Inc"
+    },
+    "300124.SZ": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "汇川技术"
+    }
+   }
+  },
+  "LATAMEcommerce": {
+   "label": "LATAM E-commerce Ecosystem",
+   "path": "/id/ID_LATAMEcommerce_20260427.html",
+   "date": "2026-04-27",
+   "mega": "consumer",
+   "sub_group": "ecommerce",
+   "sisters": [
+    "GlobalEcommerce",
+    "DiscountRetailKShape"
+   ],
+   "members": {
+    "MELI": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "NU": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "SE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Sea Limited"
+    },
+    "AMZN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "CPNG": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "BABA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "PDD": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Temu"
+    },
+    "VTEX": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "MGLU3.SA": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Magazine Luiza"
+    },
+    "V": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Visa"
+    },
+    "MA": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Mastercard"
+    }
+   }
+  },
+  "LLMVendorSecurityEconomics": {
+   "label": "LLM 廠商資安經濟學",
+   "path": "/id/ID_LLMVendorSecurityEconomics_20260423.html",
+   "date": "2026-04-23",
+   "mega": "cloud",
+   "sub_group": "cybersecurity",
+   "sisters": [
+    "CybersecurityPlatformConsolidation",
+    "AICybersecurityDoubleEdge",
+    "IdentityNewPerimeter",
+    "DataSecurityBackupConvergence"
+   ],
+   "members": {
+    "PANW": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Prisma AIRS 3.0"
+    },
+    "CRWD": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "MSFT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "NET": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "S": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Purple AI"
+    },
+    "ZS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "OKTA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "GOOGL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "AMZN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "NVDA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "FTNT": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "CSCO": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Cisco AI Defense"
+    },
+    "CHKP": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "LeadingEdgeNode": {
+   "label": "Leading-Edge Node",
+   "path": "/id/ID_LeadingEdgeNode_20260905.html",
+   "date": "2026-09-05",
+   "mega": "semi",
+   "sub_group": "foundry_process",
+   "sisters": [
+    "AdvancedPackaging",
+    "HBM_Supercycle",
+    "AIAcceleratorDemand",
+    "AIComputeCapexCycle"
+   ],
+   "members": {
+    "2330.TW": {
+     "depth": "🔴",
+     "purity": 33,
+     "name": "台積電"
+    },
+    "ASML": {
+     "depth": "🔴",
+     "purity": 41,
+     "name": ""
+    },
+    "AMAT": {
+     "depth": "🔴",
+     "purity": 52,
+     "name": ""
+    },
+    "LRCX": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "KLAC": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "INTC": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Intel Foundry"
+    },
+    "NVDA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "AMD": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "6920.T": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Lasertec"
+    },
+    "8035.T": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Tokyo Electron"
+    },
+    "005930.KS": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Samsung Foundry"
+    },
+    "7741.T": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Hoya"
+    },
+    "4063.T": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "信越化學"
+    }
+   }
+  },
+  "LiquidCooling": {
+   "label": "資料中心液冷散熱",
+   "path": "/id/ID_LiquidCooling_20260905.html",
+   "date": "2026-09-05",
+   "mega": "semi",
+   "sub_group": "dc_infra",
+   "sisters": [
+    "AIDataCenter",
+    "AIDCPowerElectronics",
+    "AIAcceleratorDemand"
+   ],
+   "members": {
+    "VRT": {
+     "depth": "🔴",
+     "purity": 40,
+     "name": ""
+    },
+    "ETN": {
+     "depth": "🔴",
+     "purity": 6,
+     "name": ""
+    },
+    "3017.TW": {
+     "depth": "🔴",
+     "purity": 55,
+     "name": "奇鋐"
+    },
+    "3324.TW": {
+     "depth": "🔴",
+     "purity": 50,
+     "name": "雙鴻"
+    },
+    "2308.TW": {
+     "depth": "🟡",
+     "purity": 12,
+     "name": "台達電"
+    },
+    "6805.TW": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "富世達"
+    },
+    "8996.TW": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "高力"
+    },
+    "ECL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Ecolab"
+    },
+    "002837.SZ": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "英維克"
+    },
+    "TT": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Trane"
+    },
+    "SU.PA": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Schneider"
+    },
+    "PH": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Parker Hannifin"
+    }
+   }
+  },
+  "LuxuryTravelCruise": {
+   "label": "Cruise & Luxury Travel",
+   "path": "/id/ID_LuxuryTravelCruise_20260427.html",
+   "date": "2026-04-27",
+   "mega": "transport",
+   "sub_group": "cruise_luxury_travel",
+   "sisters": [
+    "GlobalLuxury",
+    "BoomerTravelSupercycle",
+    "HotelChains"
+   ],
+   "members": {
+    "RCL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Royal Caribbean"
+    },
+    "VIK": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Viking"
+    },
+    "AENA.MC": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "NCLH": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Norwegian"
+    },
+    "CCL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Carnival"
+    },
+    "DG.PA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "VINCI Concessions"
+    },
+    "FRA.DE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Fraport"
+    },
+    "BKNG": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Booking"
+    },
+    "ABNB": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Airbnb"
+    },
+    "TRIP": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Tripadvisor"
+    },
+    "EXPE": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Expedia"
+    }
+   }
+  },
+  "MemorySupercycle": {
+   "label": "記憶體大循環母題",
+   "path": "/id/ID_MemorySupercycle_20260905.html",
+   "date": "2026-09-05",
+   "mega": "semi",
+   "sub_group": "memory",
+   "sisters": [
+    "HBM_Supercycle",
+    "AIStorage",
+    "WaferFabEquipment",
+    "AIAcceleratorDemand"
+   ],
+   "members": {
+    "MU": {
+     "depth": "🔴",
+     "purity": 100,
+     "name": "美光"
+    },
+    "000660.KS": {
+     "depth": "🔴",
+     "purity": 95,
+     "name": ""
+    },
+    "005930.KS": {
+     "depth": "🔴",
+     "purity": 70,
+     "name": "三星電子"
+    },
+    "285A.T": {
+     "depth": "🔴",
+     "purity": 100,
+     "name": "鎧俠"
+    },
+    "SNDK": {
+     "depth": "🔴",
+     "purity": 100,
+     "name": "SanDisk"
+    },
+    "WDC": {
+     "depth": "🟡",
+     "purity": 20,
+     "name": "Western Digital"
+    },
+    "STX": {
+     "depth": "🟡",
+     "purity": 20,
+     "name": "Seagate"
+    },
+    "6857.T": {
+     "depth": "🟡",
+     "purity": 15,
+     "name": "愛德萬測試"
+    },
+    "LRCX": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "科林研發"
+    },
+    "603986.SS": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "兆易創新"
+    }
+   }
+  },
+  "NuclearRenaissance": {
+   "label": "Nuclear Renaissance",
+   "path": "/id/ID_NuclearRenaissance_20260430.html",
+   "date": "2026-04-30",
+   "mega": "energy",
+   "sub_group": "nuclear",
+   "sisters": [
+    "FusionCommercialization",
+    "AIDataCenter"
+   ],
+   "members": {
+    "CEG": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "VST": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "TLN": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "CCJ": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "OKLO": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Optionality"
+    },
+    "SMR": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Optionality"
+    },
+    "BWXT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "LEU": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Optionality"
+    },
+    "NEE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "BAM": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "URA": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "URNM": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "UEC": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "NXE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "GEV": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "D": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "KAP.LSE": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "SIE.DE": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "OTAandAITravel": {
+   "label": "OTA & AI Travel Distribution",
+   "path": "/id/ID_OTAandAITravel_20260429.html",
+   "date": "2026-04-29",
+   "mega": "transport",
+   "sub_group": "ota_distribution",
+   "sisters": [
+    "HotelChains",
+    "LuxuryTravelCruise",
+    "AgenticAIPlatform"
+   ],
+   "members": {
+    "BKNG": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Booking Holdings"
+    },
+    "EXPE": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Expedia Group"
+    },
+    "TCOM": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Trip.com Group"
+    },
+    "TRIP": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Tripadvisor"
+    },
+    "ABNB": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Airbnb"
+    },
+    "GOOGL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Google"
+    },
+    "MSFT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Microsoft"
+    },
+    "MMYT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "MakeMyTrip"
+    },
+    "SEERA": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Seera Group"
+    },
+    "DESP": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Despegar"
+    },
+    "AAPL": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "OpenAI": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "OpenAI"
+    },
+    "Perplexity": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Perplexity"
+    },
+    "Kayak (BKNG)": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Kayak"
+    }
+   }
+  },
+  "ProductivityCopilot": {
+   "label": "生產力 Copilot / AI 辦公整合",
+   "path": "/id/ID_ProductivityCopilot_20260427.html",
+   "date": "2026-04-27",
+   "mega": "cloud",
+   "sub_group": "agentic_ai",
+   "sisters": [
+    "AgenticAIPlatform",
+    "TokenEconomics"
+   ],
+   "members": {
+    "MSFT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "GOOGL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "CRM": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "ADBE": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "TEAM": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Atlassian Rovo"
+    },
+    "DOCU": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "BOX": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "WDAY": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Workday Illuminate"
+    },
+    "AAPL": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "ZM": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "HUBS": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Breeze AI"
+    }
+   }
+  },
+  "PublicBuilderEntryLevel": {
+   "label": "Public Builder 三巨頭 + 首購族",
+   "path": "/id/ID_PublicBuilderEntryLevel_20260629.html",
+   "date": "2026-06-29",
+   "mega": "housing",
+   "sub_group": "us_builders",
+   "sisters": [],
+   "members": {
+    "DHI": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "LEN": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "PHM": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "NVR": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "FOR": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "MRP": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "TOL": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "KBH": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "TMHC": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "MTH": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "PublishersStructuralReset": {
+   "label": "Publishers / 媒體結構性重置",
+   "path": "/id/ID_PublishersStructuralReset_20260430.html",
+   "date": "2026-04-30",
+   "mega": "cloud",
+   "sub_group": "media_publishing",
+   "sisters": [
+    "AICrossDomainImpact",
+    "AppleIntelligencePlatformThreat",
+    "AIAdRetailMedia"
+   ],
+   "members": {
+    "NYT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "New York Times"
+    },
+    "NWS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "News Corp"
+    },
+    "NWSA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "News Corp Class A"
+    },
+    "DJCO": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Daily Journal"
+    },
+    "IAC": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "IAC"
+    },
+    "SPOT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Spotify"
+    },
+    "GOOGL": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Alphabet"
+    },
+    "AAPL": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "MSFT": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Microsoft"
+    },
+    "META": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "TGNA": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "GCI": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Gannett"
+    },
+    "LEE": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Lee Enterprises"
+    },
+    "BZFD": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "BuzzFeed"
+    }
+   }
+  },
+  "QuantumComputing": {
+   "label": "Quantum Computing",
+   "path": "/id/ID_QuantumComputing_20260427.html",
+   "date": "2026-04-27",
+   "mega": "semi",
+   "sub_group": "emerging_compute",
+   "sisters": [],
+   "members": {
+    "NVDA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "IBM": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "HON": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "IONQ": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "GOOGL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "MSFT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "RGTI": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "QBTS": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "COHR": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "KEYS": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "RestaurantTechSaaS": {
+   "label": "Restaurant Tech SaaS",
+   "path": "/id/ID_RestaurantTechSaaS_20260427.html",
+   "date": "2026-04-27",
+   "mega": "consumer",
+   "sub_group": "restaurant",
+   "sisters": [
+    "USRestaurantChains",
+    "FastCasualBifurcation",
+    "CasualDiningTurnaround"
+   ],
+   "members": {
+    "TOST": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Toast"
+    },
+    "LSPD": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Lightspeed"
+    },
+    "PAR": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "PAR Technology"
+    },
+    "XYZ": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "VYX": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "NCR Voyix"
+    },
+    "FOUR": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Shift4 Payments"
+    },
+    "FI": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Fiserv"
+    },
+    "GPN": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Global Payments"
+    },
+    "DASH": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "DoorDash"
+    },
+    "OLO": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Olo"
+    }
+   }
+  },
+  "RobotaxiAutonomous": {
+   "label": "Robotaxi / 自動駕駛 vertical AI",
+   "path": "/id/ID_RobotaxiAutonomous_20260429.html",
+   "date": "2026-04-29",
+   "mega": "industrial",
+   "sub_group": "autonomous_driving",
+   "sisters": [
+    "AICrossDomainImpact",
+    "AIAcceleratorDemand",
+    "AgenticAIPlatform",
+    "OTAandAITravel"
+   ],
+   "members": {
+    "GOOG": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Alphabet"
+    },
+    "TSLA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Tesla"
+    },
+    "UBER": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Uber"
+    },
+    "NVDA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "NVIDIA"
+    },
+    "BIDU": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Baidu Apollo Go"
+    },
+    "PONY": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Pony.ai"
+    },
+    "WRD": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "WeRide"
+    },
+    "HSAI": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Hesai Group"
+    },
+    "MBLY": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Mobileye"
+    },
+    "AMZN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "AUR": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Aurora Innovation"
+    },
+    "LYFT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Lyft"
+    },
+    "GM": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "General Motors"
+    },
+    "LAZR": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Luminar"
+    },
+    "INVZ": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Innoviz"
+    },
+    "2498.HK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "RoboSense"
+    },
+    "0175.HK": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Geely Auto"
+    },
+    "7203.T": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Toyota"
+    },
+    "WPP": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "WPP"
+    }
+   }
+  },
+  "SiliconPhotonicsCPO": {
+   "label": "矽光子 / CPO — 已併入 AI 網路互連",
+   "path": "/id/ID_SiliconPhotonicsCPO_20260419.html",
+   "date": "2026-04-19",
+   "mega": "",
+   "sub_group": "",
+   "sisters": [],
+   "members": {
+    "2025.TW": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "2026.TW": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "2030.TW": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "EML": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "LITE": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "NVDA": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "PCB": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "SpaceEconomy": {
+   "label": "Space Economy",
+   "path": "/id/ID_SpaceEconomy_20260629.html",
+   "date": "2026-06-29",
+   "mega": "space",
+   "sub_group": "launch",
+   "sisters": [],
+   "members": {
+    "SPCX": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "SpaceX"
+    },
+    "RKLB": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "ASTS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "PL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "IRDM": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "LUNR": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "LMT": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "NOC": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "LHX": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "BAH": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "RTX": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "KTOS": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "AMZN": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "GSAT": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "NVDA": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "BA": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "StablecoinPayments": {
+   "label": "Stablecoin + Payment Infrastructure",
+   "path": "/id/ID_StablecoinPayments_20260430.html",
+   "date": "2026-04-30",
+   "mega": "finance",
+   "sub_group": "stablecoin",
+   "sisters": [
+    "CardNetworkDuopoly"
+   ],
+   "members": {
+    "CRCL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "COIN": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "V": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "MA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "SOFI": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "PYPL": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "SQ": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "NU": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "HOOD": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "BK": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "BLK": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "MELI": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "ADYEY": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "WU": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "TokenEconomics": {
+   "label": "Token 經濟學 / AI 推論商業化",
+   "path": "/id/ID_TokenEconomics_20260427.html",
+   "date": "2026-04-27",
+   "mega": "cloud",
+   "sub_group": "agentic_ai",
+   "sisters": [
+    "AgenticAIPlatform",
+    "ProductivityCopilot"
+   ],
+   "members": {
+    "NVDA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "AVGO": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "GOOGL": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "MSFT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "NET": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "AMD": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "AMZN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "META": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "CRWV": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "AAPL": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "QCOM": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "DDOG": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "Transformers": {
+   "label": "AI DC 電力變壓器 — 已併入 AI 資料中心基建",
+   "path": "/id/ID_Transformers_20260419.html",
+   "date": "2026-04-19",
+   "mega": "",
+   "sub_group": "",
+   "sisters": [],
+   "members": {
+    "GEV": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    },
+    "GOES": {
+     "depth": "",
+     "purity": null,
+     "name": ""
+    }
+   }
+  },
+  "USRestaurantChains": {
+   "label": "US Restaurant Chains",
+   "path": "/id/ID_USRestaurantChains_20260427.html",
+   "date": "2026-04-27",
+   "mega": "consumer",
+   "sub_group": "restaurant",
+   "sisters": [
+    "FastCasualBifurcation",
+    "CasualDiningTurnaround",
+    "RestaurantTechSaaS"
+   ],
+   "members": {
+    "MCD": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "TXRH": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "DRI": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "EAT": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Brinker"
+    },
+    "CMG": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "CAVA": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "DPZ": {
+     "depth": "🔴",
+     "purity": null,
+     "name": ""
+    },
+    "WING": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Wingstop"
+    },
+    "CAKE": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "SHAK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Shake Shack"
+    },
+    "SBUX": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Starbucks"
+    },
+    "YUM": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "QSR": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "WEN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Wendy's"
+    },
+    "JACK": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "PZZA": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Papa John's"
+    },
+    "BLMN": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Bloomin'"
+    }
+   }
+  },
+  "WaferFabEquipment": {
+   "label": "晶圓廠設備（WFE）與測試設備",
+   "path": "/id/ID_WaferFabEquipment_20260905.html",
+   "date": "2026-09-05",
+   "mega": "semi",
+   "sub_group": "equipment_test",
+   "sisters": [
+    "HBM_Supercycle",
+    "MemorySupercycle",
+    "AdvancedPackaging",
+    "AIComputeCapexCycle",
+    "LeadingEdgeNode",
+    "BackEndPackagingEquipment"
+   ],
+   "members": {
+    "ASML": {
+     "depth": "🔴",
+     "purity": 100,
+     "name": ""
+    },
+    "AMAT": {
+     "depth": "🔴",
+     "purity": 95,
+     "name": ""
+    },
+    "LRCX": {
+     "depth": "🔴",
+     "purity": 100,
+     "name": ""
+    },
+    "KLAC": {
+     "depth": "🔴",
+     "purity": 90,
+     "name": ""
+    },
+    "8035.T": {
+     "depth": "🔴",
+     "purity": 95,
+     "name": ""
+    },
+    "6857.T": {
+     "depth": "🔴",
+     "purity": 100,
+     "name": ""
+    },
+    "TER": {
+     "depth": "🟡",
+     "purity": 85,
+     "name": ""
+    },
+    "BESI.AS": {
+     "depth": "🟡",
+     "purity": 100,
+     "name": ""
+    },
+    "7735.T": {
+     "depth": "🟡",
+     "purity": 85,
+     "name": ""
+    },
+    "FORM": {
+     "depth": "🟡",
+     "purity": 90,
+     "name": ""
+    },
+    "ONTO": {
+     "depth": "🟡",
+     "purity": 95,
+     "name": ""
+    },
+    "6501.T": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "002371.SZ": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "688012.SS": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "中微公司"
+    }
+   }
+  },
+  "WealthTransfer25Year": {
+   "label": "Great Wealth Transfer 25-year (Master)",
+   "path": "/id/ID_WealthTransfer25Year_20260429.html",
+   "date": "2026-04-29",
+   "mega": "finance",
+   "sub_group": "wealth_mgmt",
+   "sisters": [
+    "BoomerTravelSupercycle",
+    "GlobalLuxury",
+    "HotelChains",
+    "PublicBuilderEntryLevel"
+   ],
+   "members": {
+    "SCHW": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Charles Schwab"
+    },
+    "MS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Morgan Stanley"
+    },
+    "GS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Goldman Sachs"
+    },
+    "BLK": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "BlackRock"
+    },
+    "NTRS": {
+     "depth": "🔴",
+     "purity": null,
+     "name": "Northern Trust"
+    },
+    "BK": {
+     "depth": "🟡",
+     "purity": null,
+     "name": ""
+    },
+    "BX": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Blackstone"
+    },
+    "KKR": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "KKR"
+    },
+    "AB": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "AllianceBernstein"
+    },
+    "BEN": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Franklin Resources"
+    },
+    "TROW": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "T. Rowe Price"
+    },
+    "MET": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "MetLife"
+    },
+    "PRU": {
+     "depth": "🟡",
+     "purity": null,
+     "name": "Prudential"
+    },
+    "AIG": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "AIG"
+    },
+    "BERY": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Berkshire Hathaway"
+    },
+    "DHI": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "D.R. Horton"
+    },
+    "LEN": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Lennar"
+    },
+    "NVR": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "NVR"
+    },
+    "RMS": {
+     "depth": "🟢",
+     "purity": null,
+     "name": ""
+    },
+    "CFR": {
+     "depth": "🟢",
+     "purity": null,
+     "name": "Richemont"
+    }
+   }
+  }
+ },
+ "auto_companies": {
+  "3661.TW": {
+   "aliases": [
+    "世芯"
+   ]
+  },
+  "2330.TW": {
+   "aliases": [
+    "台積電"
+   ]
+  },
+  "GOOGL": {
+   "aliases": [
+    "Performance Max",
+    "Google",
+    "Alphabet"
+   ]
+  },
+  "TTD": {
+   "aliases": [
+    "Trade Desk"
+   ]
+  },
+  "TGT": {
+   "aliases": [
+    "Target Roundel"
+   ]
+  },
+  "PINS": {
+   "aliases": [
+    "Pinterest"
+   ]
+  },
+  "ROKU": {
+   "aliases": [
+    "Roku"
+   ]
+  },
+  "NFLX": {
+   "aliases": [
+    "Netflix"
+   ]
+  },
+  "APP": {
+   "aliases": [
+    "AppLovin"
+   ]
+  },
+  "WPP": {
+   "aliases": [
+    "WPP"
+   ]
+  },
+  "OMC": {
+   "aliases": [
+    "Omnicom"
+   ]
+  },
+  "IPG": {
+   "aliases": [
+    "Interpublic"
+   ]
+  },
+  "TRI": {
+   "aliases": [
+    "Thomson Reuters"
+   ]
+  },
+  "CHGG": {
+   "aliases": [
+    "Chegg"
+   ]
+  },
+  "NYT": {
+   "aliases": [
+    "NY Times",
+    "New York Times"
+   ]
+  },
+  "TWLO": {
+   "aliases": [
+    "Twilio"
+   ]
+  },
+  "MSFT": {
+   "aliases": [
+    "Security Copilot",
+    "Microsoft",
+    "Entra"
+   ]
+  },
+  "2308.TW": {
+   "aliases": [
+    "台達電"
+   ]
+  },
+  "VRT": {
+   "aliases": [
+    "Vertiv"
+   ]
+  },
+  "ETN": {
+   "aliases": [
+    "艾頓",
+    "Eaton"
+   ]
+  },
+  "SU.PA": {
+   "aliases": [
+    "施耐德",
+    "Schneider Electric",
+    "Schneider"
+   ]
+  },
+  "2301.TW": {
+   "aliases": [
+    "光寶科"
+   ]
+  },
+  "FLEX": {
+   "aliases": [
+    "Flex"
+   ]
+  },
+  "6105.TW": {
+   "aliases": [
+    "康舒"
+   ]
+  },
+  "ON": {
+   "aliases": [
+    "安森美"
+   ]
+  },
+  "TXN": {
+   "aliases": [
+    "德州儀器"
+   ]
+  },
+  "NVTS": {
+   "aliases": [
+    "Navitas"
+   ]
+  },
+  "SNPS": {
+   "aliases": [
+    "Synopsys"
+   ]
+  },
+  "CDNS": {
+   "aliases": [
+    "Cadence"
+   ]
+  },
+  "ARM": {
+   "aliases": [
+    "ARM"
+   ]
+  },
+  "QCOM": {
+   "aliases": [
+    "Qualcomm"
+   ]
+  },
+  "SNDK": {
+   "aliases": [
+    "SanDisk"
+   ]
+  },
+  "005930.KS": {
+   "aliases": [
+    "Samsung",
+    "Samsung Foundry",
+    "三星電子"
+   ]
+  },
+  "PSTG": {
+   "aliases": [
+    "Pure Storage"
+   ]
+  },
+  "MRVL": {
+   "aliases": [
+    "Marvell"
+   ]
+  },
+  "NTAP": {
+   "aliases": [
+    "NetApp"
+   ]
+  },
+  "MU": {
+   "aliases": [
+    "Micron",
+    "美光"
+   ]
+  },
+  "DELL": {
+   "aliases": [
+    "Dell"
+   ]
+  },
+  "SMCI": {
+   "aliases": [
+    "Super Micro"
+   ]
+  },
+  "WDC": {
+   "aliases": [
+    "Western Digital"
+   ]
+  },
+  "4062.T": {
+   "aliases": [
+    "Ibiden"
+   ]
+  },
+  "3037.TW": {
+   "aliases": [
+    "欣興",
+    "Unimicron"
+   ]
+  },
+  "3711.TW": {
+   "aliases": [
+    "日月光"
+   ]
+  },
+  "AMKR": {
+   "aliases": [
+    "Amkor"
+   ]
+  },
+  "ONTO": {
+   "aliases": [
+    "Onto Innovation"
+   ]
+  },
+  "BESI": {
+   "aliases": [
+    "BE Semiconductor"
+   ]
+  },
+  "AMAT": {
+   "aliases": [
+    "應用材料"
+   ]
+  },
+  "KLIC": {
+   "aliases": [
+    "Kulicke & Soffa"
+   ]
+  },
+  "INTC": {
+   "aliases": [
+    "英特爾",
+    "Intel",
+    "Intel Foundry"
+   ]
+  },
+  "CRDO": {
+   "aliases": [
+    "Credo"
+   ]
+  },
+  "HWM": {
+   "aliases": [
+    "Howmet Aerospace"
+   ]
+  },
+  "ATI": {
+   "aliases": [
+    "ATI Inc"
+   ]
+  },
+  "CRS": {
+   "aliases": [
+    "Carpenter Tech"
+   ]
+  },
+  "CSTM": {
+   "aliases": [
+    "Constellium"
+   ]
+  },
+  "MTRN": {
+   "aliases": [
+    "Materion"
+   ]
+  },
+  "RS": {
+   "aliases": [
+    "Reliance"
+   ]
+  },
+  "X": {
+   "aliases": [
+    "U.S. Steel"
+   ]
+  },
+  "HXL": {
+   "aliases": [
+    "Hexcel"
+   ]
+  },
+  "ALC": {
+   "aliases": [
+    "Alcoa"
+   ]
+  },
+  "ALK": {
+   "aliases": [
+    "Alaska"
+   ]
+  },
+  "JBLU": {
+   "aliases": [
+    "JetBlue"
+   ]
+  },
+  "RYAAY": {
+   "aliases": [
+    "Ryanair"
+   ]
+  },
+  "LHA": {
+   "aliases": [
+    "Lufthansa"
+   ]
+  },
+  "IAG": {
+   "aliases": [
+    "International Airlines Group"
+   ]
+  },
+  "AF.PA": {
+   "aliases": [
+    "Air France-KLM"
+   ]
+  },
+  "AXP": {
+   "aliases": [
+    "American Express"
+   ]
+  },
+  "JPM": {
+   "aliases": [
+    "JPMorgan Chase",
+    "JPMorgan"
+   ]
+  },
+  "C": {
+   "aliases": [
+    "Citigroup",
+    "Citi"
+   ]
+  },
+  "SAVE": {
+   "aliases": [
+    "Spirit Airlines"
+   ]
+  },
+  "FRO": {
+   "aliases": [
+    "Frontier Group"
+   ]
+  },
+  "BA": {
+   "aliases": [
+    "Boeing"
+   ]
+  },
+  "AIR.PA": {
+   "aliases": [
+    "Airbus",
+    "Airbus SE"
+   ]
+  },
+  "CPA": {
+   "aliases": [
+    "Copa Holdings"
+   ]
+  },
+  "BMBL": {
+   "aliases": [
+    "Bumble"
+   ]
+  },
+  "YELP": {
+   "aliases": [
+    "Yelp"
+   ]
+  },
+  "BKNG": {
+   "aliases": [
+    "Booking",
+    "Booking Holdings"
+   ]
+  },
+  "EXPE": {
+   "aliases": [
+    "Expedia",
+    "Expedia Group"
+   ]
+  },
+  "ABNB": {
+   "aliases": [
+    "Airbnb"
+   ]
+  },
+  "DASH": {
+   "aliases": [
+    "DoorDash"
+   ]
+  },
+  "UBER": {
+   "aliases": [
+    "Uber"
+   ]
+  },
+  "SHOP": {
+   "aliases": [
+    "Shopify"
+   ]
+  },
+  "CRM": {
+   "aliases": [
+    "Salesforce"
+   ]
+  },
+  "LULU": {
+   "aliases": [
+    "Lululemon"
+   ]
+  },
+  "NKE": {
+   "aliases": [
+    "Nike",
+    "Nike Running"
+   ]
+  },
+  "ONON": {
+   "aliases": [
+    "On Holding"
+   ]
+  },
+  "DECK": {
+   "aliases": [
+    "Deckers HOKA",
+    "Deckers"
+   ]
+  },
+  "COST": {
+   "aliases": [
+    "Costco"
+   ]
+  },
+  "AS": {
+   "aliases": [
+    "Amer Sports"
+   ]
+  },
+  "BIRK": {
+   "aliases": [
+    "Birkenstock"
+   ]
+  },
+  "WWW": {
+   "aliases": [
+    "Wolverine Worldwide"
+   ]
+  },
+  "PUM": {
+   "aliases": [
+    "Puma"
+   ]
+  },
+  "SKX": {
+   "aliases": [
+    "Skechers"
+   ]
+  },
+  "042700.KS": {
+   "aliases": [
+    "Hanmi"
+   ]
+  },
+  "TXRH": {
+   "aliases": [
+    "Texas Roadhouse"
+   ]
+  },
+  "DRI": {
+   "aliases": [
+    "Darden"
+   ]
+  },
+  "KO": {
+   "aliases": [
+    "Coca-Cola"
+   ]
+  },
+  "PEP": {
+   "aliases": [
+    "PepsiCo"
+   ]
+  },
+  "MNST": {
+   "aliases": [
+    "Monster"
+   ]
+  },
+  "CELH": {
+   "aliases": [
+    "Celsius"
+   ]
+  },
+  "KDP": {
+   "aliases": [
+    "Keurig Dr Pepper"
+   ]
+  },
+  "STZ": {
+   "aliases": [
+    "Constellation"
+   ]
+  },
+  "BUD": {
+   "aliases": [
+    "AB InBev"
+   ]
+  },
+  "FIZZ": {
+   "aliases": [
+    "National Beverage"
+   ]
+  },
+  "TAP": {
+   "aliases": [
+    "Molson Coors"
+   ]
+  },
+  "DEO": {
+   "aliases": [
+    "Diageo"
+   ]
+  },
+  "SBUX": {
+   "aliases": [
+    "Starbucks"
+   ]
+  },
+  "BFI": {
+   "aliases": [
+    "BellRing Brands",
+    "BurgerFi",
+    "BellRing"
+   ]
+  },
+  "RCL": {
+   "aliases": [
+    "Royal Caribbean"
+   ]
+  },
+  "VIK": {
+   "aliases": [
+    "Viking"
+   ]
+  },
+  "H": {
+   "aliases": [
+    "Hyatt"
+   ]
+  },
+  "HLT": {
+   "aliases": [
+    "Hilton"
+   ]
+  },
+  "MAR": {
+   "aliases": [
+    "Marriott"
+   ]
+  },
+  "AENA": {
+   "aliases": [
+    "Aena"
+   ]
+  },
+  "HST": {
+   "aliases": [
+    "Host Hotels REIT",
+    "Host Hotels & Resorts"
+   ]
+  },
+  "RHP": {
+   "aliases": [
+    "Ryman",
+    "Ryman Hospitality"
+   ]
+  },
+  "UAL": {
+   "aliases": [
+    "United Airlines"
+   ]
+  },
+  "NCLH": {
+   "aliases": [
+    "Norwegian Cruise",
+    "Norwegian"
+   ]
+  },
+  "CCL": {
+   "aliases": [
+    "Carnival",
+    "Carnival Cruise"
+   ]
+  },
+  "CFR": {
+   "aliases": [
+    "Richemont"
+   ]
+  },
+  "SIX": {
+   "aliases": [
+    "Six Senses"
+   ]
+  },
+  "V": {
+   "aliases": [
+    "Visa"
+   ]
+  },
+  "MA": {
+   "aliases": [
+    "Mastercard"
+   ]
+  },
+  "COF": {
+   "aliases": [
+    "Capital One"
+   ]
+  },
+  "PYPL": {
+   "aliases": [
+    "PayPal"
+   ]
+  },
+  "FI": {
+   "aliases": [
+    "Fiserv"
+   ]
+  },
+  "FOUR": {
+   "aliases": [
+    "Shift4 Payments"
+   ]
+  },
+  "GPN": {
+   "aliases": [
+    "Global Payments"
+   ]
+  },
+  "ADYEN": {
+   "aliases": [
+    "Adyen"
+   ]
+  },
+  "DLO": {
+   "aliases": [
+    "DLocal"
+   ]
+  },
+  "STNE": {
+   "aliases": [
+    "StoneCo"
+   ]
+  },
+  "PAGS": {
+   "aliases": [
+    "PagSeguro"
+   ]
+  },
+  "LVS": {
+   "aliases": [
+    "Las Vegas Sands"
+   ]
+  },
+  "WYNN": {
+   "aliases": [
+    "Wynn Resorts"
+   ]
+  },
+  "MGM": {
+   "aliases": [
+    "MGM Resorts"
+   ]
+  },
+  "CZR": {
+   "aliases": [
+    "Caesars Entertainment"
+   ]
+  },
+  "DKNG": {
+   "aliases": [
+    "DraftKings"
+   ]
+  },
+  "FLUT": {
+   "aliases": [
+    "Flutter"
+   ]
+  },
+  "PENN": {
+   "aliases": [
+    "Penn Entertainment"
+   ]
+  },
+  "BYD": {
+   "aliases": [
+    "Boyd Gaming"
+   ]
+  },
+  "BALY": {
+   "aliases": [
+    "Bally's Corporation"
+   ]
+  },
+  "027.HK": {
+   "aliases": [
+    "Galaxy Entertainment"
+   ]
+  },
+  "1928.HK": {
+   "aliases": [
+    "Sands China"
+   ]
+  },
+  "1128.HK": {
+   "aliases": [
+    "Wynn Macau"
+   ]
+  },
+  "880.HK": {
+   "aliases": [
+    "SJM Holdings"
+   ]
+  },
+  "6883.HK": {
+   "aliases": [
+    "Melco Resorts"
+   ]
+  },
+  "2282.HK": {
+   "aliases": [
+    "MGM China"
+   ]
+  },
+  "GENS.SI": {
+   "aliases": [
+    "Genting Singapore"
+   ]
+  },
+  "4661.T": {
+   "aliases": [
+    "Oriental Land"
+   ]
+  },
+  "CMG": {
+   "aliases": [
+    "Chipotle"
+   ]
+  },
+  "DPZ": {
+   "aliases": [
+    "Domino's"
+   ]
+  },
+  "WING": {
+   "aliases": [
+    "Wingstop"
+   ]
+  },
+  "CBRL": {
+   "aliases": [
+    "Cracker Barrel"
+   ]
+  },
+  "CAKE": {
+   "aliases": [
+    "Cheesecake Factory"
+   ]
+  },
+  "SHAK": {
+   "aliases": [
+    "Shake Shack"
+   ]
+  },
+  "BROS": {
+   "aliases": [
+    "Dutch Bros"
+   ]
+  },
+  "FWRG": {
+   "aliases": [
+    "First Watch"
+   ]
+  },
+  "SG": {
+   "aliases": [
+    "Sweetgreen"
+   ]
+  },
+  "KRUS": {
+   "aliases": [
+    "Kura Sushi"
+   ]
+  },
+  "O": {
+   "aliases": [
+    "Realty Income"
+   ]
+  },
+  "TOST": {
+   "aliases": [
+    "Toast"
+   ]
+  },
+  "DKS": {
+   "aliases": [
+    "Dick's Sporting Goods"
+   ]
+  },
+  "JD": {
+   "aliases": [
+    "JD Sports Fashion",
+    "JD.com"
+   ]
+  },
+  "KSS": {
+   "aliases": [
+    "Kohl's"
+   ]
+  },
+  "M": {
+   "aliases": [
+    "Macy's"
+   ]
+  },
+  "JWN": {
+   "aliases": [
+    "Nordstrom"
+   ]
+  },
+  "2020.HK": {
+   "aliases": [
+    "Anta Sports"
+   ]
+  },
+  "2331.HK": {
+   "aliases": [
+    "Li-Ning"
+   ]
+  },
+  "1368.HK": {
+   "aliases": [
+    "Xtep"
+   ]
+  },
+  "ADDYY": {
+   "aliases": [
+    "Adidas"
+   ]
+  },
+  "BAC": {
+   "aliases": [
+    "Bank of America"
+   ]
+  },
+  "IHG": {
+   "aliases": [
+    "IHG"
+   ]
+  },
+  "DFS": {
+   "aliases": [
+    "Discover"
+   ]
+  },
+  "GE": {
+   "aliases": [
+    "GE Aerospace"
+   ]
+  },
+  "RTX": {
+   "aliases": [
+    "RTX Corp"
+   ]
+  },
+  "SAF.PA": {
+   "aliases": [
+    "Safran"
+   ]
+  },
+  "MTU.DE": {
+   "aliases": [
+    "MTU Aero Engines"
+   ]
+  },
+  "RR.L": {
+   "aliases": [
+    "Rolls-Royce"
+   ]
+  },
+  "TDG": {
+   "aliases": [
+    "TransDigm"
+   ]
+  },
+  "HEI": {
+   "aliases": [
+    "Heico"
+   ]
+  },
+  "SPR": {
+   "aliases": [
+    "Spirit AeroSystems"
+   ]
+  },
+  "GD": {
+   "aliases": [
+    "General Dynamics"
+   ]
+  },
+  "ERJ": {
+   "aliases": [
+    "Embraer"
+   ]
+  },
+  "FCX": {
+   "aliases": [
+    "Freeport-McMoRan"
+   ]
+  },
+  "SCCO": {
+   "aliases": [
+    "Southern Copper"
+   ]
+  },
+  "BHP": {
+   "aliases": [
+    "BHP Group"
+   ]
+  },
+  "RIO": {
+   "aliases": [
+    "Rio Tinto"
+   ]
+  },
+  "TECK": {
+   "aliases": [
+    "Teck Resources"
+   ]
+  },
+  "GLEN": {
+   "aliases": [
+    "Glencore"
+   ]
+  },
+  "AAL": {
+   "aliases": [
+    "Anglo American",
+    "American Airlines"
+   ]
+  },
+  "ANTO": {
+   "aliases": [
+    "Antofagasta"
+   ]
+  },
+  "FM": {
+   "aliases": [
+    "First Quantum"
+   ]
+  },
+  "VALE": {
+   "aliases": [
+    "Vale"
+   ]
+  },
+  "IVN": {
+   "aliases": [
+    "Ivanhoe Mines"
+   ]
+  },
+  "HBM": {
+   "aliases": [
+    "Hudbay Minerals"
+   ]
+  },
+  "CMP": {
+   "aliases": [
+    "Codelco"
+   ]
+  },
+  "NET": {
+   "aliases": [
+    "Zero Trust",
+    "Access"
+   ]
+  },
+  "CVLT": {
+   "aliases": [
+    "Commvault"
+   ]
+  },
+  "CRWD": {
+   "aliases": [
+    "Falcon Data Protection"
+   ]
+  },
+  "LMT": {
+   "aliases": [
+    "Lockheed Martin"
+   ]
+  },
+  "NOC": {
+   "aliases": [
+    "Northrop Grumman"
+   ]
+  },
+  "HII": {
+   "aliases": [
+    "Huntington Ingalls"
+   ]
+  },
+  "PLTR": {
+   "aliases": [
+    "Palantir"
+   ]
+  },
+  "KTOS": {
+   "aliases": [
+    "Kratos Defense"
+   ]
+  },
+  "AVAV": {
+   "aliases": [
+    "AeroVironment"
+   ]
+  },
+  "LDOS": {
+   "aliases": [
+    "Leidos"
+   ]
+  },
+  "LDO.MI": {
+   "aliases": [
+    "Leonardo"
+   ]
+  },
+  "RHM.DE": {
+   "aliases": [
+    "Rheinmetall"
+   ]
+  },
+  "KNDS": {
+   "aliases": [
+    "KNDS Group"
+   ]
+  },
+  "BAESY": {
+   "aliases": [
+    "BAE Systems"
+   ]
+  },
+  "Anduril": {
+   "aliases": [
+    "Anduril Industries"
+   ]
+  },
+  "SAAB-B.ST": {
+   "aliases": [
+    "Saab"
+   ]
+  },
+  "L3HRS": {
+   "aliases": [
+    "L3Harris"
+   ]
+  },
+  "RKLB": {
+   "aliases": [
+    "Rocket Lab"
+   ]
+  },
+  "BKSY": {
+   "aliases": [
+    "BlackSky"
+   ]
+  },
+  "PL": {
+   "aliases": [
+    "Planet Labs"
+   ]
+  },
+  "MAXR": {
+   "aliases": [
+    "Maxar"
+   ]
+  },
+  "BWXT": {
+   "aliases": [
+    "BWX Technologies"
+   ]
+  },
+  "TXT": {
+   "aliases": [
+    "Textron"
+   ]
+  },
+  "MRCY": {
+   "aliases": [
+    "Mercury Systems"
+   ]
+  },
+  "OSK": {
+   "aliases": [
+    "Oshkosh"
+   ]
+  },
+  "HAG.DE": {
+   "aliases": [
+    "Hensoldt"
+   ]
+  },
+  "DAS.PA": {
+   "aliases": [
+    "Dassault Aviation"
+   ]
+  },
+  "TKA.DE": {
+   "aliases": [
+    "ThyssenKrupp Marine Systems"
+   ]
+  },
+  "SAIC": {
+   "aliases": [
+    "Science Applications"
+   ]
+  },
+  "BAH": {
+   "aliases": [
+    "Booz Allen Hamilton"
+   ]
+  },
+  "DLTR": {
+   "aliases": [
+    "Dollar Tree"
+   ]
+  },
+  "DG": {
+   "aliases": [
+    "Dollar General"
+   ]
+  },
+  "FIVE": {
+   "aliases": [
+    "Five Below"
+   ]
+  },
+  "OLLI": {
+   "aliases": [
+    "Ollie's Bargain Outlet"
+   ]
+  },
+  "WMT": {
+   "aliases": [
+    "Walmart"
+   ]
+  },
+  "NDLS": {
+   "aliases": [
+    "Noodles"
+   ]
+  },
+  "BIG": {
+   "aliases": [
+    "Big Lots"
+   ]
+  },
+  "CAVA": {
+   "aliases": [
+    "CAVA Mediterranean",
+    "CAVA"
+   ]
+  },
+  "YUM": {
+   "aliases": [
+    "Yum Brands"
+   ]
+  },
+  "LOCO": {
+   "aliases": [
+    "El Pollo Loco"
+   ]
+  },
+  "PZZA": {
+   "aliases": [
+    "Papa John's"
+   ]
+  },
+  "MCD": {
+   "aliases": [
+    "McDonald's"
+   ]
+  },
+  "BRKR": {
+   "aliases": [
+    "Bruker Energy & Supercon"
+   ]
+  },
+  "AMSC": {
+   "aliases": [
+    "American Superconductor"
+   ]
+  },
+  "GEV": {
+   "aliases": [
+    "GE Vernova"
+   ]
+  },
+  "SIE.DE": {
+   "aliases": [
+    "Siemens Energy",
+    "Siemens"
+   ]
+  },
+  "MOG-A": {
+   "aliases": [
+    "Moog Inc."
+   ]
+  },
+  "HEICO": {
+   "aliases": [
+    "HEICO"
+   ]
+  },
+  "APD": {
+   "aliases": [
+    "Air Products"
+   ]
+  },
+  "LIN": {
+   "aliases": [
+    "Linde"
+   ]
+  },
+  "GOOG": {
+   "aliases": [
+    "Google",
+    "Alphabet"
+   ]
+  },
+  "CCJ": {
+   "aliases": [
+    "Cameco"
+   ]
+  },
+  "LLY": {
+   "aliases": [
+    "Eli Lilly"
+   ]
+  },
+  "NVO": {
+   "aliases": [
+    "Novo Nordisk"
+   ]
+  },
+  "STVN": {
+   "aliases": [
+    "Stevanato",
+    "Stevanato Group"
+   ]
+  },
+  "1A8.DE": {
+   "aliases": [
+    "SCHOTT Pharma"
+   ]
+  },
+  "DNUT": {
+   "aliases": [
+    "Krispy Kreme"
+   ]
+  },
+  "HSY": {
+   "aliases": [
+    "Hershey"
+   ]
+  },
+  "KHC": {
+   "aliases": [
+    "Kraft Heinz"
+   ]
+  },
+  "MDLZ": {
+   "aliases": [
+    "Mondelez"
+   ]
+  },
+  "DAL": {
+   "aliases": [
+    "Delta Air Lines"
+   ]
+  },
+  "LUV": {
+   "aliases": [
+    "Southwest Airlines"
+   ]
+  },
+  "PLNT": {
+   "aliases": [
+    "Planet Fitness"
+   ]
+  },
+  "PTON": {
+   "aliases": [
+    "Peloton"
+   ]
+  },
+  "HIMS": {
+   "aliases": [
+    "Hims & Hers"
+   ]
+  },
+  "GRMN": {
+   "aliases": [
+    "Garmin"
+   ]
+  },
+  "MET": {
+   "aliases": [
+    "MetLife"
+   ]
+  },
+  "PRU": {
+   "aliases": [
+    "Prudential Financial",
+    "Prudential"
+   ]
+  },
+  "AFL": {
+   "aliases": [
+    "Aflac"
+   ]
+  },
+  "RGA": {
+   "aliases": [
+    "Reinsurance Group of America"
+   ]
+  },
+  "UNH": {
+   "aliases": [
+    "UnitedHealth"
+   ]
+  },
+  "CI": {
+   "aliases": [
+    "Cigna"
+   ]
+  },
+  "ELV": {
+   "aliases": [
+    "Elevance Health"
+   ]
+  },
+  "CVS": {
+   "aliases": [
+    "CVS Health"
+   ]
+  },
+  "UNM": {
+   "aliases": [
+    "Unum"
+   ]
+  },
+  "GIS": {
+   "aliases": [
+    "General Mills"
+   ]
+  },
+  "CAG": {
+   "aliases": [
+    "Conagra"
+   ]
+  },
+  "CPB": {
+   "aliases": [
+    "Campbell"
+   ]
+  },
+  "NSRGY": {
+   "aliases": [
+    "Nestle"
+   ]
+  },
+  "TSN": {
+   "aliases": [
+    "Tyson"
+   ]
+  },
+  "DANOY": {
+   "aliases": [
+    "Danone"
+   ]
+  },
+  "SJM": {
+   "aliases": [
+    "JM Smucker"
+   ]
+  },
+  "MKC": {
+   "aliases": [
+    "McCormick"
+   ]
+  },
+  "BLMN": {
+   "aliases": [
+    "Bloomin' Outback",
+    "Bloomin'"
+   ]
+  },
+  "WEN": {
+   "aliases": [
+    "Wendy's"
+   ]
+  },
+  "EAT": {
+   "aliases": [
+    "Brinker"
+   ]
+  },
+  "AMGN": {
+   "aliases": [
+    "Amgen"
+   ]
+  },
+  "RHHBY": {
+   "aliases": [
+    "Roche"
+   ]
+  },
+  "VKTX": {
+   "aliases": [
+    "Viking Therapeutics"
+   ]
+  },
+  "ALT": {
+   "aliases": [
+    "Altimmune"
+   ]
+  },
+  "SMMT": {
+   "aliases": [
+    "Summit Therapeutics"
+   ]
+  },
+  "PFE": {
+   "aliases": [
+    "Pfizer"
+   ]
+  },
+  "GXI": {
+   "aliases": [
+    "Gerresheimer"
+   ]
+  },
+  "1801.HK": {
+   "aliases": [
+    "Innovent Biologics"
+   ]
+  },
+  "ZEAL.CO": {
+   "aliases": [
+    "Zealand Pharma"
+   ]
+  },
+  "GLW": {
+   "aliases": [
+    "Corning"
+   ]
+  },
+  "AMD": {
+   "aliases": [
+    "AMD"
+   ]
+  },
+  "MS": {
+   "aliases": [
+    "Morgan Stanley"
+   ]
+  },
+  "GS": {
+   "aliases": [
+    "Goldman Sachs"
+   ]
+  },
+  "WFC": {
+   "aliases": [
+    "Wells Fargo"
+   ]
+  },
+  "UBS": {
+   "aliases": [
+    "UBS"
+   ]
+  },
+  "HSBC": {
+   "aliases": [
+    "HSBC"
+   ]
+  },
+  "BARC": {
+   "aliases": [
+    "Barclays"
+   ]
+  },
+  "DB": {
+   "aliases": [
+    "Deutsche Bank"
+   ]
+  },
+  "MUFG": {
+   "aliases": [
+    "MUFG"
+   ]
+  },
+  "SMFG": {
+   "aliases": [
+    "Sumitomo Mitsui"
+   ]
+  },
+  "MFG": {
+   "aliases": [
+    "Mizuho"
+   ]
+  },
+  "MELI": {
+   "aliases": [
+    "MercadoLibre"
+   ]
+  },
+  "PDD": {
+   "aliases": [
+    "Pinduoduo",
+    "Temu"
+   ]
+  },
+  "SE": {
+   "aliases": [
+    "Sea Limited"
+   ]
+  },
+  "BABA": {
+   "aliases": [
+    "Alibaba",
+    "Alibaba Cloud"
+   ]
+  },
+  "CPNG": {
+   "aliases": [
+    "Coupang"
+   ]
+  },
+  "ETSY": {
+   "aliases": [
+    "Etsy"
+   ]
+  },
+  "TPR": {
+   "aliases": [
+    "Tapestry"
+   ]
+  },
+  "KER": {
+   "aliases": [
+    "Kering"
+   ]
+  },
+  "1913.HK": {
+   "aliases": [
+    "Prada"
+   ]
+  },
+  "BRBY": {
+   "aliases": [
+    "Burberry"
+   ]
+  },
+  "CPRI": {
+   "aliases": [
+    "Capri"
+   ]
+  },
+  "PNDORA": {
+   "aliases": [
+    "Pandora"
+   ]
+  },
+  "ATZ": {
+   "aliases": [
+    "Aritzia"
+   ]
+  },
+  "MONC": {
+   "aliases": [
+    "Moncler"
+   ]
+  },
+  "CAT": {
+   "aliases": [
+    "Caterpillar"
+   ]
+  },
+  "DE": {
+   "aliases": [
+    "Deere"
+   ]
+  },
+  "6301.T": {
+   "aliases": [
+    "Komatsu"
+   ]
+  },
+  "AGCO": {
+   "aliases": [
+    "AGCO Corp"
+   ]
+  },
+  "CNH": {
+   "aliases": [
+    "CNH Industrial"
+   ]
+  },
+  "PCAR": {
+   "aliases": [
+    "PACCAR"
+   ]
+  },
+  "TEX": {
+   "aliases": [
+    "Terex"
+   ]
+  },
+  "URI": {
+   "aliases": [
+    "United Rentals"
+   ]
+  },
+  "MTW": {
+   "aliases": [
+    "Manitowoc"
+   ]
+  },
+  "600031.SS": {
+   "aliases": [
+    "三一重工"
+   ]
+  },
+  "AB.ST": {
+   "aliases": [
+    "Atlas Copco"
+   ]
+  },
+  "CHH": {
+   "aliases": [
+    "Choice Hotels"
+   ]
+  },
+  "WH": {
+   "aliases": [
+    "Wyndham"
+   ]
+  },
+  "TSLA": {
+   "aliases": [
+    "Optimus V3",
+    "Tesla"
+   ]
+  },
+  "HMC": {
+   "aliases": [
+    "Hyundai"
+   ]
+  },
+  "6324.T": {
+   "aliases": [
+    "Harmonic Drive"
+   ]
+  },
+  "6268.T": {
+   "aliases": [
+    "Nabtesco"
+   ]
+  },
+  "ABB": {
+   "aliases": [
+    "ABB Robotics"
+   ]
+  },
+  "TER": {
+   "aliases": [
+    "Teradyne"
+   ]
+  },
+  "CRWV": {
+   "aliases": [
+    "CoreWeave"
+   ]
+  },
+  "HON": {
+   "aliases": [
+    "Honeywell"
+   ]
+  },
+  "ROK": {
+   "aliases": [
+    "Rockwell"
+   ]
+  },
+  "EMR": {
+   "aliases": [
+    "Emerson"
+   ]
+  },
+  "6506.T": {
+   "aliases": [
+    "Yaskawa"
+   ]
+  },
+  "PH": {
+   "aliases": [
+    "Parker Hannifin"
+   ]
+  },
+  "ITT": {
+   "aliases": [
+    "ITT Inc"
+   ]
+  },
+  "300124.SZ": {
+   "aliases": [
+    "汇川技术"
+   ]
+  },
+  "MGLU3.SA": {
+   "aliases": [
+    "Magazine Luiza"
+   ]
+  },
+  "PANW": {
+   "aliases": [
+    "Prisma AIRS 3.0"
+   ]
+  },
+  "S": {
+   "aliases": [
+    "Purple AI"
+   ]
+  },
+  "CSCO": {
+   "aliases": [
+    "Cisco AI Defense"
+   ]
+  },
+  "6920.T": {
+   "aliases": [
+    "Lasertec"
+   ]
+  },
+  "8035.T": {
+   "aliases": [
+    "Tokyo Electron"
+   ]
+  },
+  "7741.T": {
+   "aliases": [
+    "Hoya"
+   ]
+  },
+  "4063.T": {
+   "aliases": [
+    "信越化學"
+   ]
+  },
+  "3017.TW": {
+   "aliases": [
+    "奇鋐"
+   ]
+  },
+  "3324.TW": {
+   "aliases": [
+    "雙鴻"
+   ]
+  },
+  "6805.TW": {
+   "aliases": [
+    "富世達"
+   ]
+  },
+  "8996.TW": {
+   "aliases": [
+    "高力"
+   ]
+  },
+  "ECL": {
+   "aliases": [
+    "Ecolab"
+   ]
+  },
+  "002837.SZ": {
+   "aliases": [
+    "英維克"
+   ]
+  },
+  "TT": {
+   "aliases": [
+    "Trane"
+   ]
+  },
+  "DG.PA": {
+   "aliases": [
+    "VINCI Concessions"
+   ]
+  },
+  "FRA.DE": {
+   "aliases": [
+    "Fraport"
+   ]
+  },
+  "TRIP": {
+   "aliases": [
+    "Tripadvisor"
+   ]
+  },
+  "285A.T": {
+   "aliases": [
+    "鎧俠"
+   ]
+  },
+  "STX": {
+   "aliases": [
+    "Seagate"
+   ]
+  },
+  "6857.T": {
+   "aliases": [
+    "愛德萬測試"
+   ]
+  },
+  "LRCX": {
+   "aliases": [
+    "科林研發"
+   ]
+  },
+  "603986.SS": {
+   "aliases": [
+    "兆易創新"
+   ]
+  },
+  "OKLO": {
+   "aliases": [
+    "Optionality"
+   ]
+  },
+  "SMR": {
+   "aliases": [
+    "Optionality"
+   ]
+  },
+  "LEU": {
+   "aliases": [
+    "Optionality"
+   ]
+  },
+  "TCOM": {
+   "aliases": [
+    "Trip.com Group"
+   ]
+  },
+  "MMYT": {
+   "aliases": [
+    "MakeMyTrip"
+   ]
+  },
+  "SEERA": {
+   "aliases": [
+    "Seera Group"
+   ]
+  },
+  "DESP": {
+   "aliases": [
+    "Despegar"
+   ]
+  },
+  "OpenAI": {
+   "aliases": [
+    "OpenAI"
+   ]
+  },
+  "Perplexity": {
+   "aliases": [
+    "Perplexity"
+   ]
+  },
+  "Kayak (BKNG)": {
+   "aliases": [
+    "Kayak"
+   ]
+  },
+  "TEAM": {
+   "aliases": [
+    "Atlassian Rovo"
+   ]
+  },
+  "WDAY": {
+   "aliases": [
+    "Workday Illuminate"
+   ]
+  },
+  "HUBS": {
+   "aliases": [
+    "Breeze AI"
+   ]
+  },
+  "NWS": {
+   "aliases": [
+    "News Corp"
+   ]
+  },
+  "NWSA": {
+   "aliases": [
+    "News Corp Class A"
+   ]
+  },
+  "DJCO": {
+   "aliases": [
+    "Daily Journal"
+   ]
+  },
+  "IAC": {
+   "aliases": [
+    "IAC"
+   ]
+  },
+  "SPOT": {
+   "aliases": [
+    "Spotify"
+   ]
+  },
+  "GCI": {
+   "aliases": [
+    "Gannett"
+   ]
+  },
+  "LEE": {
+   "aliases": [
+    "Lee Enterprises"
+   ]
+  },
+  "BZFD": {
+   "aliases": [
+    "BuzzFeed"
+   ]
+  },
+  "LSPD": {
+   "aliases": [
+    "Lightspeed"
+   ]
+  },
+  "PAR": {
+   "aliases": [
+    "PAR Technology"
+   ]
+  },
+  "VYX": {
+   "aliases": [
+    "NCR Voyix"
+   ]
+  },
+  "OLO": {
+   "aliases": [
+    "Olo"
+   ]
+  },
+  "NVDA": {
+   "aliases": [
+    "NVIDIA"
+   ]
+  },
+  "BIDU": {
+   "aliases": [
+    "Baidu Apollo Go"
+   ]
+  },
+  "PONY": {
+   "aliases": [
+    "Pony.ai"
+   ]
+  },
+  "WRD": {
+   "aliases": [
+    "WeRide"
+   ]
+  },
+  "HSAI": {
+   "aliases": [
+    "Hesai Group"
+   ]
+  },
+  "MBLY": {
+   "aliases": [
+    "Mobileye"
+   ]
+  },
+  "AUR": {
+   "aliases": [
+    "Aurora Innovation"
+   ]
+  },
+  "LYFT": {
+   "aliases": [
+    "Lyft"
+   ]
+  },
+  "GM": {
+   "aliases": [
+    "General Motors"
+   ]
+  },
+  "LAZR": {
+   "aliases": [
+    "Luminar"
+   ]
+  },
+  "INVZ": {
+   "aliases": [
+    "Innoviz"
+   ]
+  },
+  "2498.HK": {
+   "aliases": [
+    "RoboSense"
+   ]
+  },
+  "0175.HK": {
+   "aliases": [
+    "Geely Auto"
+   ]
+  },
+  "7203.T": {
+   "aliases": [
+    "Toyota"
+   ]
+  },
+  "SPCX": {
+   "aliases": [
+    "SpaceX"
+   ]
+  },
+  "688012.SS": {
+   "aliases": [
+    "中微公司"
+   ]
+  },
+  "SCHW": {
+   "aliases": [
+    "Charles Schwab"
+   ]
+  },
+  "BLK": {
+   "aliases": [
+    "BlackRock"
+   ]
+  },
+  "NTRS": {
+   "aliases": [
+    "Northern Trust"
+   ]
+  },
+  "BX": {
+   "aliases": [
+    "Blackstone"
+   ]
+  },
+  "KKR": {
+   "aliases": [
+    "KKR"
+   ]
+  },
+  "AB": {
+   "aliases": [
+    "AllianceBernstein"
+   ]
+  },
+  "BEN": {
+   "aliases": [
+    "Franklin Resources"
+   ]
+  },
+  "TROW": {
+   "aliases": [
+    "T. Rowe Price"
+   ]
+  },
+  "AIG": {
+   "aliases": [
+    "AIG"
+   ]
+  },
+  "BERY": {
+   "aliases": [
+    "Berkshire Hathaway"
+   ]
+  },
+  "DHI": {
+   "aliases": [
+    "D.R. Horton"
+   ]
+  },
+  "LEN": {
+   "aliases": [
+    "Lennar"
+   ]
+  },
+  "NVR": {
+   "aliases": [
+    "NVR"
+   ]
+  }
+ },
+ "macro_reports": {
+  "AICapexMacro": {
+   "topic": "AI 資本支出宏觀傳導——超級週期的燃料、融資結構與盈餘傳導",
+   "path": "/macro/MACRO_AICapexMacro_20260710.html",
+   "date": "2026-07-10",
+   "kill_metrics": [
+    {
+     "metric": "四大 hyperscaler 合計自由現金流",
+     "source": "公司 10-Q／財報"
+    },
+    {
+     "metric": "四大 capex 年增速／指引",
+     "source": "公司 capex 指引（法說）"
+    },
+    {
+     "metric": "設備折舊年限／GPU 減值",
+     "source": "公司財報折舊政策附註"
+    },
+    {
+     "metric": "AI 發行人信用利差",
+     "source": "一級市場發行與 OAS"
+    },
+    {
+     "metric": "AI 終端變現缺口",
+     "source": "Bain／Sequoia／企業財報"
+    },
+    {
+     "metric": "資訊處理投資對 GDP 增長貢獻",
+     "source": "BEA 固定投資分項（Furman 式拆解）"
+    }
+   ]
+  },
+  "ChinaEconomy": {
+   "topic": "中國經濟——信用週期與政策傳導",
+   "path": "/macro/MACRO_ChinaEconomy_20260709.html",
+   "date": "2026-07-09",
+   "kill_metrics": [
+    {
+     "metric": "零售銷售年增",
+     "source": "NBS 社會消費品零售總額"
+    },
+    {
+     "metric": "PPI 年增",
+     "source": "NBS PPI"
+    },
+    {
+     "metric": "社融存量年增／貸款分項",
+     "source": "PBoC 金融統計"
+    },
+    {
+     "metric": "70 城新房價格年增",
+     "source": "NBS 70 城房價"
+    },
+    {
+     "metric": "USD/CNY 與外儲",
+     "source": "PBoC 中間價／SAFE"
+    },
+    {
+     "metric": "中國 10Y 殖利率",
+     "source": "ChinaBond／財政部曲線"
+    }
+   ]
+  },
+  "DollarCycle": {
+   "topic": "美元週期——儲備地位、利差與部位的三層拆解",
+   "path": "/macro/MACRO_DollarCycle_20260710.html",
+   "date": "2026-07-10",
+   "kill_metrics": [
+    {
+     "metric": "DXY 技術位置＋COT",
+     "source": "ICE DXY／CFTC COT"
+    },
+    {
+     "metric": "美元 COT 擁擠去化",
+     "source": "CFTC COT"
+    },
+    {
+     "metric": "Fed 政策方向（利差層）",
+     "source": "FOMC 聲明／SEP"
+    },
+    {
+     "metric": "美歐增長差",
+     "source": "IMF WEO 7 月更新／各國 GDP"
+    },
+    {
+     "metric": "雙赤字／美元信譽",
+     "source": "BEA／CBO／Treasury"
+    },
+    {
+     "metric": "COFER 美元儲備份額（典範層）",
+     "source": "IMF COFER"
+    },
+    {
+     "metric": "台幣／台股外資流（傳導）",
+     "source": "央行／TWSE"
+    }
+   ]
+  },
+  "GlobalLiquidity": {
+   "topic": "全球流動性循環——央行資產負債表、美元流動性管路與跨境資金流的傳導",
+   "path": "/macro/MACRO_GlobalLiquidity_20260708.html",
+   "date": "2026-07-08",
+   "kill_metrics": [
+    {
+     "metric": "SOFR−IORB 利差",
+     "source": "NY Fed SOFR／IORB·FRED"
+    },
+    {
+     "metric": "銀行準備金／GDP",
+     "source": "Fed H.4.1＋BEA GDP"
+    },
+    {
+     "metric": "USDJPY／BoJ carry",
+     "source": "BoJ 聲明·USDJPY"
+    },
+    {
+     "metric": "DXY／美元 COT",
+     "source": "DXY·CFTC COT（本站 regime／crowding）"
+    },
+    {
+     "metric": "CrossBorder GLI 全球流動性",
+     "source": "CrossBorder Capital GLI"
+    },
+    {
+     "metric": "中國信用脈衝",
+     "source": "PBoC／中國社融數據"
+    }
+   ]
+  },
+  "TaiwanEconomy": {
+   "topic": "台灣經濟——現況與未來 6-12 個月展望",
+   "path": "/macro/MACRO_TaiwanEconomy_20260708.html",
+   "date": "2026-07-08",
+   "kill_metrics": [
+    {
+     "metric": "外銷訂單 3 個月移動平均 YoY 轉負（連紅中斷）",
+     "source": "經濟部統計處"
+    },
+    {
+     "metric": "電子零組件/半導體出口 YoY 連兩月轉負",
+     "source": "財政部關務署"
+    },
+    {
+     "metric": "TSMC 下修全年營收 guidance",
+     "source": "TSMC IR"
+    },
+    {
+     "metric": "超大雲端買家 capex 指引轉保守",
+     "source": "各公司財報"
+    },
+    {
+     "metric": "CPI 迫使 CBC 轉鷹",
+     "source": "主計總處、中央銀行"
+    },
+    {
+     "metric": "新台幣單月劇烈波動",
+     "source": "中央銀行"
+    },
+    {
+     "metric": "景氣對策信號退燒",
+     "source": "國家發展委員會"
+    }
+   ]
+  },
+  "USEconomy": {
+   "topic": "美國經濟——現況與未來 6-12 個月展望",
+   "path": "/macro/MACRO_USEconomy_20260708.html",
+   "date": "2026-07-08",
+   "kill_metrics": [
+    {
+     "metric": "核心 PCE 年增",
+     "source": "BEA PCE"
+    },
+    {
+     "metric": "三月均非農／失業率",
+     "source": "BLS 就業報告／FRED SAHMREALTIME"
+    },
+    {
+     "metric": "HY OAS 信用利差",
+     "source": "FRED ICE BofA HY OAS"
+    },
+    {
+     "metric": "聯邦基金利率／SEP",
+     "source": "FOMC 聲明／SEP·CME FedWatch"
+    },
+    {
+     "metric": "S&P 500 季盈餘增速",
+     "source": "FactSet Earnings Insight"
+    },
+    {
+     "metric": "10Y breakeven 通膨預期",
+     "source": "FRED T10YIE"
+    }
+   ]
+  },
+  "USFiscalDeficit": {
+   "topic": "美國財政赤字與利率上限——財政主導風險、國債供給與 term premium 的傳導",
+   "path": "/macro/MACRO_USFiscalDeficit_20260708.html",
+   "date": "2026-07-08",
+   "kill_metrics": [
+    {
+     "metric": "ACM 10Y term premium 月度持續突破",
+     "source": "NY Fed ACM"
+    },
+    {
+     "metric": "30Y/10Y 拍賣 tail 連續",
+     "source": "TreasuryDirect"
+    },
+    {
+     "metric": "淨利息/聯邦稅收（全年）",
+     "source": "Treasury MTS/CBO"
+    },
+    {
+     "metric": "外國整體持有份額（官方＋私人，TIC）",
+     "source": "Treasury TIC"
+    },
+    {
+     "metric": "10Y/30Y 殖利率",
+     "source": "FRED DGS10/DGS30"
+    },
+    {
+     "metric": "ACM term premium 回落（反向證偽）",
+     "source": "NY Fed ACM"
+    },
+    {
+     "metric": "赤字/GDP 收斂（反向證偽）",
+     "source": "CBO/Treasury MTS"
+    }
+   ]
+  },
+  "YenCarry": {
+   "topic": "日圓 carry 與日本正常化——全球最後一池廉價融資的裝藥量、引線與爆炸半徑",
+   "path": "/macro/MACRO_YenCarry_20260710.html",
+   "date": "2026-07-10",
+   "kill_metrics": [
+    {
+     "metric": "carry 去槓桿引信（USDJPY／BoJ）",
+     "source": "BoJ 聲明·USDJPY"
+    },
+    {
+     "metric": "MoF 干預（次級引信）",
+     "source": "MoF FEIO"
+    },
+    {
+     "metric": "美日利差收斂（去化誘因）",
+     "source": "FRED US10Y／JGB10Y"
+    },
+    {
+     "metric": "裝藥量（COT／carry 存量）",
+     "source": "CFTC COT·BIS 統計"
+    },
+    {
+     "metric": "日本正常化支撐（通膨／工資）",
+     "source": "總務省 CPI·Rengo"
+    },
+    {
+     "metric": "美債買盤退場（結構支流）",
+     "source": "US Treasury TIC·壽險計畫"
+    }
+   ]
+  }
+ }
+}

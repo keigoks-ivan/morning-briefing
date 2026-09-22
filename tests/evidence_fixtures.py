@@ -103,6 +103,22 @@ def no_fetch(url: str, timeout: int = 15):
     return None, "missing"
 
 
+_OFFICIAL_DIR = FX / "official_20260922"
+_OFFICIAL_INDEX = json.loads((_OFFICIAL_DIR / "index.json").read_text(encoding="utf-8"))["urls"]
+
+
+def offline_sources(url: str, timeout: int = 15):
+    """官方來源的離線快照（2026-09-22 晚間實抓）；快照裡沒有的網址當作抓取失敗。"""
+    fn = _OFFICIAL_INDEX.get(url)
+    if not fn:
+        return None, "error:offline test"
+    return (_OFFICIAL_DIR / fn).read_text(encoding="utf-8"), "ok"
+
+
+def all_sources_down(url: str, timeout: int = 15):
+    return None, "error:ConnectionError"
+
+
 def news_quality(failed_feeds: tuple = ()) -> dict:
     feeds = {f"Feed {i}": {"status": "ok", "entries": 10, "kept": 5, "blocked": 0} for i in range(8)}
     for name in failed_feeds:

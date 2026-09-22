@@ -41,7 +41,8 @@ def main() -> None:
         jev = JevClient(api_key=None, cache={})
     ev, ledger = run_evidence_layer(
         data, [], fx.watchlist(), fx.news_quality(failed_feeds=("Korea Tech (GN)",)), fx.TODAY, out,
-        ledger=fx.seed_ledger(), holdings_json=fx.holdings(), jev=jev, fetch=fx.no_fetch, sec_user_agent=None)
+        ledger=fx.seed_ledger(), holdings_json=fx.holdings(), jev=jev, fetch=fx.no_fetch, sec_user_agent=None,
+        official_fetch=fx.offline_sources)
     data["evidence_layer"] = ev
     data["date"] = "Tue 22 Sep 2026, 06:15 TST (offline replay)"
     written = save_outputs(ev, ledger, out, fx.TODAY)

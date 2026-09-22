@@ -4,7 +4,8 @@ evidence_build_data.py
 本機維護工具（不在 CI 跑）：從 financial-analysis-bot 重建事件判斷層的兩份資料。
 
   python3 briefing/evidence_build_data.py routing --fab ~/financial-analysis-bot
-      → 更新 data/evidence_routing.json 的 themes（segments 用到的研究主題：最新 ID 報告路徑＋成員 ticker）
+      → 重建 data/evidence_routing_auto.json：全部研究主題（ID）的成員、深度、姊妹主題，
+        從角色欄抽出的公司名，以及總經報告（MACRO）的關鍵指標。人工對照表不動。
 
   python3 briefing/evidence_build_data.py seed --fab ~/financial-analysis-bot --days 60
       → 重建 data/evidence_seed_ledger.json（「先前已知」種子）：
@@ -41,41 +42,106 @@ def _load_routing() -> dict:
     return json.loads(ROUTING.read_text(encoding="utf-8"))
 
 
-def build_themes(fab: Path) -> None:
-    routing = _load_routing()
-    id_map = json.loads((fab / "portfolio" / "id_dd_map.json").read_text(encoding="utf-8"))
+AUTO = ROOT / "data" / "evidence_routing_auto.json"
+
+# 研究主題報告角色欄的開頭常是公司名（「Ibiden — …」「台達電，…」），抽出來當公司別名。
+# 單字常用詞當公司名會誤中（United、Delta、Target…），一律不收。
+_NAME_STOP = {"United", "American", "Delta", "Southwest", "Block", "Target", "Sea", "Square", "Match",
+              "Meta", "Apple", "Amazon", "Crown", "Global", "General", "National", "Energy",
+              "Hybrid", "Scale", "Merchant", "Performance", "Custom", "Private", "Public", "Master"}
+_NAME_EN = re.compile(r"(?:[A-Z0-9][A-Za-z0-9&.'’\-]*)(?: (?:[A-Z0-9&][A-Za-z0-9&.'’\-]*|of|de|and))*")
+_NAME_ZH = re.compile(r"[\u4e00-\u9fff]{2,6}")
+
+
+# 角色欄開頭是描述不是公司名的中文詞（2026-09-22 人工看過全部 47 個中文候選後列出）
+_ZH_JUNK = {"端側推論", "創意席次", "沉積與磊晶", "沉積", "燃料電池", "非顯而易見", "邊緣", "電纜製造", "電氣設備",
+            "互鎖", "探針卡", "製程控制", "車用", "身份", "雞肉純玩家", "純電塔", "德國", "蛋白終端"}
+_ASIA_SUFFIX = (".TW", ".TWO", ".T", ".KS", ".KQ", ".SZ", ".SS", ".HK")
+
+
+def _role_name(role: str) -> str | None:
+    head = re.split(r"——|—|－|，|,|（|\(|；|;|：|:|／| / ", role or "")[0].strip()
+    if 2 <= len(head) <= 30 and _NAME_EN.fullmatch(head) and head not in _NAME_STOP and not head.isdigit():
+        return head
+    # 中文只收短的公司名；含「方、體、戶、益、買、主、收、典、範、游、層、段、類」多半是角色描述（下游客戶、出錢方）
+    if _NAME_ZH.fullmatch(head) and len(head) <= 5 and not re.search(r"[方體戶益買主收典範游層段類商群者]", head):
+        return head
+    return None
+
+
+def _meta(page: Path, tag: str) -> dict | None:
+    m = re.search(rf'<script[^>]*id="{tag}"[^>]*>(.*?)</script>', page.read_text(encoding="utf-8", errors="ignore"), re.S)
+    if not m:
+        return None
+    try:
+        return json.loads(m.group(1))
+    except ValueError:
+        return None
+
+
+def build_auto(fab: Path) -> None:
+    """從研究主題（ID）與總經（MACRO）報告自動產生：themes、auto_companies、macro_reports。
+    寫到 data/evidence_routing_auto.json；人工對照表 data/evidence_routing.json 不動。"""
     latest = {}
-    for fn, tickers in id_map.get("id_to_tickers", {}).items():
-        m = re.match(r"ID_(.+)_(\d{8})\.html$", fn)
+    for page in (fab / "docs" / "id").glob("ID_*_*.html"):
+        m = re.match(r"ID_(.+)_(\d{8})\.html$", page.name)
         if m and (m.group(1) not in latest or m.group(2) > latest[m.group(1)][0]):
-            latest[m.group(1)] = (m.group(2), fn, tickers)
-    wanted = {th for seg in routing["segments"].values() for th in seg.get("themes") or []}
-    themes = {}
-    for key in sorted(wanted):
-        if key not in latest:
-            print(f"  ! theme {key} not found in id_dd_map.json")
+            latest[m.group(1)] = (m.group(2), page)
+    id_map = json.loads((fab / "portfolio" / "id_dd_map.json").read_text(encoding="utf-8")).get("id_to_tickers", {})
+    themes, companies = {}, {}
+    for key, (d, page) in sorted(latest.items()):
+        if key.startswith("CNTW_"):   # 地緣母題系列，不是產業主題
             continue
-        d, fn, tickers = latest[key]
-        label = key
-        page = fab / "docs" / "id" / fn
-        if page.exists():
+        meta = _meta(page, "id-meta") or {}
+        members = {}
+        for rt in meta.get("related_tickers") or []:
+            tk = str(rt.get("ticker") or "").strip()
+            if not tk:
+                continue
+            name = _role_name(str(rt.get("role") or ""))
+            if name and name.isupper() and len(name) <= 5 and name != tk.split(".")[0]:
+                name = None   # EUV、AWS、SOC 這類全大寫短字多半是技術或產品，不是公司名
+            if name and re.search(r"[\u4e00-\u9fff]", name) and (name in _ZH_JUNK or not tk.endswith(_ASIA_SUFFIX)) \
+                    and name not in {"英特爾", "科林研發", "美光", "安森美", "德州儀器", "應用材料", "艾頓", "施耐德"}:
+                name = None
+            members[tk] = {"depth": rt.get("depth", ""), "purity": rt.get("purity_pct"), "name": name or ""}
+            if name:
+                aliases = companies.setdefault(tk, {"aliases": []})["aliases"]
+                if name not in aliases:
+                    aliases.append(name)
+        if not members:
+            for tk in id_map.get(page.name, []):
+                members[tk] = {"depth": "", "purity": None, "name": ""}
+        sisters = []
+        for s in meta.get("sister_ids") or []:
+            sm = re.match(r"ID_(.+)_\d{8}\.html$", str(s))
+            if sm and sm.group(1) != key:
+                sisters.append(sm.group(1))
+        label = str(meta.get("theme") or "").strip()
+        if not label:
             t = re.search(r"<title>(.*?)</title>", page.read_text(encoding="utf-8", errors="ignore"), re.S)
-            if t:
-                label = html_lib.unescape(re.sub(r"\s+", " ", t.group(1))).split("|")[0].strip()[:80] or key
-        themes[key] = {"path": f"/id/{fn}", "date": f"{d[:4]}-{d[4:6]}-{d[6:]}", "label": label,
-                       "tickers": sorted(tickers)[:20]}
-    routing["themes"] = themes
-    text = ROUTING.read_text(encoding="utf-8")
-    # 只替換 themes 段，其餘手寫排版不動
-    new_block = '"themes": ' + json.dumps(themes, ensure_ascii=False, indent=1).replace("\n", "\n ")
-    text = re.sub(r'"themes": \{.*\}\s*\}\s*$', new_block + "\n}\n", text, flags=re.S)
-    json.loads(text)
-    ROUTING.write_text(text, encoding="utf-8")
-    print(f"  ✓ themes: {len(themes)} → {ROUTING}")
+            label = html_lib.unescape(re.sub(r"\s+", " ", t.group(1))).split("|")[0].strip()[:80] if t else key
+        themes[key] = {"label": label[:80], "path": f"/id/{page.name}", "date": f"{d[:4]}-{d[4:6]}-{d[6:]}",
+                       "mega": meta.get("mega") or "", "sub_group": meta.get("sub_group") or "",
+                       "sisters": list(dict.fromkeys(sisters))[:6], "members": members}
+    macro = {}
+    for page in sorted((fab / "docs" / "macro").glob("MACRO_*_*.html")):
+        meta = _meta(page, "macro-meta") or {}
+        slug = meta.get("slug") or re.sub(r"MACRO_(.+)_\d{8}\.html$", r"\1", page.name)
+        if slug in macro and macro[slug]["date"] >= str(meta.get("date") or ""):
+            continue
+        macro[slug] = {"topic": meta.get("topic", slug), "path": f"/macro/{page.name}", "date": str(meta.get("date") or ""),
+                       "kill_metrics": [{"metric": k.get("metric", ""), "source": k.get("source", "")}
+                                        for k in meta.get("kill_metrics") or []]}
+    out = {"schema": "evidence-routing-auto-v1",
+           "_comment": "自動產生，不要手改。重建：python3 briefing/evidence_build_data.py routing --fab ~/financial-analysis-bot",
+           "built_from": fab.name, "themes": themes, "auto_companies": companies, "macro_reports": macro}
+    AUTO.write_text(json.dumps(out, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(f"  ✓ themes {len(themes)}｜companies with names {len(companies)}｜macro reports {len(macro)} → {AUTO}")
 
 
 # ── 種子 ────────────────────────────────────────────────────────────────
-def _seed_record(companies, claim, detail, date, source, url, kind, terms=None):
+def _seed_record(companies, claim, detail, date, source, url, kind, terms=None, subjects=None):
     text = f"{claim}. {detail}"
     figs = extract_figures(text)
     raw = f"{kind}|{date}|{claim}|{','.join(sorted(companies))}"
@@ -85,6 +151,7 @@ def _seed_record(companies, claim, detail, date, source, url, kind, terms=None):
         "first_seen": date, "last_seen": date, "seen_dates": [date],
         "event_date": date, "date_basis": "published",
         "companies": companies, "claim": claim[:200], "detail": detail[:400],
+        "subjects": subjects or [],
         "figures": figs, "terms": terms or [], "tokens": sorted(content_tokens(text))[:40],
         "sources": [{"source": source, "url": url, "published": date}],
     }
@@ -161,17 +228,19 @@ def seed_from_briefings(fab: Path, matcher: EntityMatcher, days: int, until: str
         page = subprocess.run(["git", "-C", str(fab), "show", f"{h}:docs/briefing/news.html"],
                               capture_output=True, text=True).stdout
         for c in _cards_from_html(page):
-            comps = matcher.match(f"{c['headline']} {c['body']}")
-            if not comps:
+            text = f"{c['headline']} {c['body']}"
+            comps = matcher.match(text)
+            subjects = matcher.subjects(text)   # 2026-09-22：總經新聞也收（沒有公司也要）
+            if not comps and not subjects:
                 continue
             out.append(_seed_record(comps, c["headline"], c["body"], c["source_date"] or day,
-                                    c["source"], "", "briefing_history",
-                                    matcher.terms(f"{c['headline']} {c['body']}")))
+                                    c["source"], "", "briefing_history", matcher.terms(text), subjects))
     return out
 
 
 def build_seed(fab: Path, days: int, until: str) -> None:
-    routing = _load_routing()
+    from evidence_routing import load_routing
+    routing = load_routing()   # 人工表＋自動檔（公司名、總經主題都要）
     matcher = EntityMatcher(routing)
     recs = seed_from_dd(fab, matcher) + seed_from_briefings(fab, matcher, days, until)
     uniq = {}
@@ -199,7 +268,7 @@ def main() -> None:
     a = ap.parse_args()
     fab = Path(a.fab).expanduser()
     if a.cmd == "routing":
-        build_themes(fab)
+        build_auto(fab)
     else:
         build_seed(fab, a.days, a.until)
 

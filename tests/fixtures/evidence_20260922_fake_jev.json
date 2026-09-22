@@ -3,40 +3,315 @@
  "model": "jev-1.13.0",
  "cases": {
   "Kaohsiung packaging park": {
-   "novelty": ["progress_update", 0.82], "stage": ["construction_started", 0.88],
-   "importance": [2.0, 0.70], "attribution": ["named_media_report", 0.80],
-   "vars": {"capex": ["direct", 0.80, "up"], "supply_capacity": ["indirect", 0.70, "up"]},
-   "parties": {"TSMC": 0.95, "AUO": 0.30}
+   "novelty": [
+    "progress_update",
+    0.82
+   ],
+   "stage": [
+    "construction_started",
+    0.88
+   ],
+   "importance": [
+    2.0,
+    0.7
+   ],
+   "attribution": [
+    "named_media_report",
+    0.8
+   ],
+   "vars": {
+    "capex": [
+     "direct",
+     0.8,
+     "up"
+    ],
+    "supply_capacity": [
+     "indirect",
+     0.7,
+     "up"
+    ]
+   },
+   "parties": {
+    "TSMC": 0.95,
+    "AUO": 0.3
+   }
   },
   "AMD market cap tops": {
-   "novelty": ["market_move_only", 0.93], "stage": ["market_price_only", 0.95],
-   "importance": [0.3, 0.85], "attribution": ["named_media_report", 0.75],
-   "vars": {"market_valuation": ["direct", 0.95, "up"]},
-   "parties": {"AMD": 0.90, "Intel": 0.15, "Qualcomm": 0.12}
+   "novelty": [
+    "market_move_only",
+    0.93
+   ],
+   "stage": [
+    "market_price_only",
+    0.95
+   ],
+   "importance": [
+    0.3,
+    0.85
+   ],
+   "attribution": [
+    "named_media_report",
+    0.75
+   ],
+   "vars": {
+    "market_valuation": [
+     "direct",
+     0.95,
+     "up"
+    ]
+   },
+   "parties": {
+    "AMD": 0.9,
+    "Intel": 0.15,
+    "Qualcomm": 0.12
+   }
   },
   "South Korea semiconductor exports": {
-   "novelty": ["new_fact", 0.90], "stage": ["official_statistic", 0.90],
-   "importance": [3.0, 0.80], "attribution": ["filing_or_official_data", 0.70],
-   "vars": {"shipments": ["direct", 0.92, "up"], "demand": ["indirect", 0.60, "up"]},
+   "novelty": [
+    "new_fact",
+    0.9
+   ],
+   "stage": [
+    "official_statistic",
+    0.9
+   ],
+   "importance": [
+    3.0,
+    0.8
+   ],
+   "attribution": [
+    "filing_or_official_data",
+    0.7
+   ],
+   "vars": {
+    "shipments": [
+     "direct",
+     0.92,
+     "up"
+    ],
+    "demand": [
+     "indirect",
+     0.6,
+     "up"
+    ]
+   },
    "parties": {}
   },
   "SB Energy stake": {
-   "novelty": ["new_fact", 0.78], "stage": ["agreement_signed", 0.70],
-   "importance": [2.0, 0.65], "attribution": ["named_media_report", 0.80],
-   "vars": {"capex": ["direct", 0.85, "up"], "financing": ["indirect", 0.55, "up"]},
-   "parties": {"NVIDIA": 0.96, "SB Energy": 0.93, "SoftBank Group": 0.40, "OpenAI": 0.10}
+   "novelty": [
+    "new_fact",
+    0.78
+   ],
+   "stage": [
+    "agreement_signed",
+    0.7
+   ],
+   "importance": [
+    2.0,
+    0.65
+   ],
+   "attribution": [
+    "named_media_report",
+    0.8
+   ],
+   "vars": {
+    "capex": [
+     "direct",
+     0.85,
+     "up"
+    ],
+    "financing": [
+     "indirect",
+     0.55,
+     "up"
+    ]
+   },
+   "parties": {
+    "NVIDIA": 0.96,
+    "SB Energy": 0.93,
+    "SoftBank Group": 0.4,
+    "OpenAI": 0.1
+   }
   },
   "SoftBank launches": {
-   "novelty": ["new_fact", 0.90], "stage": ["filing_or_offering", 0.80],
-   "importance": [2.3, 0.70], "attribution": ["named_media_report", 0.80],
-   "vars": {"financing": ["direct", 0.93, "up"], "capex": ["indirect", 0.60, "up"]},
-   "parties": {"SoftBank Group": 0.97, "OpenAI": 0.45}
+   "novelty": [
+    "new_fact",
+    0.9
+   ],
+   "stage": [
+    "filing_or_offering",
+    0.8
+   ],
+   "importance": [
+    2.3,
+    0.7
+   ],
+   "attribution": [
+    "named_media_report",
+    0.8
+   ],
+   "vars": {
+    "financing": [
+     "direct",
+     0.93,
+     "up"
+    ],
+    "capex": [
+     "indirect",
+     0.6,
+     "up"
+    ]
+   },
+   "parties": {
+    "SoftBank Group": 0.97,
+    "OpenAI": 0.45
+   }
   },
   "Copilot tops 30 million": {
-   "novelty": ["known_restatement", 0.74], "stage": ["reported_result", 0.90],
-   "importance": [1.2, 0.60], "attribution": ["company_statement", 0.70],
-   "vars": {"demand": ["direct", 0.80, "up"]},
-   "parties": {"Microsoft": 0.97}
+   "novelty": [
+    "known_restatement",
+    0.74
+   ],
+   "stage": [
+    "reported_result",
+    0.9
+   ],
+   "importance": [
+    1.2,
+    0.6
+   ],
+   "attribution": [
+    "company_statement",
+    0.7
+   ],
+   "vars": {
+    "demand": [
+     "direct",
+     0.8,
+     "up"
+    ]
+   },
+   "parties": {
+    "Microsoft": 0.97
+   }
+  },
+  "Fed's Musalem": {
+   "novelty": [
+    "new_fact",
+    0.8
+   ],
+   "stage": [
+    "official_comment",
+    0.85
+   ],
+   "importance": [
+    2.0,
+    0.7
+   ],
+   "attribution": [
+    "official_statement",
+    0.85
+   ],
+   "vars": {
+    "policy_rate": [
+     "direct",
+     0.85,
+     "up"
+    ],
+    "bond_yields": [
+     "indirect",
+     0.72,
+     "up"
+    ]
+   },
+   "parties": {}
+  },
+  "Bessent and He Lifeng": {
+   "novelty": [
+    "new_fact",
+    0.72
+   ],
+   "stage": [
+    "plan_or_intent",
+    0.75
+   ],
+   "importance": [
+    2.0,
+    0.6
+   ],
+   "attribution": [
+    "named_media_report",
+    0.8
+   ],
+   "vars": {
+    "trade": [
+     "indirect",
+     0.75,
+     "mixed_or_unclear"
+    ]
+   },
+   "parties": {
+    "Microsoft": 0.1,
+    "NVIDIA": 0.1,
+    "Qualcomm": 0.1
+   }
+  },
+  "Paramount settles": {
+   "novelty": [
+    "new_fact",
+    0.85
+   ],
+   "stage": [
+    "agreement_signed",
+    0.7
+   ],
+   "importance": [
+    2.0,
+    0.7
+   ],
+   "attribution": [
+    "named_media_report",
+    0.8
+   ],
+   "vars": {
+    "rates_policy": [
+     "direct",
+     0.7,
+     "mixed_or_unclear"
+    ]
+   },
+   "parties": {}
+  },
+  "Texas governor halts": {
+   "novelty": [
+    "new_fact",
+    0.85
+   ],
+   "stage": [
+    "policy_decision",
+    0.8
+   ],
+   "importance": [
+    2.0,
+    0.6
+   ],
+   "attribution": [
+    "named_media_report",
+    0.75
+   ],
+   "vars": {
+    "rates_policy": [
+     "direct",
+     0.8,
+     "mixed_or_unclear"
+    ],
+    "capex": [
+     "indirect",
+     0.75,
+     "down"
+    ]
+   },
+   "parties": {}
   }
  }
 }

@@ -29,12 +29,14 @@ from evidence_ledger import (
     EntityMatcher, Ledger, content_tokens, extract_event_date, extract_figures, fact_key, figure_label,
 )
 from evidence_questions import (
-    ATTRIBUTION_DISPLAY, NOVELTY_DISPLAY, STAGE_DISPLAY, VAR_LABEL, build_questions, interpret,
+    ATTRIBUTION_DISPLAY, COMPANY_VAR_IDS, MACRO_VAR_IDS, NOVELTY_DISPLAY, STAGE_DISPLAY, VAR_LABEL,
+    build_questions, interpret,
 )
 from evidence_routing import (
-    PARTY_NO, PARTY_YES, dd_index, load_routing, potential_impact, public_holdings_view, route, sec_check,
-    segment_gaps,
+    PARTY_NO, PARTY_YES, _company_tickers, _keyword_hits, dd_index, load_routing, potential_impact,
+    public_holdings_view, route, sec_check, segment_gaps,
 )
+from evidence_sources import OfficialSources, http_text
 from jev_client import MODEL, JevClient, get_api_key
 
 SCHEMA = "evidence-layer-v1"
@@ -61,6 +63,8 @@ CAPACITY_TERMS = ("CoWoS", "CoPoS", "SoIC", "HBM", "wafer", "fab", "packaging", 
 _COMPUTE_RE = re.compile(r"\b(OpenAI|Anthropic|GPUs?|compute|data cent(?:er|re)s?|AI)\b")
 _EQUITY_RE = re.compile(r"\b(stake|shares|equity|invest(?:s|ed|ment|ing)?)\b", re.I)
 _NOTHING_OUTSTANDING = re.compile(r"nothing outstanding|none|n/?a", re.I)
+_MARKET_IMPLIED_RE = re.compile(r"FedWatch|futures (?:imply|price|pricing)|market pricing|priced in|implied probability", re.I)
+_TALKS_RE = re.compile(r"\b(talks?|negotiat\w*|summit|proposal|proposes?|dialogue|framework)\b", re.I)
 
 
 def _now_iso() -> str:
@@ -149,19 +153,22 @@ def build_candidates(data: dict, rss_items: list[dict], matcher: EntityMatcher, 
         # 同一次執行裡，同公司＋共享數字＋用字相近的卡視為同一事件（例：頭條與關注清單各寫一次）：
         # 併入第一張的來源，不另問 Jev、不另寫紀錄
         twin = None
+        subj = set(matcher.subjects(text))
         for prev in cands:
             union = tokens | prev["tokens"]
             jac = len(tokens & prev["tokens"]) / len(union) if union else 0.0
-            if (set(companies) & set(prev["companies"]) and set(figures) & set(prev["figures"])
-                    and jac >= 0.2):
+            if ((set(companies) & set(prev["companies"]) or subj & set(prev.get("subjects") or []))
+                    and set(figures) & set(prev["figures"]) and jac >= 0.2):
                 twin = prev
                 break
         if twin is not None:
             twin["also_in"].append({"block": block, "headline": headline, "source": str(card.get("source") or "")})
             continue
         cid = "c_" + hashlib.sha1(f"{today}|{re.sub(r'[^a-z0-9]+', ' ', headline.lower()).strip()}".encode()).hexdigest()[:12]
+        subjects = matcher.subjects(text)
         cands.append({
             "also_in": [],
+            "subjects": subjects,
             "cid": cid, "block": block, "priority": prio,
             "headline": headline, "text": text[:1400],
             "unknowns": str(card.get("unknowns") or "").strip(),
@@ -189,6 +196,25 @@ def _prior_brief(r: dict) -> dict:
         "text": (str(r.get("claim") or "") + ". " + str(r.get("detail") or ""))[:420],
         "figures": ", ".join(figure_label(f) for f in (r.get("figures") or [])),
     }
+
+
+def candidate_kind(cand: dict, routing: dict) -> str:
+    """company：公司新聞；macro：總經（有總經主題、沒有公司也沒有產業環節）；mixed：兩者都有（兩組變數都問）。"""
+    segs = [s for k, s in (routing.get("segments") or {}).items() if not k.startswith("_")]
+    seg_hit = any(_keyword_hits(cand["text"], s.get("keywords") or []) for s in segs)
+    if cand.get("subjects") and not cand["companies"] and not seg_hit:
+        return "macro"
+    if cand.get("subjects"):
+        return "mixed"
+    return "company"
+
+
+def var_ids_for(kind: str) -> list[str]:
+    if kind == "macro":
+        return list(MACRO_VAR_IDS)
+    if kind == "mixed":
+        return COMPANY_VAR_IDS + [v for v in MACRO_VAR_IDS if v not in COMPANY_VAR_IDS]
+    return list(COMPANY_VAR_IDS)
 
 
 def build_state(cand: dict, priors: list[dict], matcher: EntityMatcher) -> dict:
@@ -303,8 +329,29 @@ def unconfirmed_notes(cand: dict, j: dict | None, final: dict, priors: list[dict
                         said = True
             if not said:
                 notes.append("Money committed to building is not yet revenue for suppliers or new output.")
-        if stage == "official_statistic" or ("shipments" in direct and not parties):
+        kind = cand.get("kind", "company")
+        if kind != "macro" and (stage == "official_statistic" or ("shipments" in direct and not parties)):
             notes.append("Country- or industry-level total: it cannot be attributed to any single company's revenue, including AI revenue.")
+        # 總經（2026-09-22）：官員發言、市場定價、部分月份資料、初值、談判、預測，都不是已發生的結果
+        if stage == "official_comment" or (
+                (j.get("attribution") or {}).get("label") in ("commentary_or_analysis", "official_statement")
+                and "policy_rate" in direct | indirect and stage != "policy_decision"):
+            notes.append("An official's view is not a policy decision; rates are set at the policy meeting.")
+        if _MARKET_IMPLIED_RE.search(text):
+            notes.append("Market-implied odds describe current pricing, not an outcome.")
+        period = cand.get("period") or ""
+        if stage == "official_statistic" and period and int(period[-2:]) < 28:
+            notes.append("Partial-month data; the full-month figure is released later and can differ.")
+        bases = {s.split("@")[0] for s in cand.get("subjects") or []}
+        if stage == "official_statistic" and bases & {"GDP", "JOBS", "RETAIL_SALES", "INDUSTRIAL_OUTPUT", "PMI", "TRADE_DATA"}:
+            notes.append("First official release; these figures are often revised.")
+        if ("trade" in direct | indirect or "TARIFFS" in bases) and stage in ("plan_or_intent", "official_comment", "unclear") \
+                and _TALKS_RE.search(text):
+            notes.append("Talks or proposals, not an agreement in force; nothing changes until an official notice gives terms and a start date.")
+        if stage == "forecast_or_estimate":
+            notes.append("A forecast or estimate, not an outcome.")
+        if stage == "policy_decision" and cand["basis"]["code"] != "primary_document":
+            notes.append("No official notice matched yet; the effective date and scope are not confirmed.")
     if not j and final.get("figure_overlap", {}).get("all_seen"):
         s = final["figure_overlap"]["seen"][0]
         notes.append(f"Code check (no classifier today): the headline figure {s['figure']} was already recorded on "
@@ -354,9 +401,10 @@ def _status(final: dict, routes: dict) -> dict:
         return {"code": "needs_review", "display": "Needs review: " + (final["reasons"][0] if final["reasons"] else "")}
     if final["lane"] == "low":
         return {"code": "logged", "display": "Logged only"}
-    if routes["pending"] and not (routes["dd"] or routes["themes"]):
+    linked = routes["dd"] or routes["themes"] or routes.get("macro")
+    if routes["pending"] and not linked:
         return {"code": "needs_review", "display": "Needs review: research link unclear"}
-    if routes["dd"] or routes["themes"]:
+    if linked:
         return {"code": "routed", "display": "Routed to research"}
     return {"code": "logged", "display": "Logged; no research link"}
 
@@ -437,6 +485,8 @@ def quality_record(news_quality: dict | None, data: dict, cands: list[dict], ite
     gaps = []
     for it in items:
         for g in (it.get("primary_check") or {}).get("gaps", []):
+            if g.get("reason") != "not connected":
+                continue   # 「今天沒抓到」另外列在 official_sources.failed
             label = g.get("source") or g.get("segment")
             if label and label not in gaps:
                 gaps.append(label)
@@ -461,12 +511,22 @@ def quality_record(news_quality: dict | None, data: dict, cands: list[dict], ite
     }
 
 
+def _tw_codes(keys: list[str], routing: dict) -> set:
+    codes = set()
+    for k in keys:
+        for tk in _company_tickers(k, routing):
+            m = re.fullmatch(r"(\d{4,6})(?:\.TWO?|)", tk)
+            if m and (tk.endswith((".TW", ".TWO")) or tk.isdigit()):
+                codes.add(m.group(1))
+    return codes
+
+
 def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list[dict] | None,
                        news_quality: dict | None, today: str, data_dir: Path | None = None, *,
                        routing: dict | None = None, ledger: Ledger | None = None,
                        holdings_json: dict | None = None, jev: JevClient | None = None,
                        fetch=_fetch_json, sec_get_json=_sec_get_json,
-                       sec_user_agent: str | None = None) -> tuple[dict, Ledger]:
+                       sec_user_agent: str | None = None, official_fetch=http_text) -> tuple[dict, Ledger]:
     routing = routing or load_routing()
     dd = dd_index(watchlist)
     matcher = EntityMatcher(routing, {t: v.get("name", "") for t, v in dd.items()})
@@ -478,33 +538,63 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
         jev = JevClient(api_key=get_api_key(), cache=load_jev_cache(today, data_dir, fetch))
     if sec_user_agent is None:
         sec_user_agent = os.environ.get("SEC_USER_AGENT", "").strip() or None
+    official = OfficialSources(routing.get("official_sources") or {}, fetch_text=official_fetch, today=today)
+    official.prefetch()   # 官方來源每次執行只抓一次（並行）
 
     cands = build_candidates(data, rss_items or [], matcher, today)
+
+    # ① 問 Jev（每則一個請求；同樣的請求從快取拿）
+    judged = []
+    for cand in cands:
+        cand["kind"] = candidate_kind(cand, routing)
+        priors = ledger.find_prior(cand["companies"] + cand["subjects"], cand["figures"], cand["terms"],
+                                   cand["tokens"], today, key_figures=cand["headline_figures"])
+        state = build_state(cand, priors, matcher)
+        questions = build_questions(len(cand["companies"]), var_ids_for(cand["kind"]))
+        resp = jev.ask(state, questions)
+        j = interpret(resp["answers"], cand["companies"], var_min_conf=VAR_MIN_CONF) if resp else None
+        judged.append((cand, priors, resp, j, decide(cand, j, priors, ledger.available)))
+
+    # ② 當事公司自己發的新聞稿：所有候選的當事公司一次查齊
+    party_names = {}
+    for cand, _, _, j, _ in judged:
+        for k, p in (j["parties"] if j else {}).items():
+            if p >= PARTY_YES:
+                party_names.setdefault(k, matcher.name(k))
+    official.fetch_company_wires(party_names)
+
+    # ③ 派送、一手來源、組裝、寫紀錄
     sec_cache: dict = {}
     items = []
     ledger_actions = {"inserted": 0, "updated_today": 0, "restated": 0}
-    for cand in cands:
-        priors = ledger.find_prior(cand["companies"], cand["figures"], cand["terms"], cand["tokens"], today,
-                                   key_figures=cand["headline_figures"])
-        state = build_state(cand, priors, matcher)
-        questions = build_questions(len(cand["companies"]))
-        resp = jev.ask(state, questions)
-        j = interpret(resp["answers"], cand["companies"], var_min_conf=VAR_MIN_CONF) if resp else None
-        final = decide(cand, j, priors, ledger.available)
-
+    for cand, priors, resp, j, final in judged:
         parties = {k: p for k, p in (j["parties"] if j else {}).items() if p >= PARTY_YES}
         pending = {k: p for k, p in (j["parties"] if j else {}).items() if PARTY_NO <= p < PARTY_YES}
-        routes = route(cand["text"], parties, pending, routing, dd, holdings, bool(j), cand["companies"])
-        check_keys = list(parties) if j else []
-        primary = sec_check(check_keys, routing, cand.get("event_date") or "", today, sec_user_agent,
-                            sec_get_json, cache=sec_cache)
-        primary["gaps"] += segment_gaps([s["id"] for s in routes["segments"]], routing)
-
         direct = [v for v, x in (j["variables"].items() if j else []) if x["link"] == "direct"]
         # 間接：要把握夠高、最多 3 個；「市場估值」只在直接時列（幾乎任何新聞都會間接影響股價，沒有資訊量）
         indirect = sorted((v for v, x in (j["variables"].items() if j else [])
                            if x["link"] == "indirect" and x["confidence"] >= INDIRECT_MIN_CONF and v != "market_valuation"),
                           key=lambda v: -j["variables"][v]["confidence"])[:3]
+        routes = route(cand["text"], parties, pending, routing, dd, holdings, bool(j), cand["companies"],
+                       subjects=cand["subjects"], direct_vars=direct if final["lane"] == "main" else [],
+                       today=today, ledger_records=ledger.records, name_of=matcher.name)
+        check_keys = list(parties) if j else []
+        primary = sec_check(check_keys, routing, cand.get("event_date") or "", today, sec_user_agent,
+                            sec_get_json, cache=sec_cache)
+        primary["gaps"] += segment_gaps([s["id"] for s in routes["segments"]], routing)
+        # 官方來源：當事公司（沒判斷時用比對到的公司）＋總經主題
+        ent_keys = set(check_keys or cand["companies"]) | set(cand["subjects"])
+        ent_keys |= {tk for k in (check_keys or cand["companies"]) for tk in _company_tickers(k, routing)}
+        names = [matcher.name(k) for k in (check_keys or cand["companies"])] + \
+                [matcher.subject_label(s).split(" (")[0] for s in cand["subjects"]]
+        off = official.match(cand, ent_keys, names, _tw_codes(check_keys or cand["companies"], routing), today)
+        primary["official"] = off
+        for f in off["failed"]:
+            primary["gaps"].append({"source": f["source"], "reason": f"not read today ({f['reason']})"})
+        basis = dict(cand["basis"])
+        if off["matched"]:
+            basis = {"code": "primary_document", "display": f"Official source matched: {off['matched'][0]['source']}"}
+
         company_roles = []
         for k in cand["companies"]:
             p = (j["parties"].get(k) if j else None)
@@ -513,12 +603,14 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
                     "mentioned" if p is not None else "unverified")
             company_roles.append({"key": k, "name": matcher.name(k), "role": role, "p": p})
 
+        cand_for_notes = {**cand, "basis": basis}
         item = {
-            "id": cand["cid"], "block": cand["block"], "headline": cand["headline"],
+            "id": cand["cid"], "block": cand["block"], "kind": cand["kind"], "headline": cand["headline"],
             "source": cand["source"], "source_date": cand["source_date"], "published_at": cand["published_at"],
             "event_date": cand.get("event_date", ""), "date_basis": cand.get("date_basis", ""),
             "period": cand.get("period", ""),
             "companies": company_roles,
+            "topics": [{"key": s, "label": matcher.subject_label(s)} for s in cand["subjects"]],
             "figures": [figure_label(f) for f in cand["figures"]],
             "classification": {
                 "class": final["class"],
@@ -550,8 +642,8 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
                 routes,
                 [{"var": v, "label": VAR_LABEL[v], "direction": j["variables"][v]["direction"]} for v in direct],
                 parties, routing, matcher.name) if (j and final["lane"] == "main") else None),
-            "unconfirmed": unconfirmed_notes(cand, j, final, priors, parties, routing, matcher, ledger.available),
-            "evidence_basis": cand["basis"],
+            "unconfirmed": unconfirmed_notes(cand_for_notes, j, final, priors, parties, routing, matcher, ledger.available),
+            "evidence_basis": basis,
             "primary_check": primary,
             "routes": routes,
             "sources": [{"source": r["source"], "url": r["url"], "published": r["published"], "title": r["title"]}
@@ -566,13 +658,14 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
         items.append(item)
 
         # 寫入跨日紀錄（冪等）
-        fkey = fact_key(cand["companies"], cand["figures"], cand["terms"], cand["headline"])
+        fkey = fact_key(cand["companies"] + cand["subjects"], cand["figures"], cand["terms"], cand["headline"])
         rec = {
             "fact_key": fkey, "candidate_ids": [cand["cid"]], "origin": "briefing",
             "first_seen": today, "last_seen": today, "seen_dates": [today],
             "event_date": cand.get("event_date", ""), "date_basis": cand.get("date_basis", ""),
             "period": cand.get("period", ""), "published_at": cand["published_at"],
-            "companies": cand["companies"], "parties": sorted(parties),
+            "companies": cand["companies"], "subjects": cand["subjects"], "parties": sorted(parties),
+            "themes": [t["key"] for t in routes["themes"]],
             "claim": cand["headline"], "detail": cand["text"][len(cand["headline"]):].strip()[:400],
             "figures": cand["figures"], "terms": cand["terms"], "tokens": sorted(cand["tokens"])[:40],
             "stage": j["stage"]["label"] if j else None,
@@ -580,6 +673,7 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
             "variables_direct": direct, "variables_indirect": indirect,
             "sources": [{"source": r["source"], "url": r["url"], "published": r["published"]} for r in cand["rss"]]
                        or [{"source": cand["source"], "url": "", "published": cand["source_date"]}],
+            "official_matches": [{"source": m["source"], "url": m["url"], "date": m["date"]} for m in off["matched"]],
             "judged_by": (resp or {}).get("model") if resp else None,
             "prior_refs": [r.get("fact_key") for r in priors],
         }
@@ -589,8 +683,10 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
             restated = (same_fig or priors)[0]["fact_key"]
         today_twin = ledger.find_today(cand["cid"], fkey, today)
         if today_twin is None and not restated:
+            ents = set(cand["companies"]) | set(cand["subjects"])
             for r in ledger.records:
-                if (r.get("first_seen") == today and set(r.get("companies") or []) & set(cand["companies"])
+                if (r.get("first_seen") == today
+                        and ents & (set(r.get("companies") or []) | set(r.get("subjects") or []))
                         and set(r.get("figures") or []) == set(cand["figures"]) and cand["figures"]):
                     rec["fact_key"] = r["fact_key"]
                     break
@@ -619,6 +715,8 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
     else:
         jev_status, reason = "judged", ""
 
+    quality = quality_record(news_quality, data, cands, items, jev.stats, routing)
+    quality["official_sources"] = official.summary()
     result = {
         "schema": SCHEMA, "date": today, "generated_at": _now_iso(), "model": MODEL,
         "jev": {"status": jev_status, "reason": reason},
@@ -631,7 +729,7 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
         "low_priority": [it["id"] for it in low],
         "unjudged": [it["id"] for it in unjudged],
         "items": items,
-        "quality": quality_record(news_quality, data, cands, items, jev.stats, routing),
+        "quality": quality,
         "jev_cache": dict(jev.cache),
     }
     return result, ledger

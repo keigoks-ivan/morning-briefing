@@ -33,14 +33,15 @@ from evidence_routing import load_routing, public_holdings_view, sec_check  # no
 from jev_client import JevClient, request_hash, validate_response  # noqa: E402
 
 
-def run(jev=None, ledger=None, data=None, rss=None, news_quality=None, data_dir=None, holdings="default"):
+def run(jev=None, ledger=None, data=None, rss=None, news_quality=None, data_dir=None, holdings="default",
+        official=None):
     if jev is None:
         jev, _ = fx.fake_client()
     return evidence_layer.run_evidence_layer(
         data or fx.briefing_data(), rss or [], fx.watchlist(), news_quality or fx.news_quality(), fx.TODAY,
         data_dir, ledger=ledger if ledger is not None else fx.seed_ledger(),
         holdings_json=fx.holdings() if holdings == "default" else holdings,
-        jev=jev, fetch=fx.no_fetch, sec_user_agent=None)
+        jev=jev, fetch=fx.no_fetch, sec_user_agent=None, official_fetch=official or fx.offline_sources)
 
 
 def item(ev, fragment):
@@ -394,6 +395,128 @@ class RobustnessTests(unittest.TestCase):
         failed = sec_check(["NVDA"], routing, "2026-09-21", fx.TODAY, "ua",
                            lambda u, a: (_ for _ in ()).throw(ConnectionError()))
         self.assertEqual(failed["checked"][0]["status"], "failed")
+
+
+class MacroAndCoverageTests(unittest.TestCase):
+    """2026-09-22 追加：總經新聞、非半導體公司、政策新聞、一手來源、舊報告標記。"""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.ev, cls.ledger = run()
+
+    def test_fed_official_comment_routes_to_macro_reports_not_a_decision(self):
+        it = item(self.ev, "Fed's Musalem")
+        self.assertEqual(it["kind"], "macro")
+        self.assertEqual([x["key"] for x in it["topics"]], ["FED"])
+        self.assertEqual(it["stage"]["label"], "official_comment")
+        self.assertIn("policy_rate", direct_vars(it))
+        slugs = {m["slug"]: m for m in it["routes"]["macro"]}
+        self.assertIn("USEconomy", slugs)
+        self.assertIn("聯邦基金利率／SEP", slugs["USEconomy"]["kill_metrics"])
+        self.assertEqual(it["routes"]["regime"], ["liquidity"])
+        self.assertEqual({h["position"] for h in it["routes"]["holdings"]}, {"QQQ", "SMH"})
+        self.assertTrue(all(h["via"] == "country exposure (US)" for h in it["routes"]["holdings"]))
+        notes = " ".join(it["unconfirmed"])
+        self.assertIn("not a policy decision", notes)
+        self.assertIn("Market-implied odds", notes)
+        # 9/16 那次升息是先前已知（總經主題也能找到舊紀錄）
+        self.assertIn("2026-09-16", [p["date"] for p in it["last_known"]])
+        self.assertEqual(it["status"]["code"], "routed")
+
+    def test_trade_talks_are_not_an_agreement(self):
+        it = item(self.ev, "Bessent and He Lifeng")
+        self.assertEqual(it["kind"], "mixed")
+        self.assertIn("TARIFFS", [x["key"] for x in it["topics"]])
+        self.assertEqual(it["routes"]["dd"], [])      # 晚宴出席的公司不是當事人
+        self.assertIn("not an agreement in force", " ".join(it["unconfirmed"]))
+        self.assertEqual({m["slug"] for m in it["routes"]["macro"]}, {"USEconomy", "ChinaEconomy"})
+
+    def test_uncovered_company_is_logged_honestly(self):
+        it = item(self.ev, "Paramount settles")
+        self.assertEqual(it["routes"]["dd"], [])
+        self.assertEqual(it["routes"]["themes"], [])
+        self.assertEqual(it["status"]["display"], "Logged; no research link")
+
+    def test_policy_news_routes_by_specific_phrase(self):
+        it = item(self.ev, "Texas governor halts")
+        self.assertEqual([t["key"] for t in it["routes"]["themes"]], ["AIDataCenter"])
+        self.assertIn("effective date and scope are not confirmed", " ".join(it["unconfirmed"]))
+
+    def test_korea_partial_month_and_revision_notes(self):
+        notes = " ".join(item(self.ev, "South Korea semiconductor exports")["unconfirmed"])
+        self.assertIn("Partial-month data", notes)
+        self.assertIn("often revised", notes)
+
+    def test_non_semis_names_come_from_research_themes(self):
+        from evidence_ledger import EntityMatcher
+        m = EntityMatcher(load_routing())
+        self.assertEqual(m.match("Delta Air Lines raised guidance; the delta variant spread"), ["DAL"])
+        self.assertEqual(m.match("Visa and Mastercard settle an interchange suit"), ["V", "MA"])
+        self.assertEqual(m.match("new H-1B visa rules"), [])
+        self.assertEqual(m.subjects("China's CPI rose while U.S. retail sales fell"), ["CPI@CN", "RETAIL_SALES@US"])
+        self.assertNotIn("ASML", m.match("EUV tools are scarce"))
+
+    def test_reports_show_age_and_new_facts_since(self):
+        wl = [dict(w) for w in fx.watchlist()]
+        for w in wl:
+            if w["ticker"] == "TSM":
+                w["dd_date"] = "2026-03-01"
+        led = fx.seed_ledger()
+        led.records.append({"fact_key": "fact_after_dd", "origin": "briefing", "first_seen": "2026-06-01",
+                            "novelty": "new_fact", "companies": ["TSM"], "parties": ["TSM"], "themes": ["AdvancedPackaging"]})
+        jev, _ = fx.fake_client()
+        ev, _ = evidence_layer.run_evidence_layer(fx.briefing_data(), [], wl, fx.news_quality(), fx.TODAY, None,
+                                                  ledger=led, holdings_json=fx.holdings(), jev=jev, fetch=fx.no_fetch,
+                                                  sec_user_agent=None, official_fetch=fx.offline_sources)
+        dd = item(ev, "Kaohsiung packaging park")["routes"]["dd"][0]
+        self.assertTrue(dd["stale"])
+        self.assertGreaterEqual(dd["age_days"], 200)
+        self.assertEqual(dd["new_since"], 1)
+        page = html_template._evidence_section(ev)
+        self.assertIn("older report", page)
+        self.assertIn("+1 new since", page)
+
+    def test_official_release_upgrades_evidence_when_it_matches(self):
+        fed_url = "https://www.federalreserve.gov/feeds/press_all.xml"
+        xml = ("<rss><channel><item><title>St. Louis Fed President Musalem: additional interest rate increases likely "
+               "necessary to bring inflation back to target</title><link>https://fixture.invalid/fed/musalem</link>"
+               "<pubDate>Mon, 21 Sep 2026 14:00:00 GMT</pubDate><description>Remarks on inflation and interest rate "
+               "increases.</description></item></channel></rss>")
+
+        def fetch(url, timeout=15):
+            return (xml, "ok") if url == fed_url else fx.offline_sources(url)
+
+        ev, _ = run(official=fetch)
+        it = item(ev, "Fed's Musalem")
+        self.assertEqual(it["evidence_basis"]["code"], "primary_document")
+        self.assertIn("Federal Reserve press releases", it["evidence_basis"]["display"])
+        self.assertEqual(it["primary_check"]["official"]["matched"][0]["url"], "https://fixture.invalid/fed/musalem")
+
+    def test_same_company_filing_is_nearby_not_matched(self):
+        rows = [{"發言日期": "1150921", "出表日期": "1150922", "公司代號": "2330", "公司名稱": "台積電",
+                 "主旨 ": "公告本公司董事會決議事項", "說明": "董事會通過資本預算", "事實發生日": "1150921"}]
+
+        def fetch(url, timeout=15):
+            if url.endswith("t187ap04_L"):
+                return json.dumps(rows, ensure_ascii=False), "ok"
+            return fx.offline_sources(url)
+
+        it = item(run(official=fetch)[0], "Kaohsiung packaging park")
+        off = it["primary_check"]["official"]
+        self.assertEqual(off["matched"], [])
+        self.assertEqual(off["nearby"][0]["why"], "same company filing near the date")
+        self.assertNotEqual(it["evidence_basis"]["code"], "primary_document")
+
+    def test_failed_official_sources_are_gaps_not_silence(self):
+        ev, _ = run(official=fx.all_sources_down)
+        it = item(ev, "Fed's Musalem")
+        gaps = [g for g in it["primary_check"]["gaps"] if g["reason"].startswith("not read today")]
+        self.assertTrue(gaps)
+        self.assertIn("Federal Reserve press releases", [g["source"] for g in gaps])
+        self.assertTrue(ev["quality"]["official_sources"]["failed"])
+        page = html_template._evidence_section(ev)
+        self.assertIn("Official sources not read today", page)
+        self.assertNotIn("no impact", page.lower())
 
 
 class FeedStatusTests(unittest.TestCase):
