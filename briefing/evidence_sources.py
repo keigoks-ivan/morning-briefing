@@ -32,6 +32,16 @@ GN_URL = "https://news.google.com/rss/search?q={q}&hl=en-US&gl=US&ceid=US:en"
 MATCH_WINDOW_DAYS = 4
 _TAG_RE = re.compile(r"<[^>]+>")
 
+TDNET_BASE = "https://www.release.tdnet.info/inbs/"
+_TDNET_DATE_RE = re.compile(r'id="kaiji-date-1">(\d{4})年(\d{2})月(\d{2})日')
+_TDNET_ROW_RE = re.compile(
+    r'kjTime"[^>]*>(?P<time>[^<]*)</td>\s*'
+    r'<td class="[a-z]+-M kjCode"[^>]*>(?P<code>[^<]*)</td>\s*'
+    r'<td class="[a-z]+-M kjName"[^>]*>(?P<name>[^<]*)</td>\s*'
+    r'<td class="[a-z]+-M kjTitle"[^>]*><a href="(?P<href>[^"]+)"[^>]*>(?P<title>[^<]*)</a></td>',
+    re.S,
+)
+
 
 def http_text(url: str, timeout: int = 15) -> tuple[str | None, str]:
     """回 (內容, 狀態)。狀態：ok／error:<原因>。"""
@@ -61,6 +71,21 @@ def _to_date(value: str) -> str:
         pass
     m = re.match(r"(\d{4}-\d{2}-\d{2})", value)
     return m.group(1) if m else ""
+
+
+def _business_days(today: str, n: int) -> list[str]:
+    """今天（一定含）往回數到 n 個平日（週一至週五，不管日本假日；TDnet 假日頁本來就是空頁，
+    parse_tdnet 會回 []，交給呼叫端判斷 status=empty，不特別跳過）。"""
+    try:
+        d = datetime.strptime(today[:10], "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return []
+    out = [d.isoformat()]
+    while len(out) < n:
+        d -= timedelta(days=1)
+        if d.weekday() < 5:
+            out.append(d.isoformat())
+    return out
 
 
 def parse_feed(text: str) -> list[dict]:
@@ -133,6 +158,28 @@ def parse_twse(text: str) -> list[dict]:
     return out
 
 
+def parse_tdnet(text: str) -> list[dict]:
+    """TDnet（東証適時開示情報閲覧サービス）單日清單頁 → 同 parse_twse 的形狀。
+    假日或無公告的頁面沒有 kjTitle 列，回 []（status 交給呼叫端判成 empty，不是 error）。"""
+    m = _TDNET_DATE_RE.search(text or "")
+    date_iso = f"{m.group(1)}-{m.group(2)}-{m.group(3)}" if m else ""
+    out = []
+    for row in _TDNET_ROW_RE.finditer(text or ""):
+        code5 = _clean(row.group("code"), 10)
+        code = code5[:4] if len(code5) >= 5 else code5
+        title = html.unescape(_clean(row.group("title"), 200))
+        if not code or not title:
+            continue
+        href = row.group("href").strip()
+        link = href if href.startswith("http") else TDNET_BASE + href
+        out.append({
+            "title": title, "link": link, "date": date_iso,
+            "summary": "", "outlet": "", "company_code": code,
+            "company_name": html.unescape(_clean(row.group("name"), 100)), "market": "JP",
+        })
+    return out
+
+
 class OfficialSources:
     def __init__(self, config: dict, fetch_text=http_text, today: str | None = None):
         self.config = {k: v for k, v in (config or {}).items() if not k.startswith("_")}
@@ -154,10 +201,39 @@ class OfficialSources:
         items = parse_twse(text) if spec.get("kind") == "twse_json" else parse_feed(text)
         return sid, items, {"status": "ok" if items else "empty", "items": len(items), "label": spec.get("label", sid)}
 
+    def _load_tdnet(self, sid: str, spec: dict) -> tuple[str, list[dict], dict]:
+        """TDnet 沒有單一 URL：逐日（今天＋往回 lookback_days-1 個平日）抓清單頁，每天最多
+        max_pages_per_day 頁，一頁不滿 100 筆就是當天最後一頁（含假日空頁）。"""
+        base = spec.get("base_url", TDNET_BASE)
+        days = _business_days(self.today, spec.get("lookback_days", MATCH_WINDOW_DAYS))
+        cap = spec.get("max_pages_per_day", 10)
+        items: list[dict] = []
+        fetched, last_error = 0, ""
+        for d in days:
+            ymd = d.replace("-", "")
+            for page in range(1, cap + 1):
+                text, status = self.fetch_text(f"{base}I_list_{page:03d}_{ymd}.html")
+                if text is None:
+                    last_error = status
+                    break
+                fetched += 1
+                day_items = parse_tdnet(text)
+                items.extend(day_items)
+                if len(day_items) < 100:
+                    break   # 假日空頁或當天最後一頁
+        if not fetched:
+            return sid, [], {"status": "error", "error": (last_error.split(":", 1)[-1] or "no pages fetched"),
+                             "label": spec.get("label", sid)}
+        return sid, items, {"status": "ok" if items else "empty", "items": len(items), "label": spec.get("label", sid)}
+
     def prefetch(self) -> None:
-        jobs = [(sid, spec, self._url(spec)) for sid, spec in self.config.items() if spec.get("kind") != "company_wires"]
+        jobs = [(sid, spec, self._url(spec)) for sid, spec in self.config.items()
+                if spec.get("kind") not in ("company_wires", "tdnet_html")]
+        tdnet_jobs = [(sid, spec) for sid, spec in self.config.items() if spec.get("kind") == "tdnet_html"]
         with ThreadPoolExecutor(max_workers=8) as ex:
             for sid, items, st in ex.map(lambda j: self._load(*j), jobs):
+                self.items[sid], self.status[sid] = items, st
+            for sid, items, st in ex.map(lambda j: self._load_tdnet(*j), tdnet_jobs):
                 self.items[sid], self.status[sid] = items, st
 
     def fetch_company_wires(self, names: dict) -> None:
@@ -176,17 +252,20 @@ class OfficialSources:
                 st = {**st, "items": len(own), "status": "ok" if own else ("empty" if st["status"] != "error" else "error")}
                 self.items[sid], self.status[sid] = own, st
 
-    def relevant(self, entity_keys: set, tw_codes: set) -> list[str]:
+    def relevant(self, entity_keys: set, tw_codes: set, jp_codes: set = frozenset()) -> list[str]:
         out = []
         for sid, spec in self.config.items():
             covers = set(spec.get("covers") or [])
-            if covers & entity_keys or ("*TW" in covers and tw_codes) or ("*TWO" in covers and tw_codes):
+            if (covers & entity_keys or ("*TW" in covers and tw_codes) or ("*TWO" in covers and tw_codes)
+                    or ("*JP" in covers and jp_codes)):
                 out.append(sid)
         out += [sid for sid in self.status if sid.startswith("company_wires:") and sid.split(":", 1)[1] in entity_keys]
         return out
 
-    def match(self, cand: dict, entity_keys: set, names: list[str], tw_codes: set, today: str) -> dict:
-        """cand 需要 text／tokens／figures／event_date。"""
+    def match(self, cand: dict, entity_keys: set, names: list[str], tw_codes: set, today: str,
+              jp_codes: set = frozenset()) -> dict:
+        """cand 需要 text／tokens／figures／event_date。tw_codes／jp_codes 分開比對，
+        避免台股與日股代號剛好同號碼時互相誤配。"""
         try:
             lo = (datetime.strptime((cand.get("event_date") or today)[:10], "%Y-%m-%d")
                   - timedelta(days=MATCH_WINDOW_DAYS)).date().isoformat()
@@ -196,7 +275,7 @@ class OfficialSources:
         figs = set(cand.get("figures") or [])
         toks = set(cand.get("tokens") or [])
         result = {"matched": [], "nearby": [], "checked": [], "failed": []}
-        for sid in self.relevant(entity_keys, tw_codes):
+        for sid in self.relevant(entity_keys, tw_codes, jp_codes):
             st = self.status.get(sid) or {"status": "error", "error": "not fetched", "label": sid}
             label = st.get("label") or (self.config.get(sid) or {}).get("label", sid)
             if st["status"] == "error":
@@ -208,7 +287,8 @@ class OfficialSources:
                 if not d or not (lo <= d <= today):
                     continue
                 if it.get("company_code"):
-                    if it["company_code"] not in tw_codes:
+                    codes = jp_codes if it.get("market") == "JP" else tw_codes
+                    if it["company_code"] not in codes:
                         continue
                     shared = figs & set(extract_figures(it["title"] + " " + it["summary"]))
                     entry = {"source": label, "title": it["title"], "url": it["link"], "date": d,

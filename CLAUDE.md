@@ -158,7 +158,7 @@ Google verification`）——那是機器人偵測，不繞。而且就算加成
 - `briefing/evidence_questions.py`：題目與答案解讀
 - `briefing/evidence_ledger.py`：跨日事實紀錄、數字正規化、找先前紀錄
 - `briefing/evidence_routing.py`：DD／研究主題／總經報告／系統持倉派送、可能受影響的產業、SEC 查核
-- `briefing/evidence_sources.py`：一手來源（官方 RSS、證交所與櫃買中心重大訊息、官方網域的 Google News site: 查詢、當事公司新聞稿）
+- `briefing/evidence_sources.py`：一手來源（官方 RSS、證交所與櫃買中心重大訊息、東證 TDnet 適時開示、官方網域的 Google News site: 查詢、當事公司新聞稿）
 - `briefing/jev_client.py`：HTTP 客戶端，含快取與每次執行的請求上限
 - `data/evidence_routing.json`：人工對照表。人工環節、91 個研究主題的英文辨識詞、27 個總經主題與國家、國別對應的指數部部位、官方來源清單。
 - `data/evidence_routing_auto.json`：自動產生，不要手改。來自 financial-analysis-bot 的研究主題（ID）成員與角色欄公司名、總經報告（MACRO）的關鍵指標。重建：`python3 briefing/evidence_build_data.py routing --fab ~/financial-analysis-bot`
@@ -177,6 +177,7 @@ Google verification`）——那是機器人偵測，不繞。而且就算加成
 - 研究主題要「當事公司是成員，而且文中點到該主題的辨識詞」才確認；公司在主題裡但文中沒點到，進待審。沒有當事公司時，要兩個辨識詞，或一個三個字以上的明確片語（data center permits）。
 - 一手來源分兩級：內容對上（數字或用字重疊）才升級成「官方文件已對到」；同公司、同日期但內容沒對上，只列為「附近有公告」。當事公司新聞稿只收標題開頭是該公司名的，別家新聞稿順帶提到的不算。
 - 總經提醒由程式加：官員發言不是決策、市場定價不是預測、部分月份資料、初值常修正、談判不是協議、預測不是結果、政策決定要看官方公告。
+- 日股一手來源是東證 TDnet 適時開示（`tdnet_disclosure`，`evidence_sources._load_tdnet`）：逐日抓清單頁（今天＋往回 3 個平日），一頁 100 則、不滿一頁就是當天最後一頁，日本假日頁沒有公告列，判 empty 不是 error。代號比對走 `evidence_layer._jp_codes`（東證 4 碼代號，獨立於台股代號，避免兩邊代號剛好同號誤配）。標題是日文，跟英文新聞用字很難對上，大多停在「附近有公告」；數字比對不受影響，「10億」這類日文單位已經在 `extract_figures` 的既有換算表裡，能跟英文的 billion 對上。韓國 DART（dart.fss.or.kr）還沒接，缺 API key，先不做。
 
 **DD／研究主題不再更新時**：這一層照常運作，判斷新舊用的是每天累積的事實紀錄，不是報告。每個 DD、研究主題、總經報告連結旁邊標報告日期；超過 120 天標 older report；另標「報告之後紀錄裡又多了幾則新事實」（+N new since）。報告成了基準線，每天的紀錄是它的後續。
 
@@ -184,7 +185,7 @@ Google verification`）——那是機器人偵測，不繞。而且就算加成
 
 **成本**：2026-09-22 十則實測約 6.5 萬 input token，約 0.0027 美元。官方來源約 35 個請求、3 秒，不花錢。每次執行上限 30 個請求、40 萬 token（`JevClient` 參數）。
 
-**測試**：`python3.12 -m pytest -q tests`（不呼叫付費 API）。離線重播 9/22 案例：`python3.12 tests/evidence_offline_replay.py --out /tmp/evidence_replay --mode fake`（`--mode nokey` 看沒金鑰的畫面）。fake 模式用的是測試劇本，不是真實 Jev 輸出。官方來源在測試裡讀 `tests/fixtures/official_20260922/` 的快照，不連網。
+**測試**：`python3.12 -m pytest -q tests`（不呼叫付費 API）。離線重播 9/22 案例：`python3.12 tests/evidence_offline_replay.py --out /tmp/evidence_replay --mode fake`（`--mode nokey` 看沒金鑰的畫面）。fake 模式用的是測試劇本，不是真實 Jev 輸出。官方來源在測試裡讀 `tests/fixtures/official_20260922/` 的快照，不連網；TDnet 另外測，快照在 `tests/fixtures/tdnet/`（`tests/test_evidence_sources.py`）。
 
 ---
 
