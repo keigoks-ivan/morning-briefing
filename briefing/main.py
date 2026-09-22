@@ -109,6 +109,25 @@ def main() -> None:
     tz_now = datetime.now(tz)
     data["date"] = tz_now.strftime("%a %d %b %Y, %H:%M TST")
 
+    # 2.5 事件判斷層（2026-09-22）：相對於跨日紀錄的新證據 → 經濟變數 → DD／主題／系統持倉。
+    #     Jev 只答窄問題；沒 key／API 失敗／任何例外都只讓這一區塊標「未判斷」，早報照出。
+    print("\n[2.5] Evidence layer...")
+    evidence_ledger = None
+    evidence_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs", "briefing", "data")
+    try:
+        from evidence_layer import run_evidence_layer
+        data["evidence_layer"], evidence_ledger = run_evidence_layer(
+            data, moneydj_news, watchlist, data.get("_news_quality") or news_quality,
+            today=tz_now.strftime("%Y-%m-%d"), data_dir=evidence_dir)
+        ev = data["evidence_layer"]
+        print(f"      jev={ev['jev']['status']} {ev['jev'].get('reason','')}｜items={len(ev['items'])}"
+              f"｜top={len(ev['top'])} low={len(ev['low_priority'])} unjudged={len(ev['unjudged'])}"
+              f"｜ledger {ev['ledger']}")
+    except Exception as e:
+        from evidence_layer import unavailable_result
+        data["evidence_layer"] = unavailable_result(tz_now.strftime("%Y-%m-%d"), f"evidence layer error ({type(e).__name__})")
+        print(f"      ⚠ evidence layer failed: {e}")
+
     # 3. 生成多頁 HTML + Email 用單頁
     print("\n[3/4] Building HTML pages...")
     pages = build_all_pages(data, screener_result=screener_result, today_system=today_system, today_framework=today_framework)
@@ -158,6 +177,15 @@ def main() -> None:
         print(f"      Saved news quality snapshot → data/news_quality_{snap['date']}.json")
     except Exception as e:
         print(f"      ⚠ regime/news quality snapshot failed: {e}")
+
+    # 3.7 事件判斷紀錄＋跨日事實紀錄＋來源品質（同日重跑覆寫同名檔，不追加）
+    if evidence_ledger is not None:
+        try:
+            from evidence_layer import save_outputs
+            written = save_outputs(data["evidence_layer"], evidence_ledger, evidence_dir, tz_now.strftime("%Y-%m-%d"))
+            print(f"      Saved evidence files → {', '.join(written)}")
+        except Exception as e:
+            print(f"      ⚠ evidence files save failed: {e}")
 
     # 同時保留舊的單檔輸出（向後相容）
     output_dir = os.path.join(os.path.dirname(__file__), "output")

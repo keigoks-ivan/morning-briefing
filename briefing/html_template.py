@@ -1115,6 +1115,274 @@ def _watchlist_news_section(items: list) -> str:
 </div>'''
 
 
+# ── 今日新增證據／受影響研究（2026-09-22，事件判斷層 evidence_layer.py） ─────────
+# 放在 news 頁 Top stories 之前；Email 只放精簡摘要＋連結。
+# 「分類信心」＝Jev 對分類標籤的把握，明寫不是股價機率。來源失效時只說「沒讀到」，不說「沒影響」。
+_SITE = "https://research.investmquest.com"
+_EV_STATUS_STYLE = {
+    "routed": "background:#E6F1FB;color:#185FA5;",
+    "needs_review": "background:#FEF3CD;color:#856404;",
+    "logged": "background:#F1F1F1;color:#666;",
+    "not_judged": "background:#F1F1F1;color:#666;",
+}
+_EV_ARROW = {"up": "↑", "down": "↓", "mixed_or_unclear": "?"}
+
+
+def _esc(text) -> str:
+    import html as _html
+    return _html.escape(str(text or ""), quote=True)
+
+
+def _ev_link(path: str, label: str) -> str:
+    if not path:
+        return _esc(label)
+    href = path if path.startswith("http") else _SITE + path
+    return (f'<a href="{_esc(href)}" style="color:#1B3A5C;text-decoration:none;'
+            f'border-bottom:1px solid #c9d3df;">{_esc(label)}</a>')
+
+
+def _ev_chip(text: str, style: str) -> str:
+    return (f'<span style="display:inline-block;font-size:11px;padding:1px 6px;border-radius:3px;'
+            f'margin:0 4px 3px 0;{style}">{_esc(text)}</span>')
+
+
+def _ev_vars(item: dict) -> str:
+    direct = (item.get("variables") or {}).get("direct") or []
+    if not direct:
+        return '<span style="color:#999;">none stated</span>'
+    return "".join(_ev_chip(f"{v['label']} {_EV_ARROW.get(v.get('direction'), '')}".strip(),
+                            "background:#EAF3DE;color:#3B6D11;") for v in direct)
+
+
+def _ev_research(item: dict, absolute: bool = False) -> str:
+    r = item.get("routes") or {}
+    parts = []
+    for d in r.get("dd") or []:
+        parts.append(_ev_link(d["path"], f"DD {d['ticker']}") if d.get("path") else _esc(f"{d['ticker']} (no DD)"))
+    for t in (r.get("themes") or [])[:3]:
+        parts.append(_ev_link(t.get("path", ""), t["key"]))
+    if not parts and r.get("pending"):
+        return '<span style="color:#856404;">pending review</span>'
+    return " · ".join(parts) or '<span style="color:#999;">no research link</span>'
+
+
+def _ev_row_detail(item: dict) -> str:
+    def row(label, body):
+        return (f'<tr><td style="vertical-align:top;width:150px;padding:5px 10px 5px 0;font-size:12px;'
+                f'color:#888;letter-spacing:.3px;">{label}</td>'
+                f'<td style="vertical-align:top;padding:5px 0;font-size:14px;color:#333;line-height:1.55;">{body}</td></tr>')
+
+    last = item.get("last_known") or []
+    last_html = ("<br>".join(f'{_esc(p["date"])} · {_esc(p["outlet"])}: {_esc(p["text"][:220])}'
+                             + (f' <span style="color:#999;">(shared: {_esc(", ".join(p["shared_figures"]))})</span>'
+                                if p.get("shared_figures") else "")
+                             for p in last)
+                 or '<span style="color:#999;">No earlier record found for these companies</span>')
+    direct = (item.get("variables") or {}).get("direct") or []
+    direct_html = (", ".join(f'{_esc(v["label"])} {_EV_ARROW.get(v.get("direction"), "")}' for v in direct)
+                   + ' <span style="color:#999;">(direction of the variable, not of a share price)</span>'
+                   if direct else '<span style="color:#999;">No direct change stated</span>')
+    pi = item.get("potential_impact") or {}
+    trans = [_esc(t) for t in item.get("transmission") or []]
+    for k in pi.get("knock_on") or []:
+        names = ", ".join(k.get("companies") or [])
+        trans.append(f'{_esc(k["segment"])}{" (" + _esc(names) + ")" if names else ""}: '
+                     f'{_esc(k["via"])} <span style="color:#999;">— {_esc(k["status"])}</span>')
+    indirect = (item.get("variables") or {}).get("indirect") or []
+    if indirect:
+        trans.append("Indirect per classifier: " + _esc(", ".join(v["label"] for v in indirect)))
+    industries = [f'{_esc(d["segment"])}' + (f' — {_esc(", ".join(d["companies"]))}' if d.get("companies") else "")
+                  for d in pi.get("direct") or []]
+    unconf = "".join(f'<div style="margin-bottom:3px;">• {_esc(n)}</div>' for n in item.get("unconfirmed") or [])
+    r = item.get("routes") or {}
+    routing = [f"Research: {_ev_research(item)}"]
+    if r.get("holdings"):
+        routing.append("System portfolio (public /pm/ page): " + _esc(", ".join(
+            f'{h["position"]} ({h["kind"]}, {h["via"]})' for h in r["holdings"])))
+    for p in r.get("pending") or []:
+        routing.append(f'<span style="color:#856404;">Pending: {_esc(p["key"])} — {_esc(p["reason"])}</span>')
+    srcs = []
+    for s in item.get("sources") or []:
+        label = f'{s.get("source", "")} · {s.get("published", "")}'
+        srcs.append((_ev_link(s["url"], s.get("title") or label) + f' <span style="color:#999;">{_esc(label)}</span>')
+                    if s.get("url") else _esc(label))
+    srcs.append(f'<span style="color:#999;">Evidence: {_esc((item.get("evidence_basis") or {}).get("display", ""))}</span>')
+    pc = item.get("primary_check") or {}
+    for c in pc.get("checked") or []:
+        if c.get("status") == "ok":
+            fl = c.get("filings") or []
+            txt = ("; ".join(f'{_ev_link(f.get("url", ""), f["form"])} {_esc(f["date"])}' for f in fl)
+                   + " (filed near the date; not matched to this claim)") if fl else "no filing in the window (does not mean no event)"
+            srcs.append(f'SEC EDGAR {_esc(c["company"])}: {txt}')
+        else:
+            srcs.append(f'<span style="color:#856404;">SEC EDGAR {_esc(c["company"])}: check {_esc(c["status"])} '
+                        f'({_esc(c.get("reason", ""))})</span>')
+    for g in pc.get("gaps") or []:
+        srcs.append(f'<span style="color:#999;">Primary source not connected: {_esc(g.get("source", ""))}</span>')
+    cl = item.get("classification") or {}
+    cls_txt = _esc(cl.get("display", ""))
+    if cl.get("confidence") is not None:
+        cls_txt += f' · classification confidence {cl["confidence"]:.2f} ({_esc(cl.get("by") or "")})'
+    if item.get("stage"):
+        cls_txt += f' · stage: {_esc(item["stage"]["display"])}'
+    for reason in cl.get("reasons") or []:
+        cls_txt += f'<div style="color:#856404;margin-top:2px;">{_esc(reason)}</div>'
+    for note in cl.get("notes") or []:
+        cls_txt += f'<div style="color:#777;margin-top:2px;">{_esc(note)}</div>'
+    date_txt = _esc(item.get("event_date") or "")
+    if item.get("period"):
+        date_txt = _esc(item["period"].replace("..", " to "))
+    date_txt += f' <span style="color:#999;">({_esc(item.get("date_basis") or "")})</span>' if date_txt else ""
+    rows = [
+        row("Last known", last_html),
+        row("New today", _esc(item.get("new_today", ""))),
+        row("Direct impact", direct_html),
+        row("Possible transmission", "<br>".join(trans) or '<span style="color:#999;">None identified</span>'),
+    ]
+    if industries:
+        rows.append(row("Industries involved", "<br>".join(industries)))
+    rows += [
+        row("Not yet confirmed", unconf or '<span style="color:#999;">—</span>'),
+        row("Routing", "<br>".join(routing)),
+        row("Sources", "<br>".join(srcs)),
+        row("Event date", date_txt or '<span style="color:#999;">not stated</span>'),
+        row("Classification", cls_txt),
+    ]
+    return f'<table style="margin:8px 0 4px;border-collapse:collapse;">{"".join(rows)}</table>'
+
+
+def _ev_item(item: dict, open_: bool = False) -> str:
+    st = item.get("status") or {}
+    style = _EV_STATUS_STYLE.get(st.get("code"), _EV_STATUS_STYLE["logged"])
+    cl = item.get("classification") or {}
+    stage = (item.get("stage") or {}).get("display")
+    sub = " · ".join(x for x in (cl.get("display"), stage) if x)
+    return f'''
+<details {"open" if open_ else ""} style="padding:10px 0;border-bottom:0.5px solid #f0f0f0;">
+  <summary style="cursor:pointer;list-style:none;">
+    <div style="font-size:15px;font-weight:500;color:#222;line-height:1.5;">{_esc(item.get("headline", ""))}</div>
+    <div style="font-size:12px;color:#888;margin:2px 0 4px;">{_esc(sub)} · {_esc(item.get("source", ""))} {_esc(item.get("source_date", ""))}</div>
+    <div style="font-size:13px;line-height:1.7;">
+      <span style="color:#888;">Direct impact:</span> {_ev_vars(item)}
+      <span style="color:#888;margin-left:6px;">Research:</span> {_ev_research(item)}
+      <span style="display:inline-block;font-size:11px;padding:1px 7px;border-radius:3px;margin-left:6px;{style}">{_esc(st.get("display", ""))[:90]}</span>
+    </div>
+  </summary>
+  {_ev_row_detail(item)}
+</details>'''
+
+
+def _ev_group(title: str, items: list, note: str = "") -> str:
+    if not items:
+        return ""
+    rows = "".join(_ev_item(it) for it in items)
+    note_html = f'<div style="font-size:12px;color:#999;margin:4px 0 6px;">{_esc(note)}</div>' if note else ""
+    return (f'<details style="margin-top:10px;"><summary style="cursor:pointer;font-size:13px;color:#555;">'
+            f'{_esc(title)} ({len(items)})</summary>{note_html}{rows}</details>')
+
+
+def _ev_quality_line(ev: dict) -> str:
+    q = ev.get("quality") or {}
+    bits = []
+    if q.get("feeds_total"):
+        bits.append(f'Feeds responding {q.get("feeds_ok", 0)}/{q["feeds_total"]}')
+    if q.get("raw_candidates") is not None:
+        bits.append(f'raw items {q["raw_candidates"]} → after dedup {q.get("after_dedup")}'
+                    f' → in briefing {q.get("entered_briefing")} → checked {q.get("judged_candidates")}')
+    pc = q.get("primary_checks") or {}
+    if pc.get("attempted"):
+        sec = f'SEC checks: {pc.get("ok", 0)} done, {pc.get("failed", 0)} failed'
+        if pc.get("skipped"):
+            sec += f', {pc["skipped"]} skipped (SEC access not configured)'
+        bits.append(sec)
+    line = " · ".join(bits)
+    failed = q.get("feeds_failed") or []
+    empty = q.get("feeds_empty") or []
+    extra = ""
+    if failed or empty:
+        extra += ('<div style="margin-top:3px;color:#856404;">Sources not read today (their topics may be missing, '
+                  f'which is not the same as no news): {_esc(", ".join((failed + empty)[:10]))}</div>')
+    gaps = q.get("primary_source_gaps") or []
+    if gaps:
+        extra += f'<div style="margin-top:3px;">Primary sources not connected: {_esc("; ".join(gaps[:5]))}</div>'
+    return (f'<div style="font-size:12px;color:#888;margin-top:12px;line-height:1.6;">{_esc(line)}{extra}'
+            '<div style="margin-top:3px;">Classification confidence is how sure the classifier is about a label. '
+            'It is not a probability that any share price moves.</div></div>')
+
+
+def _evidence_section(ev: dict | None) -> str:
+    if not isinstance(ev, dict):
+        return ""
+    by_id = {it["id"]: it for it in ev.get("items") or []}
+    top = [by_id[i] for i in ev.get("top") or [] if i in by_id]
+    more = [by_id[i] for i in ev.get("more") or [] if i in by_id]
+    low = [by_id[i] for i in ev.get("low_priority") or [] if i in by_id]
+    unj = [by_id[i] for i in ev.get("unjudged") or [] if i in by_id]
+    jev = ev.get("jev") or {}
+    banner = ""
+    if jev.get("status") in ("unavailable", "partial"):
+        banner = (f'<div style="font-size:13px;background:#FEF3CD;color:#856404;padding:8px 10px;border-radius:4px;'
+                  f'margin-bottom:8px;">Not classified today: {_esc(jev.get("reason", ""))}. Items below are listed '
+                  'without a new-or-known label, and a short list is not a finding that nothing changed.</div>')
+    led = ev.get("ledger") or {}
+    if led.get("available") is False:
+        banner += (f'<div style="font-size:13px;background:#FEF3CD;color:#856404;padding:8px 10px;border-radius:4px;'
+                   f'margin-bottom:8px;">Earlier evidence record unavailable ({_esc(led.get("note", ""))}); '
+                   '"new" labels are not verified today.</div>')
+    body = "".join(_ev_item(it) for it in top)
+    if not top and not unj:
+        body = ('<div style="font-size:14px;color:#888;padding:8px 0;">No new fundamental evidence was classified '
+                'today. This covers only the sources that were read; see the source line below.</div>')
+    if unj:
+        body += "".join(_ev_item(it) for it in unj[:TOP_EVIDENCE_UNJUDGED])
+        if len(unj) > TOP_EVIDENCE_UNJUDGED:
+            body += _ev_group("More items not classified", unj[TOP_EVIDENCE_UNJUDGED:])
+    body += _ev_group("More new items", more)
+    body += _ev_group("Low priority: known facts restated, price moves, vague reports", low,
+                      "Kept apart from fundamental evidence. A restated figure or a share-price move does not update assumptions.")
+    return f'''
+<div class="section" id="evidence">
+  <div class="section-label">New evidence and affected research <span style="font-weight:400;color:#888;font-size:12px;">what is new versus our earlier records</span></div>
+  {banner}{body}
+  {_ev_quality_line(ev)}
+</div>'''
+
+
+TOP_EVIDENCE_UNJUDGED = 5
+TOP_EVIDENCE_EMAIL = 3
+
+
+def _evidence_email_digest(ev: dict | None) -> str:
+    """Email 只放精簡摘要＋連結（完整展開在網站 news.html#evidence）。table 排版。"""
+    if not isinstance(ev, dict):
+        return ""
+    link = f'{_SITE}/briefing/news.html#evidence'
+    by_id = {it["id"]: it for it in ev.get("items") or []}
+    top = [by_id[i] for i in ev.get("top") or [] if i in by_id][:TOP_EVIDENCE_EMAIL]
+    jev = ev.get("jev") or {}
+    rows = ""
+    for it in top:
+        vars_txt = ", ".join(f'{v["label"]} {_EV_ARROW.get(v.get("direction"), "")}'.strip()
+                             for v in (it.get("variables") or {}).get("direct") or []) or "no direct change stated"
+        research = ", ".join([f'DD {d["ticker"]}' for d in (it.get("routes") or {}).get("dd") or []]
+                             + [t["key"] for t in ((it.get("routes") or {}).get("themes") or [])[:2]]) or "no research link"
+        rows += (f'<tr><td style="padding:4px 0;font-size:14px;color:#333;line-height:1.5;">• {_esc(it["headline"])}'
+                 f'<div style="font-size:12px;color:#777;">{_esc(vars_txt)} → {_esc(research)} · '
+                 f'{_esc((it.get("status") or {}).get("display", ""))[:80]}</div></td></tr>')
+    if not rows:
+        msg = (f'Not classified today: {jev.get("reason", "")}.' if jev.get("status") in ("unavailable", "partial")
+               else "No new fundamental evidence classified today.")
+        rows = f'<tr><td style="padding:4px 0;font-size:14px;color:#888;">{_esc(msg)}</td></tr>'
+    n_low = len(ev.get("low_priority") or [])
+    return f'''
+<div class="section">
+  <div class="section-label">New evidence</div>
+  <table style="border-collapse:collapse;">{rows}</table>
+  <div style="font-size:12px;color:#888;margin-top:6px;">{n_low} restated or price-only item(s) kept apart.
+  <a href="{link}" style="color:#1B3A5C;">Details, sources and what is not yet confirmed</a></div>
+</div>'''
+
+
 def _weekend_reads_section(items: list) -> str:
     """本週值得讀：經濟學人／FT 長文，標題＋一句為什麼＋連結。"""
     items = [i for i in (items or []) if isinstance(i, dict) and i.get("title")]
@@ -2533,7 +2801,8 @@ def build_index_html(data: dict) -> str:
 def build_news_html(data: dict) -> str:
     """要聞・深度"""
     date = data.get("date", "")
-    content = _news_section("Top stories", data.get("top_stories", []))
+    content = _evidence_section(data.get("evidence_layer"))
+    content += _news_section("Top stories", data.get("top_stories", []))
     content += _watchlist_news_section(data.get("watchlist_news", []))
     content += _industry_developments_section(data.get("industry_developments", []))
     content += _daily_deep_dive(data.get("daily_deep_dive", []))
@@ -3251,6 +3520,7 @@ def build_html(data: dict, screener_result: dict = None) -> str:
 {_index_factor_reading(data.get("index_factor_reading", {}))}
 {_market_pulse(data.get("market_pulse", {}))}
 {_sentiment_analysis(data.get("sentiment_analysis", {}))}
+{_evidence_email_digest(data.get("evidence_layer"))}
 {_news_section("Top stories", data.get("top_stories",[]))}
 {_watchlist_news_section(data.get("watchlist_news",[]))}
 {_industry_developments_section(data.get("industry_developments",[]))}

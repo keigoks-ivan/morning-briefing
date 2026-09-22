@@ -105,6 +105,11 @@ jobs:
           # 在 Resend 驗證 investmquest.com 後把這個 secret 設成 briefing@investmquest.com，
           # 兩個信箱就會直接收到。
           FROM_EMAIL:        ${{ secrets.FROM_EMAIL }}
+          # 2026-09-22 事件判斷層（evidence_layer.py）。兩個都選填：
+          # 沒有 TYPESAFE_API_KEY → 新證據區塊標「未判斷」，早報照出、不花錢。
+          # 沒有 SEC_USER_AGENT（SEC 要求帶聯絡方式的 UA）→ 跳過 SEC 一手文件查核，並在早報標為缺口。
+          TYPESAFE_API_KEY:  ${{ secrets.TYPESAFE_API_KEY }}
+          SEC_USER_AGENT:    ${{ secrets.SEC_USER_AGENT }}
         run: |
           cd briefing
           python main.py

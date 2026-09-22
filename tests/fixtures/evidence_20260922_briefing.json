@@ -1,0 +1,76 @@
+{
+ "_note": "2026-09-22 已發布早報 news.html 的原文（逐字），供事件判斷層離線驗收。RSS 原始條目當天沒有存檔，故不附。",
+ "top_stories": [
+  {
+   "headline": "TSMC rallies equipment and material suppliers into Kaohsiung packaging park",
+   "body": "Taiwan broke ground on the Baipu advanced packaging industrial park in Kaohsiung on September 21, anchored by TSMC facilities including a technology validation lab and CoWoS tool validation mini-loop. TrendForce reports TSMC is also reportedly eyeing an AUO site for CoPoS capacity, pulling local equipment and materials suppliers into a joint verification center to speed qualification for AI chip customers.",
+   "tag": "Index book",
+   "tag_type": "tech",
+   "source": "DIGITIMES",
+   "source_date": "2026-09-21",
+   "importance": "high"
+  },
+  {
+   "headline": "AMD market cap tops $1 trillion on AI chip demand",
+   "body": "AMD's market capitalization surpassed $1 trillion for the first time on September 21, with the stock up more than 180% in 2026 on a five-day rally. Intel gained about 12% and Qualcomm rose more than 9% the same session as the AI trade broadened across chipmakers.",
+   "tag": "Index book",
+   "tag_type": "tech",
+   "source": "Bloomberg",
+   "source_date": "2026-09-21",
+   "importance": "high"
+  },
+  {
+   "headline": "South Korea semiconductor exports hit record $34.1 billion in 20 days",
+   "body": "South Korea's chip exports reached $34.12 billion between September 1-20, up 259.4% year-on-year and a monthly record, with shipments to China more than doubling to $16.6 billion and US-bound exports up 118% to $14.2 billion.",
+   "tag": "Index book",
+   "tag_type": "macro",
+   "source": "Yonhap",
+   "source_date": "2026-09-21",
+   "importance": "high"
+  },
+  {
+   "headline": "Nvidia adds $1.5 billion to SB Energy stake ahead of IPO",
+   "body": "Nvidia is buying an additional $1.5 billion in shares of SB Energy ahead of the power company's initial public offering, deepening its exposure to the electricity supply chain underpinning AI data centers. The move follows a pattern of Nvidia taking direct equity stakes in energy and infrastructure partners tied to its compute buildout.",
+   "tag": "Index book",
+   "tag_type": "tech",
+   "source": "Bloomberg",
+   "source_date": "2026-09-21",
+   "importance": "high"
+  },
+  {
+   "headline": "SoftBank launches over $11 billion junk bond sale to fund OpenAI bet",
+   "body": "SoftBank is seeking to raise more than $11 billion in dollar and euro bonds in one of the largest junk bond deals on record, financing its continued investment in OpenAI. The sale underscores the scale of debt-funded capital now flowing into frontier AI labs.",
+   "tag": "AI capex",
+   "tag_type": "tech",
+   "source": "Financial Times",
+   "source_date": "2026-09-21",
+   "importance": "high"
+  }
+ ],
+ "watchlist_news": [
+  {
+   "ticker": "AMD",
+   "headline": "AMD crosses $1 trillion market capitalization for first time",
+   "body": "AMD's market value topped $1 trillion on September 21 as the stock extended a five-day rally, up more than 180% year-to-date on AI chip demand. AMD joins a small group of chipmakers to reach the milestone.",
+   "source": "CNBC",
+   "source_date": "2026-09-21",
+   "importance": "high"
+  }
+ ],
+ "industry_developments": [
+  {
+   "category": "AI in production",
+   "industry": "Enterprise software and security",
+   "headline": "Microsoft 365 Copilot tops 30 million paid seats",
+   "body": "Microsoft disclosed Microsoft 365 Copilot surpassed 30 million paid seats, with net seat adds doubling quarter-over-quarter and a 4x year-over-year rise in enterprise customers holding 50,000+ seats, representing 6.75% of the Microsoft 365 installed base.",
+   "evidence": "30M+ paid seats, 4x YoY growth in 50,000+ seat customers, 6.75% of M365 installed base",
+   "fact_status": "reported",
+   "development": "demand",
+   "value_chain": "Enterprise software",
+   "unknowns": "Exact seat count breakdown by sector not disclosed",
+   "source": "CNBC",
+   "source_date": "2026-09-21",
+   "importance": "high"
+  }
+ ]
+}

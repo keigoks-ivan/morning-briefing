@@ -1,0 +1,567 @@
+{
+ "schema": "evidence-routing-v1",
+ "_comment": "早報事件判斷層的派送對照表。segments／companies／holdings_exposure／transmission／primary_sources／term_aliases 手動維護；themes 由 `python3 briefing/evidence_build_data.py routing --fab <financial-analysis-bot 路徑>` 從 portfolio/id_dd_map.json 重建（只收 segments 用到的主題）。不確定的關聯不要加進來，讓程式送待審。segments[].knock_on＝上下游可能連帶影響的環節（2026-09-22 加，給「可能受影響的產業和公司」用，一律標未證實）。",
+ "segments": {
+  "foundry_leading_edge": {
+   "label": "Foundry and leading-edge nodes",
+   "companies": ["TSM", "2330.TW", "INTC"],
+   "keywords": ["foundry", "2nm", "3nm", "A16", "wafer", "fab ", "晶圓代工", "製程"],
+   "themes": ["LeadingEdgeNode", "FoundryGeography"],
+   "knock_on": ["semicap_equipment"]
+  },
+  "advanced_packaging": {
+   "label": "Advanced packaging",
+   "companies": ["TSM", "2330.TW", "3711.TW", "AMKR"],
+   "keywords": ["CoWoS", "CoPoS", "SoIC", "advanced packaging", "先進封裝", "hybrid bonding", "FOPLP", "panel-level", "Baipu", "白埔"],
+   "themes": ["AdvancedPackaging", "CoWoSCoPoS", "CoPoSFOPLPRace", "HybridBondingSoIC"],
+   "knock_on": ["semicap_equipment"]
+  },
+  "ai_accelerators": {
+   "label": "AI accelerators",
+   "companies": ["NVDA", "AMD", "AVGO", "MRVL"],
+   "keywords": ["GPU", "accelerator", "TPU", "AI chip", "Blackwell", "Rubin", "MI450", "MI355"],
+   "themes": ["AIAcceleratorDemand", "CUDARocmMoat", "AIASICDesignService"],
+   "knock_on": ["foundry_leading_edge", "advanced_packaging", "memory_hbm"]
+  },
+  "memory_hbm": {
+   "label": "Memory and HBM",
+   "companies": ["MU", "000660.KS", "005930.KS"],
+   "keywords": ["HBM", "DRAM", "NAND", "memory chip", "記憶體"],
+   "themes": ["HBM_Supercycle", "MemorySupercycle"],
+   "knock_on": ["semicap_equipment"]
+  },
+  "semicap_equipment": {
+   "label": "Semiconductor equipment",
+   "companies": ["ASML", "AMAT", "LRCX", "KLAC", "TER", "6857.T", "6146.T", "BESI"],
+   "keywords": ["chip equipment", "lithography", "EUV", "semiconductor equipment", "tool validation", "設備"],
+   "themes": ["WaferFabEquipment", "HighNAEUV", "AITestEquipmentATE"],
+   "knock_on": []
+  },
+  "hyperscaler_capex": {
+   "label": "Hyperscaler and AI data-centre capex",
+   "companies": ["MSFT", "AMZN", "GOOGL", "META", "ORCL", "CRWV"],
+   "keywords": ["data center", "data centre", "capex", "capital expenditure", "capital spending", "hyperscaler", "資料中心", "Stargate"],
+   "themes": ["AIComputeCapexCycle", "HyperscalerCloudBigThree", "AIDataCenter"],
+   "knock_on": ["ai_accelerators", "memory_hbm", "dc_power_energy"]
+  },
+  "dc_power_energy": {
+   "label": "Data-centre power and energy",
+   "companies": ["VRT", "SB_ENERGY"],
+   "keywords": ["power company", "electricity", "power grid", "SB Energy", "gigawatt", "nuclear", "電力"],
+   "themes": ["AIDCPowerElectronics", "NuclearRenaissance", "Transformers"],
+   "knock_on": []
+  },
+  "ai_software_agents": {
+   "label": "AI software and agents",
+   "companies": ["MSFT", "CRM", "NOW", "PLTR", "ADBE"],
+   "keywords": ["Copilot", "AI agent", "paid seats", "AI revenue", "seat adds"],
+   "themes": ["ProductivityCopilot", "AgenticAIPlatform", "AgenticAICommercialization"],
+   "knock_on": ["hyperscaler_capex"]
+  },
+  "ai_lab_financing": {
+   "label": "AI lab funding and credit",
+   "companies": ["SOFTBANK", "OPENAI", "ANTHROPIC"],
+   "keywords": ["OpenAI", "Anthropic", "xAI", "bond sale", "junk bond", "bond deal", "debt", "loan", "credit"],
+   "themes": ["AIComputeCapexCycle"],
+   "knock_on": ["hyperscaler_capex", "ai_accelerators"]
+  },
+  "korea_semis_trade": {
+   "label": "Korea chip trade",
+   "companies": ["000660.KS", "005930.KS"],
+   "keywords": ["South Korea", "Korean chip", "Korea's chip", "韓國", "南韓"],
+   "themes": ["MemorySupercycle", "HBM_Supercycle"],
+   "knock_on": ["memory_hbm"]
+  },
+  "rates_macro": {
+   "label": "Rates and macro policy",
+   "companies": [],
+   "keywords": ["Federal Reserve", "rate hike", "rate cut", "inflation", "Treasury yields", "聯準會"],
+   "themes": [],
+   "knock_on": []
+  }
+ },
+ "companies": {
+  "TSM": {"name": "TSMC", "aliases": ["TSMC", "Taiwan Semiconductor", "台積電"], "product": "wafer and packaging"},
+  "2330.TW": {"name": "TSMC (TW)", "aliases": [], "same_as": "TSM", "product": "wafer and packaging"},
+  "NVDA": {"name": "NVIDIA", "aliases": ["Nvidia", "NVIDIA", "輝達"], "product": "GPU"},
+  "AMD": {"name": "AMD", "aliases": ["AMD", "Advanced Micro Devices", "超微"], "product": "GPU and CPU"},
+  "MSFT": {"name": "Microsoft", "aliases": ["Microsoft", "微軟"], "product": "cloud and software"},
+  "INTC": {"name": "Intel", "aliases": ["Intel", "英特爾"], "product": "CPU and foundry"},
+  "QCOM": {"name": "Qualcomm", "aliases": ["Qualcomm", "高通"], "product": "mobile chips"},
+  "AVGO": {"name": "Broadcom", "aliases": ["Broadcom", "博通"], "product": "custom AI chips and networking"},
+  "MRVL": {"name": "Marvell", "aliases": ["Marvell"], "product": "custom AI chips"},
+  "MU": {"name": "Micron", "aliases": ["Micron", "美光"], "product": "memory"},
+  "000660.KS": {"name": "SK Hynix", "aliases": ["SK Hynix", "SK hynix", "海力士"], "product": "memory"},
+  "005930.KS": {"name": "Samsung Electronics", "aliases": ["Samsung", "三星"], "product": "memory"},
+  "3711.TW": {"name": "ASE", "aliases": ["ASE Technology", "日月光"], "product": "packaging and test"},
+  "AMKR": {"name": "Amkor", "aliases": ["Amkor"], "product": "packaging and test"},
+  "ASML": {"name": "ASML", "aliases": ["ASML"], "product": "lithography tools"},
+  "AMAT": {"name": "Applied Materials", "aliases": ["Applied Materials", "應用材料"], "product": "fab tools"},
+  "LRCX": {"name": "Lam Research", "aliases": ["Lam Research", "科林"], "product": "fab tools"},
+  "KLAC": {"name": "KLA", "aliases": ["KLA"], "product": "inspection tools"},
+  "TER": {"name": "Teradyne", "aliases": ["Teradyne"], "product": "test equipment"},
+  "6857.T": {"name": "Advantest", "aliases": ["Advantest"], "product": "test equipment"},
+  "6146.T": {"name": "DISCO", "aliases": ["DISCO"], "product": "dicing tools"},
+  "BESI": {"name": "BE Semiconductor", "aliases": ["BE Semiconductor", "Besi"], "product": "bonding tools"},
+  "AMZN": {"name": "Amazon", "aliases": ["Amazon", "AWS", "亞馬遜"], "product": "cloud"},
+  "GOOGL": {"name": "Alphabet", "aliases": ["Alphabet", "Google", "谷歌"], "product": "cloud and TPU"},
+  "META": {"name": "Meta", "aliases": ["Meta Platforms", "Meta"], "product": "ads"},
+  "ORCL": {"name": "Oracle", "aliases": ["Oracle", "甲骨文"], "product": "cloud"},
+  "CRWV": {"name": "CoreWeave", "aliases": ["CoreWeave"], "product": "GPU cloud"},
+  "VRT": {"name": "Vertiv", "aliases": ["Vertiv"], "product": "power and cooling gear"},
+  "CRM": {"name": "Salesforce", "aliases": ["Salesforce"], "product": "software"},
+  "NOW": {"name": "ServiceNow", "aliases": ["ServiceNow"], "product": "software"},
+  "PLTR": {"name": "Palantir", "aliases": ["Palantir"], "product": "software"},
+  "ADBE": {"name": "Adobe", "aliases": ["Adobe"], "product": "software"},
+  "2409.TW": {"name": "AUO", "aliases": ["AUO", "友達"], "product": "display panels"},
+  "SOFTBANK": {"name": "SoftBank Group", "aliases": ["SoftBank", "軟銀"], "ticker": "9984.T", "product": "investments"},
+  "SB_ENERGY": {"name": "SB Energy", "aliases": ["SB Energy", "SB能源"], "ticker": null, "product": "power"},
+  "OPENAI": {"name": "OpenAI", "aliases": ["OpenAI"], "ticker": null, "product": "AI models"},
+  "ANTHROPIC": {"name": "Anthropic", "aliases": ["Anthropic"], "ticker": null, "product": "AI models"}
+ },
+ "holdings_exposure": {
+  "_comment": "指數部 ETF／個股對公司或環節的曝險。只用公開的 /pm/holdings.json 裡真的有的部位；不在公開檔裡的部位一律不顯示。",
+  "2330": {"companies": ["TSM", "2330.TW"]},
+  "0050": {"companies": ["TSM", "2330.TW", "2454.TW", "2317.TW", "2308.TW", "2382.TW", "3711.TW"]},
+  "SMH": {"segments": ["foundry_leading_edge", "advanced_packaging", "ai_accelerators", "memory_hbm", "semicap_equipment"]},
+  "QQQ": {"companies": ["MSFT", "NVDA", "AMD", "AMZN", "GOOGL", "META", "AVGO", "INTC", "QCOM", "MU", "AMAT", "LRCX", "KLAC", "ASML"]}
+ },
+ "transmission": {
+  "_comment": "程式提供的「可能傳導」路徑，只從已判定為直接影響的變數出發，一律標示未證實。",
+  "capex": [["demand", "Orders for suppliers (equipment, construction, power gear) rise only if the spending goes ahead"]],
+  "financing": [["capex", "Money raised can pay for later capex or chip purchases; none is spent yet"], ["cost", "More debt raises interest cost and credit risk for the issuer"]],
+  "supply_capacity": [["price", "More capacity can ease tight pricing once output starts"], ["shipments", "Output supports later shipments"]],
+  "shipments": [["demand", "Shipments read through to demand only if they are sell-through, not inventory build"]],
+  "demand": [["capex", "Sustained demand supports more capacity spending"], ["price", "Tight demand can support pricing"]],
+  "price": [["cost", "Higher prices are higher costs for buyers"]],
+  "cost": [["price", "Cost increases may be passed on to prices"]],
+  "competition": [["price", "Competitive pressure can weigh on price and share"]],
+  "rates_policy": [["financing", "Rates and policy change funding cost"], ["market_valuation", "Rates move valuation multiples"]],
+  "market_valuation": [["financing", "A higher share price lowers the cost of equity funding"]]
+ },
+ "primary_sources": {
+  "_comment": "一手來源清單。connected=sec 表示程式會查 SEC EDGAR；false 表示還沒接，當天會列為一手來源缺口。",
+  "companies": {
+   "TSM": {"label": "TSMC press releases and TWSE MOPS material information", "connected": "sec", "cik": "0001046179"},
+   "NVDA": {"label": "NVIDIA newsroom and SEC filings", "connected": "sec", "cik": "0001045810"},
+   "AMD": {"label": "AMD investor relations and SEC filings", "connected": "sec", "cik": "0000002488"},
+   "MSFT": {"label": "Microsoft investor relations and SEC filings", "connected": "sec", "cik": "0000789019"},
+   "SOFTBANK": {"label": "SoftBank Group IR and TDnet disclosures", "connected": false},
+   "SB_ENERGY": {"label": "SB Energy IPO registration statement", "connected": false},
+   "000660.KS": {"label": "SK Hynix DART filings", "connected": false},
+   "005930.KS": {"label": "Samsung Electronics DART filings", "connected": false}
+  },
+  "segments": {
+   "korea_semis_trade": {"label": "Korea Customs Service 20-day trade data and MOTIE releases", "connected": false},
+   "rates_macro": {"label": "Federal Reserve statements and FRED data", "connected": false},
+   "advanced_packaging": {"label": "Kaohsiung city government and MOEA industrial-park notices", "connected": false}
+  }
+ },
+ "term_aliases": {
+  "_comment": "跨語言比對先前紀錄用（中文舊早報 ↔ 英文新早報）。",
+  "baipu": ["Baipu", "白埔"],
+  "copilot": ["Copilot"],
+  "sb energy": ["SB Energy", "SB能源"],
+  "cowos": ["CoWoS"],
+  "copos": ["CoPoS"],
+  "junk bond": ["junk bond", "垃圾債", "高收益債"],
+  "exports": ["exports", "出口"],
+  "market cap": ["market cap", "market value", "市值"]
+ },
+ "themes": {
+  "AIASICDesignService": {
+   "path": "/id/ID_AIASICDesignService_20260419.html",
+   "date": "2026-04-19",
+   "label": "AI ASIC 設計服務 — 已併入 AI 加速器需求",
+   "tickers": [
+    "2027.TW",
+    "2028.TW",
+    "2454.TW",
+    "3443.TW",
+    "3661.TW",
+    "AMZN",
+    "AVGO",
+    "GOOGL",
+    "GUC",
+    "META",
+    "MRVL",
+    "MSFT",
+    "NVDA"
+   ]
+  },
+  "AIAcceleratorDemand": {
+   "path": "/id/ID_AIAcceleratorDemand_20260905.html",
+   "date": "2026-09-05",
+   "label": "AI 加速器需求 — 漲的是第二層，不是龍頭",
+   "tickers": [
+    "2330.TW",
+    "2454.TW",
+    "3443.TW",
+    "3661.TW",
+    "AMD",
+    "AMZN",
+    "AVGO",
+    "GOOGL",
+    "MRVL",
+    "NVDA"
+   ]
+  },
+  "AIComputeCapexCycle": {
+   "path": "/id/ID_AIComputeCapexCycle_20260903.html",
+   "date": "2026-09-03",
+   "label": "AI 算力資本週期 — 短缺是真的，但市場已經改付給別人",
+   "tickers": [
+    "AMD",
+    "AMZN",
+    "ANET",
+    "AVGO",
+    "DELL",
+    "GEV",
+    "GOOGL",
+    "META",
+    "MRVL",
+    "MSFT",
+    "MU",
+    "NVDA",
+    "ORCL",
+    "TSM",
+    "VRT"
+   ]
+  },
+  "AIDCPowerElectronics": {
+   "path": "/id/ID_AIDCPowerElectronics_20260905.html",
+   "date": "2026-09-05",
+   "label": "AI 資料中心供電電子 — 需求更確定，利潤歸屬被開放規格打折",
+   "tickers": [
+    "2301.TW",
+    "2308.TW",
+    "6105.TW",
+    "6230.TW",
+    "ETN",
+    "FLEX",
+    "NVTS",
+    "ON",
+    "SU.PA",
+    "TXN",
+    "VRT"
+   ]
+  },
+  "AIDataCenter": {
+   "path": "/id/ID_AIDataCenter_20260905.html",
+   "date": "2026-09-05",
+   "label": "AI 資料中心電力基建 — 短缺是真的，租金已經付完",
+   "tickers": [
+    "6501.T",
+    "7011.T",
+    "ABB",
+    "BE",
+    "CEG",
+    "ENR.DE",
+    "ETN",
+    "GEV",
+    "HWM",
+    "PWR",
+    "SMR",
+    "SU.PA",
+    "TLN",
+    "VRT",
+    "VST"
+   ]
+  },
+  "AITestEquipmentATE": {
+   "path": "/id/ID_AITestEquipmentATE_20260427.html",
+   "date": "2026-04-27",
+   "label": "AI 測試設備 ATE — 已併入半導體設備五寡占",
+   "tickers": [
+    "ATE"
+   ]
+  },
+  "AdvancedPackaging": {
+   "path": "/id/ID_AdvancedPackaging_20260905.html",
+   "date": "2026-09-05",
+   "label": "先進封裝 — 租金收到了，收租的時鐘也開始倒數",
+   "tickers": [
+    "0522.HK",
+    "2330.TW",
+    "3037.TW",
+    "3711.TW",
+    "4062.T",
+    "6146.T",
+    "AMAT",
+    "AMKR",
+    "AVGO",
+    "BESI",
+    "CRDO",
+    "INTC",
+    "KLIC",
+    "NVDA",
+    "ONTO"
+   ]
+  },
+  "AgenticAICommercialization": {
+   "path": "/id/ID_AgenticAICommercialization_20260429.html",
+   "date": "2026-04-29",
+   "label": "Agentic AI 商業化 — 已併入「Agentic AI 平台」母題",
+   "tickers": [
+    "ROI"
+   ]
+  },
+  "AgenticAIPlatform": {
+   "path": "/id/ID_AgenticAIPlatform_20260903.html",
+   "date": "2026-09-03",
+   "label": "Agentic AI 平台 — 市場殺的是計價基礎，不是應用層",
+   "tickers": [
+    "ACN",
+    "ADBE",
+    "CRM",
+    "CRWD",
+    "DDOG",
+    "GOOGL",
+    "HUBS",
+    "MSFT",
+    "NET",
+    "NOW",
+    "PLTR",
+    "SNOW",
+    "WDAY"
+   ]
+  },
+  "CUDARocmMoat": {
+   "path": "/id/ID_CUDARocmMoat_20260905.html",
+   "date": "2026-09-05",
+   "label": "CUDA／ROCm 軟體護城河 — 功能鎖定已破，經濟鎖定未破",
+   "tickers": [
+    "AMD",
+    "AMZN",
+    "ARM",
+    "AVGO",
+    "GOOGL",
+    "INTC",
+    "META",
+    "MRVL",
+    "MSFT",
+    "NVDA"
+   ]
+  },
+  "CoPoSFOPLPRace": {
+   "path": "/id/ID_CoPoSFOPLPRace_20260505.html",
+   "date": "2026-05-05",
+   "label": "CoPoS / FOPLP 量產競賽 — 已併入先進封裝",
+   "tickers": [
+    "FOPLP"
+   ]
+  },
+  "CoWoSCoPoS": {
+   "path": "/id/ID_CoWoSCoPoS_20260501.html",
+   "date": "2026-05-01",
+   "label": "CoWoS / CoPoS 細分 — 已併入先進封裝",
+   "tickers": [
+    "2027.TW",
+    "EMIB",
+    "OSAT"
+   ]
+  },
+  "FoundryGeography": {
+   "path": "/id/ID_FoundryGeography_20260905.html",
+   "date": "2026-09-05",
+   "label": "晶圓代工的地理重分配 — 誰在付這張帳單",
+   "tickers": [
+    "005930.KS",
+    "0981.HK",
+    "2303.TW",
+    "2330.TW",
+    "8035.T",
+    "AAPL",
+    "AMAT",
+    "ASML",
+    "GFS",
+    "INTC",
+    "LRCX",
+    "NVDA",
+    "TSLA"
+   ]
+  },
+  "HBM_Supercycle": {
+   "path": "/id/ID_HBM_Supercycle_20260904.html",
+   "date": "2026-09-04",
+   "label": "HBM 超級循環 — 缺貨還在，計分板換了",
+   "tickers": [
+    "000660.KS",
+    "005930.KS",
+    "AMD",
+    "ASML",
+    "AVGO",
+    "BESI.AS",
+    "LRCX",
+    "MU",
+    "NVDA",
+    "TSM"
+   ]
+  },
+  "HighNAEUV": {
+   "path": "/id/ID_HighNAEUV_20260505.html",
+   "date": "2026-05-05",
+   "label": "High-NA EUV — 已併入先進製程節點競賽",
+   "tickers": [
+    "AGC",
+    "EUV",
+    "JSR",
+    "MOR",
+    "NA",
+    "TSMC"
+   ]
+  },
+  "HybridBondingSoIC": {
+   "path": "/id/ID_HybridBondingSoIC_20260905.html",
+   "date": "2026-09-05",
+   "label": "混合鍵合與 SoIC — 邏輯堆疊撐住的租金，記憶體還沒進場",
+   "tickers": [
+    "000660.KS",
+    "005930.KS",
+    "0522.HK",
+    "2330.TW",
+    "6146.T",
+    "AAPL",
+    "ADEA",
+    "AMAT",
+    "AMD",
+    "BESI.AS",
+    "CAMT",
+    "INTC",
+    "KLIC",
+    "MU",
+    "ONTO",
+    "SMHN.DE"
+   ]
+  },
+  "HyperscalerCloudBigThree": {
+   "path": "/id/ID_HyperscalerCloudBigThree_20260505.html",
+   "date": "2026-05-05",
+   "label": "Hyperscaler 雲端三巨頭（精煉版）— 分化與情境分析",
+   "tickers": [
+    "AAPL",
+    "AMD",
+    "AMZN",
+    "AVGO",
+    "BABA",
+    "CRWV",
+    "GOOGL",
+    "META",
+    "MRVL",
+    "MSFT",
+    "NVDA",
+    "ORCL"
+   ]
+  },
+  "LeadingEdgeNode": {
+   "path": "/id/ID_LeadingEdgeNode_20260905.html",
+   "date": "2026-09-05",
+   "label": "先進製程節點 — 稀缺換了位置",
+   "tickers": [
+    "005930.KS",
+    "2330.TW",
+    "4063.T",
+    "6920.T",
+    "7741.T",
+    "8035.T",
+    "AMAT",
+    "AMD",
+    "ASML",
+    "INTC",
+    "KLAC",
+    "LRCX",
+    "NVDA"
+   ]
+  },
+  "MemorySupercycle": {
+   "path": "/id/ID_MemorySupercycle_20260905.html",
+   "date": "2026-09-05",
+   "label": "記憶體大循環母題 — 價格還在漲，庫存已經開始堆",
+   "tickers": [
+    "000660.KS",
+    "005930.KS",
+    "285A.T",
+    "603986.SS",
+    "6857.T",
+    "LRCX",
+    "MU",
+    "SNDK",
+    "STX",
+    "WDC"
+   ]
+  },
+  "NuclearRenaissance": {
+   "path": "/id/ID_NuclearRenaissance_20260430.html",
+   "date": "2026-04-30",
+   "label": "核能復興：AI 電力 backbone 的真贏家（精煉版）— 結構性推論與情境分析",
+   "tickers": [
+    "BAM",
+    "BWXT",
+    "CCJ",
+    "CEG",
+    "D",
+    "GEV",
+    "KAP.LSE",
+    "LEU",
+    "NEE",
+    "NXE",
+    "OKLO",
+    "SIE.DE",
+    "SMR",
+    "TLN",
+    "UEC",
+    "URA",
+    "URNM",
+    "VST"
+   ]
+  },
+  "ProductivityCopilot": {
+   "path": "/id/ID_ProductivityCopilot_20260427.html",
+   "date": "2026-04-27",
+   "label": "生產力 Copilot（精煉版）— 商業模式相變與情境分析",
+   "tickers": [
+    "AAPL",
+    "ADBE",
+    "BOX",
+    "CRM",
+    "DOCU",
+    "GOOGL",
+    "HUBS",
+    "MSFT",
+    "TEAM",
+    "WDAY",
+    "ZM"
+   ]
+  },
+  "Transformers": {
+   "path": "/id/ID_Transformers_20260419.html",
+   "date": "2026-04-19",
+   "label": "AI DC 電力變壓器 — 已併入 AI 資料中心基建",
+   "tickers": [
+    "GEV",
+    "GOES"
+   ]
+  },
+  "WaferFabEquipment": {
+   "path": "/id/ID_WaferFabEquipment_20260905.html",
+   "date": "2026-09-05",
+   "label": "晶圓廠設備 — 結構是對的，價格已經照結構付過一次",
+   "tickers": [
+    "002371.SZ",
+    "6501.T",
+    "6857.T",
+    "688012.SS",
+    "7735.T",
+    "8035.T",
+    "AMAT",
+    "ASML",
+    "BESI.AS",
+    "FORM",
+    "KLAC",
+    "LRCX",
+    "ONTO",
+    "TER"
+   ]
+  }
+ }
+}

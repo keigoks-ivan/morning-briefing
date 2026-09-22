@@ -1,0 +1,124 @@
+{
+ "_note": "公開系統組合 /pm/holdings.json 精簡版；final_weight_pct／score 故意保留，測試不會外流到輸出",
+ "as_of": "2026-09-19",
+ "index_sleeve": {
+  "components": [
+   {
+    "ticker": "0050",
+    "market": "台股",
+    "final_weight_pct": 57.4
+   },
+   {
+    "ticker": "2330",
+    "market": "台股",
+    "final_weight_pct": 75.0
+   },
+   {
+    "ticker": "QQQ",
+    "market": "美股",
+    "final_weight_pct": 65.5
+   },
+   {
+    "ticker": "SMH",
+    "market": "美股",
+    "final_weight_pct": 45.7
+   }
+  ]
+ },
+ "stock_sleeve": {
+  "core_seats": [
+   {
+    "ticker": "STX",
+    "seat": "核心",
+    "score": 71.2
+   },
+   {
+    "ticker": "LRCX",
+    "seat": "核心",
+    "score": 65.9
+   },
+   {
+    "ticker": "KLAC",
+    "seat": "核心",
+    "score": 59.6
+   },
+   {
+    "ticker": "CLS",
+    "seat": "核心",
+    "score": 56.6
+   },
+   {
+    "ticker": "ASML",
+    "seat": "核心",
+    "score": 64.8
+   }
+  ],
+  "sat_seats": [
+   {
+    "ticker": "MSFT",
+    "seat": "衛星",
+    "score": 40.5
+   },
+   {
+    "ticker": "TER",
+    "seat": "衛星",
+    "score": 64.2
+   },
+   {
+    "ticker": "NVDA",
+    "seat": "衛星",
+    "score": 66.2
+   },
+   {
+    "ticker": "JBL",
+    "seat": "衛星",
+    "score": 73.5
+   },
+   {
+    "ticker": "CAH",
+    "seat": "衛星",
+    "score": 61.2
+   },
+   {
+    "ticker": "ANET",
+    "seat": "衛星",
+    "score": 39.4
+   },
+   {
+    "ticker": "TSM",
+    "seat": "衛星",
+    "score": 59.2
+   },
+   {
+    "ticker": "TXN",
+    "seat": "衛星",
+    "score": 51.6
+   },
+   {
+    "ticker": "FIX",
+    "seat": "衛星",
+    "score": 54.8
+   },
+   {
+    "ticker": "EME",
+    "seat": "衛星",
+    "score": 52.9
+   },
+   {
+    "ticker": "NTAP",
+    "seat": "衛星",
+    "score": 55.0
+   },
+   {
+    "ticker": "AMAT",
+    "seat": "衛星",
+    "score": 66.9
+   },
+   {
+    "ticker": "CAT",
+    "seat": "衛星",
+    "score": 60.4
+   }
+  ]
+ }
+}

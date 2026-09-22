@@ -1,0 +1,266 @@
+{
+ "_note": "dd-screener latest.json 子集（as_of 2026-09-22）",
+ "watchlist": [
+  {
+   "ticker": "LRCX",
+   "name": "LRCX",
+   "grade": "A",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_LRCX_20260730.html",
+   "dd_date": "2026-07-30"
+  },
+  {
+   "ticker": "ASML",
+   "name": "ASML",
+   "grade": "S",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_ASML_20260716.html",
+   "dd_date": "2026-07-16"
+  },
+  {
+   "ticker": "BESI",
+   "name": "BESI",
+   "grade": "S",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_BESI_20260710.html",
+   "dd_date": "2026-07-10"
+  },
+  {
+   "ticker": "KLAC",
+   "name": "KLAC",
+   "grade": "S",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_KLAC_20260729.html",
+   "dd_date": "2026-07-29"
+  },
+  {
+   "ticker": "TSM",
+   "name": "TSM",
+   "grade": "A",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_TSM_20260916.html",
+   "dd_date": "2026-09-16"
+  },
+  {
+   "ticker": "2330.TW",
+   "name": "2330.TW",
+   "grade": "S",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_2330TW_20260719.html",
+   "dd_date": "2026-07-19"
+  },
+  {
+   "ticker": "NVDA",
+   "name": "NVDA",
+   "grade": "S",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_NVDA_20260831.html",
+   "dd_date": "2026-08-31"
+  },
+  {
+   "ticker": "PLTR",
+   "name": "PLTR",
+   "grade": "B",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_PLTR_20260805.html",
+   "dd_date": "2026-08-05"
+  },
+  {
+   "ticker": "6857.T",
+   "name": "Advantest",
+   "grade": "S",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_6857T_20260522.html",
+   "dd_date": "2026-05-22"
+  },
+  {
+   "ticker": "6146.T",
+   "name": "DISCO Corporation",
+   "grade": "S",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_6146T_20260522.html",
+   "dd_date": "2026-05-22"
+  },
+  {
+   "ticker": "AMAT",
+   "name": "AMAT",
+   "grade": "S",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_AMAT_20260626.html",
+   "dd_date": "2026-06-26"
+  },
+  {
+   "ticker": "MSFT",
+   "name": "MSFT",
+   "grade": "A",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_MSFT_20260730.html",
+   "dd_date": "2026-07-30"
+  },
+  {
+   "ticker": "META",
+   "name": "META",
+   "grade": "A",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_META_20260730.html",
+   "dd_date": "2026-07-30"
+  },
+  {
+   "ticker": "VRT",
+   "name": "VRT",
+   "grade": "B",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_VRT_20260710.html",
+   "dd_date": "2026-07-10"
+  },
+  {
+   "ticker": "ADBE",
+   "name": "ADBE",
+   "grade": "A",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_ADBE_20260703.html",
+   "dd_date": "2026-07-03"
+  },
+  {
+   "ticker": "AVGO",
+   "name": "AVGO",
+   "grade": "A",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/brief/BRIEF_AVGO_20260905.html",
+   "dd_date": "2026-09-05"
+  },
+  {
+   "ticker": "TER",
+   "name": "TER",
+   "grade": "B",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_TER_20260626.html",
+   "dd_date": "2026-06-26"
+  },
+  {
+   "ticker": "MU",
+   "name": "MU",
+   "grade": "B",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_MU_20260705.html",
+   "dd_date": "2026-07-05"
+  },
+  {
+   "ticker": "QCOM",
+   "name": "QCOM",
+   "grade": "B",
+   "pass_count": 4,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_QCOM_20260730.html",
+   "dd_date": "2026-07-30"
+  },
+  {
+   "ticker": "MRVL",
+   "name": "MRVL",
+   "grade": "A",
+   "pass_count": 3,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_MRVL_20260831.html",
+   "dd_date": "2026-08-31"
+  },
+  {
+   "ticker": "GOOGL",
+   "name": "GOOGL",
+   "grade": "S",
+   "pass_count": 3,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_GOOGL_20260723.html",
+   "dd_date": "2026-07-23"
+  },
+  {
+   "ticker": "AMD",
+   "name": "AMD",
+   "grade": "B",
+   "pass_count": 3,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_AMD_20260805.html",
+   "dd_date": "2026-08-05"
+  },
+  {
+   "ticker": "CRM",
+   "name": "CRM",
+   "grade": "B",
+   "pass_count": 2,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_CRM_20260831.html",
+   "dd_date": "2026-08-31"
+  },
+  {
+   "ticker": "NOW",
+   "name": "NOW",
+   "grade": "A",
+   "pass_count": 3,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_NOW_20260723.html",
+   "dd_date": "2026-07-23"
+  },
+  {
+   "ticker": "AMZN",
+   "name": "AMZN",
+   "grade": "A",
+   "pass_count": 2,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_AMZN_20260731.html",
+   "dd_date": "2026-07-31"
+  },
+  {
+   "ticker": "ORCL",
+   "name": "ORCL",
+   "grade": "B",
+   "pass_count": 2,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_ORCL_20260703.html",
+   "dd_date": "2026-07-03"
+  },
+  {
+   "ticker": "AMKR",
+   "name": "AMKR",
+   "grade": "B",
+   "pass_count": 2,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_AMKR_20260524.html",
+   "dd_date": "2026-05-24"
+  },
+  {
+   "ticker": "INTC",
+   "name": "Intel Corporation",
+   "grade": "C",
+   "pass_count": 2,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_INTC_20260724.html",
+   "dd_date": "2026-07-24"
+  },
+  {
+   "ticker": "CRWV",
+   "name": "CoreWeave, Inc.",
+   "grade": "B",
+   "pass_count": 0,
+   "dd_status": "dd",
+   "dd_path": "/dd/DD_CRWV_20260523.html",
+   "dd_date": "2026-05-23"
+  }
+ ]
+}

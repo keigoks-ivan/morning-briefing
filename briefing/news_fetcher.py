@@ -1271,6 +1271,7 @@ _LONGFORM_FEEDS = {"Financial Times", "FT Markets", "FT Tech", "FT Asia", "The E
                    "Science News", "New Scientist"}
 _RSS_NOISE = re.compile(r"開獎|中獎號碼|彩券|統一發票|訃聞|Podcast|podcast|The Download:|Crossword|Newsletter")
 _LAST_RSS_QUALITY: dict = {}
+_LAST_FEED_STATUS: dict = {}  # label → {status: ok|empty|error, entries, kept, blocked, error?}
 
 
 def _normalize_news_title(title: str) -> str:
@@ -1400,8 +1401,20 @@ def _fetch_one_feed(spec: tuple) -> tuple[list[dict], int]:
     cutoff = datetime.now(tz) - timedelta(hours=max_age_h)
     out = []
     blocked = 0
+    # 2026-09-22：逐來源記錄抓取狀態（事件判斷層要算成功率、標「來源失效」而不是「沒有影響」）
+    status = {"status": "ok", "entries": 0, "kept": 0, "blocked": 0}
     try:
         feed = feedparser.parse(url)
+        entries = list(getattr(feed, "entries", []) or [])
+        status["entries"] = len(entries)
+        http_status = feed.get("status") if hasattr(feed, "get") else None
+        if isinstance(http_status, int) and http_status >= 400:
+            status.update(status="error", error=f"HTTP {http_status}")
+        elif not entries:
+            bozo = getattr(feed, "bozo_exception", None) if getattr(feed, "bozo", False) else None
+            status.update(status="error" if bozo else "empty")
+            if bozo:
+                status["error"] = type(bozo).__name__
         for entry in feed.entries:
             pp = entry.get("published_parsed") or entry.get("updated_parsed")
             published = None
@@ -1445,6 +1458,9 @@ def _fetch_one_feed(spec: tuple) -> tuple[list[dict], int]:
                 break
     except Exception as e:
         print(f"  ✗ RSS {label}: {e}")
+        status.update(status="error", error=type(e).__name__)
+    status["kept"], status["blocked"] = len(out), blocked
+    _LAST_FEED_STATUS[label] = status
     return out, blocked
 
 
@@ -1455,6 +1471,7 @@ def fetch_rss_news() -> list[dict]:
     再以 round-robin 保留各來源覆蓋，總數上限 RSS_TOTAL_CAP。
     """
     global _LAST_RSS_QUALITY
+    _LAST_FEED_STATUS.clear()
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
         fetched = list(ex.map(_fetch_one_feed, RSS_FEEDS))
     batches = [items for items, _ in fetched]
@@ -1482,7 +1499,11 @@ def fetch_rss_news() -> list[dict]:
         "duplicate_removed": duplicate_removed,
         "cap_removed": max(0, before_cap - len(results)),
         **coverage,
+        "feeds": {spec[0]: dict(_LAST_FEED_STATUS.get(spec[0], {"status": "error", "error": "no result"}))
+                  for spec in RSS_FEEDS},
     }
+    feed_ok = sum(1 for f in _LAST_RSS_QUALITY["feeds"].values() if f.get("status") == "ok")
+    _LAST_RSS_QUALITY["feed_success_rate"] = round(feed_ok / len(RSS_FEEDS), 3) if RSS_FEEDS else None
     print(
         f"  ✓ RSS: {len(results)} 條（白名單擋 {blocked}、去重 {duplicate_removed}；"
         f"{', '.join(per_feed)}）"
@@ -1507,7 +1528,10 @@ def fetch_dd_watchlist() -> list[dict]:
             if not t:
                 continue
             out.append({"ticker": t, "name": str(st.get("name", "") or ""),
-                        "grade": str(st.get("moat_grade", "") or ""), "pass_count": st.get("pass_count")})
+                        "grade": str(st.get("moat_grade", "") or ""), "pass_count": st.get("pass_count"),
+                        # 2026-09-22：事件判斷層派送用（universe ≠ 有 DD ≠ 持有）
+                        "dd_status": str(st.get("dd_status", "") or ""), "dd_path": str(st.get("dd_path", "") or ""),
+                        "dd_date": str(st.get("dd_date", "") or "")})
         print(f"  ✓ DD 關注清單：{len(out)} 檔（as_of {r.json().get('as_of','?')}）")
         return out
     except Exception as e:

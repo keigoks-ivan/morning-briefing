@@ -144,6 +144,43 @@ Google verification`）——那是機器人偵測，不繞。而且就算加成
 
 ---
 
+## 事件判斷層：今日新增證據（2026-09-22 新增）
+
+目的：每天回答四件事。今天的新聞裡，哪些是過去紀錄沒有的事實；影響哪個經濟變數；該派給哪份 DD、哪個研究主題、哪個系統持倉；還有什麼沒證實。
+
+**分工**
+- 程式：挑候選（沿用 `process_news` 去重後的新聞卡）、對回 RSS 條目拿網址與發布時間、公司辨識、數字正規化（30 million＝30M＝3000萬）、日期、找先前紀錄、SEC 申報查核、派送、「尚未證實」的提醒文字、冪等寫入、來源品質統計。
+- Jev（TypeSafe `jev-1.13.0`，釘版本）：只答預先定義選項的窄問題，題目在 `evidence_questions.py`。新舊、事實階段、每個經濟變數各一題（一則新聞可同時影響多個變數）、方向、重要度、出處類型、候選公司是否當事人。
+- Jev 不做：買賣判斷、改寫投資結論、產生公司名或論述。畫面上的「classification confidence」是分類把握度，不是股價機率，頁面有明寫。
+
+**檔案**
+- `briefing/evidence_layer.py`：主流程與判斷規則（`decide`、`unconfirmed_notes`）
+- `briefing/evidence_questions.py`：題目與答案解讀
+- `briefing/evidence_ledger.py`：跨日事實紀錄、數字正規化、找先前紀錄
+- `briefing/evidence_routing.py`：DD／主題／系統持倉派送、可能受影響的產業、SEC 查核
+- `briefing/jev_client.py`：HTTP 客戶端，含快取與每次執行的請求上限
+- `data/evidence_routing.json`：對照表，手動維護；`themes` 段用 `python3 briefing/evidence_build_data.py routing --fab ~/financial-analysis-bot` 重建
+- `data/evidence_seed_ledger.json`：先前已知的種子，來自每檔最新 DD 摘要與過去 60 天已發布早報；用 `python3 briefing/evidence_build_data.py seed --fab ~/financial-analysis-bot --days 60` 重建
+
+**流程**：`main.py` 在 `process_news` 之後、產生 HTML 之前呼叫 `run_evidence_layer`，整段包在 try 裡，出錯只讓這一區塊標未判斷。輸出寫到 `docs/briefing/data/`：`evidence_ledger.json`（跨日紀錄，一筆一行）、`evidence_{date}.json`／`evidence_latest.json`（當日判斷，含 Jev 快取）、`source_quality_{date}.json`／`source_quality_latest.json`。發布步驟原本就會複製 `data/*.json` 到網站，隔天從 `research.investmquest.com/briefing/data/` 抓回來。
+
+**幾條不能鬆的規則**
+- 同一天重跑：今天寫入的紀錄不算「先前已知」；同名檔覆寫；同樣的請求從快取拿，不重付。
+- 標題數字同公司早就記錄過、文中沒有 additional／another 這類字眼：程式判重述，Jev 說新也不採用。有追加字眼就送複核。2026-09-22 真 Jev 實測把 Copilot 3,000 萬席判成新事實，就是靠這條擋下。
+- 前一天的紀錄抓不到：不准標「新」，一律待複核。
+- 沒有 `TYPESAFE_API_KEY`、API 失敗、預算用完：全部標未判斷，不補答案，不派 DD。
+- 來源抓不到時寫「沒讀到」，不寫沒有影響。`news_fetcher._fetch_one_feed` 逐來源記錄 ok／empty／error。
+- 持倉只讀公開的 `/pm/holdings.json`（系統組合），不讀、不輸出任何未公開的券商持倉。
+- 「市場估值」只列直接影響。實測 Jev 會把幾乎每則新聞都標成間接影響估值，沒有資訊量。
+
+**Secrets（兩個都選填）**：`TYPESAFE_API_KEY`（沒有就只標未判斷，不花錢）、`SEC_USER_AGENT`（SEC 要求帶聯絡方式；沒有就跳過查核並標成缺口）。
+
+**成本**：2026-09-22 六則實測約 3 萬 input token，約 0.0013 美元。每次執行上限 30 個請求、40 萬 token（`JevClient` 參數）。
+
+**測試**：`python3.12 -m pytest -q tests`（不呼叫付費 API）。離線重播 9/22 案例：`python3.12 tests/evidence_offline_replay.py --out /tmp/evidence_replay --mode fake`（`--mode nokey` 看沒金鑰的畫面）。fake 模式用的是測試劇本，不是真實 Jev 輸出。
+
+---
+
 ## 分析骨架：主軸先行（regime-first，2026-08-17 改制）
 
 分析區塊（`CLAUDE_SYSTEM_PROMPT` / `CLAUDE_USER_PROMPT_TEMPLATE`）不再是「每個區塊各自解讀」，而是先立主軸再讓各區塊對主軸表態：
@@ -248,6 +285,7 @@ trigger.py → Render Cron → GitHub API
 
 1.masthead+summary 2.alert 2b._regime_block（今日主軸＋底部昨日主軸驗證） 3._market_strip 4._index_factor_reading
 5._sentiment_analysis 6._market_pulse 7._daily_deep_dive
+7b._evidence_email_digest（今日新增證據，只放三行摘要＋連結；news 頁則是完整的 `_evidence_section`，排在 Top stories 之前）
 8.top_stories 8b._watchlist_news_section（關注清單動態） 9.world_news 10.us_market_recap 11.macro
 12.geopolitical 13.ai_industry 14.regional_tech 15.fintech_crypto
 16.system_status（System status） 17.tech_trends（Deep tech） 17b._frontier_tech（Frontier tech） 18.startup_news（Startups） 18b._weekend_reads_section（Weekend reads） 19.smart_money
