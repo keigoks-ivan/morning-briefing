@@ -363,3 +363,16 @@ class RenderingTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_company_names_count_as_party():
+    ideas = [{"id": "x", "status": "active", "checkpoints": [
+        {"id": "cp", "companies": ["NBIS"], "company_names": ["nebius"], "keywords": ["gpu prices"], "themes": []}]}]
+    out = ideas_layer.match_checkpoints("Nebius raises GPU prices again", [], [], ideas)
+    assert [cp["id"] for _, cp, _ in out] == ["cp"]
+
+
+def test_plural_pair_is_one_keyword():
+    ideas = [{"id": "x", "status": "active", "checkpoints": [
+        {"id": "cp", "companies": [], "keywords": ["bond", "bonds"], "themes": []}]}]
+    assert ideas_layer.match_checkpoints("Treasury bond yields jump as bonds sell off", [], [], ideas) == []

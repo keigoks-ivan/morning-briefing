@@ -235,9 +235,10 @@ env `IDEAS_JSON_PATH`（本機檔案，開發／測試用）→ 站上網址（�
 跑在 `run_evidence_layer` 的 items 全部組好之後，包自己的 try/except（`evidence_layer.py`
 ④），失敗只讓 `ideas` 標 unavailable，不連累事件判斷層其餘輸出。只比對這次判成「新事實」或
 「進度更新」的項目（跟能進 `top` 的分類同一組，不含待複核、重述、未判斷）。比對規則（程式，
-不用模型，`ideas_layer.match_checkpoints`）：(a) 候選公司在 checkpoint.companies 裡，且文中
+不用模型，`ideas_layer.match_checkpoints`）：(a) 候選公司在 checkpoint.companies 裡（路由對照表認不得的公司，
+用 checkpoint.company_names 列名稱，文中出現就算），且文中
 （headline+summary，即 `cand["text"]`，不含全文）出現至少一個 checkpoint 關鍵詞；或 (b) 文中
-出現兩個以上不同關鍵詞，或一個三個字以上的關鍵詞片語，或（checkpoint.themes 有一個主題被既有
+出現兩個以上不同關鍵詞（單複數算同一個，bond／bonds 不算兩個），或一個三個字以上的關鍵詞片語，或（checkpoint.themes 有一個主題被既有
 主題派送 `evidence_routing.route` 確認，且文中出現至少一個關鍵詞）。每天最多 8 對 (item,
 checkpoint) 問 Jev，依早報既有的 `_rank_key` 排序取前面；超過的仍記一筆，verdict 是
 `unjudged`（比對到了但沒被排進名額，不是沒比對到）。

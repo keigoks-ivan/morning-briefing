@@ -91,8 +91,9 @@ def match_checkpoints(text: str, company_keys, confirmed_themes, ideas: list[dic
     研究主題 key。
 
     規則（兩個都要有 keyword 命中，見 CLAUDE.md「投資想法」段）：
-    (a) 候選公司在 checkpoint.companies 裡，且文中出現至少一個 checkpoint 關鍵詞；或
-    (b) 文中出現兩個以上不同關鍵詞，或一個三個字以上的關鍵詞片語，或
+    (a) 候選公司在 checkpoint.companies 裡（或文中出現 checkpoint.company_names 的名稱），
+        且文中出現至少一個 checkpoint 關鍵詞；或
+    (b) 文中出現兩個以上不同關鍵詞（單複數算同一個），或一個三個字以上的關鍵詞片語，或
         （checkpoint.themes 有一個主題被既有主題派送確認，且文中出現至少一個關鍵詞）。
 
     回 [(idea, checkpoint, matched_keywords)]，只包含 active 想法的 checkpoint。"""
@@ -103,8 +104,12 @@ def match_checkpoints(text: str, company_keys, confirmed_themes, ideas: list[dic
         hits = _keyword_hits(text, cp.get("keywords") or [])
         if not hits:
             continue
-        rule_a = bool(company_keys & set(cp.get("companies") or []))
-        rule_b = (len(set(hits)) >= 2 or any(len(h.split()) >= 3 for h in hits)
+        # company_names：路由對照表認不得的公司（Nebius、信驊…），名稱出現在文中就算當事公司
+        rule_a = bool(company_keys & set(cp.get("companies") or [])) or bool(
+            _keyword_hits(text, cp.get("company_names") or []))
+        # 單複數算同一個字：bond／bonds 同時出現不算兩個關鍵詞
+        stems = {h.lower().rstrip("s") for h in hits}
+        rule_b = (len(stems) >= 2 or any(len(h.split()) >= 3 for h in hits)
                   or bool(confirmed_themes & set(cp.get("themes") or [])))
         if rule_a or rule_b:
             out.append((idea, cp, hits))
