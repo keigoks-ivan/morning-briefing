@@ -159,6 +159,7 @@ Google verification`）——那是機器人偵測，不繞。而且就算加成
 - `briefing/evidence_ledger.py`：跨日事實紀錄、數字正規化、找先前紀錄
 - `briefing/evidence_routing.py`：DD／研究主題／總經報告／系統持倉派送、可能受影響的產業、SEC 查核
 - `briefing/evidence_sources.py`：一手來源（官方 RSS、證交所與櫃買中心重大訊息、官方網域的 Google News site: 查詢、當事公司新聞稿）
+- `briefing/evidence_fulltext.py`（2026-09-23 新增）：抓候選新聞的全文，只抓排序最前面 12 則。Google News 轉址連結（news.google.com/rss/articles/...）用 `googlenewsdecoder` 解成出版方網址，正文用 `trafilatura` 抽取；抓不到就試下一個網址，付費牆網域（ft.com／bloomberg.com／wsj.com／nikkei.com 等）直接跳過不發請求，抽出正文不到 400 字也當失敗。全文只在這次執行的記憶體裡用，用完即丟
 - `briefing/jev_client.py`：HTTP 客戶端，含快取與每次執行的請求上限
 - `data/evidence_routing.json`：人工對照表。人工環節、91 個研究主題的英文辨識詞、27 個總經主題與國家、國別對應的指數部部位、官方來源清單。
 - `data/evidence_routing_auto.json`：自動產生，不要手改。來自 financial-analysis-bot 的研究主題（ID）成員與角色欄公司名、總經報告（MACRO）的關鍵指標。重建：`python3 briefing/evidence_build_data.py routing --fab ~/financial-analysis-bot`
@@ -177,14 +178,15 @@ Google verification`）——那是機器人偵測，不繞。而且就算加成
 - 研究主題要「當事公司是成員，而且文中點到該主題的辨識詞」才確認；公司在主題裡但文中沒點到，進待審。沒有當事公司時，要兩個辨識詞，或一個三個字以上的明確片語（data center permits）。
 - 一手來源分兩級：內容對上（數字或用字重疊）才升級成「官方文件已對到」；同公司、同日期但內容沒對上，只列為「附近有公告」。當事公司新聞稿只收標題開頭是該公司名的，別家新聞稿順帶提到的不算。
 - 總經提醒由程式加：官員發言不是決策、市場定價不是預測、部分月份資料、初值常修正、談判不是協議、預測不是結果、政策決定要看官方公告。
+- 全文只給 Jev 判斷、給程式比對官方來源的數字與關鍵詞用，絕對不寫進任何輸出檔（`evidence_{date}.json`／`evidence_latest.json`／`evidence_ledger.json`／`jev_cache`）。`jev_cache` 本來就只存 `answers`／`usage`，不存 Jev 收到的 state，所以全文不會經這條路徑落地。網頁與輸出檔對外只留：解出來的網址、網域、字數、抓取狀態（ok／paywalled／failed／no_url），最多兩句、合計 300 字以內、含關鍵數字的引句。抓到全文的證據基礎升級為 `full_article`（排在 `primary_document` 與 `headline_summary` 之間）；付費牆與抓失敗會在「尚未證實」寫清楚是哪個網域擋住、還是抓不到，不會再說「只讀了標題」。
 
 **DD／研究主題不再更新時**：這一層照常運作，判斷新舊用的是每天累積的事實紀錄，不是報告。每個 DD、研究主題、總經報告連結旁邊標報告日期；超過 120 天標 older report；另標「報告之後紀錄裡又多了幾則新事實」（+N new since）。報告成了基準線，每天的紀錄是它的後續。
 
 **Secrets（兩個都選填）**：`TYPESAFE_API_KEY`（沒有就只標未判斷，不花錢）、`SEC_USER_AGENT`（SEC 要求帶聯絡方式；沒有就跳過查核並標成缺口）。
 
-**成本**：2026-09-22 十則實測約 6.5 萬 input token，約 0.0027 美元。官方來源約 35 個請求、3 秒，不花錢。每次執行上限 30 個請求、40 萬 token（`JevClient` 參數）。
+**成本**：2026-09-22 十則實測約 6.5 萬 input token，約 0.0027 美元。官方來源約 35 個請求、3 秒，不花錢。每次執行上限 30 個請求、40 萬 token（`JevClient` 參數）。2026-09-23 加全文後估算：最多 12 則、每則附最多 3,000 字全文摘要，抓不滿 12 則就更少，粗抓（4 字元約 1 token）增加約 9,000 token，多花不到 0.0004 美元，離 40 萬上限還很有餘裕。
 
-**測試**：`python3.12 -m pytest -q tests`（不呼叫付費 API）。離線重播 9/22 案例：`python3.12 tests/evidence_offline_replay.py --out /tmp/evidence_replay --mode fake`（`--mode nokey` 看沒金鑰的畫面）。fake 模式用的是測試劇本，不是真實 Jev 輸出。官方來源在測試裡讀 `tests/fixtures/official_20260922/` 的快照，不連網。
+**測試**：`python3.12 -m pytest -q tests`（不呼叫付費 API）。離線重播 9/22 案例：`python3.12 tests/evidence_offline_replay.py --out /tmp/evidence_replay --mode fake`（`--mode nokey` 看沒金鑰的畫面）。fake 模式用的是測試劇本，不是真實 Jev 輸出。官方來源在測試裡讀 `tests/fixtures/official_20260922/` 的快照，不連網。全文抓取（`briefing/evidence_fulltext.py`）測試在 `tests/test_evidence_fulltext.py`（假 http_get／解碼函式，不連網）與 `tests/test_evidence_layer.py` 的 `FullTextTests`（斷言全文不會出現在任何輸出檔裡）。
 
 ---
 

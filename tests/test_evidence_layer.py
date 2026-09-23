@@ -34,14 +34,16 @@ from jev_client import JevClient, request_hash, validate_response  # noqa: E402
 
 
 def run(jev=None, ledger=None, data=None, rss=None, news_quality=None, data_dir=None, holdings="default",
-        official=None):
+        official=None, full_text_fetch=None):
     if jev is None:
         jev, _ = fx.fake_client()
     return evidence_layer.run_evidence_layer(
         data or fx.briefing_data(), rss or [], fx.watchlist(), news_quality or fx.news_quality(), fx.TODAY,
         data_dir, ledger=ledger if ledger is not None else fx.seed_ledger(),
         holdings_json=fx.holdings() if holdings == "default" else holdings,
-        jev=jev, fetch=fx.no_fetch, sec_user_agent=None, official_fetch=official or fx.offline_sources)
+        jev=jev, fetch=fx.no_fetch, sec_user_agent=None, official_fetch=official or fx.offline_sources,
+        # 離線測試預設不抓全文（不連網）；只有 FullTextTests 會自己傳假的 full_text_fetch
+        full_text_fetch=full_text_fetch or fx.no_fulltext)
 
 
 def item(ev, fragment):
@@ -517,6 +519,115 @@ class MacroAndCoverageTests(unittest.TestCase):
         page = html_template._evidence_section(ev)
         self.assertIn("Official sources not read today", page)
         self.assertNotIn("no impact", page.lower())
+
+
+_SBE_RSS = [{"title": "Nvidia to buy more SB Energy shares before IPO", "summary": "Nvidia will buy $1.5 billion more.",
+            "link": "https://fixture.invalid/sb-energy", "source": "Bloomberg", "published": "2026-09-21 21:40",
+            "alternate_sources": ["Reuters"], "watch": ["NVDA"]}]
+
+
+class FullTextTests(unittest.TestCase):
+    """2026-09-23 新增：evidence_fulltext 併進 evidence_layer 之後的行為（basis 升級、
+    unconfirmed 說法、article_check 只放安全欄位、全文絕不進輸出檔）。full_text_fetch
+    全部用假函式注入，不連網、不呼叫真的 googlenewsdecoder／trafilatura。"""
+
+    def _ft_fetch(self, outcome):
+        def fetch(cands):
+            return {c["cid"]: outcome for c in cands if "SB Energy" in c["headline"]}
+        return fetch
+
+    def test_successful_full_text_upgrades_basis_and_clears_headline_only_note(self):
+        outcome = {"status": "ok", "url": "https://www.reuters.com/technology/nvidia-sb-energy",
+                  "domain": "reuters.com", "word_count": 900,
+                  "excerpt": "Nvidia said it would invest an additional $1.5 billion in SB Energy. " * 20,
+                  "quotes": ["Nvidia said it would invest an additional $1.5 billion in SB Energy."],
+                  "figures": ["n:1.5e+09"]}
+        ev, _ = run(rss=_SBE_RSS, full_text_fetch=self._ft_fetch(outcome))
+        it = item(ev, "SB Energy")
+        self.assertEqual(it["evidence_basis"]["code"], "full_article")
+        self.assertIn("reuters.com", it["evidence_basis"]["display"])
+        self.assertEqual(it["article_check"], {"status": "ok", "url": outcome["url"], "domain": "reuters.com",
+                                                "word_count": 900, "quotes": outcome["quotes"]})
+        self.assertNotIn("excerpt", it["article_check"])
+        notes = " ".join(it["unconfirmed"])
+        self.assertNotIn("Only the headline and feed summary were read", notes)
+
+    def test_official_match_still_wins_over_full_article(self):
+        # official.match 在全文抓取之後另外跑，對到官方來源要留在 primary_document，不能被全文蓋掉
+        fed_url = "https://www.federalreserve.gov/feeds/press_all.xml"
+        xml = ("<rss><channel><item><title>St. Louis Fed President Musalem: additional interest rate increases likely "
+               "necessary to bring inflation back to target</title><link>https://fixture.invalid/fed/musalem</link>"
+               "<pubDate>Mon, 21 Sep 2026 14:00:00 GMT</pubDate><description>Remarks on inflation and interest rate "
+               "increases.</description></item></channel></rss>")
+
+        def official_fetch(url, timeout=15):
+            return (xml, "ok") if url == fed_url else fx.offline_sources(url)
+
+        def ft_fetch(cands):
+            outcome = {"status": "ok", "url": "https://www.reuters.com/x", "domain": "reuters.com",
+                      "word_count": 500, "excerpt": "text " * 200, "quotes": [], "figures": []}
+            return {c["cid"]: outcome for c in cands if "Musalem" in c["headline"]}
+
+        ev, _ = run(official=official_fetch, full_text_fetch=ft_fetch)
+        it = item(ev, "Fed's Musalem")
+        self.assertEqual(it["evidence_basis"]["code"], "primary_document")
+        self.assertIn("Federal Reserve press releases", it["evidence_basis"]["display"])
+
+    def test_paywalled_full_text_names_the_outlet(self):
+        outcome = {"status": "paywalled", "url": "https://www.ft.com/content/x", "domain": "ft.com"}
+        ev, _ = run(rss=_SBE_RSS, full_text_fetch=self._ft_fetch(outcome))
+        it = item(ev, "SB Energy")
+        self.assertEqual(it["evidence_basis"]["code"], "headline_summary")   # 沒升級
+        self.assertEqual(it["article_check"]["status"], "paywalled")
+        notes = " ".join(it["unconfirmed"])
+        self.assertIn("paywalled", notes)
+        self.assertIn("ft.com", notes)
+
+    def test_failed_full_text_gives_a_reason_not_silence(self):
+        outcome = {"status": "failed", "url": "https://fixture.invalid/sb-energy", "domain": "fixture.invalid"}
+        ev, _ = run(rss=_SBE_RSS, full_text_fetch=self._ft_fetch(outcome))
+        it = item(ev, "SB Energy")
+        notes = " ".join(it["unconfirmed"])
+        self.assertIn("could not be fetched", notes)
+
+    def test_candidate_not_attempted_keeps_original_headline_only_note(self):
+        ev, _ = run(rss=_SBE_RSS, full_text_fetch=fx.no_fulltext)
+        it = item(ev, "SB Energy")
+        self.assertEqual(it["article_check"], {"status": "not_attempted"})
+        notes = " ".join(it["unconfirmed"])
+        self.assertIn("Only the headline and feed summary were read", notes)
+
+    def test_full_text_reaches_jev_state_but_never_reaches_any_output_file(self):
+        marker = "FULLTEXT_MARKER_" + ("Q" * 40)
+        excerpt = (f"{marker} Nvidia invests an additional $1.5 billion in SB Energy for AI power capacity. ") * 40
+        outcome = {"status": "ok", "url": "https://www.reuters.com/technology/nvidia-sb-energy",
+                  "domain": "reuters.com", "word_count": 900, "excerpt": excerpt[:3000],
+                  "quotes": ["Nvidia invests an additional $1.5 billion in SB Energy."], "figures": ["n:1.5e+09"]}
+
+        jev, fake = fx.fake_client()
+        orig_transport = jev.transport
+        captured = {}
+
+        def spy(body, api_key):
+            req = json.loads(body)
+            captured[req["state"]["today"]["headline"]] = req["state"]
+            return orig_transport(body, api_key)
+        jev.transport = spy
+
+        ev, ledger = run(jev=jev, rss=_SBE_RSS, full_text_fetch=self._ft_fetch(outcome))
+        it = item(ev, "SB Energy")
+
+        state = next(s for h, s in captured.items() if "SB Energy" in h)
+        self.assertIn(marker, state["today"]["full_text"])
+
+        self.assertNotIn(marker, json.dumps(ev, ensure_ascii=False))
+        self.assertNotIn("excerpt", it["article_check"])
+        with tempfile.TemporaryDirectory() as td:
+            written = evidence_layer.save_outputs(ev, ledger, Path(td), fx.TODAY)
+            for fn in written:
+                content = (Path(td) / fn).read_text(encoding="utf-8")
+                self.assertNotIn(marker, content)
+                self.assertNotIn("excerpt", content)
 
 
 class FeedStatusTests(unittest.TestCase):
