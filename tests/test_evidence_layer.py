@@ -296,7 +296,7 @@ class Acceptance20260922Tests(unittest.TestCase):
         self.assertTrue(0 < a < b)
         for label in ("Last known", "New today", "Direct impact", "Possible transmission",
                       "Not yet confirmed", "Sources", "classification confidence",
-                      "not a probability that any share price moves", "Low priority"):
+                      "not a probability that any share price moves", "Other "):
             self.assertIn(label, news)
         self.assertNotIn("no impact", news.lower())
         email = html_template.build_html(data)
@@ -761,9 +761,11 @@ class TimingQuestionTests(unittest.TestCase):
         self.assertEqual(base["top"], changed["top"])
 
     def test_timing_shown_next_to_stage_on_news_page(self):
+        # 2026-09-23：_ev_item 已經拆成 _ev_top_card（精簡卡片，卡片內的收合 <details> 仍然
+        # 是既有的 _ev_row_detail，stage／timing 顯示位置沒變，見 CLAUDE.md）
         jev, _ = fx.fake_client({"Kaohsiung packaging park": {"timing": ["one_to_three_years", 0.8]}})
         ev, _ = run(jev=jev)
-        row = html_template._ev_item(item(ev, "Kaohsiung packaging park"))
+        row = html_template._ev_top_card(item(ev, "Kaohsiung packaging park"))
         self.assertIn("stage: Construction started", row)
         self.assertIn("timing: 1–3 years out", row)
 
@@ -945,6 +947,71 @@ class FeedStatusTests(unittest.TestCase):
         self.assertEqual(q["feeds"]["Broken feed"]["status"], "error")
         self.assertEqual(q["feeds"]["Good feed"]["status"], "ok")
         self.assertEqual(q["feed_success_rate"], 0.5)
+
+
+class BlockPriorityTests(unittest.TestCase):
+    """2026-09-23 新增（Task 4）：tech_trends／startup_news 加入 BLOCK_PRIORITY，gdelt 仍最低；
+    _card_text 認得 summary 欄位（tech_trends／startup_news 卡是 headline/summary 形狀，沒有
+    body）；collect_cards 可以傳自訂 blocks（早報外掃描用）。見 CLAUDE.md。"""
+
+    def test_tech_trends_and_startup_news_in_block_priority(self):
+        prio = dict(evidence_layer.BLOCK_PRIORITY)
+        self.assertIn("tech_trends", prio)
+        self.assertIn("startup_news", prio)
+        self.assertEqual(prio["tech_trends"], 0.35)
+        self.assertEqual(prio["startup_news"], 0.3)
+
+    def test_gdelt_remains_lowest_priority(self):
+        prio = dict(evidence_layer.BLOCK_PRIORITY)
+        self.assertEqual(prio["gdelt"], min(prio.values()))
+
+    def test_card_text_falls_back_to_summary(self):
+        card = {"headline": "HBM3E contract prices rise", "summary": "Prices rose 20% QoQ on tight supply."}
+        text = evidence_layer._card_text(card)
+        self.assertIn("HBM3E contract prices rise", text)
+        self.assertIn("20% QoQ", text)
+
+    def test_build_candidates_picks_up_tech_trends_card(self):
+        from evidence_ledger import EntityMatcher
+        routing = evidence_layer.load_routing()
+        matcher = EntityMatcher(routing, {})
+        data = {"tech_trends": [{"headline": "HBM3E contract prices rise 20% QoQ",
+                                 "summary": "CoWoS capacity booked through 2026 as HBM3E demand outstrips supply."}]}
+        cands = evidence_layer.build_candidates(data, [], matcher, fx.TODAY)
+        self.assertTrue(any(c["block"] == "tech_trends" for c in cands))
+        cand = next(c for c in cands if c["block"] == "tech_trends")
+        self.assertIn("CoWoS", cand["text"])
+
+    def test_collect_cards_accepts_custom_blocks(self):
+        data = {"world_news": [{"headline": "A world news item"}],
+               "top_stories": [{"headline": "A top story"}]}
+        # default blocks (BLOCK_PRIORITY) does not include world_news
+        default_cards = evidence_layer.collect_cards(data)
+        self.assertFalse(any(b == "world_news" for b, _p, _c in default_cards))
+        extra = evidence_layer.BLOCK_PRIORITY + [("world_news", 0.0)]
+        wide_cards = evidence_layer.collect_cards(data, blocks=extra)
+        self.assertTrue(any(b == "world_news" for b, _p, _c in wide_cards))
+
+
+class WideScanCuratedCardsIntegrationTests(unittest.TestCase):
+    """2026-09-23 新增（Task 4）：run_evidence_layer 把「沒進候選名額的既有新聞卡」（curated_pool）
+    傳給 ideas_layer.run_ideas_step，早報外掃描（_wide_scan）真的看得到，不只看 RSS 池。"""
+
+    def test_frontier_tech_card_reaches_wide_scan_when_not_a_candidate(self):
+        data = fx.briefing_data()
+        # frontier_tech 刻意不在 BLOCK_PRIORITY 裡（見 WIDE_SCAN_EXTRA_BLOCKS），永遠不會變成
+        # 早報候選，只能靠早報外掃描的 curated_pool 才看得到。這則卡命中 sample_ideas() 的
+        # cp-b1-two（規則 b：cowos／capacity 兩個不同關鍵詞）。
+        data["frontier_tech"] = [{"headline": "CoWoS packaging capacity tightens as advanced substrate demand climbs",
+                                  "body": "Foundries say CoWoS capacity remains fully booked into next year."}]
+        jev, _fake = fx.fake_client(overrides={"CoWoS packaging capacity": {"idea_verdict": ["supports", 0.8]}})
+        ev, _led = evidence_layer.run_evidence_layer(
+            data, fx.wide_rss_pool(), fx.watchlist(), fx.news_quality(), fx.TODAY, None,
+            ledger=fx.seed_ledger(), holdings_json=fx.holdings(), jev=jev, fetch=fx.no_fetch,
+            sec_user_agent=None, official_fetch=fx.offline_sources, ideas=fx.sample_ideas())
+        ws = ev["ideas"]["wide_scan"]
+        self.assertGreaterEqual(ws.get("curated_pool_size", 0), 1)
+        self.assertGreaterEqual(ws["matched_items"], 1)
 
 
 if __name__ == "__main__":

@@ -216,109 +216,87 @@ def _alert(text: str) -> str:
 </div>'''
 
 
-def _vs_regime_line(text: str) -> str:
-    """各分析區塊對主軸的表態（支持｜／反對｜／中性｜ ＋ 一句）。"""
-    if not text:
-        return ""
-    head = text.split("|", 1)[0].strip()
-    color = {"Supports": "#0F6E56", "Contradicts": "#C0392B"}.get(head, "#888")
-    return (f'<div style="font-size:12px;color:#555;line-height:1.5;margin-top:8px;padding-top:6px;'
-            f'border-top:0.5px dashed #ddd;">'
-            f'<span style="font-size:10px;letter-spacing:1px;color:#888;">vs regime &#9654; </span>'
-            f'<span style="font-weight:600;color:{color};">{text}</span></div>')
+_REGIME_CHIP_COLOR = {
+    "risk_appetite": ("#1B3A5C", "#EBF2FA"),
+    "liquidity": ("#085041", "#E1F5EE"),
+    "volatility": ("#854F0B", "#FAF0DA"),
+}
 
 
-def _regime_block(rg: dict) -> str:
-    """主軸區塊：今天市場狀態一句話 → 三軸 → 支持／反對 → 證偽條件 → 對 W52 引擎的意義。"""
+def _regime_chip(label: str, value: str, key: str) -> str:
+    color, bg = _REGIME_CHIP_COLOR.get(key, ("#555", "#f0f0f0"))
+    return (f'<span style="display:inline-block;padding:3px 10px;border-radius:12px;background:{bg};'
+            f'color:{color};font-size:12px;font-weight:600;margin:0 6px 4px 0;white-space:nowrap;">'
+            f'{label} {value}</span>')
+
+
+def _regime_block(rg: dict, sa: dict | None = None) -> str:
+    """今日主軸卡片（2026-09-23 精簡，見 CLAUDE.md）：一句話 → 一行 chips（risk appetite／
+    liquidity／volatility，volatility 括號內帶四階段 stage 與 credit ok/stress，兩者來自
+    sentiment_analysis——原本獨立的 VOLATILITY REGIME 區塊已經拿掉，只留這兩個值） → 最大反證
+    一則 → 證偽門檻精簡表（指標｜門檻，不含說明句） → 昨日主軸驗證（勾/叉＋一句） → W52 引擎
+    一行。confirms 清單、confidence 的說明句已經不再顯示（也不再產生，見 ai_processor.py）；
+    falsifiers.meaning／confidence_reason 仍在 JSON 裡（隔天的 prompt 要讀），只是不畫出來。"""
     if not rg or not rg.get("call"):
         return ""
+    sa = sa or {}
     axes = rg.get("axes", {}) or {}
-    ax_meta = [("risk_appetite", "Risk appetite", "#1B3A5C"),
-               ("liquidity", "Liquidity", "#085041"),
-               ("volatility", "Volatility", "#BA7517")]
-    ax_cells = ""
-    for key, label, color in ax_meta:
-        a = axes.get(key, {}) or {}
-        ax_cells += (f'<td width="33%" style="vertical-align:top;padding:8px 10px;">'
-                     f'<div style="font-size:10px;letter-spacing:0.5px;color:#888;margin-bottom:2px;">{label}</div>'
-                     f'<div style="font-size:14px;font-weight:600;color:{color};margin-bottom:3px;">{a.get("state","—")}</div>'
-                     f'<div style="font-size:12px;color:#555;line-height:1.55;">{a.get("evidence","")}</div></td>')
-    axes_html = (f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;'
-                 f'background:#fff;border-radius:4px;margin-bottom:10px;"><tr>{ax_cells}</tr></table>')
 
-    def _list(items, color, title):
-        items = [i for i in (items or []) if i]
-        if not items:
-            return ""
-        lis = "".join(f'<li style="margin-bottom:3px;">{i}</li>' for i in items)
-        return (f'<td width="50%" style="vertical-align:top;padding:0 5px 0 0;">'
-                f'<div style="border-left:3px solid {color};padding:6px 10px;background:#fff;">'
-                f'<div style="font-size:11px;font-weight:600;color:{color};margin-bottom:4px;">{title}</div>'
-                f'<ul style="margin:0;padding-left:16px;font-size:12px;color:#555;line-height:1.55;">{lis}</ul>'
-                f'</div></td>')
-    conf_td = _list(rg.get("confirms"), "#0F6E56", "Confirms")
-    contra_td = _list(rg.get("contradicts"), "#C0392B", "Contradicts")
-    cc_html = ""
-    if conf_td or contra_td:
-        empty_td = '<td width="50%"></td>'
-        cc_html = (f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:10px;">'
-                   f'<tr>{conf_td or empty_td}{contra_td or empty_td}</tr></table>')
+    def _state(key: str) -> str:
+        return (axes.get(key) or {}).get("state") or "—"
+
+    stage = sa.get("stage") or ""
+    credit = sa.get("credit_status") or ""
+    vol_extra = ", ".join(x for x in (stage, (f"credit {credit}" if credit else "")) if x)
+    vol_value = _state("volatility") + (f" ({vol_extra})" if vol_extra else "")
+    chips_html = (f'<div style="margin-bottom:8px;">'
+                  f'{_regime_chip("Risk appetite", _state("risk_appetite"), "risk_appetite")}'
+                  f'{_regime_chip("Liquidity", _state("liquidity"), "liquidity")}'
+                  f'{_regime_chip("Volatility", vol_value, "volatility")}</div>')
+
+    contras = [c for c in (rg.get("contradicts") or []) if c]
+    contra_html = ""
+    if contras:
+        contra_html = (f'<div style="font-size:13px;color:#555;line-height:1.55;margin-bottom:8px;">'
+                       f'<span style="font-weight:600;color:#C0392B;">Biggest contradiction &#9656; </span>{contras[0]}</div>')
 
     fals = [f for f in (rg.get("falsifiers") or []) if isinstance(f, dict) and f.get("metric")]
     fals_html = ""
     if fals:
         rows = "".join(
-            f'<tr><td style="padding:4px 8px;font-size:12px;font-weight:600;color:#333;white-space:nowrap;">{f.get("metric","")}</td>'
-            f'<td style="padding:4px 8px;font-size:12px;color:#C0392B;font-weight:600;white-space:nowrap;">{f.get("threshold","")}</td>'
-            f'<td style="padding:4px 8px;font-size:12px;color:#555;line-height:1.5;">{f.get("meaning","")}</td></tr>'
-            for f in fals)
-        fals_html = (f'<div style="font-size:11px;font-weight:600;color:#888;margin-bottom:4px;">What would prove this call wrong</div>'
-                     f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#fff;'
-                     f'border-radius:4px;margin-bottom:10px;">{rows}</table>')
+            f'<tr><td style="padding:3px 8px 3px 0;font-size:12px;font-weight:600;color:#333;white-space:nowrap;">{f.get("metric","")}</td>'
+            f'<td style="padding:3px 0;font-size:12px;color:#C0392B;font-weight:600;">{f.get("threshold","")}</td></tr>'
+            for f in fals[:3])
+        fals_html = (f'<div style="font-size:11px;font-weight:600;color:#888;margin-bottom:2px;">What would prove this call wrong</div>'
+                     f'<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:8px;">{rows}</table>')
 
     w52 = rg.get("for_w52_engine", "")
     w52_html = ""
     if w52:
-        w52_html = (f'<div style="background:#1B3A5C;color:#fff;border-radius:4px;padding:8px 12px;'
-                    f'font-size:13px;line-height:1.55;">'
-                    f'<span style="font-size:10px;letter-spacing:1px;opacity:.75;">W52 engine &#9654; </span>{w52}</div>')
+        w52_html = (f'<div style="font-size:13px;color:#333;line-height:1.5;">'
+                    f'<span style="font-size:10px;letter-spacing:1px;color:#888;">W52 engine &#9654; </span>{w52}</div>')
 
-    # 昨日主軸驗證：verdict＋證偽條件逐項對照
+    # 昨日主軸驗證：verdict badge ＋ 每條證偽門檻一個勾/叉（不再逐條列門檻與今日數值）＋ 一句話
     rv = rg.get("review") or {}
     review_html = ""
     verdict = (rv.get("verdict") or "").strip() if isinstance(rv, dict) else ""
     if verdict and verdict != "no prior day":
         v_color = {"carried over": "#0F6E56", "revised": "#BA7517", "falsified": "#C0392B"}.get(verdict, "#888")
-        chips = ""
-        for c in (rv.get("falsifier_check") or []):
-            if not isinstance(c, dict) or not c.get("metric"):
-                continue
-            hit = bool(c.get("hit"))
-            chip_bg = "#fdecea" if hit else "#eef5f1"
-            chip_fg = "#C0392B" if hit else "#0F6E56"
-            mark = "&#10007; hit" if hit else "&#10003; not hit"
-            chips += (f'<span style="display:inline-block;margin:0 6px 4px 0;padding:2px 8px;border-radius:10px;'
-                      f'background:{chip_bg};color:{chip_fg};font-size:11px;">'
-                      f'{c.get("metric","")} | threshold {c.get("threshold","")} | today {c.get("today_value","")} | {mark}</span>')
-        y_call = rv.get("yesterday_call", "")
+        marks = "".join(
+            f'<span style="color:{"#C0392B" if c.get("hit") else "#0F6E56"};font-weight:700;margin-right:3px;" '
+            f'title="{_esc(c.get("metric",""))}">{"&#10007;" if c.get("hit") else "&#10003;"}</span>'
+            for c in (rv.get("falsifier_check") or []) if isinstance(c, dict) and c.get("metric"))
         note = rv.get("note", "")
-        review_html = (f'<div style="border-top:1px dashed #ddd;margin-top:10px;padding-top:8px;">'
-                       f'<div style="font-size:11px;font-weight:600;color:#888;margin-bottom:4px;">Yesterday&rsquo;s call '
+        review_html = (f'<div style="border-top:1px dashed #ddd;margin-top:8px;padding-top:6px;font-size:12px;color:#555;line-height:1.5;">'
+                       f'<span style="font-weight:600;color:#888;">Yesterday&rsquo;s call </span>'
                        f'<span style="display:inline-block;padding:1px 8px;border-radius:3px;background:{v_color};color:#fff;'
-                       f'font-size:11px;font-weight:700;margin-left:4px;">{verdict}</span></div>'
-                       + (f'<div style="font-size:12px;color:#777;margin-bottom:4px;">Yesterday: {y_call}</div>' if y_call else "")
-                       + (f'<div style="margin-bottom:4px;">{chips}</div>' if chips else "")
-                       + (f'<div style="font-size:12px;color:#555;line-height:1.5;">{note}</div>' if note else "")
-                       + '</div>')
+                       f'font-size:11px;font-weight:700;margin-right:6px;">{verdict}</span>{marks}'
+                       + (f' {note}' if note else "") + '</div>')
 
     conf = rg.get("confidence", "")
-    conf_reason = rg.get("confidence_reason", "")
     conf_color = {"high": "#0F6E56", "low": "#C0392B"}.get(conf, "#BA7517")
-    conf_html = ""
-    if conf:
-        conf_html = (f'<span style="font-size:12px;color:#888;">Confidence '
-                     f'<span style="font-weight:700;color:{conf_color};">{conf}</span>'
-                     f'{" | " + conf_reason if conf_reason else ""}</span>')
+    conf_html = (f'<span style="font-size:12px;color:#888;">Confidence '
+                 f'<span style="font-weight:700;color:{conf_color};">{conf}</span></span>') if conf else ""
 
     return f'''
 <div class="section">
@@ -330,8 +308,8 @@ def _regime_block(rg: dict) -> str:
       {conf_html}
     </div>
     <div style="font-size:17px;font-weight:700;color:#1B3A5C;line-height:1.4;margin-bottom:10px;">{rg.get("call","")}</div>
-    {axes_html}
-    {cc_html}
+    {chips_html}
+    {contra_html}
     {fals_html}
     {w52_html}
     {review_html}
@@ -852,240 +830,41 @@ def _market_strip(market_data: dict) -> str:
 
 
 def _market_pulse(pulse: dict) -> str:
-    signals = pulse.get("cross_asset_signals", [])
-    dominant = pulse.get("dominant_theme", "")
-    hidden_risk = pulse.get("hidden_risk", "")
-    hidden_opp = pulse.get("hidden_opportunity", "")
-    key_level = pulse.get("key_level_to_watch", "")
-    if not signals and not dominant:
+    """Hidden risk / hidden opportunity / key level, one line each (2026-09-23 精簡：
+    cross_asset_signals／dominant_theme／historical_analog／new_pattern／vs_regime 都拿掉，
+    見 CLAUDE.md）。"""
+    hidden_risk = pulse.get("hidden_risk", "") if pulse else ""
+    hidden_opp = pulse.get("hidden_opportunity", "") if pulse else ""
+    key_level = pulse.get("key_level_to_watch", "") if pulse else ""
+    if not hidden_risk and not hidden_opp and not key_level:
         return ""
-
-    # Dominant theme banner
-    dom_html = ""
-    if dominant:
-        dom_html = f'''
-<div style="background:#1B3A5C;color:#fff;border-radius:4px;padding:8px 14px;margin-bottom:10px;
-            font-size:14px;font-weight:600;">
-  Dominant theme: {dominant}
-</div>'''
-
-    # Cross-asset signals
-    sig_html = ""
-    for i, sig in enumerate(signals):
-        separator = 'border-bottom:0.5px solid #e0e0e0;' if i < len(signals) - 1 else ''
-        sig_html += f'''
-<div style="padding:10px 0;{separator}">
-  <div style="font-size:15px;font-weight:600;color:#1B3A5C;margin-bottom:4px;">{sig.get("signal","")}</div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:4px;">{sig.get("detail","")}</div>
-  <div style="font-size:12px;color:#888;font-style:italic;line-height:1.5;">{sig.get("implication","")}</div>
-</div>'''
-
-    # Risk + Opportunity side by side
-    risk_td = ""
+    rows = ""
     if hidden_risk:
-        risk_td = (f'<td width="50%" style="vertical-align:top;padding-right:5px;">'
-                   f'<div style="border-left:3px solid #854F0B;padding:8px 12px;background:#fff;">'
-                   f'<div style="font-size:12px;font-weight:600;color:#854F0B;margin-bottom:4px;">Hidden risk</div>'
-                   f'<div style="font-size:13px;color:#555;line-height:1.6;">{hidden_risk}</div>'
-                   f'</div></td>')
-    else:
-        risk_td = '<td width="50%"></td>'
-    opp_td = ""
+        rows += (f'<div style="padding:4px 0;font-size:13px;color:#555;line-height:1.55;">'
+                 f'<span style="font-weight:600;color:#854F0B;">Hidden risk &#9656; </span>{hidden_risk}</div>')
     if hidden_opp:
-        opp_td = (f'<td width="50%" style="vertical-align:top;padding-left:5px;">'
-                  f'<div style="border-left:3px solid #0F6E56;padding:8px 12px;background:#fff;">'
-                  f'<div style="font-size:12px;font-weight:600;color:#0F6E56;margin-bottom:4px;">Hidden opportunity</div>'
-                  f'<div style="font-size:13px;color:#555;line-height:1.6;">{hidden_opp}</div>'
-                  f'</div></td>')
-    else:
-        opp_td = '<td width="50%"></td>'
-
-    bottom_html = ""
-    if hidden_risk or hidden_opp:
-        bottom_html = f'''
-<table width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px;border-collapse:collapse;">
-  <tr>{risk_td}{opp_td}</tr>
-</table>'''
-
-    # Key level + historical analog + new pattern
-    key_html = ""
+        rows += (f'<div style="padding:4px 0;font-size:13px;color:#555;line-height:1.55;">'
+                 f'<span style="font-weight:600;color:#0F6E56;">Hidden opportunity &#9656; </span>{hidden_opp}</div>')
     if key_level:
-        key_html = f'''
-<div style="background:#FEF9E7;border-radius:4px;padding:8px 14px;margin-top:10px;
-            font-size:13px;color:#856404;">
-  <span style="font-weight:600;">Key level:</span> {key_level}
-</div>'''
-
-    hist_analog = pulse.get("historical_analog", "")
-    new_pat = pulse.get("new_pattern", "")
-    analog_html = ""
-    if hist_analog or new_pat:
-        parts = []
-        if hist_analog:
-            parts.append(f'<span style="color:#534AB7;">Historical analogue:</span> {hist_analog}')
-        if new_pat:
-            parts.append(f'<span style="color:#854F0B;">New pattern:</span> {new_pat}')
-        analog_html = f'''
-<div style="font-size:12px;color:#555;line-height:1.5;margin-top:8px;padding-top:8px;
-            border-top:0.5px solid #e8e8e8;">
-  {"　｜　".join(parts)}
-</div>'''
-
+        rows += (f'<div style="padding:4px 0;font-size:13px;color:#555;line-height:1.55;">'
+                 f'<span style="font-weight:600;color:#856404;">Key level &#9656; </span>{key_level}</div>')
     return f'''
 <div class="section">
-  <div style="background:#f7f7f5;border-radius:8px;border:0.5px solid #e8e8e8;padding:14px 18px;">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;
-                margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid #e8e8e8;">
-      <span style="font-size:12px;letter-spacing:1.8px;text-transform:uppercase;
-                   font-weight:500;color:#888;">MARKET PULSE</span>
-      <span style="font-size:12px;color:#888;">cross-indicator signals</span>
-    </div>
-    {dom_html}
-    {sig_html}
-    {bottom_html}
-    {key_html}
-    {analog_html}
-    {_vs_regime_line(pulse.get("vs_regime", ""))}
-  </div>
+  {rows}
 </div>'''
 
 
 def _index_factor_reading(ifr: dict) -> str:
-    """Render the index_factor_reading block."""
-    if not ifr:
+    """Market structure: 1-2 sentences merging breadth／style rotation／sector signal／megacap／
+    momentum (2026-09-23 精簡：原本 4 欄＋momentum＋key insight 都拿掉，改成單一合併欄位
+    market_structure，見 CLAUDE.md)。"""
+    structure = (ifr or {}).get("market_structure", "")
+    if not structure:
         return ""
-    # Check if all fields are empty
-    if not any(ifr.get(k) for k in ("market_breadth", "style_rotation", "sector_signal",
-                                     "nyfang_signal", "momentum_read", "key_insight")):
-        return ""
-
-    def _ifr_cell(title_text, content):
-        return (f'<td width="25%" style="vertical-align:top;padding:8px 10px;'
-                f'border-right:0.5px solid #EEE;">'
-                f'<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;'
-                f'color:#888;margin-bottom:4px;">{title_text}</div>'
-                f'<div style="font-size:13px;color:#333;line-height:1.6;">{content}</div></td>')
-
-    row1 = (f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
-            f'<tr>{_ifr_cell("Breadth", ifr.get("market_breadth", ""))}'
-            f'{_ifr_cell("Style rotation", ifr.get("style_rotation", ""))}'
-            f'{_ifr_cell("Sector signal", ifr.get("sector_signal", ""))}'
-            f'{_ifr_cell("Megacap tech", ifr.get("nyfang_signal", ""))}</tr></table>')
-
-    momentum = ifr.get("momentum_read", "")
-    mom_html = ""
-    if momentum:
-        mom_html = (f'<div style="padding-top:8px;border-top:0.5px solid #EEE;margin-top:8px;">'
-                    f'<span style="font-size:10px;color:#888;">Momentum &#9654; </span>'
-                    f'<span style="font-size:13px;color:#333;">{momentum}</span></div>')
-
-    key = ifr.get("key_insight", "")
-    key_html = ""
-    if key:
-        key_html = (f'<div style="background:#534AB7;border-radius:4px;padding:8px 12px;margin-top:8px;">'
-                    f'<div style="font-size:13px;font-weight:500;color:#fff;">▶ {key}</div></div>')
-
-    return f'''
-<div style="display:flex;gap:0;margin-top:8px;">
-  <div style="width:4px;background:#7F77DD;border-radius:2px 0 0 2px;flex-shrink:0;"></div>
-  <div style="background:#F8F7FE;border-radius:0 6px 6px 0;padding:10px 14px;flex:1;">
-    {row1}
-    {mom_html}
-    {key_html}
-    {_vs_regime_line(ifr.get("vs_regime", ""))}
-  </div>
-</div>'''
-
-
-def _sentiment_analysis(sa: dict) -> str:
-    """Render the sentiment_analysis block."""
-    if not sa or not sa.get("one_line"):
-        return ""
-
-    stage = sa.get("stage", "No clear signal")
-    stage_name = sa.get("stage_name", "Normal market")
-    vix_reading = sa.get("vix_reading", "")
-    vvix_reading = sa.get("vvix_reading", "")
-    skew_reading = sa.get("skew_reading", "")
-    fg_reading = sa.get("fear_greed_reading", "")
-    credit_check = sa.get("credit_check", "")
-    cross_asset = sa.get("cross_asset_confirm", "")
-    key_div = sa.get("key_divergence", "")
-    reliability = sa.get("reliability", "medium")
-    reliability_reason = sa.get("reliability_reason", "")
-    one_line = sa.get("one_line", "")
-
-    # Reliability color mapping
-    rel_colors = {
-        "high":   {"bg": "#E8F8EE", "text": "#0F6E56", "dot": "#0F6E56"},
-        "medium": {"bg": "#FFF8F0", "text": "#854F0B", "dot": "#E67E22"},
-        "low":    {"bg": "#FFF0F0", "text": "#C0392B", "dot": "#C0392B"},
-    }
-    rc = rel_colors.get(reliability, rel_colors["medium"])
-
-    # Stage badge
-    stage_html = (f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
-                  f'<span style="font-size:13px;font-weight:600;color:#1B3A5C;background:#EBF2FA;'
-                  f'padding:3px 10px;border-radius:4px;">{stage}</span>'
-                  f'<span style="font-size:13px;color:#555;">{stage_name}</span></div>')
-
-    # Row 1: VIX / VVIX / SKEW readings
-    def _reading_cell(title_text, content):
-        return (f'<td width="33%" style="vertical-align:top;padding:8px 10px;">'
-                f'<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;'
-                f'color:#888;margin-bottom:4px;">{title_text}</div>'
-                f'<div style="font-size:13px;color:#333;line-height:1.5;">{content}</div></td>')
-
-    row1 = (f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
-            f'<tr>{_reading_cell("VIX", vix_reading)}'
-            f'{_reading_cell("VVIX", vvix_reading)}'
-            f'{_reading_cell("SKEW", skew_reading)}</tr></table>')
-
-    # Row 2: Fear&Greed / Credit / Cross-asset
-    row2 = (f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;'
-            f'margin-top:6px;border-top:0.5px solid #e8e8e8;">'
-            f'<tr>{_reading_cell("FEAR &amp; GREED", fg_reading)}'
-            f'{_reading_cell("Credit check", credit_check)}'
-            f'{_reading_cell("Cross-asset", cross_asset)}</tr></table>')
-
-    # Key divergence
-    div_html = ""
-    if key_div:
-        div_html = (f'<div style="font-size:13px;color:#555;line-height:1.5;padding:8px 10px;'
-                    f'margin-top:6px;border-top:0.5px solid #e8e8e8;">'
-                    f'<span style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;'
-                    f'color:#888;">Key divergence</span><br>{key_div}</div>')
-
-    # Reliability row
-    rel_html = (f'<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;'
-                f'margin-top:6px;border-top:0.5px solid #e8e8e8;">'
-                f'<span style="font-size:12px;font-weight:600;padding:2px 8px;border-radius:3px;'
-                f'background:{rc["bg"]};color:{rc["text"]};">Reliability: {reliability}</span>'
-                f'<span style="font-size:13px;color:#888;">{reliability_reason}</span></div>')
-
-    # One-line conclusion with reliability dot
-    one_html = (f'<div style="background:#1B3A5C;border-radius:4px;padding:10px 14px;margin-top:10px;'
-                f'display:flex;align-items:center;gap:10px;">'
-                f'<div style="width:10px;height:10px;border-radius:50%;background:{rc["dot"]};'
-                f'flex-shrink:0;"></div>'
-                f'<div style="font-size:14px;color:#fff;line-height:1.6;">{one_line}</div></div>')
-
     return f'''
 <div class="section">
-  <div style="background:#f7f7f5;border-radius:8px;border:0.5px solid #e8e8e8;padding:14px 18px;">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;
-                margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid #e8e8e8;">
-      <span style="font-size:12px;letter-spacing:1.8px;text-transform:uppercase;
-                   font-weight:500;color:#888;">VOLATILITY REGIME</span>
-      <span style="font-size:12px;color:#888;">VIX &middot; VVIX &middot; SKEW &middot; credit &middot; cross-asset</span>
-    </div>
-    {stage_html}
-    {row1}
-    {row2}
-    {div_html}
-    {rel_html}
-    {one_html}
-    {_vs_regime_line(sa.get("vs_regime", ""))}
+  <div style="font-size:13px;color:#333;line-height:1.6;">
+    <span style="font-size:10px;letter-spacing:1px;color:#888;text-transform:uppercase;">Market structure &#9656; </span>{structure}
   </div>
 </div>'''
 
@@ -1297,38 +1076,60 @@ _GDELT_BADGE = ('<span style="display:inline-block;font-size:10px;padding:1px 6p
                "Found via GDELT (not in the briefing&#39;s feeds)</span>")
 
 
-def _ev_item(item: dict, open_: bool = False) -> str:
+def _ev_top_card(item: dict) -> str:
+    """一張「New evidence」的精簡卡片（2026-09-23 精簡，見 CLAUDE.md）：headline、分類
+    （new fact／progress update…）、一句 why-new（new_today）、派送連結都直接顯示；
+    last_known／unconfirmed／potential impact／sources／primary check 收進卡片自己的一個
+    collapsed <details>（「More detail」），不再預設展開整段。"""
+    cl = item.get("classification") or {}
+    st = item.get("status") or {}
+    style = _EV_STATUS_STYLE.get(st.get("code"), _EV_STATUS_STYLE["logged"])
+    gdelt_badge = _GDELT_BADGE if item.get("block") == "gdelt" else ""
+    why_new = item.get("new_today", "")
+    why_html = (f'<div style="font-size:13px;color:#555;line-height:1.6;margin:3px 0;">{_esc(why_new)}</div>'
+                if why_new else "")
+    return f'''
+<div style="padding:10px 0;border-bottom:0.5px solid #f0f0f0;">
+  <div style="font-size:15px;font-weight:500;color:#222;line-height:1.5;">{_esc(item.get("headline", ""))}{gdelt_badge}</div>
+  <div style="font-size:12px;margin:3px 0;">
+    <span style="display:inline-block;padding:1px 7px;border-radius:3px;background:#F1F1F1;color:#666;">{_esc(cl.get("display", ""))}</span>
+    <span style="display:inline-block;font-size:11px;padding:1px 7px;border-radius:3px;margin-left:4px;{style}">{_esc(st.get("display", ""))[:90]}</span>
+  </div>
+  {why_html}
+  <div style="font-size:13px;line-height:1.6;">
+    <span style="color:#888;">Research:</span> {_ev_research(item)}
+  </div>
+  <details style="margin-top:6px;">
+    <summary style="cursor:pointer;font-size:12px;color:#888;">More detail</summary>
+    {_ev_row_detail(item)}
+  </details>
+</div>'''
+
+
+def _ev_item_brief(item: dict) -> str:
+    """「Other N items」合併區塊裡的一列：只有 headline／分類／狀態，不含完整 row detail
+    （more／low_priority／unjudged 都不是精選的 5 則 top，沒必要每則都印一份完整 sources／
+    primary check；2026-09-23 精簡，見 CLAUDE.md）。"""
     st = item.get("status") or {}
     style = _EV_STATUS_STYLE.get(st.get("code"), _EV_STATUS_STYLE["logged"])
     cl = item.get("classification") or {}
-    stage = (item.get("stage") or {}).get("display")
-    # 2026-09-23：timing 顯示在 stage 旁邊，display-only，不影響排序／分類／派送
-    timing = (item.get("timing") or {}).get("display")
-    topics = ", ".join(x["label"] for x in item.get("topics") or [])
-    sub = " · ".join(x for x in (cl.get("display"), stage, timing, topics) if x)
     gdelt_badge = _GDELT_BADGE if item.get("block") == "gdelt" else ""
-    return f'''
-<details {"open" if open_ else ""} style="padding:10px 0;border-bottom:0.5px solid #f0f0f0;">
-  <summary style="cursor:pointer;list-style:none;">
-    <div style="font-size:15px;font-weight:500;color:#222;line-height:1.5;">{_esc(item.get("headline", ""))}{gdelt_badge}</div>
-    <div style="font-size:12px;color:#888;margin:2px 0 4px;">{_esc(sub)} · {_esc(item.get("source", ""))} {_esc(item.get("source_date", ""))}</div>
-    <div style="font-size:13px;line-height:1.7;">
-      <span style="color:#888;">Direct impact:</span> {_ev_vars(item)}
-      <span style="color:#888;margin-left:6px;">Research:</span> {_ev_research(item)}
-      <span style="display:inline-block;font-size:11px;padding:1px 7px;border-radius:3px;margin-left:6px;{style}">{_esc(st.get("display", ""))[:90]}</span>
-    </div>
-  </summary>
-  {_ev_row_detail(item)}
-</details>'''
+    return (f'<div style="padding:6px 0;border-bottom:0.5px solid #f5f5f5;font-size:13px;color:#333;line-height:1.6;">'
+            f'{_esc(item.get("headline", ""))}{gdelt_badge} '
+            f'<span style="color:#999;font-size:12px;">{_esc(cl.get("display", ""))}</span> '
+            f'<span style="display:inline-block;font-size:11px;padding:1px 6px;border-radius:3px;{style}">{_esc(st.get("display", ""))[:70]}</span>'
+            f'</div>')
 
 
-def _ev_group(title: str, items: list, note: str = "") -> str:
+def _ev_other_group(more: list, low: list, unjudged: list) -> str:
+    """more／low_priority／unjudged 合併成一個 collapsed 「Other N items」（2026-09-23 精簡，
+    取代原本三個各自獨立的 collapsed 區塊，見 CLAUDE.md）。"""
+    items = list(more) + list(low) + list(unjudged)
     if not items:
         return ""
-    rows = "".join(_ev_item(it) for it in items)
-    note_html = f'<div style="font-size:12px;color:#999;margin:4px 0 6px;">{_esc(note)}</div>' if note else ""
+    rows = "".join(_ev_item_brief(it) for it in items)
     return (f'<details style="margin-top:10px;"><summary style="cursor:pointer;font-size:13px;color:#555;">'
-            f'{_esc(title)} ({len(items)})</summary>{note_html}{rows}</details>')
+            f'Other {len(items)} item{"s" if len(items) != 1 else ""}</summary>{rows}</details>')
 
 
 def _ev_quality_line(ev: dict) -> str:
@@ -1669,17 +1470,11 @@ def _evidence_section(ev: dict | None) -> str:
         banner += (f'<div style="font-size:13px;background:#FEF3CD;color:#856404;padding:8px 10px;border-radius:4px;'
                    f'margin-bottom:8px;">Earlier evidence record unavailable ({_esc(led.get("note", ""))}); '
                    '"new" labels are not verified today.</div>')
-    body = "".join(_ev_item(it) for it in top)
+    body = "".join(_ev_top_card(it) for it in top)
     if not top and not unj:
         body = ('<div style="font-size:14px;color:#888;padding:8px 0;">No new fundamental evidence was classified '
                 'today. This covers only the sources that were read; see the source line below.</div>')
-    if unj:
-        body += "".join(_ev_item(it) for it in unj[:TOP_EVIDENCE_UNJUDGED])
-        if len(unj) > TOP_EVIDENCE_UNJUDGED:
-            body += _ev_group("More items not classified", unj[TOP_EVIDENCE_UNJUDGED:])
-    body += _ev_group("More new items", more)
-    body += _ev_group("Low priority: known facts restated, price moves, vague reports", low,
-                      "Kept apart from fundamental evidence. A restated figure or a share-price move does not update assumptions.")
+    body += _ev_other_group(more, low, unj)
     return f'''
 <div class="section" id="evidence">
   <div class="section-label">New evidence and affected research <span style="font-weight:400;color:#888;font-size:12px;">what is new versus our earlier records</span></div>
@@ -1688,7 +1483,6 @@ def _evidence_section(ev: dict | None) -> str:
 </div>'''
 
 
-TOP_EVIDENCE_UNJUDGED = 5
 TOP_EVIDENCE_EMAIL = 3
 
 
@@ -3068,9 +2862,9 @@ _TAB_PAGES = [
     ("news",         "Top stories", "news.html"),
     ("geo",          "Geopolitics", "geo.html"),
     ("tech",         "Tech & AI",  "tech.html"),
-    ("trends",       "Startups",  "trends.html"),
-    ("startup",      "Founders",  "startup.html"),
+    ("trends",       "Startups & frontier",  "trends.html"),
     ("misc",         "Earnings",  "misc.html"),
+    ("startup",      "Founders",  "startup.html"),
     ("trading",      "Systems",   "trading.html"),
 ]
 
@@ -3130,10 +2924,9 @@ def build_index_html(data: dict) -> str:
     content = ""
     if data.get("alert"):
         content += _alert(data["alert"])
-    content += _regime_block(data.get("regime", {}))
+    content += _regime_block(data.get("regime", {}), data.get("sentiment_analysis", {}))
     content += _market_strip(data.get("market_data", {}))
     content += _index_factor_reading(data.get("index_factor_reading", {}))
-    content += _sentiment_analysis(data.get("sentiment_analysis", {}))
     content += _market_pulse(data.get("market_pulse", {}))
     return _page_wrapper("index", date, content, "Markets")
 
@@ -3164,6 +2957,9 @@ def build_tech_html(data: dict) -> str:
     date = data.get("date", "")
     ai_tag = {"macro": "background:#EBF2FA;color:#185FA5;", "tech": "background:#EAF3DE;color:#3B6D11;"}
     content = _news_section("AI industry", data.get("ai_industry", []), ai_tag)
+    # 2026-09-23：Deep tech（tech_trends）從 trends.html 搬過來，放在 AI industry（含 Supply
+    # chain 標籤的項目）旁邊，見 CLAUDE.md
+    content += _tech_trends(data.get("tech_trends", []))
     content += _regional_tech_section(data.get("regional_tech", {}))
     content += _fintech_crypto_section(data.get("fintech_crypto", []))
     return _page_wrapper("tech", date, content, "Tech &amp; AI")
@@ -3172,8 +2968,7 @@ def build_tech_html(data: dict) -> str:
 def build_trends_html(data: dict) -> str:
     """新創・趨勢"""
     date = data.get("date", "")
-    content = _tech_trends(data.get("tech_trends", []))
-    content += _frontier_tech(data.get("frontier_tech", []))
+    content = _frontier_tech(data.get("frontier_tech", []))
     content += _startup_news(data.get("startup_news", []))
     content += _weekend_reads_section(data.get("weekend_reads", []))
     content += _smart_money(data.get("smart_money", {}))
@@ -3856,11 +3651,10 @@ def build_html(data: dict, screener_result: dict = None) -> str:
 {_quote_of_day(now[:10])}
 {_daily_summary(data.get("daily_summary",""))}
 {_alert(data.get("alert",""))}
-{_regime_block(data.get("regime", {}))}
+{_regime_block(data.get("regime", {}), data.get("sentiment_analysis", {}))}
 {_market_strip(data.get("market_data", {}))}
 {_index_factor_reading(data.get("index_factor_reading", {}))}
 {_market_pulse(data.get("market_pulse", {}))}
-{_sentiment_analysis(data.get("sentiment_analysis", {}))}
 {_ideas_email_summary(data.get("evidence_layer"))}
 {_evidence_email_digest(data.get("evidence_layer"))}
 {_news_section("Top stories", data.get("top_stories",[]))}

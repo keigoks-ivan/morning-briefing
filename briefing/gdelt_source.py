@@ -34,7 +34,7 @@ from datetime import datetime, timezone
 GDELT_ENDPOINT = "https://api.gdeltproject.org/api/v2/doc/doc"
 UA = "Mozilla/5.0 (compatible; morning-briefing research bot)"
 BLOCK_NAME = "gdelt"
-GDELT_PRIORITY = 0.2      # BLOCK_PRIORITY 最低（早報自己的區塊最低是 geopolitical 0.4）
+GDELT_PRIORITY = 0.2      # BLOCK_PRIORITY 最低（早報自己的區塊最低是 startup_news 0.3，2026-09-23）
 
 RATE_LIMIT_SECONDS = 5.0  # GDELT 官方限流：一次／5 秒
 MAX_REQUESTS = 20         # 每次執行最多幾個查詢（≈100–120 秒，含限流間隔）

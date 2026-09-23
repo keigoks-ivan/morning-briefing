@@ -460,6 +460,47 @@ class WideScanTests(unittest.TestCase):
         self.assertEqual(stats["matched_items"], 1)
         self.assertEqual(sum(stats["skipped_by_reason"].values()), 0)
 
+    # ── curated_cards（2026-09-23 新增，Task 4）：既有新聞卡（tech_trends／frontier_tech…），
+    # 不是 RSS 池，evidence_layer.run_evidence_layer 已經排除掉變成候選的卡才傳進來 ──────
+    def test_curated_card_is_included_and_matched(self):
+        curated = [{"headline": "TSMC expands CoWoS packaging capacity for next-gen substrates",
+                   "summary": "", "source": "TrendForce", "source_date": fx.TODAY}]
+        cands, stats = ideas_layer._wide_scan([], {}, self._matcher(), Ledger([]), self.IDEAS, fx.TODAY, [],
+                                              curated_cards=curated)
+        self.assertEqual(stats["curated_pool_size"], 1)
+        self.assertEqual(stats["pool_size"], 1)
+        self.assertEqual(len(cands), 1)
+        self.assertEqual(cands[0]["headline"], curated[0]["headline"])
+
+    def test_curated_card_reuses_stale_event_gate(self):
+        from datetime import datetime, timedelta
+        old_date = (datetime.strptime(fx.TODAY, "%Y-%m-%d") - timedelta(days=6)).strftime("%Y-%m-%d")
+        curated = [{"headline": "TSMC expands CoWoS capacity lines further at a new site",
+                   "body": "", "source": "TrendForce", "source_date": old_date}]
+        cands, stats = ideas_layer._wide_scan([], {}, self._matcher(), Ledger([]), self.IDEAS, fx.TODAY, [],
+                                              curated_cards=curated)
+        self.assertEqual(stats["matched_items"], 1)
+        self.assertEqual(stats["skipped_by_reason"]["stale_event"], 1)
+        self.assertEqual(cands, [])
+
+    def test_curated_cards_default_to_empty_and_do_not_change_existing_behaviour(self):
+        pool = [{"title": "TSMC expands CoWoS packaging capacity at new site", "summary": "",
+                "link": "https://x/g", "published": f"{fx.TODAY} 09:00", "source": "Reuters"}]
+        cands, stats = ideas_layer._wide_scan(pool, {}, self._matcher(), Ledger([]), self.IDEAS, fx.TODAY, [])
+        self.assertEqual(stats["curated_pool_size"], 0)
+        self.assertEqual(stats["pool_size"], 1)
+        self.assertEqual(len(cands), 1)
+
+    def test_curated_card_as_pool_item_shape(self):
+        card = {"headline": "  A headline  ", "summary": "Some summary", "source": "TrendForce",
+               "source_date": "2026-09-20"}
+        pool_item = ideas_layer._curated_card_as_pool_item(card)
+        self.assertEqual(pool_item, {"title": "A headline", "summary": "Some summary", "link": "",
+                                     "source": "TrendForce", "published": "2026-09-20"})
+        # body 欄位（frontier_tech 用 body 不是 summary）也要被接住
+        card2 = {"headline": "H", "body": "B text"}
+        self.assertEqual(ideas_layer._curated_card_as_pool_item(card2)["summary"], "B text")
+
 
 class HitsFileTests(unittest.TestCase):
     """idea_hits.json 的合併：冪等、同日去重、history 抓不到時的兩種情況、365 天保留。"""

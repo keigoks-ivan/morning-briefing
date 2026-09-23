@@ -250,23 +250,42 @@ def _load_hits_rows(hits_fetch) -> list[dict]:
     return []
 
 
+def _curated_card_as_pool_item(card: dict) -> dict:
+    """把一張既有新聞卡（tech_trends／world_news／frontier_tech…，evidence_layer 已經排除
+    掉變成早報候選的）轉成跟 RSS 條目同樣的形狀，好併進 _wide_scan 同一個迴圈、重用全部既有
+    把關（2026-09-23 新增，Task 4，見 CLAUDE.md）。沒有 link／url：url_norm 會是空字串，命中不
+    到 used_urls／hits_history 的網址比對，但標題比對照常吃得到。published 直接用
+    source_date——早報的卡一律是 YYYY-MM-DD，跟 RSS 的 published 一樣可以餵給 _days_between。"""
+    return {
+        "title": str(card.get("headline") or card.get("title") or "").strip(),
+        "summary": str(card.get("body") or card.get("summary") or ""),
+        "link": "", "source": str(card.get("source") or ""),
+        "published": str(card.get("source_date") or ""),
+    }
+
+
 def _wide_scan(rss_items: list[dict], cand_by_id: dict, matcher, ledger, ideas: list[dict],
-              today: str, hits_history_rows: list[dict]) -> tuple[list[dict], dict]:
+              today: str, hits_history_rows: list[dict], curated_cards: list[dict] | None = None) -> tuple[list[dict], dict]:
     """早報外掃描（見檔頭②）。rss_items：main.py 傳進 run_evidence_layer 的去重後完整新聞池
     （已經是 rss_items 參數本身，不用另外從 main.py 多傳一份——news_fetcher.fetch_rss_news()
     回傳的就是去重後的池子）。cand_by_id：事件判斷層自己的候選（不分早報候選最終被判成什麼
-    類別），用來排除池子裡已經被早報用掉的新聞、以及近似標題比對的基準。
+    類別），用來排除池子裡已經被早報用掉的新聞、以及近似標題比對的基準。curated_cards：
+    evidence_layer.run_evidence_layer 算好的「沒進候選名額的既有新聞卡」（BLOCK_PRIORITY 全部
+    區塊＋WIDE_SCAN_EXTRA_BLOCKS，已經排除變成候選或被併入 twin 的卡；2026-09-23 新增，Task
+    4）——早報候選只來自容量有限的一小部分區塊／名額，這些卡不進 RSS 池，不加這個參數永遠
+    掃不到，例如「HBM3E contract prices +20% QoQ」這種 tech_trends 卡。
 
     回 (candidates, stats)。candidates 是通過全部把關、可以拿去問 Jev 的（每筆有
     headline／text／source／url／published／days_ago／matches／company_keys）；stats 是
-    pool_size／already_in_candidates／chinese_count／matched_items／skipped_by_reason，寫進
-    當天 evidence JSON 的 ideas.wide_scan（見 CLAUDE.md「投資想法」段）。"""
+    pool_size／curated_pool_size／already_in_candidates／chinese_count／matched_items／
+    skipped_by_reason，寫進當天 evidence JSON 的 ideas.wide_scan（見 CLAUDE.md「投資想法」段）。"""
     used_urls = _briefing_used_urls(cand_by_id)
     briefing_headlines = _briefing_headlines(cand_by_id)
     hist_urls = {normalize_url(r["url"]) for r in hits_history_rows if r.get("url")}
     hist_titles = {_normalize_title_key(r["headline"]) for r in hits_history_rows if r.get("headline")}
 
-    pool = rss_items or []
+    curated_cards = curated_cards or []
+    pool = list(rss_items or []) + [_curated_card_as_pool_item(c) for c in curated_cards]
     already = chinese = matched_items = 0
     skipped = {"stale_event": 0, "ledger_known_figure": 0, "hits_history_duplicate": 0, "near_dup_briefing": 0}
     candidates = []
@@ -320,8 +339,8 @@ def _wide_scan(rss_items: list[dict], cand_by_id: dict, matcher, ledger, ideas: 
             "matches": matches, "company_keys": company_keys,
         })
 
-    stats = {"pool_size": len(pool), "already_in_candidates": already, "chinese_count": chinese,
-             "matched_items": matched_items, "skipped_by_reason": skipped, "asked_items": 0}
+    stats = {"pool_size": len(pool), "curated_pool_size": len(curated_cards), "already_in_candidates": already,
+             "chinese_count": chinese, "matched_items": matched_items, "skipped_by_reason": skipped, "asked_items": 0}
     return candidates, stats
 
 
@@ -403,7 +422,8 @@ def _merge_hits(hits_fetch, today: str, today_rows: list[dict]) -> dict:
 # ── 主流程 ───────────────────────────────────────────────────────────────
 def run_ideas_step(items: list[dict], cand_by_id: dict, jev, today: str, *,
                    ideas: list[dict] | None = None, fetch=None, hits_fetch=None,
-                   matcher=None, rss_items: list[dict] | None = None, ledger=None) -> dict:
+                   matcher=None, rss_items: list[dict] | None = None, ledger=None,
+                   curated_cards: list[dict] | None = None) -> dict:
     """就地在 items 的每一則加上 `ideas` 欄位（沒比對到就是空清單；早報外的候選不會出現在
     items 裡，見檔頭②）。回一份摘要：
     {"status", "ideas_count", "matched_pairs", "asked", "catalog", "hits", "wide_scan", "wide_pairs"}。
@@ -412,11 +432,14 @@ def run_ideas_step(items: list[dict], cand_by_id: dict, jev, today: str, *,
     （跟 evidence_layer._fetch_json 同形狀）；hits_fetch：抓 idea_hits.json 用，預設跟 fetch
     同一個；matcher：evidence_ledger.EntityMatcher，早報外掃描要用來辨識公司／主題；
     rss_items：main.py 傳進 run_evidence_layer 的去重後新聞池（早報外掃描的候選來源）；
-    ledger：evidence_ledger.Ledger，早報外掃描要查「先前紀錄有沒有同公司／主題＋同數字」。
+    ledger：evidence_ledger.Ledger，早報外掃描要查「先前紀錄有沒有同公司／主題＋同數字」；
+    curated_cards：evidence_layer.run_evidence_layer 算好的「沒進候選名額的既有新聞卡」，見
+    _wide_scan 的參數說明（2026-09-23 新增，Task 4）。
     matcher／ledger 任一沒給就跳過早報外掃描（測試裡只測早報候選時常見；早報正式流程一律會給）。"""
     fetch = fetch or (lambda url, timeout=15: (None, "missing"))
     hits_fetch = hits_fetch or fetch
     rss_items = rss_items or []
+    curated_cards = curated_cards or []
 
     for it in items:
         it["ideas"] = []
@@ -428,7 +451,8 @@ def run_ideas_step(items: list[dict], cand_by_id: dict, jev, today: str, *,
 
     today_rows: list[dict] = []
     wide_pairs: list[dict] = []
-    wide_stats = {"pool_size": len(rss_items), "already_in_candidates": 0, "chinese_count": 0,
+    wide_stats = {"pool_size": len(rss_items) + len(curated_cards), "curated_pool_size": len(curated_cards),
+                 "already_in_candidates": 0, "chinese_count": 0,
                  "matched_items": 0, "skipped_by_reason": {}, "asked_items": 0}
     briefing_matched_pairs = wide_matched_pairs = asked_briefing_count = 0
 
@@ -484,7 +508,8 @@ def run_ideas_step(items: list[dict], cand_by_id: dict, jev, today: str, *,
         # ② 早報外掃描：只有給了 matcher／ledger 才跑（早報正式流程一律會給，見上方參數註解）
         if matcher is not None and ledger is not None:
             hist_rows = _load_hits_rows(hits_fetch)
-            wide_cands, scan_stats = _wide_scan(rss_items, cand_by_id, matcher, ledger, ideas, today, hist_rows)
+            wide_cands, scan_stats = _wide_scan(rss_items, cand_by_id, matcher, ledger, ideas, today, hist_rows,
+                                               curated_cards=curated_cards)
             wide_matched_pairs = sum(len(c["matches"]) for c in wide_cands)
             asked_wide, _overflow_wide = _rank_and_cap(wide_cands, MAX_WIDE_IDEA_ITEMS)
             scan_stats["asked_items"] = len(asked_wide)

@@ -205,7 +205,7 @@ def main() -> None:
     <a href="https://research.investmquest.com/briefing/news.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">Top stories</a>
     <a href="https://research.investmquest.com/briefing/geo.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">Geopolitics</a>
     <a href="https://research.investmquest.com/briefing/tech.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">Tech &amp; AI</a>
-    <a href="https://research.investmquest.com/briefing/trends.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">Startups</a>
+    <a href="https://research.investmquest.com/briefing/trends.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">Startups &amp; frontier</a>
     <a href="https://research.investmquest.com/briefing/misc.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">Earnings</a>
     <a href="https://research.investmquest.com/briefing/trading.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">Systems</a>
     <a href="https://research.investmquest.com/briefing/screener.html" style="font-size:12px;color:#1B3A5C;text-decoration:none;padding:5px 10px;border:0.5px solid #1B3A5C;border-radius:4px;">Screener</a>

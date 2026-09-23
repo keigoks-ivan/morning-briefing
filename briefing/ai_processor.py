@@ -665,48 +665,37 @@ market_data rules:
 - move_index.val comes from the news search results
 - If the search results carry no MOVE Index, set val to "-"
 
-regime rules — this is the spine of the whole analysis. Write it first; every other block must take a position on it:
+regime rules — this is the spine of the whole analysis. Write it first; every other block must take a position on it.
+Only call, the three axis states and confidence reach the page (as a one-line chip); axes evidence, confidence_reason and
+falsifiers.meaning are still written to the JSON because tomorrow's prompt reads them back — write them briefly, not for display:
 - call: one sentence on the state of the market today. It must have a direction. No fence-sitting ("mixed", "wait and see")
-- axes: risk appetite, liquidity and volatility each get a state and evidence. Evidence must cite at least two real numbers from market_context
-- confirms: 2-3 observations supporting the call, each citing numbers
-- contradicts: 1-2 observations against the call, each citing numbers. If you genuinely cannot find any, write "No clear counter-evidence"
-  and add one sentence on why that itself is suspicious (agreement with no counter-evidence usually means crowding or a data blind spot)
-- falsifiers: 2-3 entries of "which number appearing would mean the call is wrong". metric is an observable indicator name and
-  threshold is a specific value ("VIX closes above 22", "HYG falls more than 1% in a day"). Never write something unverifiable like "if the market weakens"
+- axes: risk appetite, liquidity and volatility each get a state (risk-on/risk-off/neutral, easing/tightening/neutral,
+  suppressed/rising/extreme). Ground every state in at least two real numbers from market_context while you reason
+- contradicts: exactly one observation against the call, citing numbers. If you genuinely cannot find one, write "No clear
+  counter-evidence" and say in the same sentence why that itself is suspicious (agreement with no counter-evidence usually
+  means crowding or a data blind spot)
+- falsifiers: exactly 3 entries of "which number appearing would mean the call is wrong". metric is an observable indicator
+  name and threshold is a specific value ("VIX closes above 22", "HYG falls more than 1% in a day"). meaning is one sentence
+  for tomorrow's prompt, not shown on today's page. Never write something unverifiable like "if the market weakens"
 - for_w52_engine: one sentence for the W52 operator — describe only whether this week's weekly gate is under threat and whether volatility is
   approaching a band that would change exposure. Issue no buy, sell, add or trim instruction. If there is no risk, write
   "No pressure on the gate this week; no action required"
-- confidence is high, medium or low, plus one sentence of reasoning. Never "high" when the three axes conflict or data is missing
+- confidence is high, medium or low. confidence_reason is one sentence for tomorrow's prompt, not shown on today's page.
+  Never "high" when the three axes conflict or data is missing
 - review (yesterday's call): if market_context carries a PREVIOUS CALL, check yesterday's falsifiers one by one. Fill today_value from today's
   real market_context numbers; hit is true only when the number actually crossed the threshold. verdict is one of:
   "carried over" (no falsifier hit, call direction unchanged), "revised" (not falsified but the call clearly needs changing),
   "falsified" (at least one falsifier hit). note is one sentence on how today's call differs from yesterday's and why.
   With no PREVIOUS CALL, set verdict to "no prior day" and leave the rest empty. Never set every hit to false to make it look clean — a hit is a hit
 
-vs_regime rules (one field each on market_pulse, index_factor_reading, sentiment_analysis):
-- Fixed format: "Supports| one sentence", "Contradicts| one sentence", or "Neutral| one sentence"
-- The point of this field is to force contradictions into the open. If this block's reading disagrees with regime.call, you must write
-  "Contradicts|" — never soften the reading to keep things consistent
-
-market_pulse rules:
+market_pulse rules — only hidden_risk, hidden_opportunity and key_level_to_watch reach the page, one line each:
 - Equity index analysis uses NDX (^NDX), the prior US official close
-- cross_asset_signals: 2-3 entries. Each must be a cross-indicator observation, not a description of one indicator
-- Three-step frame: (1) spot the divergence — an unusual combination between indicators; (2) infer the mechanism that could drive it;
-  (3) play it forward — what happens next if the mechanism holds
-- Indicators available: equity indices (NDX), factors (NYFANG vs NDX, RSP/SPY breadth, MTUM momentum, IWM small caps),
-  sentiment (VIX/VIX9D/SKEW/VVIX), MOVE Index, commodities, bonds, FX, credit (HYG/LQD ratio),
-  liquidity (RRP / TGA / bank reserves / NFCI plus the composite score)
-- Every detail must cite at least two specific indicator numbers
-- dominant_theme must take a clear directional stance ("liquidity-driven risk appetite recovering"), never vague
-- hidden_risk and hidden_opportunity are 2 sentences each and must not be obvious observations
-- key_level_to_watch uses an NDX level
-- historical_analog names a specific period
-- new_pattern: if the present does not fit a historical pattern, say what the new regime might be
-- Use hedged language where the evidence is hedged
-- Do not output obvious observations
-- Keep the whole block under 200 words
+- hidden_risk and hidden_opportunity are each one sentence, non-obvious, citing a number
+- key_level_to_watch uses an NDX level, one short phrase
+- Use hedged language where the evidence is hedged; do not output obvious observations
 
-sentiment_analysis rules:
+sentiment_analysis rules — only used to classify today's volatility stage and credit status; both are shown as a compact
+chip on the regime card ("Volatility <axes.volatility.state> (<stage>, credit <credit_status>)"), not as long-form text:
 
 [FOUR-STAGE LOGIC]
 Stage 1 (calm before the storm): VIX < 20 + SKEW > 135 + VVIX flat
@@ -714,80 +703,32 @@ Stage 2 (break starts): VIX > 30 and rising fast + VVIX > 120 and spiking + SKEW
 Stage 3 (bottoming signal): VIX > 40 or sustained high + VVIX has peaked and is falling + SKEW below 115
 Stage 4 (reversal confirmed): VIX falling from the high + VVIX back near 100 + equities rebounding
 
-[FEAR & GREED INTEGRATION]
-- Fear&Greed < 15 + VIX > 40 + VVIX peaked and falling -> triple-confirmed bottom signal
-- Fear&Greed > 70 + SKEW > 135 + VIX < 20 -> reinforced Stage 1 warning
-
-[FALSE BOTTOM: CREDIT CROSS-CHECK]
-- HYG down less than 1% and LQD stable -> not a systemic panic, reliability "high"
-- HYG down 1-3% with LQD slightly lower -> moderate credit stress, reliability "medium"
-- HYG down more than 3% with LQD falling alongside -> systemic credit risk, the four-stage frame may not apply, reliability "low"
-
-[CROSS-ASSET CONFIRMATION — at least 2 required to call it confirmed]
-- Gold turning from falling-with-equities to firm or stronger -> liquidity squeeze easing
-- Bitcoin's decline narrowing or rebounding -> the most sensitive risk-appetite gauge moving first
-- Yen appreciation slowing (JPY/USD no longer rising fast) -> carry unwind near its end
-- DXY peaking or weakening -> dollar liquidity stress easing
-
 [TIME DIMENSION — uses 5 days of history]
 
 Precise Stage 3 test:
-Necessary:
-1. VIX today > 35
-2. VVIX has fallen from its peak for 2 or more days (vvix_peak_days_ago >= 2)
-3. SKEW < 120
-
-Sufficient:
-4. VIX today > 40
-5. VVIX down more than 10% from its peak (vvix_peak_decline_pct > 10)
-6. Fear&Greed < 20
-
-Necessary met but not sufficient: stage = "Stage 3", reliability = "medium"
-Both met: stage = "Stage 3", reliability = "high"
+Necessary: (1) VIX today > 35, (2) VVIX has fallen from its peak for 2 or more days (vvix_peak_days_ago >= 2), (3) SKEW < 120
+Sufficient (on top of necessary): VIX today > 40, VVIX down more than 10% from its peak (vvix_peak_decline_pct > 10), Fear&Greed < 20
+Necessary met but not sufficient, or both met: either way, stage = "Stage 3"
 
 Stage 2 versus Stage 3:
 - vvix_peak_days_ago <= 1 (peaked today or yesterday) -> Stage 2
 - vvix_peak_days_ago >= 2 (peaked two or more days ago) with VIX still high -> Stage 3
 
-vvix_reading format:
-If vvix_peak_days_ago >= 2:
-  "VVIX {today}, {vvix_trend}, peaked at {vvix_peak_val} {vvix_peak_days_ago} days ago, now {vvix_peak_decline_pct}% off the peak"
-If vvix_peak_days_ago <= 1:
-  "VVIX {today}, {vvix_trend}, peaked only {vvix_peak_days_ago} days ago; Stage 3 conditions are not yet in place"
-If vvix_trend is still rising:
-  "VVIX {today}, still rising with no peak yet, still in the Stage 2 acceleration phase"
+[CREDIT STATUS]
+credit_status is "ok" when HYG is down less than 1% and LQD is stable (not a systemic panic).
+credit_status is "stress" when HYG is down 1% or more, or LQD is falling alongside HYG (mild or systemic credit stress —
+both map to "stress"; the page only has room for a binary read).
 
-[SECOND-LAYER TREND]
-cross_asset_confirm must incorporate the second-layer trends:
-- Gold rising steadily while Bitcoin is choppy or falling -> hedging demand leads, not risk appetite recovering
-- Gold falling steadily -> liquidity squeeze (everything is being sold); bottom signals are less reliable
-- DXY rising steadily with HYG falling steadily -> a strong dollar is tightening global liquidity; pressure continues
-- RSP/SPY narrowing with IWM/SPY narrowing -> the market is highly concentrated; a bottom usually needs breadth to widen first
-- Bitcoin rising ahead of gold and equities -> risk appetite turning first; the bottom signal strengthens
-
-[RELIABILITY MATRIX]
-high: credit stable (HYG down less than 1%) + at least 2 cross-asset confirmations + no financial-crisis backdrop
-medium: mild credit stress (HYG down 1-3%), or insufficient cross-asset confirmation, or early signs of systemic risk
-low: credit deteriorating badly (HYG down more than 3%), or a systemic crisis backdrop (2008-like)
-
-[one_line REQUIREMENTS]
-Must contain: the current stage, the reliability, and the most likely next step.
-Cite specific values from at least two indicators.
-Do not hedge both ways. "Needs watching" is not a conclusion.
-
-index_factor_reading rules:
-- Every reading must cite specific move figures
-- market_breadth uses both breadth gauges:
-  RSP/SPY rising = equal weight beating cap weight = the market is widening
-  IWM/SPY rising = small caps beating large caps = risk appetite rising
-  both rising = a genuine widening
-  both falling = high concentration, a handful of megacaps carrying the index
-  RSP/SPY up but IWM/SPY down = mid caps strong, small caps weak, a partial widening
-- style_rotation: VTV falling less than VUG = money moving to value (defensive); VTV falling more than VUG = growth being chased
-- sector_signal: what the day's biggest-moving sector says about where industry money is going
-- nyfang_signal: NYFANG down more than NDX = megacap tech leading the decline; less than NDX = megacaps relatively resilient
-- momentum_read: MTUM versus NDX. MTUM resilient = momentum names still bid; MTUM leading down = momentum breaking
-- key_insight must take a stance, not both sides, and must name the most important structural feature of the US session
+index_factor_reading rules — market_structure is the only field, 1-2 sentences merging every reading below into one
+stance, citing at most 2-3 total figures. Do not list the readings separately; take a position on what they mean together:
+- Breadth: RSP/SPY rising = equal weight beating cap weight = widening. IWM/SPY rising = small caps beating large caps =
+  risk appetite rising. Both rising = genuine widening; both falling = high concentration; RSP/SPY up but IWM/SPY down =
+  partial widening (mid caps strong, small caps weak)
+- Style rotation: VTV falling less than VUG = money moving to value (defensive); VTV falling more than VUG = growth chased
+- Sector signal: what the day's biggest-moving sector says about where industry money is going
+- Megacap tech: NYFANG down more than NDX = megacap tech leading the decline; less than NDX = megacaps relatively resilient
+- Momentum: MTUM versus NDX. MTUM resilient = momentum names still bid; MTUM leading down = momentum breaking
+- Take a stance, not both sides, and name the single most important structural feature of the US session
 
 Yield curve:
 - 10Y-2Y below zero = inverted, historically a 6-18 month recession lead indicator
@@ -816,18 +757,17 @@ Emit the following JSON, in English, containing the analysis blocks only:
   "regime": {{
     "call": "What state the market is in today, max 10 words, with a direction",
     "axes": {{
-      "risk_appetite": {{"state": "risk-on/risk-off/neutral", "evidence": "cite at least two real numbers"}},
-      "liquidity":     {{"state": "easing/tightening/neutral", "evidence": "cite at least two real numbers"}},
-      "volatility":    {{"state": "suppressed/rising/extreme", "evidence": "cite at least two real numbers"}}
+      "risk_appetite": {{"state": "risk-on/risk-off/neutral"}},
+      "liquidity":     {{"state": "easing/tightening/neutral"}},
+      "volatility":    {{"state": "suppressed/rising/extreme"}}
     }},
-    "confirms": ["Observation supporting the call, citing numbers", "..."],
-    "contradicts": ["Observation against the call, citing numbers. If none, write 'No clear counter-evidence' and say why that is suspicious"],
+    "contradicts": ["The single most important observation against the call, citing numbers. If none, write 'No clear counter-evidence' and say why that is suspicious"],
     "falsifiers": [
-      {{"metric": "Indicator name", "threshold": "Specific value", "meaning": "What it would mean the call got wrong, one sentence"}}
+      {{"metric": "Indicator name", "threshold": "Specific value", "meaning": "What it would mean the call got wrong, one sentence (for tomorrow's prompt, not shown today)"}}
     ],
     "for_w52_engine": "One sentence for the W52 operator (gate and volatility risk only, no buy or sell instruction)",
     "confidence": "high/medium/low",
-    "confidence_reason": "One sentence",
+    "confidence_reason": "One sentence (for tomorrow's prompt, not shown today)",
     "review": {{
       "yesterday_call": "Yesterday's call verbatim; empty string if none",
       "verdict": "carried over/revised/falsified/no prior day",
@@ -843,46 +783,18 @@ Emit the following JSON, in English, containing the analysis blocks only:
   }},
 
   "market_pulse": {{
-    "cross_asset_signals": [
-      {{
-        "signal": "Signal title, max 8 words",
-        "detail": "2-3 sentences citing the actual numbers from at least two indicators",
-        "implication": "What it could mean next, one sentence"
-      }}
-    ],
-    "dominant_theme": "Today's dominant theme, one sentence, max 10 words, with a clear directional stance",
-    "hidden_risk": "Non-obvious risk, 2 sentences",
-    "hidden_opportunity": "Non-obvious opportunity, 2 sentences",
-    "key_level_to_watch": "Key level, quoted on NDX",
-    "historical_analog": "Historical analogue, one sentence, naming a specific period",
-    "new_pattern": "Whether this could be a new regime, one sentence",
-    "vs_regime": "Supports| / Contradicts| / Neutral| plus one sentence"
+    "hidden_risk": "Non-obvious risk, one sentence",
+    "hidden_opportunity": "Non-obvious opportunity, one sentence",
+    "key_level_to_watch": "Key level, quoted on NDX"
   }},
 
   "index_factor_reading": {{
-    "market_breadth": "Breadth reading, 1-2 sentences citing the RSP/SPY and IWM/SPY ratios",
-    "style_rotation": "Style rotation signal, 1-2 sentences based on the VTV/VUG gap",
-    "sector_signal": "What today's dynamic sector means, 1-2 sentences",
-    "nyfang_signal": "Megacap tech signal, one sentence, NYFANG vs NDX",
-    "momentum_read": "Momentum signal, one sentence",
-    "key_insight": "The single most important insight, integrating every factor above, with a clear stance",
-    "vs_regime": "Supports| / Contradicts| / Neutral| plus one sentence"
+    "market_structure": "1-2 sentences merging breadth, style rotation, sector signal, megacap tech and momentum into one stance"
   }},
 
   "sentiment_analysis": {{
     "stage": "Stage 1/Stage 2/Stage 3/Stage 4/No clear signal",
-    "stage_name": "Calm before the storm/Break starting/Bottoming signal/Reversal confirmed/Normal market",
-    "vix_reading": "VIX reading, one sentence with the value",
-    "vvix_reading": "VVIX reading, one sentence with the value",
-    "skew_reading": "SKEW reading, one sentence with the value",
-    "fear_greed_reading": "Fear & Greed reading, one sentence",
-    "credit_check": "Credit cross-check, one sentence",
-    "cross_asset_confirm": "Cross-asset confirmation, one sentence",
-    "key_divergence": "The most important divergence or agreement, one sentence",
-    "reliability": "high/medium/low",
-    "reliability_reason": "What the reliability call rests on, one sentence",
-    "one_line": "Overall judgement, one sentence, with a clear stance",
-    "vs_regime": "Supports| / Contradicts| / Neutral| plus one sentence"
+    "credit_status": "ok/stress"
   }},
 
   "daily_deep_dive": [
@@ -948,14 +860,13 @@ Emit the following JSON, in English, containing the analysis blocks only:
 }}
 
 Notes:
-0. Write regime first and think it through. Every other block takes a position on it via vs_regime. Expose contradictions; do not smooth them over
+0. Write regime first and think it through; it is the spine every other block reasons from. Expose contradictions; do not smooth them over
 1. system_status.dynamic is exactly 3 entries, chosen from: {dynamic_options}
 2. tech_trends: 3-4 entries when the material supports it, maximum 4, with exactly 3 sub_items each
 3. daily_deep_dive: at most 1 theme, the single best-evidenced one across all of today's news material and the two fixed deep-dive queries.
    Leave it as [] when the facts are not there
 4. smart_money: maximum 3, and nothing at all without a credible source
-5. cross_asset_signals: 2-3 entries
-6. Write everything in English. No Chinese characters anywhere in the output
+5. Write everything in English. No Chinese characters anywhere in the output
 """
 
 
@@ -2395,37 +2306,17 @@ def _validate(data: dict) -> None:
     data.setdefault("us_market_recap", {"has_events": False, "earnings": [], "other_events": [], "summary": ""})
     data.setdefault("smart_money", {"has_signals": False, "signals": [], "summary": ""})
     data.setdefault("regime", {
-        "call": "", "axes": {}, "confirms": [], "contradicts": [], "falsifiers": [],
+        "call": "", "axes": {}, "contradicts": [], "falsifiers": [],
         "for_w52_engine": "", "confidence": "", "confidence_reason": "",
     })
     if isinstance(data.get("regime"), dict):
         data["regime"].setdefault("review", {"yesterday_call": "", "verdict": "no prior day", "falsifier_check": [], "note": ""})
     data.setdefault("watchlist_news", [])
     data.setdefault("weekend_reads", [])
-    data.setdefault("market_pulse", {"cross_asset_signals": [], "dominant_theme": "", "hidden_risk": "", "hidden_opportunity": "", "key_level_to_watch": "", "historical_analog": "", "new_pattern": ""})
+    data.setdefault("market_pulse", {"hidden_risk": "", "hidden_opportunity": "", "key_level_to_watch": ""})
     data.setdefault("daily_deep_dive", [])
-    data.setdefault("index_factor_reading", {
-        "market_breadth": "",
-        "style_rotation": "",
-        "sector_signal": "",
-        "nyfang_signal": "",
-        "momentum_read": "",
-        "key_insight": ""
-    })
-    data.setdefault("sentiment_analysis", {
-        "stage": "No clear signal",
-        "stage_name": "Normal market",
-        "vix_reading": "",
-        "vvix_reading": "",
-        "skew_reading": "",
-        "fear_greed_reading": "",
-        "credit_check": "",
-        "cross_asset_confirm": "",
-        "key_divergence": "",
-        "reliability": "medium",
-        "reliability_reason": "",
-        "one_line": ""
-    })
+    data.setdefault("index_factor_reading", {"market_structure": ""})
+    data.setdefault("sentiment_analysis", {"stage": "No clear signal", "credit_status": ""})
     data.setdefault("fun_fact", {})
     data.setdefault("today_events", [])
     data.setdefault("earnings_deep_analysis", {

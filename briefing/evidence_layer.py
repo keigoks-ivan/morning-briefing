@@ -63,8 +63,15 @@ STALE_MATCH_WINDOW_DAYS = 2  # 過舊事件要跟先前紀錄的事件日期差�
 BLOCK_PRIORITY = [
     ("top_stories", 1.0), ("industry_developments", 0.9), ("watchlist_news", 0.85),
     ("ai_industry", 0.7), ("macro", 0.6), ("regional_tech", 0.5), ("geopolitical", 0.4),
+    ("tech_trends", 0.35), ("startup_news", 0.3),   # 2026-09-23：Deep tech／Startups 加入候選
+                                                     # （HBM／CoWoS 合約與產能、新創輪次），見 CLAUDE.md
     ("gdelt", 0.2),   # 2026-09-23：GDELT 候選（早報既有 RSS 以外的公司專屬新聞），優先序最低
 ]
+
+# 早報外掃描（ideas_layer._wide_scan）額外納入的「沒進 BLOCK_PRIORITY 候選、但仍是新聞卡」區塊
+# （2026-09-23 新增，見 CLAUDE.md）：world_news／fintech_crypto／frontier_tech／weekend_reads。
+# gdelt 候選另外抓、本來就不在 data 裡，不用排除。
+WIDE_SCAN_EXTRA_BLOCKS = ["world_news", "fintech_crypto", "frontier_tech", "weekend_reads"]
 PRIMARY_DOMAINS = ("sec.gov", "federalreserve.gov", "fda.gov", "mops.twse.com.tw", "customs.go.kr",
                    "motie.go.kr", "pr.tsmc.com", "nvidianews.nvidia.com", "news.microsoft.com",
                    "ir.amd.com", "investor.", "dart.fss.or.kr")
@@ -83,14 +90,20 @@ def _now_iso() -> str:
 
 # ── 候選 ─────────────────────────────────────────────────────────────────
 def _card_text(card: dict) -> str:
-    parts = [card.get("headline") or card.get("title") or "", card.get("body") or "",
+    # 2026-09-23：加 summary 當 body 的備援——tech_trends／startup_news 這兩個區塊的卡是
+    # headline/summary 形狀，沒有 body 欄位（見 html_template._tech_trends／_startup_news），
+    # 沒有這個備援 build_candidates 抽出來的 text 就只剩 headline，figures／tokens 都抽不全。
+    parts = [card.get("headline") or card.get("title") or "", card.get("body") or card.get("summary") or "",
              card.get("evidence") or "", card.get("market_move") or ""]
     return " ".join(str(p).strip() for p in parts if p).strip()
 
 
-def collect_cards(data: dict) -> list[tuple[str, float, dict]]:
+def collect_cards(data: dict, blocks: list[tuple[str, float]] | None = None) -> list[tuple[str, float, dict]]:
+    """blocks 預設 BLOCK_PRIORITY（事件判斷層候選用）；早報外掃描（ideas_layer._wide_scan）
+    傳 BLOCK_PRIORITY + WIDE_SCAN_EXTRA_BLOCKS 進來，把沒進候選名額的區塊也一起掃過
+    （2026-09-23 新增，見 CLAUDE.md）。"""
     out = []
-    for block, prio in BLOCK_PRIORITY:
+    for block, prio in (blocks if blocks is not None else BLOCK_PRIORITY):
         items = data.get(block)
         if isinstance(items, dict):  # regional_tech
             items = [it for region in items.values() if isinstance(region, list) for it in region]
@@ -844,10 +857,24 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
     # 每則的 classification／routes／companies），沿用同一個 jev（快取與預算共用，同一天重跑或
     # 已經問過的請求不重付；idea_hits.json 的合併規則見 ideas_layer._merge_hits）。
     cand_by_id = {c["cid"]: c for c, *_ in judged}
+    # 早報外掃描（ideas_layer._wide_scan）除了 RSS 池，也要看「沒進候選名額的既有新聞卡」
+    # （BLOCK_PRIORITY 全部區塊＋WIDE_SCAN_EXTRA_BLOCKS），不然容量限制會把它們藏起來
+    # （2026-09-23 新增，Task 4，見 CLAUDE.md）。用 (block, headline) 字串比對排除已經變成候選
+    # 或被併入 twin also_in 的卡——headline 本來就是從卡片原樣 strip() 出來的，跟這裡重算的
+    # 完全一樣，不用模糊比對。
+    used_card_keys = {(c["block"], c["headline"]) for c in cands}
+    used_card_keys |= {(a.get("block", ""), str(a.get("headline", "")).strip())
+                       for c in cands for a in c.get("also_in") or []}
+    wide_scan_blocks = BLOCK_PRIORITY + [(b, 0.0) for b in WIDE_SCAN_EXTRA_BLOCKS]
+    curated_pool = [
+        card for block, _prio, card in collect_cards(data, blocks=wide_scan_blocks)
+        if (block, str(card.get("headline") or card.get("title") or "").strip()) not in used_card_keys
+    ]
     try:
         from ideas_layer import run_ideas_step
         ideas_result = run_ideas_step(items, cand_by_id, jev, today, ideas=ideas, fetch=fetch,
-                                      matcher=matcher, rss_items=rss_items, ledger=ledger)
+                                      matcher=matcher, rss_items=rss_items, ledger=ledger,
+                                      curated_cards=curated_pool)
     except Exception as e:  # noqa: BLE001 — 想法層掛掉不能連累事件判斷層其餘輸出
         for it in items:
             it.setdefault("ideas", [])

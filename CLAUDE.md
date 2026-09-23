@@ -447,13 +447,68 @@ trigger.py → Render Cron → GitHub API
 
 ## 日報 build_html 區塊順序
 
-1.masthead+summary 2.alert 2b._regime_block（今日主軸＋底部昨日主軸驗證） 3._market_strip 4._index_factor_reading
-5._sentiment_analysis 6._market_pulse 7._daily_deep_dive
+1.masthead+summary 2.alert 2b._regime_block（今日主軸＋底部昨日主軸驗證；2026-09-23 起一行 chips
+呈現 risk appetite／liquidity／volatility，volatility 括號內帶 sentiment_analysis 的 stage 與
+credit_status，原本獨立的 VOLATILITY REGIME 區塊拿掉，見下方「市場頁精簡」段） 3._market_strip
+4._index_factor_reading（2026-09-23 起只剩單一 market_structure 欄位） 6._market_pulse（2026-09-23
+起只剩 hidden risk／hidden opportunity／key level，各一行） 7._daily_deep_dive
 7b._evidence_email_digest（今日新增證據，只放三行摘要＋連結；news 頁則是完整的 `_evidence_section`，排在 Top stories 之前）
 8.top_stories 8b._watchlist_news_section（關注清單動態） 9.world_news 10.us_market_recap 11.macro
 12.geopolitical 13.ai_industry 14.regional_tech 15.fintech_crypto
 16.system_status（System status） 17.tech_trends（Deep tech） 17b._frontier_tech（Frontier tech） 18.startup_news（Startups） 18b._weekend_reads_section（Weekend reads） 19.smart_money
 20.earnings_preview 21.implied_trends 22.fun_fact 23.today_events 24.footer
+
+---
+
+## 市場頁精簡與 news 頁 New evidence 精簡（2026-09-23）
+
+**背景**：market page 重複數字太多（VIX／SKEW／Fear&Greed 同一天各出現七八次以上）、
+commentary 字數破 8,000；news.html「New evidence」區塊佔頁面七成以上。
+
+**市場頁**（`_regime_block`／`_index_factor_reading`／`_market_pulse`，email 與 index.html 共用）：
+- `_regime_block(regime, sentiment_analysis)`：TODAY'S CALL 卡片改一行 chips（Risk appetite／
+  Liquidity／Volatility，Volatility 括號帶 `sentiment_analysis.stage`＋`credit_status`）；
+  `contradicts` 只留最重要一則；falsifiers 表格只剩「指標｜門檻」兩欄；昨日主軸驗證改成
+  verdict badge＋每條證偽門檻一個 ✓／✗＋一句話。`regime.confirms`、`confidence_reason`（畫面
+  上）、falsifiers 的 `meaning`（畫面上）都拿掉——`confidence_reason`／`meaning` 仍在 JSON 裡
+  （隔天 `_build_market_context` 的 PREVIOUS CALL 段要讀），只是不畫。
+- `_index_factor_reading`：4 欄＋momentum＋key insight 全部併成單一 `market_structure`
+  （1-2 句）；舊欄位（`market_breadth`／`style_rotation`／`sector_signal`／`nyfang_signal`／
+  `momentum_read`／`key_insight`）不再產生——grep 過 `financial-analysis-bot`／`v7-backtest`／
+  `minervini-quality-backtest` 沒有其他讀者。
+- `_market_pulse`：只剩 hidden risk／hidden opportunity／key level 各一行；
+  `cross_asset_signals`／`dominant_theme`／`historical_analog`／`new_pattern` 不再產生。
+- `_sentiment_analysis`（原本獨立的 VOLATILITY REGIME 區塊）整個拿掉；只留 `stage`／
+  `credit_status` 兩個精簡欄位餵進 regime chip，`vix_reading`／`vvix_reading`／`skew_reading`／
+  `fear_greed_reading`／`credit_check`／`cross_asset_confirm`／`key_divergence`／`reliability`／
+  `reliability_reason`／`one_line` 都不再產生（四階段判斷邏輯仍留在 prompt 裡，只是用來算
+  `stage`／`credit_status`，不再輸出成長句子）。三個區塊的 `vs_regime` 欄位與對應的
+  「vs regime ▶」一行全部拿掉。
+
+**news 頁 New evidence**（`_evidence_section`）：只顯示 `top`（`TOP_SHOWN=5`）——`_ev_top_card`
+印 headline／分類／一句 why-new（`new_today`）／派送連結，`last_known`／`unconfirmed`／
+`potential_impact`／`sources`／`primary_check`（既有的 `_ev_row_detail`）收進卡片自己的一個
+collapsed `<details>`（「More detail」）。`more`／`low_priority`／`unjudged` 合併成一個
+collapsed `<details>`「Other N items」（`_ev_other_group`＋`_ev_item_brief`，精簡版不含完整
+row detail），取代原本三個各自獨立的收合區塊。`id="evidence"` 錨點、email 摘要
+（`_evidence_email_digest`）沒動。
+
+**Tab 順序與 Deep tech 搬家**（`_TAB_PAGES`）：Markets｜Screener｜TW｜Top stories｜
+Geopolitics｜Tech & AI｜Startups & frontier（trends.html，原「Startups」改名）｜Earnings
+（misc.html）｜Founders（startup.html）｜Systems——Earnings／Founders 對調順序。
+`_tech_trends`（Deep tech）從 trends.html 搬到 tech.html（AI industry 旁邊，AI industry 裡含
+Supply chain 標籤的項目）；trends.html 剩 Frontier tech／Startups／Weekend reads／Smart
+money。Email 單頁（`build_html`）的 tech_trends 位置沒動，仍照上方區塊順序（system_status 之
+後）。
+
+**事件判斷層讀更多區塊**（`evidence_layer.BLOCK_PRIORITY`）：加 `tech_trends`(0.35)／
+`startup_news`(0.3)，gdelt 仍最低(0.2)；`_card_text` 補 `summary` 備援（這兩區塊的卡是
+headline/summary 形狀，沒有 `body`）。`ideas_layer._wide_scan` 新增 `curated_cards` 參數：
+`run_evidence_layer` 算出「BLOCK_PRIORITY 全部區塊＋world_news／fintech_crypto／
+frontier_tech／weekend_reads（`evidence_layer.WIDE_SCAN_EXTRA_BLOCKS`）裡沒變成早報候選的
+卡」，轉成跟 RSS 條目同形狀（`ideas_layer._curated_card_as_pool_item`）併入早報外掃描的池
+子，重用既有把關（過舊事件、ledger 已知數字、idea_hits 歷史重複、跟早報候選標題近似），不
+重造規則。
 
 ---
 
