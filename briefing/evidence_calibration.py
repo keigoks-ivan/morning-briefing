@@ -150,7 +150,8 @@ def _find_earlier_match(item: dict, ledger_records: list[dict], matcher: EntityM
     fkey = item.get("fact_key")
     headline = item.get("headline", "")
     entities = _item_entities(item)
-    figs = set(extract_figures(headline))
+    # 2026-09-23：extract_figures 讀「3.75-4.00%」只拿到 4%，先把範圍補成「3.75%-4.00%」
+    figs = set(extract_figures(re.sub(r"(\d(?:\.\d+)?)\s*[-–]\s*(\d(?:\.\d+)?)%", r"\1%-\2%", headline)))
     toks = content_tokens(headline)
     terms = set(matcher.terms(headline)) if matcher else set()
     best = None
@@ -167,7 +168,10 @@ def _find_earlier_match(item: dict, ledger_records: list[dict], matcher: EntityM
         r_toks = set(r.get("tokens") or [])
         union = toks | r_toks
         jac = len(toks & r_toks) / len(union) if union else 0.0
-        if not (shared_f or shared_term or jac >= jaccard_min):
+        # 2026-09-23：只共用一個關鍵詞（如 chip exports）或一個數字太鬆，9/23 回放把「韓國 9 月晶片出口」
+        # 對到 8/19 的川習會新聞（用字重疊 0）。改成至少兩個訊號：每個共同數字各算一個（最多兩個，
+        # 中文紀錄對英文標題時只有數字對得上，例如 Fed 升息的 3.75%／4.00%）、關鍵詞一個、用字重疊一個
+        if min(len(shared_f), 2) + bool(shared_term) + (jac >= jaccard_min) < 2:
             continue
         score = 2 * len(shared_f) + len(shared_term) + jac
         if best is None or score > best[0]:
@@ -597,7 +601,9 @@ def _compare_second_opinion(results: list[dict]) -> dict:
         d_vars = j_vars != s_vars
         dis_novelty += d_novelty
         dis_stage += d_stage
-        dis_vars += d_vars
+        # 2026-09-23：變數是複選，差一個不等於完全不同；用「兩邊不重疊的比例」（1 − 交集／聯集）平均
+        union = j_vars | s_vars
+        dis_vars += (1 - len(j_vars & s_vars) / len(union)) if union else 0.0
         if d_novelty or d_stage or d_vars:
             items_out.append({
                 "id": r["id"], "date": r["date"], "headline": r["headline"],
@@ -855,7 +861,7 @@ def _second_opinion_section(result: dict) -> str:
              f'跟 Jev 的答案比對。這次問了 {so["attempted"]} 則，{so["checked"]} 則有拿到回答{fail_note}。')
     rows = "".join(f'<tr><td>{q}</td><td>{_pct(r)}</td></tr>'
                    for q, r in (("新舊判斷", rates.get("novelty")), ("事實階段", rates.get("stage")),
-                                ("直接影響哪些變數", rates.get("direct_variables"))))
+                                ("直接影響哪些變數（兩邊選的不重疊部分）", rates.get("direct_variables"))))
     table = f'<table><tr><th>問題</th><th>跟 Jev 不一樣的比例</th></tr>{rows}</table>'
     dis = so["disagreements"][:15]
     list_html = ""

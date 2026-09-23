@@ -86,11 +86,29 @@ class HindsightCheckTests(unittest.TestCase):
     """事後回查：用「現在」完整的 ledger（比判斷當天多了後續紀錄）重新比對。"""
 
     def test_shared_figure_and_entity_before_item_date_is_actually_old(self):
+        # 2026-09-23 起要兩個訊號：這裡是共同數字＋用字重疊
         it = item(headline="TSMC raises $3.5 billion for new fab", fact_key="fact_new")
-        records = [ledger_rec("fact_old", "2026-09-10", companies=["TSM"], figures=["n:3.5e+09"])]
+        records = [ledger_rec("fact_old", "2026-09-10", companies=["TSM"], figures=["n:3.5e+09"],
+                              tokens=sorted(ec.content_tokens("TSMC raises $3.5 billion for new fab")))]
         r = ec.hindsight_check(it, records, MATCHER)
         self.assertEqual(r["label"], "actually_old")
         self.assertEqual(r["matched_fact_key"], "fact_old")
+
+    def test_single_shared_term_is_not_enough(self):
+        # 9/23 回放：「韓國 9 月晶片出口」只因共用 chip exports 就被對到 8/19 的川習會新聞
+        it = item(headline="Korea chip exports up 259% in September", fact_key="fact_new",
+                  companies=[], topics=[{"key": "TRADE_DATA@KR"}])
+        records = [dict(ledger_rec("fact_old", "2026-08-19", terms=["chip exports"], tokens=["summit", "xi"]),
+                        companies=[], subjects=["TRADE_DATA@KR"])]
+        r = ec.hindsight_check(it, records, None)
+        self.assertEqual(r["label"], "confirmed_new")
+
+    def test_percent_range_in_headline_reads_both_ends(self):
+        it = item(headline="Fed hikes 25bp to 3.75-4.00%", fact_key="fact_new", companies=[],
+                  topics=[{"key": "FED"}])
+        records = [dict(ledger_rec("fact_old", "2026-09-16", figures=["pct:3.75", "pct:4"]),
+                        companies=[], subjects=["FED"])]
+        self.assertEqual(ec.hindsight_check(it, records, None)["label"], "actually_old")
 
     def test_same_fact_key_in_ledger_is_excluded_from_matching(self):
         it = item(headline="TSMC raises $3.5 billion for new fab", fact_key="fact_new")
@@ -499,3 +517,12 @@ class SaveOutputsTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class VariableOverlapTests(unittest.TestCase):
+    def test_variable_disagreement_is_partial_not_all_or_nothing(self):
+        # 2026-09-23：複選差一個不算完全不同
+        r = {"id": "c", "date": "2026-09-23", "headline": "h",
+             "jev": {"novelty": "new_fact", "stage": "x", "direct_variables": ["capex", "demand"]},
+             "sonnet": {"novelty": "new_fact", "stage": "x", "direct_variables": ["capex"]}}
+        self.assertEqual(ec._compare_second_opinion([r])["rates"]["direct_variables"], 0.5)
