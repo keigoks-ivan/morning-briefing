@@ -199,6 +199,32 @@ Google verification`）——那是機器人偵測，不繞。而且就算加成
 
 **測試**：`python3.12 -m pytest -q tests`（不呼叫付費 API）。離線重播 9/22 案例：`python3.12 tests/evidence_offline_replay.py --out /tmp/evidence_replay --mode fake`（`--mode nokey` 看沒金鑰的畫面）。fake 模式用的是測試劇本，不是真實 Jev 輸出。官方來源在測試裡讀 `tests/fixtures/official_20260922/` 的快照，不連網；TDnet 另外測，快照在 `tests/fixtures/tdnet/`（`tests/test_evidence_sources.py`）。全文抓取（`briefing/evidence_fulltext.py`）測試在 `tests/test_evidence_fulltext.py`（假 http_get／解碼函式，不連網）與 `tests/test_evidence_layer.py` 的 `FullTextTests`（斷言全文不會出現在任何輸出檔裡）。 GDELT：`tests/test_gdelt_source.py` 測查詢組裝、限流偵測與重試、標題過濾與排序、候選形狀；`tests/test_evidence_layer.py` 的 `GdeltIntegrationTests` 測 `gdelt_fetch` 參數怎麼接進 `run_evidence_layer`（假的 fetch、預設不查、掛掉不連累早報）。
 
+**週度自動校準（`briefing/evidence_calibration.py`，2026-09-23 新增）**：不找人標記，每週自動回頭檢查
+Jev 這週的判斷準不準，真相來自事後的紀錄與市場結果，Sonnet 二次意見只是參考。只寫建議，**永遠不自動
+改任何門檻**，門檻要不要改由持有人自己決定。三個檢查：
+1. 事後新舊回查——Jev 這週標「新事實／進度更新」的每一則，用「跑完這週之後」更完整的
+   `evidence_ledger.json` 重新比對（比活動層當下的比對更嚴、更徹底），看有沒有更早的紀錄；也看後來
+   有沒有紀錄把它當先前事實引用（`prior_refs`），當成新事實確實存在過的正面證據。依 Jev 信心分
+   0.6–0.8／0.8–0.9／0.9–1.0 三區，算事後發現是舊聞的佔比，建議 `NOVELTY_MIN_CONF`（佔比≤10% 的
+   最低信心區間）。
+2. 重要度對結果——有 ticker 的新聞看事件日／隔一交易日相對市場基準（美股 SPY、.TW 用 0050.TW、.T
+   用 ^N225、.KS 用 ^KS11）的異常報酬，超過該檔過去 60 天日報酬標準差 2 倍才算有反應；另外看後續
+   3 天紀錄庫有沒有再被提到、有沒有補到官方來源。報告會明講「股價有沒有反應，不等於這則新聞重不
+   重要」。
+3. Sonnet 二次意見——同樣的窄問題（新舊、階段、直接影響哪些變數）再問一次 Claude Sonnet，走
+   Claude Code CLI headless（跟 `news_fetcher._claude_search` 同一種呼叫方式，不開任何工具，模型
+   `sonnet`），跟 Jev 的答案比對出分歧率；每週最多問 60 則，**完全不呼叫付費的 Jev API**。CLI 不可用
+   就整條跳過、原因寫進報告。
+輸入：網站上的 `evidence_{date}.json`（最近 7 天）與 `evidence_ledger.json`。輸出：
+`docs/briefing/data/calibration_{date}.json`／`calibration_latest.json`＋可讀頁面
+`docs/briefing/calibration.html`（繁體中文，跟日報網頁同一套樣式）。全文只在組給 Sonnet 的提示裡臨時
+用一次，絕不寫進任何輸出檔（同 `evidence_fulltext.py` 的版權規則）。樣本少於 30 則時報告會說樣本太
+小、不建議數字。排程：`.github/workflows/evidence_calibration.yml`，週日 22:00 UTC（台灣週一 06:00，
+早報之前）＋ `workflow_dispatch`，沿用 `CLAUDE_CODE_OAUTH_TOKEN`（不需要 `TYPESAFE_API_KEY`），發布方式
+跟 `daily_briefing.yml` 一樣 clone `financial-analysis-bot` 寫回 `docs/briefing/`，不寄信。測試：
+`tests/test_evidence_calibration.py`，全部假 fetch／yfinance／CLI，含一則專門斷言全文不會出現在
+`run_calibration` 或 HTML 輸出裡的 `CopyrightTests`。
+
 ---
 
 ## 分析骨架：主軸先行（regime-first，2026-08-17 改制）

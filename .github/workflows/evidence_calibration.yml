@@ -1,0 +1,86 @@
+name: Weekly Evidence Calibration
+
+# 事件判斷層（evidence_layer.py）的週度自動校準。不找人標記，用後見之明（更完整的
+# evidence_ledger.json）與市場結果回頭檢查 Jev 這週的判斷準不準，Sonnet 二次意見只是參考。
+# 只寫建議，不自動改任何門檻。詳見 briefing/evidence_calibration.py 檔頭與 CLAUDE.md
+# 「事件判斷層」段落。不寄信。
+
+on:
+  schedule:
+    # 22:00 UTC 週日 = 台灣時間週一 06:00（早報 06:15 之前）
+    - cron: "0 22 * * 0"
+  workflow_dispatch:
+
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Sonnet 二次意見（檢查③）走 Claude Code CLI headless，跟日報同一支 CLI。
+      # 裝不起來時 evidence_calibration.py 會偵測不到就整段跳過，原因寫進報告，不擋其他兩個檢查。
+      - name: Install Claude Code CLI
+        continue-on-error: true
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+
+      - name: Run weekly calibration
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          cd briefing
+          python evidence_calibration.py
+
+      - name: Publish calibration report to GitHub Pages
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          DATA_DIR="${GITHUB_WORKSPACE}/docs/briefing/data"
+          HTML_FILE="${GITHUB_WORKSPACE}/docs/briefing/calibration.html"
+
+          if [ ! -f "$HTML_FILE" ]; then
+            echo "No calibration.html found, skipping publish"
+            exit 0
+          fi
+
+          # Clone financial-analysis-bot（跟 daily_briefing.yml 同一份網站 repo）
+          git clone https://x-access-token:${GH_PAT}@github.com/keigoks-ivan/financial-analysis-bot.git /tmp/fab
+          cd /tmp/fab
+
+          mkdir -p docs/briefing/data
+          cp "$HTML_FILE" docs/briefing/calibration.html
+          cp "$DATA_DIR"/calibration_*.json docs/briefing/data/
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/briefing/calibration.html docs/briefing/data/calibration_*.json
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "📐 Weekly evidence calibration $(TZ=Asia/Taipei date +%Y-%m-%d)"
+
+          # 推送可能跟同一時段其他排程撞車，rebase 重試最多 5 次
+          for i in 1 2 3 4 5; do
+            if git push; then
+              break
+            fi
+            echo "Push rejected, retrying with rebase (attempt $i)..."
+            git pull --rebase origin main
+            sleep 3
+          done
