@@ -81,6 +81,8 @@ class FakeJev:
                 opts = list(q["criteria"])
                 if qid in ("novelty", "stage", "attribution", "timing"):
                     label, conf = case.get(qid, [opts[-1], 0.5])
+                elif qid == "verdict":   # 2026-09-23：投資想法查核點的窄問題（見 ideas_layer.py）
+                    label, conf = case.get("idea_verdict", [opts[-1], 0.5])
                 elif qid.startswith("var_"):
                     v = (case.get("vars") or {}).get(qid[4:])
                     label, conf = (v[0], v[1]) if v else ("none", 0.9)
@@ -122,6 +124,50 @@ def all_sources_down(url: str, timeout: int = 15):
 def no_fulltext(cands):
     """離線測試預設：不抓全文（不連網）。每則候選都當作沒試過（not_attempted）。"""
     return {}
+
+
+def sample_ideas() -> list[dict]:
+    """想法／查核點層（ideas_layer.py）測試用的小型 ideas.json，不是真實資料。查核點刻意各自
+    只踩一條比對規則，方便測試分開驗證（見 tests/test_ideas_layer.py）。"""
+    return [
+        {
+            "id": "ai-scissors", "short": "AI 剪刀差", "url": "/ideas/ai-scissors.html", "status": "active",
+            "checkpoints": [
+                {"id": "cp-a-only", "label": "只靠規則 (a)：當事公司＋一個關鍵詞", "companies": ["TSM"],
+                 "keywords": ["cowos"], "themes": [],
+                 "supports_if": "The news reports CoWoS capacity expanding.",
+                 "refutes_if": "The news reports CoWoS capacity being cut back."},
+                {"id": "cp-b1-two", "label": "只靠規則 (b)：兩個不同關鍵詞", "companies": [],
+                 "keywords": ["cowos", "capacity"], "themes": [],
+                 "supports_if": "The news reports CoWoS capacity expanding.",
+                 "refutes_if": "The news reports CoWoS capacity being cut back."},
+                {"id": "cp-b1-phrase", "label": "只靠規則 (b)：一個三個字以上的關鍵詞片語", "companies": [],
+                 "keywords": ["technology validation lab"], "themes": [],
+                 "supports_if": "The news reports a new technology validation lab.",
+                 "refutes_if": "The news reports a technology validation lab being cancelled."},
+                {"id": "cp-b2-theme", "label": "只靠規則 (b)：主題已確認＋一個關鍵詞", "companies": [],
+                 "keywords": ["packaging"], "themes": ["AdvancedPackaging"],
+                 "supports_if": "The news reports packaging activity increasing.",
+                 "refutes_if": "The news reports packaging activity decreasing."},
+                {"id": "cp-no-match", "label": "不該被比對到：關鍵詞不在任何候選文字裡", "companies": ["NBIS"],
+                 "keywords": ["quantum computing breakthrough"], "themes": [],
+                 "supports_if": "The news reports a quantum computing breakthrough.",
+                 "refutes_if": "The news reports a quantum computing setback."},
+                {"id": "cp-financing", "label": "資料中心融資（靠關鍵詞數量，非當事公司）", "companies": ["ORCL"],
+                 "keywords": ["bond", "bonds", "debt", "financing"], "themes": ["AIDataCenter"],
+                 "supports_if": "The news reports data centre or AI financing being raised successfully.",
+                 "refutes_if": "The news reports data centre or AI financing failing or being pulled."},
+            ],
+        },
+        {
+            "id": "dormant-idea", "short": "已下架的想法", "url": "/ideas/dormant.html", "status": "retired",
+            "checkpoints": [
+                {"id": "cp-retired", "label": "不該被比對到：想法已下架", "companies": ["TSM"],
+                 "keywords": ["cowos", "capacity"], "themes": ["AdvancedPackaging"],
+                 "supports_if": "x", "refutes_if": "y"},
+            ],
+        },
+    ]
 
 
 def news_quality(failed_feeds: tuple = ()) -> dict:

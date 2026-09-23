@@ -1373,6 +1373,93 @@ def _ev_quality_line(ev: dict) -> str:
             'It is not a probability that any share price moves.</div></div>')
 
 
+# ── 今天動到的想法（2026-09-23 新增，briefing/ideas_layer.py） ─────────────
+# 放在「New evidence」區塊之前。只顯示今天新增的命中（來自 idea_hits.json 當天的列），
+# 「無關」的判斷已經在 ideas_layer 被濾掉，不會出現在這裡。
+_IDEA_VERDICT_STYLE = {
+    "supports": ("支持", "background:#EAF3DE;color:#3B6D11;"),
+    "refutes": ("推翻", "background:#FCEBEB;color:#A32D2D;"),
+    "unjudged": ("未判斷", "background:#F1F1F1;color:#666;"),
+}
+
+
+def _ideas_section(ev: dict | None) -> str:
+    if not isinstance(ev, dict):
+        return ""
+    info = ev.get("ideas") or {}
+    ideas_link = f'{_SITE}/ideas/'
+    if info.get("status") != "ok":
+        return '''
+<div class="section">
+  <div class="section-label">今天動到的想法</div>
+  <div style="font-size:14px;color:#888;padding:6px 0;">想法清單沒讀到。</div>
+</div>'''
+    hits_doc = ev.get("idea_hits") or {}
+    today = ev.get("date", "")
+    rows_today = [r for r in (hits_doc.get("hits") or [])
+                 if r.get("date") == today and r.get("verdict") in ("supports", "refutes", "unjudged")]
+    if not rows_today:
+        return f'''
+<div class="section">
+  <div class="section-label">今天動到的想法</div>
+  <div style="font-size:14px;color:#888;padding:6px 0;">今天沒有新證據動到任何想法。{_ev_link(ideas_link, "想法清單")}</div>
+</div>'''
+    catalog = info.get("catalog") or {}
+    grouped: dict = {}
+    for r in rows_today:
+        grouped.setdefault(r.get("idea", ""), []).append(r)
+    body = ""
+    for idea_id, rows in grouped.items():
+        meta = catalog.get(idea_id) or {}
+        short = meta.get("short") or idea_id
+        url = meta.get("url") or "/ideas/"
+        cp_labels = meta.get("checkpoints") or {}
+        lines = ""
+        for r in rows:
+            label, style = _IDEA_VERDICT_STYLE.get(r.get("verdict"), _IDEA_VERDICT_STYLE["unjudged"])
+            cp_label = cp_labels.get(r.get("checkpoint", ""), r.get("checkpoint", ""))
+            headline_html = (_ev_link(r["url"], r.get("headline", "")) if r.get("url")
+                             else _esc(r.get("headline", "")))
+            lines += (f'<div style="padding:4px 0;font-size:13px;color:#333;line-height:1.6;">'
+                     f'{_ev_chip(label, style)} {_esc(cp_label)} &middot; {headline_html}</div>')
+        body += (f'<div style="padding:8px 0;border-bottom:0.5px solid #f0f0f0;">'
+                f'<div style="font-size:14px;font-weight:600;color:#222;">{_ev_link(url, short)}'
+                f' <span style="color:#888;font-weight:400;">（{len(rows)} 則）</span></div>{lines}</div>')
+    return f'''
+<div class="section">
+  <div class="section-label">今天動到的想法</div>
+  {body}
+</div>'''
+
+
+def _ideas_email_summary(ev: dict | None) -> str:
+    """Email 摘要：有命中才顯示一行（每個想法各一行），格式「想法：X N 則（支持 A、推翻 B）」。
+    沒有命中（包含想法清單沒讀到）就不顯示任何東西。"""
+    if not isinstance(ev, dict):
+        return ""
+    info = ev.get("ideas") or {}
+    if info.get("status") != "ok":
+        return ""
+    hits_doc = ev.get("idea_hits") or {}
+    today = ev.get("date", "")
+    rows_today = [r for r in (hits_doc.get("hits") or [])
+                 if r.get("date") == today and r.get("verdict") in ("supports", "refutes", "unjudged")]
+    if not rows_today:
+        return ""
+    catalog = info.get("catalog") or {}
+    by_idea: dict = {}
+    for r in rows_today:
+        by_idea.setdefault(r.get("idea", ""), []).append(r.get("verdict"))
+    verdict_label = {"supports": "支持", "refutes": "推翻", "unjudged": "未判斷"}
+    lines = ""
+    for idea_id, verdicts in by_idea.items():
+        short = (catalog.get(idea_id) or {}).get("short") or idea_id
+        counts = [f'{verdict_label[k]} {verdicts.count(k)}' for k in ("supports", "refutes", "unjudged") if verdicts.count(k)]
+        lines += (f'<div style="font-size:13px;color:#555;padding:2px 0;">想法：{_esc(short)} '
+                 f'{len(verdicts)} 則（{"、".join(counts)}）</div>')
+    return f'<div style="margin:4px 0;">{lines}</div>' if lines else ""
+
+
 def _evidence_section(ev: dict | None) -> str:
     if not isinstance(ev, dict):
         return ""
@@ -2864,7 +2951,8 @@ def build_index_html(data: dict) -> str:
 def build_news_html(data: dict) -> str:
     """要聞・深度"""
     date = data.get("date", "")
-    content = _evidence_section(data.get("evidence_layer"))
+    content = _ideas_section(data.get("evidence_layer"))
+    content += _evidence_section(data.get("evidence_layer"))
     content += _news_section("Top stories", data.get("top_stories", []))
     content += _watchlist_news_section(data.get("watchlist_news", []))
     content += _industry_developments_section(data.get("industry_developments", []))
@@ -3583,6 +3671,7 @@ def build_html(data: dict, screener_result: dict = None) -> str:
 {_index_factor_reading(data.get("index_factor_reading", {}))}
 {_market_pulse(data.get("market_pulse", {}))}
 {_sentiment_analysis(data.get("sentiment_analysis", {}))}
+{_ideas_email_summary(data.get("evidence_layer"))}
 {_evidence_email_digest(data.get("evidence_layer"))}
 {_news_section("Top stories", data.get("top_stories",[]))}
 {_watchlist_news_section(data.get("watchlist_news",[]))}

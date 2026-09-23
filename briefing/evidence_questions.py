@@ -13,6 +13,8 @@ evidence_questions.py
 
 from __future__ import annotations
 
+import re
+
 # 變數 id、讀者看的名稱、給 Jev 的定義
 VARIABLES = [
     ("demand", "Demand",
@@ -297,3 +299,39 @@ def interpret(answers: dict, company_keys: list[str], *, var_min_conf: float) ->
         "variables": variables,
         "parties": parties,
     }
+
+
+# ── 投資想法／查核點（2026-09-23 新增，見 ideas_layer.py） ─────────────────
+# 只答一題窄 Choice：supports／refutes／unrelated。criteria 直接用 ideas.json 裡已經寫好
+# 給 Jev 判準用的英文句子（supports_if／refutes_if），不用另外造題。Jev 不選股、不下結論。
+def _idea_label(idea: dict, checkpoint: dict) -> str:
+    """checkpoint.label 是中文；Jev 讀英文最準，這裡不翻譯，直接從 supports_if（本來就是英文）
+    取第一子句組一個英文形式的標籤，只用來給 Jev 一點脈絡，判準仍是完整的 supports_if／refutes_if。"""
+    gist = re.split(r"[.;]", checkpoint.get("supports_if") or "")[0].strip()
+    gist = re.sub(r"^The news reports\s*", "", gist, flags=re.I)
+    tag = f"{idea.get('id', '')}/{checkpoint.get('id', '')}"
+    return f"{tag}: {gist}" if gist else tag
+
+
+def build_idea_question(idea: dict, checkpoint: dict) -> dict:
+    return {
+        "type": "choice",
+        "instructions": {
+            "checkpoint": _idea_label(idea, checkpoint),
+            "question": (
+                "Judge only what `today` states as fact, ignoring forecasts, opinions and 'could', 'may' or "
+                "'suggests' statements. Does it support, refute, or say nothing about `checkpoint`?"
+            ),
+        },
+        "criteria": {
+            "supports": checkpoint.get("supports_if") or "The news supports the checkpoint",
+            "refutes": checkpoint.get("refutes_if") or "The news refutes the checkpoint",
+            "unrelated": "`today` does not bear on `checkpoint` either way",
+        },
+    }
+
+
+def interpret_choice(answers: dict, qid: str) -> dict:
+    """單題 Choice 的答案轉結構化欄位；想法查核點只問這一題，不需要 interpret() 整套。"""
+    a = answers.get(qid) or {}
+    return {"label": a.get("choice"), "confidence": round(float(a.get("confidence") or 0), 3)}

@@ -626,7 +626,8 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
                        holdings_json: dict | None = None, jev: JevClient | None = None,
                        fetch=_fetch_json, sec_get_json=_sec_get_json,
                        sec_user_agent: str | None = None, official_fetch=http_text,
-                       full_text_fetch=None, gdelt_fetch=None) -> tuple[dict, Ledger]:
+                       full_text_fetch=None, gdelt_fetch=None,
+                       ideas: list[dict] | None = None) -> tuple[dict, Ledger]:
     routing = routing or load_routing()
     dd = dd_index(watchlist)
     matcher = EntityMatcher(routing, {t: v.get("name", "") for t, v in dd.items()})
@@ -832,6 +833,20 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
         ledger_actions[ledger.upsert(rec, today, restated_key=restated)] += 1
         item["fact_key"] = rec["fact_key"] if not restated else restated
 
+    # ④ 投資想法／查核點（2026-09-23 新增，見 ideas_layer.py）：獨立一層，包自己的 try/except，
+    # 失敗只讓這一步標 unavailable，不影響事件判斷層其餘輸出。刻意跑在 items 全部組好之後（需要
+    # 每則的 classification／routes／companies），沿用同一個 jev（快取與預算共用，同一天重跑或
+    # 已經問過的請求不重付；idea_hits.json 的合併規則見 ideas_layer._merge_hits）。
+    cand_by_id = {c["cid"]: c for c, *_ in judged}
+    try:
+        from ideas_layer import run_ideas_step
+        ideas_result = run_ideas_step(items, cand_by_id, jev, today, ideas=ideas, fetch=fetch, rank_key=_rank_key)
+    except Exception as e:  # noqa: BLE001 — 想法層掛掉不能連累事件判斷層其餘輸出
+        for it in items:
+            it.setdefault("ideas", [])
+        ideas_result = {"status": "unavailable", "reason": f"ideas step error ({type(e).__name__}: {e})",
+                        "ideas_count": 0, "matched_pairs": 0, "asked": 0, "catalog": {}, "hits": None}
+
     pruned = ledger.prune(today)
 
     # 排序與分道（2026-09-22 版只比 Jev 重要度分數，分數接近飽和時排序沒意義，
@@ -870,6 +885,11 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
         "items": items,
         "quality": quality,
         "jev_cache": dict(jev.cache),
+        "ideas": {"status": ideas_result["status"], "reason": ideas_result.get("reason", ""),
+                 "ideas_count": ideas_result.get("ideas_count", 0),
+                 "matched_pairs": ideas_result.get("matched_pairs", 0),
+                 "asked": ideas_result.get("asked", 0), "catalog": ideas_result.get("catalog") or {}},
+        "idea_hits": ideas_result.get("hits"),
     }
     return result, ledger
 
@@ -890,6 +910,10 @@ def save_outputs(result: dict, ledger: Ledger, data_dir: Path, today: str) -> li
     for fn in (f"source_quality_{today}.json", "source_quality_latest.json"):
         (data_dir / fn).write_text(json.dumps(q, ensure_ascii=False, indent=1), encoding="utf-8")
         written.append(fn)
+    if result.get("idea_hits"):
+        (data_dir / "idea_hits.json").write_text(
+            json.dumps(result["idea_hits"], ensure_ascii=False, indent=1), encoding="utf-8")
+        written.append("idea_hits.json")
     return written
 
 
@@ -898,4 +922,6 @@ def unavailable_result(today: str, reason: str) -> dict:
     return {"schema": SCHEMA, "date": today, "generated_at": _now_iso(), "model": MODEL,
             "jev": {"status": "unavailable", "reason": reason},
             "ledger": {"available": False, "note": reason}, "items": [], "top": [], "more": [],
-            "low_priority": [], "unjudged": [], "quality": {}, "jev_cache": {}}
+            "low_priority": [], "unjudged": [], "quality": {}, "jev_cache": {},
+            "ideas": {"status": "unavailable", "reason": reason, "ideas_count": 0, "matched_pairs": 0,
+                     "asked": 0, "catalog": {}}, "idea_hits": None}

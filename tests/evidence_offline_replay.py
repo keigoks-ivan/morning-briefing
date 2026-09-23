@@ -70,6 +70,20 @@ def main() -> None:
     print("ledger:", json.dumps(ev["ledger"]))
     print("jev:", json.dumps(ev["jev"]), json.dumps(ev["quality"]["jev"]))
 
+    # 2026-09-23：投資想法／查核點層（briefing/ideas_layer.py）。設 IDEAS_JSON_PATH 才會真的讀到
+    # 想法定義；沒設就會照常標 unavailable（本檔 fetch 一律用 fx.no_fetch，不連網）。
+    print("ideas:", json.dumps(ev.get("ideas")))
+    hit_items = [it for it in ev["items"] if it.get("ideas")]
+    print(f"idea matches: {sum(len(it['ideas']) for it in hit_items)} pair(s) across {len(hit_items)} item(s)")
+    for it in hit_items:
+        print(f"  [{it['classification']['class']}] {it['headline'][:70]}")
+        for h in it["ideas"]:
+            print(f"    -> {h['idea']}/{h['checkpoint']} ({h['label']}): {h['verdict']} "
+                  f"conf={h['confidence']}")
+    if ev.get("idea_hits") is not None:
+        rows = ev["idea_hits"].get("hits") or []
+        print(f"idea_hits.json: history={ev['idea_hits'].get('history')} rows_today={len(rows)}")
+
 
 if __name__ == "__main__":
     main()
