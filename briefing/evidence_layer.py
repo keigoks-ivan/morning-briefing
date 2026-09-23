@@ -25,6 +25,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
+from evidence_fulltext import fetch_fulltext
 from evidence_ledger import (
     EntityMatcher, Ledger, content_tokens, extract_event_date, extract_figures, fact_key, figure_label,
 )
@@ -220,12 +221,17 @@ def var_ids_for(kind: str) -> list[str]:
 
 
 def build_state(cand: dict, priors: list[dict], matcher: EntityMatcher) -> dict:
+    today = {
+        "date": cand["source_date"], "outlet": cand["source"], "headline": cand["headline"],
+        "report": cand["text"],
+        "source_excerpts": [f"{r['title']}. {r['summary']}".strip() for r in cand["rss"]][:3],
+    }
+    # 2026-09-23：抓到全文時多給 Jev 一段全文摘要（見 evidence_fulltext.py）；只送給 Jev，
+    # 不寫進任何輸出檔——jev_cache 只存 answers/usage，state 本身不落地。
+    if cand.get("full_text_excerpt"):
+        today["full_text"] = cand["full_text_excerpt"]
     return {
-        "today": {
-            "date": cand["source_date"], "outlet": cand["source"], "headline": cand["headline"],
-            "report": cand["text"],
-            "source_excerpts": [f"{r['title']}. {r['summary']}".strip() for r in cand["rss"]][:3],
-        },
+        "today": today,
         "prior_records": [_prior_brief(r) for r in priors],
         "candidate_companies": [matcher.name(k) for k in cand["companies"]],
     }
@@ -344,8 +350,17 @@ def unconfirmed_notes(cand: dict, j: dict | None, final: dict, priors: list[dict
     """「尚未證實」：程式規則產生，防止把階段、融資、統計總量、股價當成已發生的基本面。"""
     notes = []
     text = cand["text"]
+    ft = cand.get("full_text_check") or {}
     if cand["basis"]["code"] == "headline_summary":
-        notes.append("Only the headline and feed summary were read; the full article and any primary document were not checked.")
+        # 2026-09-23：全文讀到了（basis 已升級成 full_article）就不會走到這支；
+        # 這裡只處理沒讀到全文的三種情況：付費牆、抓不到、沒試過全文
+        if ft.get("status") == "paywalled":
+            notes.append(f"The article is paywalled at {ft.get('domain') or 'the outlet'}; "
+                         "only the headline and feed summary were read.")
+        elif ft.get("status") == "failed":
+            notes.append("The full article could not be fetched; only the headline and feed summary were read.")
+        else:
+            notes.append("Only the headline and feed summary were read; the full article and any primary document were not checked.")
     elif cand["basis"]["code"] == "briefing_summary_only":
         notes.append("No source article was matched; this rests on the briefing's own summary and needs a source check.")
     if not ledger_available:
@@ -470,7 +485,7 @@ def _rank_key(it: dict) -> tuple:
     routes = it.get("routes") or {}
     rel_rank = 0 if any(routes.get(k) for k in ("dd", "holdings", "themes", "macro", "segments")) else 1
     imp = (it.get("importance") or {}).get("score") or 0
-    basis_rank = {"primary_document": 2, "headline_summary": 1}.get(it["evidence_basis"]["code"], 0)
+    basis_rank = {"primary_document": 2, "full_article": 1.5, "headline_summary": 1}.get(it["evidence_basis"]["code"], 0)
     prio = dict(BLOCK_PRIORITY).get(it["block"], 0.3)
     return (cls_rank, rel_rank, -imp, -basis_rank, -prio)
 
@@ -604,7 +619,8 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
                        routing: dict | None = None, ledger: Ledger | None = None,
                        holdings_json: dict | None = None, jev: JevClient | None = None,
                        fetch=_fetch_json, sec_get_json=_sec_get_json,
-                       sec_user_agent: str | None = None, official_fetch=http_text) -> tuple[dict, Ledger]:
+                       sec_user_agent: str | None = None, official_fetch=http_text,
+                       full_text_fetch=None) -> tuple[dict, Ledger]:
     routing = routing or load_routing()
     dd = dd_index(watchlist)
     matcher = EntityMatcher(routing, {t: v.get("name", "") for t, v in dd.items()})
@@ -620,6 +636,21 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
     official.prefetch()   # 官方來源每次執行只抓一次（並行）
 
     cands = build_candidates(data, rss_items or [], matcher, today)
+
+    # ①b 全文（2026-09-23 新增）：只抓最前面 12 則（見 evidence_fulltext.MAX_FULLTEXT），
+    # 抓到就把摘要塞進 state 給 Jev、把數字／關鍵詞併進去給官方來源比對用、basis 升級成
+    # full_article；抓不到、付費牆都不擋主流程，只是 unconfirmed 的說法不同。
+    full_text_fetch = full_text_fetch or fetch_fulltext
+    fulltext = full_text_fetch(cands)
+    for cand in cands:
+        ft = fulltext.get(cand["cid"]) or {"status": "not_attempted"}
+        if ft.get("status") == "ok":
+            cand["figures"] = list(dict.fromkeys(cand["figures"] + (ft.get("figures") or [])))
+            cand["terms"] = list(dict.fromkeys(cand["terms"] + matcher.terms(ft["excerpt"])))
+            if cand["basis"]["code"] != "primary_document":
+                cand["basis"] = {"code": "full_article", "display": f"Full article read: {ft['domain']}"}
+            cand["full_text_excerpt"] = ft["excerpt"]   # 只用來組 Jev state，絕不寫進輸出檔
+        cand["full_text_check"] = {k: v for k, v in ft.items() if k in ("status", "url", "domain", "word_count", "quotes")}
 
     # ① 問 Jev（每則一個請求；同樣的請求從快取拿）
     judged = []
@@ -724,6 +755,8 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
             "unconfirmed": unconfirmed_notes(cand_for_notes, j, final, priors, parties, routing, matcher, ledger.available),
             "evidence_basis": basis,
             "primary_check": primary,
+            # 2026-09-23：只放安全欄位（狀態／網址／網域／字數／短引句），全文不進來，見 evidence_fulltext.py 檔頭
+            "article_check": cand.get("full_text_check") or {"status": "not_attempted"},
             "routes": routes,
             "sources": [{"source": r["source"], "url": r["url"], "published": r["published"], "title": r["title"]}
                         for r in cand["rss"]]

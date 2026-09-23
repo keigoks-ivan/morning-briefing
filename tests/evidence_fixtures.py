@@ -119,6 +119,11 @@ def all_sources_down(url: str, timeout: int = 15):
     return None, "error:ConnectionError"
 
 
+def no_fulltext(cands):
+    """離線測試預設：不抓全文（不連網）。每則候選都當作沒試過（not_attempted）。"""
+    return {}
+
+
 def news_quality(failed_feeds: tuple = ()) -> dict:
     feeds = {f"Feed {i}": {"status": "ok", "entries": 10, "kept": 5, "blocked": 0} for i in range(8)}
     for name in failed_feeds:
