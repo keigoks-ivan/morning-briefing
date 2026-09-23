@@ -462,6 +462,32 @@ class MacroAndCoverageTests(unittest.TestCase):
         self.assertEqual(m.subjects("China's CPI rose while U.S. retail sales fell"), ["CPI@CN", "RETAIL_SALES@US"])
         self.assertNotIn("ASML", m.match("EUV tools are scarce"))
 
+    def test_korea_bare_country_form_and_short_export_phrase_route(self):
+        """2026-09-23 routing gap（live evidence_latest.json）：「Korea chip exports up 259% in
+        September on AI memory demand」拿到零派送（沒有總經主題、研究主題、環節），同一天的
+        「Korea's chip exports to Malaysia up 5.7x on HBM packaging demand」卻有派送。
+        原因：countries.KR 只認 'South Korea'／"Korea's"／'Korean'，光講 'Korea' 配不到國家，
+        於是 scoped 的 TRADE_DATA 就地取材式地退回預設 US（見 evidence_ledger.EntityMatcher.subjects）；
+        theme_keywords.MemorySupercycle 也只收 'Korean chip exports'／"Korea's chip exports"
+        兩種寫法，配不到 'Korea chip exports'。修法（都在 data/evidence_routing.json）：
+        countries.KR 加 'Korea chip'；theme_keywords.MemorySupercycle 加 'Korea chip exports'。"""
+        from evidence_ledger import EntityMatcher
+        from evidence_routing import dd_index, public_holdings_view, route
+
+        routing = load_routing()
+        matcher = EntityMatcher(routing)
+        headline = "Korea chip exports up 259% in September on AI memory demand"
+
+        self.assertEqual(matcher.subjects(headline), ["TRADE_DATA@KR"])   # 不再誤配成 @US
+
+        routes = route(headline, {}, {}, routing, dd_index([]), public_holdings_view(None), True, [],
+                       subjects=matcher.subjects(headline), today=fx.TODAY)
+        self.assertIn("MemorySupercycle", [t["key"] for t in routes["themes"]])
+
+        # 既有的寫法（帶 's 的所有格）本來就配得到，這裡再確認沒有被改壞
+        headline2 = "Korea's chip exports to Malaysia up 5.7x on HBM packaging demand"
+        self.assertEqual(matcher.subjects(headline2), ["TRADE_DATA@KR"])
+
     def test_reports_show_age_and_new_facts_since(self):
         wl = [dict(w) for w in fx.watchlist()]
         for w in wl:
@@ -754,6 +780,56 @@ class FullTextTests(unittest.TestCase):
                 content = (Path(td) / fn).read_text(encoding="utf-8")
                 self.assertNotIn(marker, content)
                 self.assertNotIn("excerpt", content)
+
+
+class GdeltIntegrationTests(unittest.TestCase):
+    """2026-09-23 新增：GDELT 候選（briefing/gdelt_source.py）餵進 run_evidence_layer。
+    這裡只測整合（block、quality、渲染），gdelt_source.py 自己的查詢／限流／過濾邏輯見
+    test_gdelt_source.py；一律不連網（gdelt_fetch 用假的或直接不傳）。"""
+
+    def test_gdelt_candidates_flow_through_and_render_badge(self):
+        import gdelt_source
+
+        def fake_gdelt_fetch(routing, matcher, dd, holdings, dedup_titles, today, max_kept=8, **kw):
+            title = "Hanmi Semiconductor wins new HBM packaging order worth $120 million"
+            art = {"title": title, "url": "https://example.com/hanmi", "domain": "example.com",
+                  "companies": matcher.match(title), "figures": ["n:1.2e+08"], "seendate": "20260922T090000Z"}
+            cand = gdelt_source.make_candidate(art, matcher, today)
+            return [cand], {"enabled": True, "requests_sent": 1, "ok": 1, "rate_limited": 0,
+                            "articles_seen": 1, "kept": 1, "kept_titles": [title]}
+
+        jev, _ = fx.fake_client()
+        ev, _ = evidence_layer.run_evidence_layer(
+            fx.briefing_data(), [], fx.watchlist(), fx.news_quality(), fx.TODAY, None,
+            ledger=fx.seed_ledger(), holdings_json=fx.holdings(), jev=jev, fetch=fx.no_fetch,
+            sec_user_agent=None, official_fetch=fx.offline_sources, gdelt_fetch=fake_gdelt_fetch)
+
+        gdelt_items = [it for it in ev["items"] if it["block"] == "gdelt"]
+        self.assertEqual(len(gdelt_items), 1)
+        self.assertEqual(gdelt_items[0]["source"], "example.com")
+        self.assertEqual(ev["quality"]["gdelt"]["kept"], 1)
+        self.assertLessEqual(len(ev["items"]), evidence_layer.MAX_CANDIDATES)
+
+        page = html_template._evidence_section(ev)
+        self.assertIn("Found via GDELT", page)
+
+    def test_gdelt_disabled_by_default_when_not_configured(self):
+        ev, _ = run()   # run() 不傳 gdelt_fetch
+        self.assertEqual(ev["quality"]["gdelt"], {"enabled": False, "reason": "not configured"})
+        self.assertEqual([it for it in ev["items"] if it["block"] == "gdelt"], [])
+
+    def test_gdelt_failure_does_not_break_the_briefing(self):
+        def boom(*a, **k):
+            raise RuntimeError("gdelt down")
+
+        jev, _ = fx.fake_client()
+        ev, _ = evidence_layer.run_evidence_layer(
+            fx.briefing_data(), [], fx.watchlist(), fx.news_quality(), fx.TODAY, None,
+            ledger=fx.seed_ledger(), holdings_json=fx.holdings(), jev=jev, fetch=fx.no_fetch,
+            sec_user_agent=None, official_fetch=fx.offline_sources, gdelt_fetch=boom)
+        self.assertFalse(ev["quality"]["gdelt"]["enabled"])
+        self.assertIn("error", ev["quality"]["gdelt"])
+        self.assertTrue(ev["items"])   # 早報既有候選照樣判斷完成，不被 GDELT 拖垮
 
 
 class FeedStatusTests(unittest.TestCase):

@@ -116,9 +116,10 @@ def main() -> None:
     evidence_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs", "briefing", "data")
     try:
         from evidence_layer import run_evidence_layer
+        from gdelt_source import fetch_gdelt_candidates
         data["evidence_layer"], evidence_ledger = run_evidence_layer(
             data, moneydj_news, watchlist, data.get("_news_quality") or news_quality,
-            today=tz_now.strftime("%Y-%m-%d"), data_dir=evidence_dir)
+            today=tz_now.strftime("%Y-%m-%d"), data_dir=evidence_dir, gdelt_fetch=fetch_gdelt_candidates)
         ev = data["evidence_layer"]
         print(f"      jev={ev['jev']['status']} {ev['jev'].get('reason','')}｜items={len(ev['items'])}"
               f"｜top={len(ev['top'])} low={len(ev['low_priority'])} unjudged={len(ev['unjudged'])}"
