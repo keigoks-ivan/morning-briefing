@@ -42,6 +42,7 @@ from evidence_questions import (
 )
 from evidence_routing import _company_tickers, load_routing
 from html_template import BASE_CSS, NAV_BLOCK_BRIEF, _esc
+from ideas_layer import load_ideas
 
 SCHEMA = "evidence-calibration-v1"
 SITE_DATA_URL = "https://research.investmquest.com/briefing/data"
@@ -63,6 +64,12 @@ FOLLOWUP_WINDOW_DAYS = 3
 SONNET_MODEL = os.environ.get("CALIBRATION_MODEL", "sonnet")
 SONNET_MAX_ITEMS = 60
 SONNET_TIMEOUT = int(os.environ.get("CALIBRATION_TIMEOUT", "240"))
+
+# 投資想法校準（Task 2，2026-09-23 晚新增，見檔尾「投資想法校準」段）
+IDEA_UNRELATED_FLAG_SHARE = 0.5   # 無關佔比達到這個門檻才建議「關鍵詞可能太寬」
+IDEA_MIN_SAMPLE = 5               # 單一查核點至少要有幾對才拿來算佔比、寫進建議
+IDEA_SONNET_MAX_ITEMS = 60        # 跟事件判斷層二次意見一樣，每週最多問這麼多對，不呼叫 Jev
+_IDEA_VERDICT_ZH = {"supports": "支持", "refutes": "推翻", "unrelated": "無關"}
 
 VAR_DEFS = {v: d for v, _, d in VARIABLES + MACRO_VARIABLES}
 
@@ -656,10 +663,186 @@ def run_second_opinion(items: list[dict], *, cli_call=None, max_items: int = SON
            "errors": errors[:10], "disagreement_rate": comparison["rates"], "disagreements": comparison["items"]}
 
 
+# ── 檢查④：投資想法校準（Task 2，2026-09-23 晚新增） ───────────────────────
+# 不找人標記，用這週每天的 evidence_{date}.json 裡已經留著的每一對 (新聞, 查核點) 判斷
+# （包含「無關」——ideas_layer.run_ideas_step 只把 unrelated 排除在 idea_hits.json 累加檔外，
+# 當天的 evidence JSON 本身一律留著，見 briefing/ideas_layer.py 檔頭）。跟事件判斷層本體的
+# 校準同一個精神：只寫建議（哪個查核點關鍵詞可能太寬），永遠不自動改 ideas.json；門檻要不要
+# 動由持有人自己看了決定。Sonnet 二次意見沿用跟事件判斷層校準同一支 CLI 呼叫機制
+# （_second_opinion_cli／_cli_available），只是換一組窄問題與 JSON 格式。
+def collect_week_idea_pairs(today: str, *, fetch=_fetch_json, days: int = WEEK_DAYS,
+                            site: str = SITE_DATA_URL) -> tuple[list[dict], list[dict]]:
+    """抓最近 days 天的 evidence_{date}.json，把每一對 (新聞, 查核點) 判斷攤平成一列，含
+    unrelated（跟 collect_week_items 給事件判斷層本體檢查①②用的目的不同，那支不看 ideas）。
+    早報候選的列在 items[].ideas（origin 欄位 2026-09-23 晚才加，舊資料回填成 "briefing"）；
+    早報外的列在 ideas.wide_pairs（只有真的問過 Jev 的才會出現，見 ideas_layer.py）。"""
+    dates = _dates_back(today, days)
+    pairs, day_reports = [], []
+    for d in dates:
+        payload, status = fetch(f"{site}/evidence_{d}.json")
+        n = 0
+        if status == "ok" and isinstance(payload, dict):
+            date_ = payload.get("date") or d
+            for it in payload.get("items") or []:
+                if not isinstance(it, dict):
+                    continue
+                src_url = next((s.get("url") for s in it.get("sources") or [] if s.get("url")), "")
+                for h in it.get("ideas") or []:
+                    if h.get("verdict") not in ("supports", "refutes", "unrelated"):
+                        continue   # unjudged：沒真的問過 Jev，校準不算它
+                    pairs.append({**h, "origin": h.get("origin") or "briefing", "date": date_,
+                                 "headline": it.get("headline", ""), "url": h.get("url") or src_url})
+                    n += 1
+            for p in ((payload.get("ideas") or {}).get("wide_pairs")) or []:
+                pairs.append({**p, "origin": "wide", "date": date_})
+                n += 1
+        day_reports.append({"date": d, "status": status, "pairs": n})
+    return pairs, day_reports
+
+
+def idea_checkpoint_defs(ideas: list[dict]) -> dict[tuple[str, str], dict]:
+    """(idea_id, checkpoint_id) → 想法簡稱／查核點標籤／supports_if／refutes_if，給 Sonnet 二次
+    意見的提示與畫面渲染查表用（跟 ideas_layer._catalog 分開：那支只給 news.html 用，不含
+    supports_if／refutes_if，這裡要用來組 Sonnet 提示）。"""
+    out = {}
+    for idea in ideas or []:
+        short = idea.get("short") or idea.get("title") or idea.get("id", "")
+        for cp in idea.get("checkpoints") or []:
+            out[(idea.get("id", ""), cp.get("id", ""))] = {
+                "idea_short": short, "label": cp.get("label", ""),
+                "supports_if": cp.get("supports_if", ""), "refutes_if": cp.get("refutes_if", ""),
+            }
+    return out
+
+
+def aggregate_idea_hits(pairs: list[dict], defs: dict, *, min_n: int = IDEA_MIN_SAMPLE,
+                        flag_share: float = IDEA_UNRELATED_FLAG_SHARE) -> dict:
+    """依 (idea, checkpoint) 分組：supports／refutes／unrelated 則數、無關佔比、早報候選／早報外
+    各幾則。無關佔比達門檻（且樣本數夠）才建議「關鍵詞可能太寬」，只建議不動 ideas.json。"""
+    by_cp: dict[tuple[str, str], dict] = {}
+    idea_shorts: dict[str, str] = {}
+    for p in pairs:
+        key = (p.get("idea", ""), p.get("checkpoint", ""))
+        row = by_cp.setdefault(key, {"supports": 0, "refutes": 0, "unrelated": 0, "briefing": 0, "wide": 0})
+        v = p.get("verdict")
+        if v in ("supports", "refutes", "unrelated"):
+            row[v] += 1
+        origin = p.get("origin") or "briefing"
+        if origin in ("briefing", "wide"):
+            row[origin] += 1
+        idea_shorts[p.get("idea", "")] = defs.get(key, {}).get("idea_short") or p.get("idea", "")
+
+    by_checkpoint, suggestions = [], []
+    for (idea_id, cp_id), counts in sorted(by_cp.items()):
+        n = counts["supports"] + counts["refutes"] + counts["unrelated"]
+        share = round(counts["unrelated"] / n, 3) if n else None
+        meta = defs.get((idea_id, cp_id), {})
+        by_checkpoint.append({"idea": idea_id, "idea_short": meta.get("idea_short") or idea_shorts.get(idea_id, idea_id),
+                              "checkpoint": cp_id, "checkpoint_label": meta.get("label", cp_id),
+                              "n": n, "unrelated_share": share, **counts})
+        if n >= min_n and share is not None and share >= flag_share:
+            suggestions.append(f"{cp_id}（{meta.get('label', cp_id)}）關鍵詞可能太寬：這週 {n} 對裡 "
+                              f"{share:.0%} 被判無關")
+
+    by_idea_counts: dict[str, dict] = {}
+    for p in pairs:
+        idea_id = p.get("idea", "")
+        row = by_idea_counts.setdefault(idea_id, {"supports": 0, "refutes": 0, "unrelated": 0})
+        v = p.get("verdict")
+        if v in row:
+            row[v] += 1
+    by_idea = [{"idea": idea_id, "idea_short": idea_shorts.get(idea_id, idea_id),
+               "n": sum(c.values()),
+               "unrelated_share": round(c["unrelated"] / sum(c.values()), 3) if sum(c.values()) else None, **c}
+              for idea_id, c in sorted(by_idea_counts.items())]
+    return {"by_checkpoint": by_checkpoint, "by_idea": by_idea, "suggestions": suggestions}
+
+
+def _idea_second_opinion_prompts(pair: dict, defs: dict) -> tuple[str, str]:
+    """跟 Jev 同一題窄問題（supports／refutes／unrelated），criteria 直接沿用 ideas.json 的
+    supports_if／refutes_if（跟 evidence_questions.build_idea_question 給 Jev 的判準同一句）。"""
+    meta = defs.get((pair.get("idea", ""), pair.get("checkpoint", "")), {})
+    system = (
+        "You are re-checking a checkpoint verdict as an independent second opinion. Judge only what the "
+        "material states as fact; ignore its opinions, analysis and forecasts.\n\n"
+        f"CHECKPOINT: {meta.get('label', '')}\n"
+        f"SUPPORTS IF: {meta.get('supports_if', '')}\n"
+        f"REFUTES IF: {meta.get('refutes_if', '')}\n\n"
+        "Does the material support the checkpoint, refute it, or say nothing about it either way?\n\n"
+        'Reply with exactly one JSON object: {"verdict": "supports"|"refutes"|"unrelated"}. '
+        "No other text, no markdown fences." + _CALIBRATION_GUARD
+    )
+    user = (f"HEADLINE: {pair.get('headline', '')}\n"
+           f"SUMMARY: {pair.get('summary', '') or '(none)'}\n\n"
+           "Answer the JSON object now.")
+    return system, user
+
+
+def _parse_idea_second_opinion(raw: dict) -> str:
+    if not isinstance(raw, dict):
+        raise ValueError("response is not a JSON object")
+    verdict = raw.get("verdict")
+    if verdict not in ("supports", "refutes", "unrelated"):
+        raise ValueError(f"unrecognised verdict: {verdict!r}")
+    return verdict
+
+
+def run_idea_second_opinion(pairs: list[dict], defs: dict, *, cli_call=None,
+                            max_items: int = IDEA_SONNET_MAX_ITEMS, model: str | None = None,
+                            timeout: int = SONNET_TIMEOUT) -> dict:
+    model = model or SONNET_MODEL
+    if cli_call is None and not _cli_available():
+        return {"status": "skipped", "reason": "claude CLI not found or CLAUDE_CODE_OAUTH_TOKEN not set",
+               "model": model, "attempted": 0, "checked": 0, "errors": [],
+               "agreement_rate": None, "disagreements": []}
+    call = cli_call or _second_opinion_cli
+    targets = pairs[:max_items]
+    results, errors = [], []
+    for p in targets:
+        try:
+            sys_p, user_p = _idea_second_opinion_prompts(p, defs)
+            raw = call(sys_p, user_p, model, timeout)
+            sonnet_verdict = _parse_idea_second_opinion(raw)
+        except Exception as e:  # noqa: BLE001 — 單則失敗不擋其他則
+            errors.append({"headline": p.get("headline", ""), "error": f"{type(e).__name__}: {str(e)[:160]}"})
+            continue
+        results.append({"idea": p.get("idea", ""), "checkpoint": p.get("checkpoint", ""),
+                        "headline": p.get("headline", ""), "date": p.get("date", ""),
+                        "jev": p.get("verdict"), "sonnet": sonnet_verdict})
+    n = len(results)
+    agree = sum(1 for r in results if r["jev"] == r["sonnet"])
+    status = "judged" if results else ("all_failed" if targets else "no_items")
+    return {"status": status, "model": model, "attempted": len(targets), "checked": n, "errors": errors[:10],
+           "agreement_rate": round(agree / n, 3) if n else None,
+           "disagreements": [r for r in results if r["jev"] != r["sonnet"]][:15]}
+
+
+def run_idea_calibration(today: str, *, fetch=_fetch_json, days: int = WEEK_DAYS, cli_call=None,
+                         max_items: int = IDEA_SONNET_MAX_ITEMS, ideas: list[dict] | None = None) -> dict:
+    if ideas is None:
+        ideas, status = load_ideas(fetch)
+    else:
+        status = "ok"
+    if status != "ok":
+        return {"status": status, "checked": 0, "by_checkpoint": [], "by_idea": [], "suggestions": [],
+               "second_opinion": {"status": "skipped", "reason": "ideas.json not available",
+                                  "attempted": 0, "checked": 0, "errors": [], "agreement_rate": None,
+                                  "disagreements": []},
+               "day_reports": []}
+    defs = idea_checkpoint_defs(ideas)
+    pairs, day_reports = collect_week_idea_pairs(today, fetch=fetch, days=days)
+    agg = aggregate_idea_hits(pairs, defs)
+    second_opinion = run_idea_second_opinion(pairs, defs, cli_call=cli_call, max_items=max_items)
+    return {"status": "ok", "checked": len(pairs), "by_checkpoint": agg["by_checkpoint"],
+           "by_idea": agg["by_idea"], "suggestions": agg["suggestions"], "second_opinion": second_opinion,
+           "day_reports": day_reports}
+
+
 # ── 主流程 ───────────────────────────────────────────────────────────────
 def run_calibration(today: str, *, fetch=_fetch_json, days: int = WEEK_DAYS, price_fetch=None,
                     cli_call=None, sonnet_max_items: int = SONNET_MAX_ITEMS, routing: dict | None = None,
-                    full_text_fetch=None) -> dict:
+                    full_text_fetch=None, ideas: list[dict] | None = None,
+                    idea_max_items: int = IDEA_SONNET_MAX_ITEMS) -> dict:
     routing = routing or load_routing()
     matcher = EntityMatcher(routing)
     items, day_reports = collect_week_items(today, fetch=fetch, days=days)
@@ -688,6 +871,10 @@ def run_calibration(today: str, *, fetch=_fetch_json, days: int = WEEK_DAYS, pri
     second_opinion = run_second_opinion(judged_items, cli_call=cli_call, max_items=sonnet_max_items,
                                         full_text_fetch=full_text_fetch)
 
+    # 檢查④：投資想法校準（Task 2，見上方「檢查④」段落）
+    idea_calibration = run_idea_calibration(today, fetch=fetch, days=days, cli_call=cli_call,
+                                            max_items=idea_max_items, ideas=ideas)
+
     return {
         "schema": SCHEMA, "date": today, "generated_at": _now_iso(),
         "week": {"dates": [d["date"] for d in day_reports],
@@ -704,6 +891,7 @@ def run_calibration(today: str, *, fetch=_fetch_json, days: int = WEEK_DAYS, pri
         "outcomes": {"checked": len(outcome_records), "by_importance": outcome_agg,
                     "note": importance_note, "items": outcome_records},
         "second_opinion": second_opinion,
+        "ideas": idea_calibration,
         "suggestions": {
             "novelty_min_conf": novelty_suggestion,
             "importance_discrimination": importance_note,
@@ -882,9 +1070,50 @@ def _second_opinion_section(result: dict) -> str:
     return _section("Sonnet 二次意見", f'<p class="note">{_esc(intro)}</p>{table}{list_html}')
 
 
+def _ideas_calibration_section(result: dict) -> str:
+    ic = result.get("ideas") or {}
+    if ic.get("status") != "ok":
+        return _section("投資想法校準", '<p class="note">這次沒讀到 ideas.json，跳過。</p>')
+    intro = (f'這週共有 {ic["checked"]} 對「新聞、查核點」被 Jev 判斷過（含「無關」），'
+            '用來看查核點的關鍵詞會不會抓到太多不相干的新聞。')
+    rows = "".join(
+        f'<tr><td>{_esc(r["idea_short"])}</td><td>{_esc(r["checkpoint_label"])}</td><td>{r["n"]}</td>'
+        f'<td>{r["supports"]}</td><td>{r["refutes"]}</td><td>{r["unrelated"]}</td>'
+        f'<td>{_pct(r["unrelated_share"])}</td><td>{r["briefing"]}</td><td>{r["wide"]}</td></tr>'
+        for r in ic["by_checkpoint"])
+    table = (f'<table><tr><th>想法</th><th>查核點</th><th>則數</th><th>支持</th><th>推翻</th>'
+            f'<th>無關</th><th>無關佔比</th><th>早報候選</th><th>早報外</th></tr>{rows}</table>'
+            if ic["by_checkpoint"] else '<p class="note">這週沒有任何一對比對到查核點。</p>')
+    if ic["suggestions"]:
+        items = "".join(f'<li class="note">{_esc(s)}</li>' for s in ic["suggestions"])
+        sug_html = (f'<p class="note" style="margin-top:8px;">建議（只是建議，不會自動改 ideas.json，'
+                   f'要不要改由人決定）：</p><ul style="margin:2px 0 0 18px;padding:0;">{items}</ul>')
+    else:
+        sug_html = '<p class="note" style="margin-top:8px;">這週沒有查核點的無關佔比達到門檻。</p>'
+
+    so = ic["second_opinion"]
+    if so["status"] == "skipped":
+        so_html = (f'<p class="note" style="margin-top:10px;">Sonnet 二次意見這次跳過：'
+                  f'{_esc(_SKIP_REASON_ZH.get(so["reason"], so["reason"]))}</p>')
+    else:
+        fail_note = f"，{len(so['errors'])} 對失敗" if so["errors"] else ""
+        so_html = (f'<p class="note" style="margin-top:10px;">把同一組支持／推翻／無關判準（跟 Jev '
+                  f'完全一樣的 supports_if／refutes_if）再問一次 Sonnet，這次問了 {so["attempted"]} 對，'
+                  f'{so["checked"]} 對有拿到回答{fail_note}，跟 Jev 一致的比例 {_pct(so["agreement_rate"])}。</p>')
+        dis = so["disagreements"][:15]
+        if dis:
+            rows2 = "".join(
+                f'<div class="card"><div style="font-size:13px;font-weight:500;margin-bottom:4px;">{_esc(d["headline"])}</div>'
+                f'<div class="note">Jev「{_esc(_IDEA_VERDICT_ZH.get(d["jev"], d["jev"]))}」，'
+                f'Sonnet「{_esc(_IDEA_VERDICT_ZH.get(d["sonnet"], d["sonnet"]))}」。</div></div>'
+                for d in dis)
+            so_html += f'<div style="margin-top:8px;">{rows2}</div>'
+    return _section("投資想法校準", f'<p class="note">{_esc(intro)}</p>{table}{sug_html}{so_html}')
+
+
 def render_calibration_html(result: dict) -> str:
     content = (_sample_section(result) + _hindsight_section(result) + _outcomes_section(result)
-              + _second_opinion_section(result)
+              + _second_opinion_section(result) + _ideas_calibration_section(result)
               + _section("怎麼用這份報告",
                          '<p class="note">這份報告每週自動產生，資料來自後見之明（後來的紀錄庫）跟市場結果，'
                          '不是人工標記，Sonnet 二次意見只是參考。報告只給建議，不會自動改任何門檻；'

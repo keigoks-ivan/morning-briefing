@@ -39,8 +39,10 @@ def main() -> None:
         jev, _ = fx.fake_client()
     else:
         jev = JevClient(api_key=None, cache={})
+    # rss_items：合成的「早報外」新聞池（見 evidence_fixtures.wide_rss_pool），讓 ideas_layer 的
+    # 早報外掃描（2026-09-23 晚新增）在離線重播裡也有東西可以示範比對；不是真實抓到的新聞。
     ev, ledger = run_evidence_layer(
-        data, [], fx.watchlist(), fx.news_quality(failed_feeds=("Korea Tech (GN)",)), fx.TODAY, out,
+        data, fx.wide_rss_pool(), fx.watchlist(), fx.news_quality(failed_feeds=("Korea Tech (GN)",)), fx.TODAY, out,
         ledger=fx.seed_ledger(), holdings_json=fx.holdings(), jev=jev, fetch=fx.no_fetch, sec_user_agent=None,
         official_fetch=fx.offline_sources)
     data["evidence_layer"] = ev
@@ -83,6 +85,15 @@ def main() -> None:
     if ev.get("idea_hits") is not None:
         rows = ev["idea_hits"].get("hits") or []
         print(f"idea_hits.json: history={ev['idea_hits'].get('history')} rows_today={len(rows)}")
+
+    # 早報外掃描（ideas_layer._wide_scan，2026-09-23 晚新增）：程式規則從去重後新聞池挑出跟
+    # 查核點比對到的項目，只有比對到的才問 Jev；報 pool_size／chinese_count／matched_items／
+    # skipped_by_reason／asked_items，以及實際問到並判斷出來的 verdict（供人工檢視關鍵詞準不準）。
+    ws = (ev.get("ideas") or {}).get("wide_scan") or {}
+    print("wide_scan:", json.dumps(ws, ensure_ascii=False))
+    for p in (ev.get("ideas") or {}).get("wide_pairs") or []:
+        print(f"  [wide] {p['headline'][:70]} -> {p['idea']}/{p['checkpoint']} ({p['label']}): "
+              f"{p['verdict']} conf={p['confidence']}")
 
 
 if __name__ == "__main__":

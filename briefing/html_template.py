@@ -13,7 +13,7 @@ html_template.py
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 
 from site_nav_snippet import NAV_BLOCK_BRIEF
@@ -1383,19 +1383,59 @@ _IDEA_VERDICT_STYLE = {
 }
 
 
+def _due_soon(catalog: dict, today: str, *, within_days: int = 7) -> list[dict]:
+    """catalog（ideas_layer._catalog，每個想法的 due 清單，只收 active 想法）攤平＋依日期排序，
+    只留 [today, today+within_days] 範圍（含兩端；今天算第 0 天）。2026-09-23 晚新增，Task 3。"""
+    try:
+        today_d = datetime.strptime((today or "")[:10], "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return []
+    out = []
+    for idea_id, meta in (catalog or {}).items():
+        for d in meta.get("due") or []:
+            try:
+                dd = datetime.strptime(str(d.get("date", ""))[:10], "%Y-%m-%d").date()
+            except (TypeError, ValueError):
+                continue
+            days_out = (dd - today_d).days
+            if 0 <= days_out <= within_days:
+                out.append({**d, "idea": idea_id, "idea_short": meta.get("short") or idea_id,
+                           "idea_url": meta.get("url", ""), "days_out": days_out})
+    out.sort(key=lambda x: (x["date"], x["idea_short"]))
+    return out
+
+
+def _due_soon_block(catalog: dict, today: str) -> str:
+    due = _due_soon(catalog, today)
+    if not due:
+        return ""
+    lines = ""
+    for d in due:
+        prefix = "約 " if d.get("approx") else ""
+        anchor = f"{d.get('idea_url', '')}#{d.get('checkpoint', '')}"
+        lines += (f'<div style="padding:3px 0;font-size:13px;color:#333;line-height:1.6;">'
+                 f'{_esc(prefix + d.get("date", ""))} &middot; {_ev_link(anchor, d.get("idea_short", ""))}'
+                 f' &middot; {_esc(d.get("checkpoint_label", ""))} &middot; {_esc(d.get("label", ""))}</div>')
+    return (f'<div style="margin-top:10px;padding-top:8px;border-top:0.5px solid #eee;">'
+           f'<div style="font-size:13px;font-weight:600;color:#222;margin-bottom:2px;">未來 7 天到期的查核點</div>'
+           f'{lines}</div>')
+
+
 def _ideas_section(ev: dict | None) -> str:
     if not isinstance(ev, dict):
         return ""
     info = ev.get("ideas") or {}
     ideas_link = f'{_SITE}/ideas/'
+    today = ev.get("date", "")
+    due_block = _due_soon_block(info.get("catalog") or {}, today)
     if info.get("status") != "ok":
-        return '''
+        return f'''
 <div class="section">
   <div class="section-label">今天動到的想法</div>
   <div style="font-size:14px;color:#888;padding:6px 0;">想法清單沒讀到。</div>
+  {due_block}
 </div>'''
     hits_doc = ev.get("idea_hits") or {}
-    today = ev.get("date", "")
     rows_today = [r for r in (hits_doc.get("hits") or [])
                  if r.get("date") == today and r.get("verdict") in ("supports", "refutes", "unjudged")]
     if not rows_today:
@@ -1403,6 +1443,7 @@ def _ideas_section(ev: dict | None) -> str:
 <div class="section">
   <div class="section-label">今天動到的想法</div>
   <div style="font-size:14px;color:#888;padding:6px 0;">今天沒有新證據動到任何想法。{_ev_link(ideas_link, "想法清單")}</div>
+  {due_block}
 </div>'''
     catalog = info.get("catalog") or {}
     grouped: dict = {}
@@ -1420,8 +1461,14 @@ def _ideas_section(ev: dict | None) -> str:
             cp_label = cp_labels.get(r.get("checkpoint", ""), r.get("checkpoint", ""))
             headline_html = (_ev_link(r["url"], r.get("headline", "")) if r.get("url")
                              else _esc(r.get("headline", "")))
+            # 2026-09-23 晚：早報外掃描命中（ideas_layer._wide_scan）加一個灰色小標籤，講清楚
+            # 這則不是早報自己的候選、只讀到標題與摘要（不像早報候選會抓全文、查一手來源）
+            wide_tag = ""
+            if r.get("origin") == "wide":
+                wide_tag = (_ev_chip("早報外", "background:#F1F1F1;color:#888;")
+                           + '<span style="font-size:12px;color:#999;">只讀到標題與摘要</span> ')
             lines += (f'<div style="padding:4px 0;font-size:13px;color:#333;line-height:1.6;">'
-                     f'{_ev_chip(label, style)} {_esc(cp_label)} &middot; {headline_html}</div>')
+                     f'{_ev_chip(label, style)} {wide_tag}{_esc(cp_label)} &middot; {headline_html}</div>')
         body += (f'<div style="padding:8px 0;border-bottom:0.5px solid #f0f0f0;">'
                 f'<div style="font-size:14px;font-weight:600;color:#222;">{_ev_link(url, short)}'
                 f' <span style="color:#888;font-weight:400;">（{len(rows)} 則）</span></div>{lines}</div>')
@@ -1429,24 +1476,41 @@ def _ideas_section(ev: dict | None) -> str:
 <div class="section">
   <div class="section-label">今天動到的想法</div>
   {body}
+  {due_block}
 </div>'''
+
+
+def _ideas_due_email_line(catalog: dict, today: str) -> str:
+    """2026-09-23 晚新增（Task 3）：只有 2 天內到期的查核點才在 email 摘要多一行，7 天內其他的
+    只在網頁版（news.html）顯示，見 _due_soon_block。"""
+    due = [d for d in _due_soon(catalog, today, within_days=2)]
+    if not due:
+        return ""
+    parts = []
+    for d in due[:4]:
+        prefix = "約 " if d.get("approx") else ""
+        parts.append(f'{_esc(d.get("idea_short", ""))}〈{_esc(d.get("checkpoint_label", ""))}〉'
+                     f'{_esc(prefix + d.get("date", ""))} {_esc(d.get("label", ""))}')
+    return f'<div style="font-size:13px;color:#A32D2D;padding:2px 0;">查核點即將到期：{"；".join(parts)}</div>'
 
 
 def _ideas_email_summary(ev: dict | None) -> str:
     """Email 摘要：有命中才顯示一行（每個想法各一行），格式「想法：X N 則（支持 A、推翻 B）」。
-    沒有命中（包含想法清單沒讀到）就不顯示任何東西。"""
+    沒有命中（包含想法清單沒讀到）就不顯示任何東西；2 天內到期的查核點另外多一行（見
+    _ideas_due_email_line），這行不需要今天有命中也會顯示。"""
     if not isinstance(ev, dict):
         return ""
     info = ev.get("ideas") or {}
     if info.get("status") != "ok":
         return ""
-    hits_doc = ev.get("idea_hits") or {}
+    catalog = info.get("catalog") or {}
     today = ev.get("date", "")
+    due_line = _ideas_due_email_line(catalog, today)
+    hits_doc = ev.get("idea_hits") or {}
     rows_today = [r for r in (hits_doc.get("hits") or [])
                  if r.get("date") == today and r.get("verdict") in ("supports", "refutes", "unjudged")]
     if not rows_today:
-        return ""
-    catalog = info.get("catalog") or {}
+        return due_line
     by_idea: dict = {}
     for r in rows_today:
         by_idea.setdefault(r.get("idea", ""), []).append(r.get("verdict"))
@@ -1457,7 +1521,7 @@ def _ideas_email_summary(ev: dict | None) -> str:
         counts = [f'{verdict_label[k]} {verdicts.count(k)}' for k in ("supports", "refutes", "unjudged") if verdicts.count(k)]
         lines += (f'<div style="font-size:13px;color:#555;padding:2px 0;">想法：{_esc(short)} '
                  f'{len(verdicts)} 則（{"、".join(counts)}）</div>')
-    return f'<div style="margin:4px 0;">{lines}</div>' if lines else ""
+    return f'<div style="margin:4px 0;">{due_line}{lines}</div>' if (lines or due_line) else ""
 
 
 def _evidence_section(ev: dict | None) -> str:

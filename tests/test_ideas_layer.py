@@ -25,6 +25,7 @@ import evidence_fixtures as fx  # noqa: E402
 import evidence_layer  # noqa: E402
 import html_template  # noqa: E402
 import ideas_layer  # noqa: E402
+from evidence_ledger import EntityMatcher, Ledger  # noqa: E402
 
 
 def run(jev=None, ideas="default", fetch=None, hits_fetch=None):
@@ -86,6 +87,28 @@ _TSMC_TEXT = ("TSMC rallies equipment and material suppliers into Kaohsiung pack
              "on the Baipu advanced packaging industrial park in Kaohsiung, anchored by TSMC facilities "
              "including a technology validation lab and CoWoS tool validation mini-loop. TrendForce reports "
              "TSMC is also reportedly eyeing an AUO site for CoPoS capacity.")
+
+
+class CatalogDueTests(unittest.TestCase):
+    """ideas_layer._catalog 攤平 due 欄位（Task 3）：只收 active 想法，缺 due 也不炸。"""
+
+    def test_catalog_carries_due_dates_for_active_idea_only(self):
+        ideas = [
+            {"id": "a", "short": "A", "url": "/a", "status": "active",
+             "checkpoints": [{"id": "cp1", "label": "L1",
+                              "due": [{"date": "2026-10-01", "label": "E1", "approx": True}]}]},
+            {"id": "b", "short": "B", "url": "/b", "status": "retired",
+             "checkpoints": [{"id": "cp1", "label": "L1",
+                              "due": [{"date": "2026-10-01", "label": "不該出現", "approx": False}]}]},
+            {"id": "c", "short": "C", "url": "/c", "status": "active",
+             "checkpoints": [{"id": "cp1", "label": "L1"}]},   # 沒有 due 欄位
+        ]
+        catalog = ideas_layer._catalog(ideas)
+        self.assertEqual(len(catalog["a"]["due"]), 1)
+        self.assertEqual(catalog["a"]["due"][0]["label"], "E1")
+        self.assertEqual(catalog["a"]["due"][0]["checkpoint"], "cp1")
+        self.assertEqual(catalog["b"]["due"], [])
+        self.assertEqual(catalog["c"]["due"], [])
 
 
 class MatchingRuleTests(unittest.TestCase):
@@ -170,20 +193,23 @@ class IdeasIntegrationTests(unittest.TestCase):
         self.assertIsNotNone(ev["idea_hits"])
         self.assertEqual(ev["idea_hits"]["hits"], [])
 
-    def test_cap_of_eight_pairs_per_day_rest_stay_unjudged(self):
+    def test_all_checkpoints_matched_by_one_item_are_batched_into_one_request(self):
+        # 2026-09-23 晚改成逐則批次問法：一則新聞命中幾個查核點，就在同一次 Jev 請求裡問完，
+        # 不是每對 (item, checkpoint) 各一個請求，所以一則新聞就算命中 12 個查核點也不會被
+        # 「每天 8 對」卡住——會卡的是「每天最多幾則新聞」（見 ItemCapTests）。
         checkpoints = [{"id": f"cp{i}", "label": f"test{i}", "companies": [], "keywords": ["cowos", "capacity"],
                         "themes": [], "supports_if": "s", "refutes_if": "r"} for i in range(12)]
         ideas = [{"id": "many-checkpoints", "short": "多查核點", "url": "/x", "status": "active",
                  "checkpoints": checkpoints}]
-        ev, _ = run(ideas=ideas)
+        jev, fake = fx.fake_client()
+        ev, _ = run(ideas=ideas, jev=jev)
         it = item(ev, "Kaohsiung packaging park")
         self.assertEqual(len(it["ideas"]), 12)
-        judged = [h for h in it["ideas"] if h["confidence"] is not None]
-        unjudged = [h for h in it["ideas"] if h["verdict"] == "unjudged"]
-        self.assertEqual(len(judged), ideas_layer.MAX_IDEA_PAIRS)
-        self.assertEqual(len(unjudged), 12 - ideas_layer.MAX_IDEA_PAIRS)
+        for h in it["ideas"]:
+            self.assertIsNotNone(h["confidence"])
+            self.assertNotEqual(h["verdict"], "unjudged")
         self.assertEqual(ev["ideas"]["matched_pairs"], 12)
-        self.assertEqual(ev["ideas"]["asked"], ideas_layer.MAX_IDEA_PAIRS)
+        self.assertEqual(ev["ideas"]["asked"], 1)   # 一則新聞，一個請求（不是 12 個請求）
 
     def test_ideas_step_failure_does_not_break_evidence_layer(self):
         def boom(fetch):
@@ -223,7 +249,7 @@ class IdeasIntegrationTests(unittest.TestCase):
             sec_user_agent=None, official_fetch=fx.offline_sources, full_text_fetch=ft_fetch,
             ideas=fx.sample_ideas())
 
-        idea_reqs = [r for r in captured if "verdict" in r.get("questions", {})]
+        idea_reqs = [r for r in captured if any("::" in qid for qid in r.get("questions", {}))]
         self.assertTrue(idea_reqs)
         self.assertTrue(any(marker in json.dumps(r["state"]) for r in idea_reqs))
         self.assertNotIn(marker, json.dumps(ev, ensure_ascii=False))
@@ -232,6 +258,163 @@ class IdeasIntegrationTests(unittest.TestCase):
             self.assertIn("idea_hits.json", written)
             for fn in written:
                 self.assertNotIn(marker, (Path(td) / fn).read_text(encoding="utf-8"))
+
+
+class BatchingTests(unittest.TestCase):
+    """一則新聞命中多個查核點，Jev 只收到一個請求、裡面有多題（2026-09-23 晚改的逐則批次問法）。"""
+
+    def test_one_jev_request_carries_all_matched_checkpoints_for_the_item(self):
+        jev, fake = fx.fake_client()
+        orig_transport = jev.transport
+        captured = []
+
+        def spy(body, api_key):
+            captured.append(json.loads(body))
+            return orig_transport(body, api_key)
+        jev.transport = spy
+
+        ev, _ = run(jev=jev)   # fx.sample_ideas() 的 ai-scissors 對 Kaohsiung 候選命中 4 個查核點
+        it = item(ev, "Kaohsiung packaging park")
+        self.assertEqual(len(it["ideas"]), 4)
+        idea_reqs = [r for r in captured
+                    if "Kaohsiung packaging park" in (r.get("state", {}).get("today", {}).get("headline", ""))
+                    and any("::" in qid for qid in r.get("questions", {}))]
+        self.assertEqual(len(idea_reqs), 1)   # 4 個查核點只發了 1 個請求
+        self.assertEqual(len(idea_reqs[0]["questions"]), 4)   # 該請求裡有 4 題
+
+
+class ItemCapTests(unittest.TestCase):
+    """每天最多幾則新聞問 Jev（不是每對 (item, checkpoint)），見 ideas_layer.run_ideas_step。"""
+
+    IDEA = [{"id": "cap-test", "short": "上限測試", "url": "/x", "status": "active",
+            "checkpoints": [{"id": "cp1", "label": "test", "companies": [], "keywords": ["alpha", "beta"],
+                             "themes": [], "supports_if": "s", "refutes_if": "r"}]}]
+
+    def _briefing_item(self, i: int) -> tuple[dict, dict]:
+        cid = f"c{i}"
+        headline = f"Alpha beta story number {i} about nothing in particular"
+        it = {"id": cid, "headline": headline, "classification": {"class": "new_fact"},
+             "companies": [], "routes": {}, "event_date": fx.TODAY, "source_date": fx.TODAY, "source": "Reuters"}
+        cand = {"cid": cid, "headline": headline,
+               "text": "Alpha and beta both appear in this story's body text.",
+               "source": "Reuters", "source_date": fx.TODAY, "rss": []}
+        return it, cand
+
+    def test_briefing_item_cap_leaves_the_rest_unjudged(self):
+        items, cand_by_id = [], {}
+        for i in range(10):
+            it, cand = self._briefing_item(i)
+            items.append(it)
+            cand_by_id[it["id"]] = cand
+        jev, _fake = fx.fake_client()
+        result = ideas_layer.run_ideas_step(items, cand_by_id, jev, fx.TODAY, ideas=self.IDEA,
+                                            fetch=fx.no_fetch)
+        judged_items = [it for it in items if it["ideas"] and it["ideas"][0]["confidence"] is not None]
+        unjudged_items = [it for it in items if it["ideas"] and it["ideas"][0]["confidence"] is None]
+        self.assertEqual(len(judged_items), ideas_layer.MAX_BRIEFING_IDEA_ITEMS)
+        self.assertEqual(len(unjudged_items), 10 - ideas_layer.MAX_BRIEFING_IDEA_ITEMS)
+        self.assertEqual(result["matched_pairs"], 10)
+        self.assertEqual(result["asked"], ideas_layer.MAX_BRIEFING_IDEA_ITEMS)
+        for it in unjudged_items:
+            self.assertEqual(it["ideas"][0]["verdict"], "unjudged")
+
+    def test_wide_item_cap_matches_max_wide_idea_items(self):
+        ideas = self.IDEA
+        matcher = EntityMatcher({})
+        ledger = Ledger([])
+        pool = []
+        for i in range(10):
+            pool.append({"title": f"Alpha beta wide story {i}", "summary": "alpha and beta both mentioned here",
+                        "link": f"https://example.com/wide{i}", "source": "Wire", "published": f"{fx.TODAY} 09:00"})
+        jev, _fake = fx.fake_client()
+        result = ideas_layer.run_ideas_step([], {}, jev, fx.TODAY, ideas=ideas, fetch=fx.no_fetch,
+                                            matcher=matcher, rss_items=pool, ledger=ledger)
+        ws = result["wide_scan"]
+        self.assertEqual(ws["pool_size"], 10)
+        self.assertEqual(ws["matched_items"], 10)
+        self.assertEqual(ws["asked_items"], ideas_layer.MAX_WIDE_IDEA_ITEMS)
+
+
+class WideScanTests(unittest.TestCase):
+    """早報外掃描的程式把關（ideas_layer._wide_scan），直接測，不繞經 run_evidence_layer。"""
+
+    # 兩個關鍵詞（不靠公司辨識，因為測試用的是空 routing 的 EntityMatcher，見 _matcher）：
+    # 規則 (b) 兩個不同關鍵詞就算命中，見 ideas_layer.match_checkpoints。
+    IDEAS = [{"id": "wide-idea", "short": "早報外測試", "url": "/x", "status": "active",
+             "checkpoints": [{"id": "cp1", "label": "test", "companies": ["TSM"],
+                              "keywords": ["cowos", "capacity"],
+                              "themes": [], "supports_if": "s", "refutes_if": "r"}]}]
+
+    def _matcher(self):
+        # 最小 routing：只認得 TSM（別名 TSMC），讓靠公司辨識的把關（ledger_known_figure）有
+        # 東西可以比對；規則 (a)／(b) 的查核點命中本身不靠這個，靠 self.IDEAS 的兩個關鍵詞。
+        return EntityMatcher({"companies": {"TSM": {"name": "TSMC", "aliases": ["TSMC"]}}})
+
+    def test_pool_item_already_used_by_a_briefing_candidate_is_excluded(self):
+        pool = [{"title": "TSMC boosts CoWoS capacity again", "summary": "", "link": "https://x/a",
+                "published": f"{fx.TODAY} 09:00", "source": "Reuters"}]
+        cand_by_id = {"c1": {"headline": "TSMC boosts CoWoS", "rss": [{"url": "https://x/a"}]}}
+        cands, stats = ideas_layer._wide_scan(pool, cand_by_id, self._matcher(), Ledger([]), self.IDEAS,
+                                              fx.TODAY, [])
+        self.assertEqual(stats["already_in_candidates"], 1)
+        self.assertEqual(cands, [])
+
+    def test_chinese_item_is_counted_but_not_matched(self):
+        pool = [{"title": "台積電傳出下修財測，市場關注後續影響", "summary": "法人表示需求動能轉弱。",
+                "link": "https://x/b", "published": f"{fx.TODAY} 09:00", "source": "MoneyDJ"}]
+        cands, stats = ideas_layer._wide_scan(pool, {}, self._matcher(), Ledger([]), self.IDEAS, fx.TODAY, [])
+        self.assertEqual(stats["chinese_count"], 1)
+        self.assertEqual(stats["matched_items"], 0)
+        self.assertEqual(cands, [])
+
+    def test_stale_event_older_than_three_days_is_skipped(self):
+        from datetime import datetime, timedelta
+        old = (datetime.strptime(fx.TODAY, "%Y-%m-%d") - timedelta(days=6)).strftime("%Y-%m-%d %H:%M")
+        pool = [{"title": "TSMC expands CoWoS capacity lines further", "summary": "", "link": "https://x/c",
+                "published": old, "source": "Reuters"}]
+        cands, stats = ideas_layer._wide_scan(pool, {}, self._matcher(), Ledger([]), self.IDEAS, fx.TODAY, [])
+        self.assertEqual(stats["matched_items"], 1)
+        self.assertEqual(stats["skipped_by_reason"]["stale_event"], 1)
+        self.assertEqual(cands, [])
+
+    def test_ledger_known_figure_for_shared_company_is_skipped(self):
+        pool = [{"title": "TSMC adds 30 million units of CoWoS capacity", "summary": "",
+                "link": "https://x/d", "published": f"{fx.TODAY} 09:00", "source": "Reuters"}]
+        prior = {"fact_key": "fact_x", "first_seen": "2026-09-10", "companies": ["TSM"], "subjects": [],
+                "figures": ["n:3e+07"], "terms": [], "tokens": []}
+        ledger = Ledger([prior])
+        cands, stats = ideas_layer._wide_scan(pool, {}, self._matcher(), ledger, self.IDEAS, fx.TODAY, [])
+        self.assertEqual(stats["matched_items"], 1)
+        self.assertEqual(stats["skipped_by_reason"]["ledger_known_figure"], 1)
+        self.assertEqual(cands, [])
+
+    def test_duplicate_of_idea_hits_history_by_url_is_skipped(self):
+        pool = [{"title": "TSMC ramps another CoWoS capacity expansion", "summary": "", "link": "https://x/e",
+                "published": f"{fx.TODAY} 09:00", "source": "Reuters"}]
+        history = [{"url": "https://x/e", "headline": "different headline"}]
+        cands, stats = ideas_layer._wide_scan(pool, {}, self._matcher(), Ledger([]), self.IDEAS, fx.TODAY, history)
+        self.assertEqual(stats["skipped_by_reason"]["hits_history_duplicate"], 1)
+        self.assertEqual(cands, [])
+
+    def test_near_duplicate_of_briefing_headline_is_skipped(self):
+        headline = "TSMC rallies equipment and material suppliers into Kaohsiung packaging park"
+        cand_by_id = {"c1": {"headline": headline, "rss": []}}
+        # 標題完全相同（真實世界更常見的是不同媒體改幾個字轉述同一則），保證正規化後的鍵相等，
+        # 不必依賴字詞 Jaccard 門檻的邊界值
+        pool = [{"title": headline, "summary": "cowos capacity", "link": "https://x/f",
+                "published": f"{fx.TODAY} 09:00", "source": "Reuters"}]
+        cands, stats = ideas_layer._wide_scan(pool, cand_by_id, self._matcher(), Ledger([]), self.IDEAS,
+                                              fx.TODAY, [])
+        self.assertEqual(stats["skipped_by_reason"]["near_dup_briefing"], 1)
+        self.assertEqual(cands, [])
+
+    def test_clean_item_passes_every_gate(self):
+        pool = [{"title": "TSMC expands CoWoS packaging capacity at new site", "summary": "",
+                "link": "https://x/g", "published": f"{fx.TODAY} 09:00", "source": "Reuters"}]
+        cands, stats = ideas_layer._wide_scan(pool, {}, self._matcher(), Ledger([]), self.IDEAS, fx.TODAY, [])
+        self.assertEqual(len(cands), 1)
+        self.assertEqual(stats["matched_items"], 1)
+        self.assertEqual(sum(stats["skipped_by_reason"].values()), 0)
 
 
 class HitsFileTests(unittest.TestCase):
@@ -359,6 +542,97 @@ class RenderingTests(unittest.TestCase):
         a = news.find("今天動到的想法")
         b = news.find('id="evidence"')
         self.assertTrue(0 <= a < b)
+
+    def test_wide_origin_hit_shows_muted_tag_and_basis(self):
+        ev = {
+            "date": "2026-09-22",
+            "ideas": {"status": "ok", "catalog": {
+                "ai-scissors": {"short": "AI 剪刀差", "url": "/ideas/ai-scissors.html",
+                                "checkpoints": {"cp3": "記憶體合約價"}, "due": []}}},
+            "idea_hits": {"hits": [
+                {"date": "2026-09-22", "idea": "ai-scissors", "checkpoint": "cp3", "verdict": "supports",
+                 "confidence": 0.8, "headline": "HBM contract prices rise again",
+                 "url": "https://example.com/hbm", "origin": "wide"},
+            ]},
+        }
+        page = html_template._ideas_section(ev)
+        self.assertIn("早報外", page)
+        self.assertIn("只讀到標題與摘要", page)
+        self.assertIn("HBM contract prices rise again", page)
+
+    def test_briefing_origin_hit_has_no_wide_tag(self):
+        ev = {
+            "date": "2026-09-22",
+            "ideas": {"status": "ok", "catalog": {
+                "ai-scissors": {"short": "AI 剪刀差", "url": "/ideas/ai-scissors.html",
+                                "checkpoints": {"cp3": "記憶體合約價"}, "due": []}}},
+            "idea_hits": {"hits": [
+                {"date": "2026-09-22", "idea": "ai-scissors", "checkpoint": "cp3", "verdict": "supports",
+                 "confidence": 0.8, "headline": "Micron raises DRAM prices",
+                 "url": "https://example.com/dram", "origin": "briefing"},
+            ]},
+        }
+        page = html_template._ideas_section(ev)
+        self.assertNotIn("早報外", page)
+        self.assertNotIn("只讀到標題與摘要", page)
+
+
+class DueSoonTests(unittest.TestCase):
+    """未來 7 天到期的查核點（Task 3，2026-09-23 晚新增）：程式只認 ideas.json 的 due 欄位，
+    沒有這個欄位（舊查核點、或使用者還沒補）要照常運作，不噴錯。"""
+
+    CATALOG = {
+        "ai-scissors": {"short": "AI 剪刀差", "url": "/ideas/ai-scissors.html",
+                        "checkpoints": {"cp2": "GPU 雲租金"},
+                        "due": [
+                            {"date": "2026-09-24", "label": "Nebius 新價生效", "approx": False,
+                             "checkpoint": "cp2", "checkpoint_label": "GPU 雲租金"},
+                            {"date": "2026-10-15", "label": "太遠了不該出現", "approx": True,
+                             "checkpoint": "cp2", "checkpoint_label": "GPU 雲租金"},
+                            {"date": "2026-09-20", "label": "已經過期不該出現", "approx": False,
+                             "checkpoint": "cp2", "checkpoint_label": "GPU 雲租金"},
+                        ]},
+        "no-due-field": {"short": "沒有 due 欄位", "url": "/ideas/x.html", "checkpoints": {}},
+    }
+    TODAY = "2026-09-22"
+
+    def test_filters_to_next_seven_days_inclusive_of_today(self):
+        due = html_template._due_soon(self.CATALOG, self.TODAY)
+        self.assertEqual([d["label"] for d in due], ["Nebius 新價生效"])
+
+    def test_missing_due_field_does_not_error(self):
+        due = html_template._due_soon({"no-due-field": self.CATALOG["no-due-field"]}, self.TODAY)
+        self.assertEqual(due, [])
+
+    def test_news_page_shows_due_group_with_approx_prefix_and_anchor_link(self):
+        ev = {"date": self.TODAY, "ideas": {"status": "ok", "catalog": self.CATALOG},
+             "idea_hits": {"hits": []}}
+        page = html_template._ideas_section(ev)
+        self.assertIn("未來 7 天到期的查核點", page)
+        self.assertIn("Nebius 新價生效", page)
+        self.assertIn("/ideas/ai-scissors.html#cp2", page)
+        self.assertNotIn("太遠了不該出現", page)
+        self.assertNotIn("已經過期不該出現", page)
+
+    def test_due_group_hidden_when_nothing_due(self):
+        ev = {"date": "2026-01-01", "ideas": {"status": "ok", "catalog": self.CATALOG},
+             "idea_hits": {"hits": []}}
+        page = html_template._ideas_section(ev)
+        self.assertNotIn("未來 7 天到期的查核點", page)
+
+    def test_email_summary_line_only_when_due_within_two_days(self):
+        ev_due = {"date": self.TODAY, "ideas": {"status": "ok", "catalog": self.CATALOG},
+                  "idea_hits": {"hits": []}}
+        line = html_template._ideas_email_summary(ev_due)
+        self.assertIn("查核點即將到期", line)
+        self.assertIn("Nebius 新價生效", line)
+
+        far_catalog = {"ai-scissors": {"short": "AI 剪刀差", "url": "/x", "checkpoints": {},
+                                       "due": [{"date": "2026-10-15", "label": "太遠", "approx": True,
+                                               "checkpoint": "cp2", "checkpoint_label": "x"}]}}
+        ev_far = {"date": self.TODAY, "ideas": {"status": "ok", "catalog": far_catalog},
+                 "idea_hits": {"hits": []}}
+        self.assertEqual(html_template._ideas_email_summary(ev_far), "")
 
 
 if __name__ == "__main__":

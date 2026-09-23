@@ -476,6 +476,189 @@ class CopyrightTests(unittest.TestCase):
         self.assertNotIn(secret, html)
 
 
+IDEAS_FIXTURE = [
+    {"id": "ai-scissors", "short": "AI 剪刀差", "status": "active",
+     "checkpoints": [
+         {"id": "cp3", "label": "記憶體合約價", "supports_if": "supports text", "refutes_if": "refutes text"},
+     ]},
+]
+
+
+def idea_evidence_item(headline="TSMC boosts CoWoS", ideas_hits=None):
+    return {"id": "c_1", "date": "2026-09-22", "headline": headline,
+           "sources": [{"url": "https://example.com/a"}], "ideas": ideas_hits or []}
+
+
+class CollectIdeaPairsTests(unittest.TestCase):
+    """evidence_calibration.collect_week_idea_pairs（Task 2）：把每一對 (新聞, 查核點) 判斷攤平，
+    含 unrelated，unjudged 排除；早報候選 origin 沒有就回填 briefing（舊資料相容），早報外的列
+    來自 ideas.wide_pairs。"""
+
+    def test_collects_briefing_and_wide_pairs_excluding_unjudged(self):
+        it = idea_evidence_item(ideas_hits=[
+            {"idea": "ai-scissors", "checkpoint": "cp3", "label": "L", "verdict": "supports",
+             "confidence": 0.8, "summary": "s"},   # 沒有 origin：舊資料，回填成 briefing
+            {"idea": "ai-scissors", "checkpoint": "cp3", "label": "L", "verdict": "unjudged",
+             "confidence": None},   # unjudged：沒真的問過 Jev，不該被收
+        ])
+
+        def fetch(url, timeout=15):
+            if url.endswith("evidence_2026-09-25.json"):
+                return {"date": "2026-09-25", "items": [it],
+                       "ideas": {"wide_pairs": [
+                           {"idea": "ai-scissors", "checkpoint": "cp3", "label": "L", "verdict": "unrelated",
+                            "confidence": 0.5, "headline": "wide headline", "summary": "w", "url": "https://x/w"},
+                       ]}}, "ok"
+            return None, "missing"
+
+        pairs, reports = ec.collect_week_idea_pairs("2026-09-29", fetch=fetch)
+        self.assertEqual(len(pairs), 2)
+        self.assertEqual({p["origin"] for p in pairs}, {"briefing", "wide"})
+        briefing_pair = next(p for p in pairs if p["origin"] == "briefing")
+        self.assertEqual(briefing_pair["url"], "https://example.com/a")   # 沒自己的 url，回退用 sources
+        ok_report = next(r for r in reports if r["date"] == "2026-09-25")
+        self.assertEqual(ok_report["pairs"], 2)
+
+
+class IdeaCheckpointDefsTests(unittest.TestCase):
+    def test_builds_lookup_by_idea_and_checkpoint(self):
+        defs = ec.idea_checkpoint_defs(IDEAS_FIXTURE)
+        self.assertEqual(defs[("ai-scissors", "cp3")]["label"], "記憶體合約價")
+        self.assertEqual(defs[("ai-scissors", "cp3")]["supports_if"], "supports text")
+        self.assertEqual(defs[("ai-scissors", "cp3")]["idea_short"], "AI 剪刀差")
+
+
+class AggregateIdeaHitsTests(unittest.TestCase):
+    def _pairs(self, unrelated_n, supports_n, origin="briefing"):
+        pairs = [{"idea": "ai-scissors", "checkpoint": "cp3", "verdict": "unrelated", "origin": origin}
+                for _ in range(unrelated_n)]
+        pairs += [{"idea": "ai-scissors", "checkpoint": "cp3", "verdict": "supports", "origin": origin}
+                 for _ in range(supports_n)]
+        return pairs
+
+    def test_unrelated_share_and_origin_counts(self):
+        defs = ec.idea_checkpoint_defs(IDEAS_FIXTURE)
+        pairs = self._pairs(4, 1, origin="wide") + self._pairs(0, 2, origin="briefing")
+        agg = ec.aggregate_idea_hits(pairs, defs, min_n=1)
+        row = agg["by_checkpoint"][0]
+        self.assertEqual(row["n"], 7)
+        self.assertEqual(row["unrelated"], 4)
+        self.assertEqual(row["wide"], 5)
+        self.assertEqual(row["briefing"], 2)
+        self.assertAlmostEqual(row["unrelated_share"], 4 / 7, places=3)
+
+    def test_suggestion_only_above_share_and_min_sample(self):
+        defs = ec.idea_checkpoint_defs(IDEAS_FIXTURE)
+        pairs = self._pairs(4, 1)   # 5 對，80% 無關
+        agg = ec.aggregate_idea_hits(pairs, defs, min_n=1, flag_share=0.5)
+        self.assertEqual(len(agg["suggestions"]), 1)
+        self.assertIn("cp3", agg["suggestions"][0])
+        agg2 = ec.aggregate_idea_hits(pairs, defs, min_n=10, flag_share=0.5)   # 樣本數不夠，不建議
+        self.assertEqual(agg2["suggestions"], [])
+
+
+class IdeaSecondOpinionTests(unittest.TestCase):
+    def test_skips_when_cli_unavailable(self):
+        with mock.patch.object(ec, "_cli_available", return_value=False):
+            result = ec.run_idea_second_opinion(
+                [{"idea": "x", "checkpoint": "y", "verdict": "supports", "headline": "h"}], {}, cli_call=None)
+        self.assertEqual(result["status"], "skipped")
+        self.assertEqual(result["checked"], 0)
+
+    def test_agreement_rate_and_disagreements(self):
+        pairs = [
+            {"idea": "ai-scissors", "checkpoint": "cp3", "verdict": "supports", "headline": "h1", "summary": "s1"},
+            {"idea": "ai-scissors", "checkpoint": "cp3", "verdict": "refutes", "headline": "h2", "summary": "s2"},
+        ]
+        defs = ec.idea_checkpoint_defs(IDEAS_FIXTURE)
+
+        def fake_cli(sys_p, user_p, model, timeout):
+            return {"verdict": "supports"}   # 一律答 supports：第一對一致，第二對分歧
+
+        result = ec.run_idea_second_opinion(pairs, defs, cli_call=fake_cli)
+        self.assertEqual(result["status"], "judged")
+        self.assertEqual(result["checked"], 2)
+        self.assertEqual(result["agreement_rate"], 0.5)
+        self.assertEqual(len(result["disagreements"]), 1)
+        self.assertEqual(result["disagreements"][0]["jev"], "refutes")
+        self.assertEqual(result["disagreements"][0]["sonnet"], "supports")
+
+    def test_single_pair_failure_does_not_stop_others(self):
+        pairs = [{"idea": "a", "checkpoint": "b", "verdict": "supports", "headline": "h1"},
+                {"idea": "a", "checkpoint": "b", "verdict": "supports", "headline": "h2"}]
+        calls = {"n": 0}
+
+        def fake_cli(sys_p, user_p, model, timeout):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise RuntimeError("down")
+            return {"verdict": "supports"}
+
+        result = ec.run_idea_second_opinion(pairs, {}, cli_call=fake_cli)
+        self.assertEqual(result["attempted"], 2)
+        self.assertEqual(result["checked"], 1)
+        self.assertEqual(len(result["errors"]), 1)
+
+    def test_caps_at_max_items(self):
+        pairs = [{"idea": "a", "checkpoint": "b", "verdict": "supports", "headline": f"h{i}"} for i in range(5)]
+        calls = {"n": 0}
+
+        def fake_cli(sys_p, user_p, model, timeout):
+            calls["n"] += 1
+            return {"verdict": "supports"}
+
+        ec.run_idea_second_opinion(pairs, {}, cli_call=fake_cli, max_items=2)
+        self.assertEqual(calls["n"], 2)
+
+    def test_unrecognised_verdict_is_treated_as_a_failure(self):
+        def fake_cli(sys_p, user_p, model, timeout):
+            return {"verdict": "maybe"}
+        result = ec.run_idea_second_opinion(
+            [{"idea": "a", "checkpoint": "b", "verdict": "supports", "headline": "h"}], {}, cli_call=fake_cli)
+        self.assertEqual(result["checked"], 0)
+        self.assertEqual(len(result["errors"]), 1)
+
+
+class RunIdeaCalibrationIntegrationTests(unittest.TestCase):
+    def test_unavailable_when_ideas_json_not_found(self):
+        result = ec.run_idea_calibration("2026-09-29", fetch=lambda u, timeout=15: (None, "missing"))
+        self.assertEqual(result["status"], "unavailable")
+        self.assertEqual(result["checked"], 0)
+        self.assertEqual(result["second_opinion"]["status"], "skipped")
+
+    def test_full_run_with_injected_ideas_and_pairs(self):
+        it = idea_evidence_item(ideas_hits=[
+            {"idea": "ai-scissors", "checkpoint": "cp3", "label": "L", "verdict": "unrelated", "confidence": 0.5}])
+
+        def fetch(url, timeout=15):
+            if url.endswith("evidence_2026-09-22.json"):
+                return {"date": "2026-09-22", "items": [it]}, "ok"
+            return None, "missing"
+
+        result = ec.run_idea_calibration("2026-09-29", fetch=fetch,
+                                         cli_call=lambda *a, **k: {"verdict": "unrelated"}, ideas=IDEAS_FIXTURE)
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["checked"], 1)
+        self.assertEqual(result["second_opinion"]["agreement_rate"], 1.0)
+
+    def test_run_calibration_includes_ideas_block_and_never_writes_ideas_json(self):
+        # 「只建議，不自動改 ideas.json」：這裡沒有給任何寫檔路徑，只要 run_calibration 能正常
+        # 跑完並回傳 ideas 區塊，就足以確認這支程式碼路徑裡沒有寫 ideas.json 這個動作。
+        it = item(id_="c_1")
+
+        def fetch(url, timeout=15):
+            if url.endswith("evidence_2026-09-22.json"):
+                return {"date": "2026-09-22", "items": [it]}, "ok"
+            if url.endswith("evidence_ledger.json"):
+                return {"facts": []}, "ok"
+            return None, "missing"
+
+        result = ec.run_calibration("2026-09-29", fetch=fetch, price_fetch=lambda t, period="4mo": None,
+                                    cli_call=None, routing=ROUTING, ideas=IDEAS_FIXTURE)
+        self.assertIn("ideas", result)
+        self.assertEqual(result["ideas"]["status"], "ok")
+
+
 class HtmlRenderTests(unittest.TestCase):
     def test_render_produces_html_with_key_sections(self):
         it = item(id_="c_1")
@@ -492,7 +675,27 @@ class HtmlRenderTests(unittest.TestCase):
         self.assertIn("事後回查", html)
         self.assertIn("重要度分數有沒有意義", html)
         self.assertIn("Sonnet 二次意見", html)
+        self.assertIn("投資想法校準", html)
         self.assertIn("不會自動套用", html)
+
+    def test_ideas_section_shows_table_and_suggestion_when_ideas_injected(self):
+        it = idea_evidence_item(ideas_hits=[
+            {"idea": "ai-scissors", "checkpoint": "cp3", "label": "記憶體合約價", "verdict": "unrelated",
+             "confidence": 0.5}] * 5)
+
+        def fetch(url, timeout=15):
+            if url.endswith("evidence_2026-09-22.json"):
+                return {"date": "2026-09-22", "items": [it]}, "ok"
+            if url.endswith("evidence_ledger.json"):
+                return {"facts": []}, "ok"
+            return None, "missing"
+
+        result = ec.run_calibration("2026-09-29", fetch=fetch, price_fetch=lambda t, period="4mo": None,
+                                    cli_call=None, routing=ROUTING, ideas=IDEAS_FIXTURE)
+        html = ec.render_calibration_html(result)
+        self.assertIn("記憶體合約價", html)
+        self.assertIn("關鍵詞可能太寬", html)
+        self.assertIn("不會自動改 ideas.json", html)
 
 
 class SaveOutputsTests(unittest.TestCase):

@@ -161,7 +161,7 @@ Google verification`）——那是機器人偵測，不繞。而且就算加成
 - `briefing/evidence_sources.py`：一手來源（官方 RSS、證交所與櫃買中心重大訊息、東證 TDnet 適時開示、官方網域的 Google News site: 查詢、當事公司新聞稿）
 - `briefing/evidence_fulltext.py`（2026-09-23 新增）：抓候選新聞的全文，只抓排序最前面 12 則。Google News 轉址連結（news.google.com/rss/articles/...）用 `googlenewsdecoder` 解成出版方網址，正文用 `trafilatura` 抽取；抓不到就試下一個網址，付費牆網域（ft.com／bloomberg.com／wsj.com／nikkei.com 等）直接跳過不發請求，抽出正文不到 400 字也當失敗。全文只在這次執行的記憶體裡用，用完即丟
 - `briefing/gdelt_source.py`（2026-09-23 新增）：第二個候選來源，查 GDELT DOC 2.0，找早報自己 RSS 以外的公司專屬新聞
-- `briefing/ideas_layer.py`（2026-09-23 新增）：把新事實／進度更新比對到 `ideas.json` 的查核點，問 Jev 支持／推翻／無關，寫 `docs/briefing/data/idea_hits.json`；詳見本節下方「投資想法／查核點」
+- `briefing/ideas_layer.py`（2026-09-23 新增，同日晚加早報外掃描）：把新事實／進度更新、以及去重後新聞池裡早報自己沒選中的相關新聞，比對到 `ideas.json` 的查核點，逐則批次問 Jev 支持／推翻／無關，寫 `docs/briefing/data/idea_hits.json`；詳見本節下方「投資想法／查核點」
 - `briefing/jev_client.py`：HTTP 客戶端，含快取與每次執行的請求上限
 - `data/evidence_routing.json`：人工對照表。人工環節、91 個研究主題的英文辨識詞、27 個總經主題與國家、國別對應的指數部部位、官方來源清單。
 - `data/evidence_routing_auto.json`：自動產生，不要手改。來自 financial-analysis-bot 的研究主題（ID）成員與角色欄公司名、總經報告（MACRO）的關鍵指標。重建：`python3 briefing/evidence_build_data.py routing --fab ~/financial-analysis-bot`
@@ -226,54 +226,99 @@ Jev 這週的判斷準不準，真相來自事後的紀錄與市場結果，Sonn
 `tests/test_evidence_calibration.py`，全部假 fetch／yfinance／CLI，含一則專門斷言全文不會出現在
 `run_calibration` 或 HTML 輸出裡的 `CopyrightTests`。
 
-**投資想法／查核點（`briefing/ideas_layer.py`，2026-09-23 新增）**：想法定義（每個想法底下
-的查核點：companies／keywords／themes／supports_if／refutes_if）另外維護在
-financial-analysis-bot，發布在 `https://research.investmquest.com/ideas/ideas.json`。載入順序：
+**檢查④：投資想法校準（2026-09-23 晚新增）**：同一支程式、同一次執行多算一段，不是另開排程。
+`collect_week_idea_pairs` 把這週每天 `evidence_{date}.json` 裡每一對 (新聞, 查核點) 判斷攤平成
+一列，**含 unrelated**（早報候選在 `items[].ideas`，早報外的在 `ideas.wide_pairs`；只收
+supports／refutes／unrelated，unjudged 代表沒真的問過 Jev，不算）。三件事：① 依 (idea,
+checkpoint) 算無關佔比——佔比達 50%、樣本數至少 5 則才建議「這個查核點關鍵詞可能太寬」（例：
+`cp3 keywords too loose: 70% unrelated`），**只建議，永遠不動 `ideas.json`**；② 同一組
+supports_if／refutes_if 判準再問一次 Sonnet（沿用跟檢查③同一支 CLI 呼叫機制），算跟 Jev 的
+一致率、列出分歧；③ 每個 idea／checkpoint 分早報候選、早報外各幾則。渲染在
+`calibration.html` 多一節「投資想法校準」（`evidence_calibration._ideas_calibration_section`）。
+測試：`tests/test_evidence_calibration.py` 的 `CollectIdeaPairsTests`／`AggregateIdeaHitsTests`／
+`IdeaSecondOpinionTests`／`RunIdeaCalibrationIntegrationTests`。ideas.json 讀不到（沒部署、本機
+沒設 `IDEAS_JSON_PATH`）這節就整段標未讀到、不擋其餘三個檢查。
+
+**投資想法／查核點（`briefing/ideas_layer.py`，2026-09-23 新增，同日晚擴充早報外掃描＋
+逐則批次問法＋到期提醒）**：想法定義（每個想法底下的查核點：companies／keywords／themes／
+supports_if／refutes_if／選填的 `due`）另外維護在 financial-analysis-bot，發布在
+`https://research.investmquest.com/ideas/ideas.json`（目前 2 個想法、17 個查核點）。載入順序：
 env `IDEAS_JSON_PATH`（本機檔案，開發／測試用）→ 站上網址（沒部署會 404，跟其他抓取失敗一樣
 一律當「跳過」，標 `ideas.status="unavailable"`，早報照出）→ 都沒有就整步跳過。
 
 跑在 `run_evidence_layer` 的 items 全部組好之後，包自己的 try/except（`evidence_layer.py`
-④），失敗只讓 `ideas` 標 unavailable，不連累事件判斷層其餘輸出。只比對這次判成「新事實」或
-「進度更新」的項目（跟能進 `top` 的分類同一組，不含待複核、重述、未判斷）。比對規則（程式，
-不用模型，`ideas_layer.match_checkpoints`）：(a) 候選公司在 checkpoint.companies 裡（路由對照表認不得的公司，
-用 checkpoint.company_names 列名稱，文中出現就算），且文中
-（headline+summary，即 `cand["text"]`，不含全文）出現至少一個 checkpoint 關鍵詞；或 (b) 文中
-出現兩個以上不同關鍵詞（單複數算同一個，bond／bonds 不算兩個），或一個三個字以上的關鍵詞片語，或（checkpoint.themes 有一個主題被既有
-主題派送 `evidence_routing.route` 確認，且文中出現至少一個關鍵詞）。每天最多 8 對 (item,
-checkpoint) 問 Jev，依早報既有的 `_rank_key` 排序取前面；超過的仍記一筆，verdict 是
-`unjudged`（比對到了但沒被排進名額，不是沒比對到）。
+④），失敗只讓 `ideas` 標 unavailable，不連累事件判斷層其餘輸出。比對規則
+（程式，不用模型，`ideas_layer.match_checkpoints`，不分早報候選／早報外，同一支函式）：
+(a) 候選公司在 checkpoint.companies 裡（路由對照表認不得的公司，用 checkpoint.company_names
+列名稱，文中出現就算），且文中（headline+summary，不含全文）出現至少一個 checkpoint 關鍵詞；
+或 (b) 文中出現兩個以上不同關鍵詞（單複數算同一個，bond／bonds 不算兩個），或一個三個字以上
+的關鍵詞片語，或（checkpoint.themes 有一個主題被既有主題派送確認，且文中出現至少一個關鍵詞）。
 
-Jev 只答一題窄 Choice（`evidence_questions.build_idea_question`）：supports／refutes／
-unrelated，criteria 直接用 ideas.json 裡的 supports_if／refutes_if（本來就是給 Jev 判準用的
-英文句子），不選股、不下結論。state 給 headline／summary，全文（如果這則候選已經被
-`evidence_fulltext` 抓到）也一併給，但只在這次執行的記憶體裡用，絕不寫進任何輸出檔——跟
-`evidence_fulltext.py` 同一條版權規則。沿用同一個 `jev`（快取與 `max_requests` 預算共用，
-不是另開一份）；沒有 `TYPESAFE_API_KEY`、API 失敗、預算用完（不論是事件分類還是想法查核點
-自己把 8 對用完）都一律標 `unjudged`，不補答案。
+兩個候選來源，各自每天最多問 Jev 8 則新聞（`MAX_BRIEFING_IDEA_ITEMS`／`MAX_WIDE_IDEA_ITEMS`，
+合計 `IDEA_ITEM_BUDGET=16`，`JevClient(max_requests=MAX_CANDIDATES + IDEA_ITEM_BUDGET + 2)`）：
+① **早報候選**——只比對這次判成「新事實」或「進度更新」的項目（跟能進 `top` 的分類同一組）。
+② **早報外掃描（`ideas_layer._wide_scan`，2026-09-23 晚新增）**——早報候選只來自約 60 個 RSS
+來源精選出的一小部分（24～30 則被 Jev 判斷），漏接的個股專屬消息（HBM 合約價、Cloudflare bot
+management 這類）永遠進不了事件判斷層。這一步對 `run_evidence_layer` 收到的 `rss_items`
+去重後完整新聞池（main.py 傳 `moneydj_news`，約 300～400 則，**已經是既有參數，不用改
+main.py**）裡「還沒被早報候選用到」的每一則（用網址比對排除），只跑 `match_checkpoints`
+（英文關鍵詞比對，不問模型；純中文新聞比對不到，只計入 `chinese_count`，不另做中文比對），
+比對到的再套四道程式新舊把關：事件日期（`published`）比今天早超過 3 天跳過；
+`ledger.find_prior`（沿用既有 ledger 查詢，不是另造規則）找到「先前紀錄跟這則共享公司／主題
+且共享數字」就跳過；同網址或正規化後同標題已經在 `idea_hits.json` 歷史裡出現過就跳過；標題
+跟任一則早報候選（`match_checkpoints` 對到的候選，不限已分類的）近似（跟
+`news_fetcher._near_same_title` 同一套演算法另外抄一份，見 `ideas_layer._near_same_headline`
+檔頭說明——不直接 import news_fetcher，那支掛 feedparser／requests，會讓這一層被
+`evidence_layer.py` 在模組層級 import 到、拖累沒裝這些套件的測試環境）就跳過。早報外掃描永遠
+不進 `items`／`top`／DD 派送／ledger 新事實，只影響 `ideas` 輸出與 `idea_hits.json`。
 
-輸出：① 每則 evidence item 加 `ideas: [{idea, checkpoint, label, verdict, confidence}]`（含
-`unrelated`，留著供之後校準，畫面不顯示）。② 跨日累加檔 `docs/briefing/data/idea_hits.json`
-(`idea-hits-v1`)：每列 date／idea／checkpoint／verdict／confidence／headline／source／url／
-event_date／fact_key／evidence_id／by，只收 supports／refutes／unjudged（unrelated 不進累加
-檔）。同一天重跑：今天的列整批換掉（`ideas_layer._merge_hits`），同一天內先依
-(fact_key 或 evidence_id, idea, checkpoint) 去重。抓不到昨天的檔案分兩種：站上回 404＝真的
-還沒有歷史，從空清單開始；其他錯誤＝不知道昨天寫了什麼，不能假裝清空歷史是對的，只寫今天的列
-並標 `history: "unavailable"` 讓頁面能警示。只留最近 365 天。`save_outputs` 會一併寫這個檔案，
-發布步驟本來就是整個 `docs/briefing/data/*.json` 複製過去，不用另外改 workflow。
+兩組候選各自依「規則 (a) 公司命中優先 → 不同關鍵詞數 → 越新越前面」排序（`_item_rank_key`）
+取前 8。**逐則批次問法（2026-09-23 晚改，取代舊版每對 (item, checkpoint) 各發一個請求）**：
+一則新聞命中幾個查核點，就在同一次 Jev 請求裡問完（`jev.ask` 本來就支援一次問多題），題目 id
+是 `"{idea_id}::{checkpoint_id}"`；沒被排進 8 則名額的仍記一筆 `unjudged`，不是沒比對到。
+Jev 只答窄 Choice（`evidence_questions.build_idea_question`）：supports／refutes／unrelated，
+criteria 直接用 ideas.json 的 supports_if／refutes_if，不選股、不下結論。早報候選的 state 給
+headline／summary，全文（如果已經被 `evidence_fulltext` 抓到）也一併給；早報外一律只給
+headline／summary（`evidence_basis: "headline_summary"`，不抓全文）——兩者都只在這次執行的
+記憶體裡用，絕不寫進任何輸出檔，跟 `evidence_fulltext.py` 同一條版權規則。沿用同一個 `jev`
+（快取與預算共用）；沒有 `TYPESAFE_API_KEY`、API 失敗、預算用完都一律標 `unjudged`，不補答案。
 
-渲染：news 頁在「New evidence」區塊之前加「今天動到的想法」（`html_template._ideas_section`），
-有命中就照 idea 分組，每個 idea 一行「想法簡稱（連結）＋今天幾則」，底下每則一行：verdict 徽章
-（支持綠／推翻紅／未判斷灰）· checkpoint 中文標籤 · 標題（連結來源網址）；沒有命中顯示「今天
-沒有新證據動到任何想法」＋想法清單連結；整步 unavailable 顯示「想法清單沒讀到」。Email 摘要
-（`html_template._ideas_email_summary`）有命中才各想法各一行「想法：X N 則（支持 A、推翻
-B）」，沒有命中不顯示。
+輸出：① 每則 evidence item 加 `ideas: [{idea, checkpoint, label, verdict, confidence,
+summary}]`（含 `unrelated`；`summary` 是早報自己組的短摘要，不是全文，給週度校準的 Sonnet 二次
+意見當材料）。② `ideas` 摘要區塊多 `wide_scan`（`pool_size`／`already_in_candidates`／
+`chinese_count`／`matched_items`／`skipped_by_reason`／`asked_items`）與 `wide_pairs`（早報外
+每一對含 unrelated 的完整判斷，只給週度校準用，news 頁不直接渲染這份，渲染走下一段的
+`idea_hits.json`）。③ 跨日累加檔 `docs/briefing/data/idea_hits.json`（`idea-hits-v1`）：每列
+多 `origin`（`"briefing"`／`"wide"`）與（早報外才有的）`evidence_basis`，其餘欄位不變（date／
+idea／checkpoint／verdict／confidence／headline／source／url／event_date／fact_key／
+evidence_id／by），只收 supports／refutes／unjudged（unrelated 不進累加檔）。合併規則
+（`ideas_layer._merge_hits`）不變：同一天重跑整批換掉、(fact_key 或 evidence_id, idea,
+checkpoint) 去重、history 404＝空清單／其他錯誤標 unavailable、只留 365 天。
 
-測試：`tests/test_ideas_layer.py`（假 Jev、不連網），涵蓋載入順序、比對規則 (a)/(b)、跟
-`run_evidence_layer` 的整合（分類篩選、預算用完、8 對上限、想法層本身掛掉不連累事件判斷層、
-全文不落地）、`idea_hits.json` 的合併／去重／冪等／history 兩種失敗情況／365 天保留、以及
-news 頁與 email 的渲染。company key 目前不是每個都在 `evidence_routing.json`／
+渲染：news 頁「今天動到的想法」（`html_template._ideas_section`）：早報外命中多一個灰色
+「早報外」標籤＋「只讀到標題與摘要」字樣。同一個區塊底部加「**未來 7 天到期的查核點**」
+（Task 3，2026-09-23 晚新增；`_due_soon`／`_due_soon_block`）：讀 ideas.json 各查核點選填的
+`due: [{date, label, approx}]`（沒有這個欄位就沒有提醒，程式不會噴錯），只顯示
+[今天, 今天+7天] 範圍內的，approx 加「約」字首，每行連到 `想法網址#checkpoint_id`；沒有任何
+到期就整個群組不顯示。Email 摘要（`html_template._ideas_email_summary`）多一行只在**2 天內**
+到期時才顯示（`_ideas_due_email_line`），不需要今天有命中也會顯示；今天有命中才照舊各想法
+各一行「想法：X N 則（支持 A、推翻 B）」。
+
+測試：`tests/test_ideas_layer.py`（假 Jev、不連網），涵蓋載入順序、比對規則 (a)/(b)、逐則批次
+問法（一個請求多題）、早報候選與早報外各自的 8 則上限、早報外四道把關各自的獨立測試
+（`WideScanTests`）、`idea_hits.json` 的合併／去重／冪等／history／保留天數、`due` 攤平與渲染
+（`CatalogDueTests`／`DueSoonTests`）、news 頁與 email 的渲染。離線重播
+（`tests/evidence_offline_replay.py`，合成的早報外新聞池見 `evidence_fixtures.wide_rss_pool`）
+可以拿真實 ideas.json（`IDEAS_JSON_PATH=~/financial-analysis-bot/docs/ideas/ideas.json`）示範
+早報外掃描的比對結果。company key 目前不是每個都在 `evidence_routing.json`／
 `evidence_routing_auto.json` 裡（例如 NBIS、5274.TW），對不到的公司單純讓規則 (a) 用不到，
-規則 (b) 的關鍵詞／主題比對不受影響；ideas.json 本身不歸這一層管，不要在這裡改。
+規則 (b) 的關鍵詞／主題比對不受影響；ideas.json 本身不歸這一層管，不要在這裡改。**已知的鬆
+關鍵詞（只是觀察，沒有動 ideas.json）**：cp2「per hour」單獨一個字太寬（GPU 定價以外的任何
+「每小時」都可能撞到，靠另一個關鍵詞一起出現才會真的命中，但仍值得之後校準留意）；cp3
+「contract price」不限半導體記憶體，油品／航運合約價的新聞理論上也會撞到；cp5「capex」／
+「capital expenditure」是任何公司財報都可能出現的字，全靠另一個關鍵詞或公司命中把關；cp6
+「loan」／「loans」是泛用財經詞。這些會不會真的造成雜訊，留給「投資想法校準」的無關佔比
+（見上方「週度自動校準」段檢查④）觀察幾週後判斷，不在這次任務裡動 ideas.json。
 
 ---
 

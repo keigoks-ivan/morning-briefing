@@ -38,7 +38,7 @@ from evidence_routing import (
     public_holdings_view, route, sec_check, segment_gaps,
 )
 from evidence_sources import OfficialSources, http_text
-from ideas_layer import MAX_IDEA_PAIRS
+from ideas_layer import IDEA_ITEM_BUDGET
 from jev_client import MODEL, JevClient, get_api_key
 
 SCHEMA = "evidence-layer-v1"
@@ -637,10 +637,12 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
         holdings_json, _ = fetch(os.environ.get("PUBLIC_HOLDINGS_URL", "https://research.investmquest.com/pm/holdings.json"))
     holdings = public_holdings_view(holdings_json)
     if jev is None:
-        # 請求上限＝候選數＋想法步驟的名額＋2 備用。2026-09-23：預設 30 會被 MAX_CANDIDATES=30
-        # 用光，想法步驟（在最後跑）一題都問不到、全部變 unjudged。
+        # 請求上限＝候選數＋想法步驟的名額（早報候選＋早報外各最多 8 則，逐則批次問法，一則
+        # 一個請求）＋2 備用。2026-09-23 晚：想法步驟改成逐則批次問（一則新聞命中幾個查核點就
+        # 在同一次請求問完，不是每對 (item, checkpoint) 各一個請求），IDEA_ITEM_BUDGET=16 遠比
+        # 舊版「MAX_CANDIDATES 用光就把想法步驟擠成全 unjudged」更寬裕。
         jev = JevClient(api_key=get_api_key(), cache=load_jev_cache(today, data_dir, fetch),
-                        max_requests=MAX_CANDIDATES + MAX_IDEA_PAIRS + 2)
+                        max_requests=MAX_CANDIDATES + IDEA_ITEM_BUDGET + 2)
     if sec_user_agent is None:
         sec_user_agent = os.environ.get("SEC_USER_AGENT", "").strip() or None
     official = OfficialSources(routing.get("official_sources") or {}, fetch_text=official_fetch, today=today)
@@ -844,12 +846,14 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
     cand_by_id = {c["cid"]: c for c, *_ in judged}
     try:
         from ideas_layer import run_ideas_step
-        ideas_result = run_ideas_step(items, cand_by_id, jev, today, ideas=ideas, fetch=fetch, rank_key=_rank_key)
+        ideas_result = run_ideas_step(items, cand_by_id, jev, today, ideas=ideas, fetch=fetch,
+                                      matcher=matcher, rss_items=rss_items, ledger=ledger)
     except Exception as e:  # noqa: BLE001 — 想法層掛掉不能連累事件判斷層其餘輸出
         for it in items:
             it.setdefault("ideas", [])
         ideas_result = {"status": "unavailable", "reason": f"ideas step error ({type(e).__name__}: {e})",
-                        "ideas_count": 0, "matched_pairs": 0, "asked": 0, "catalog": {}, "hits": None}
+                        "ideas_count": 0, "matched_pairs": 0, "asked": 0, "catalog": {}, "hits": None,
+                        "wide_scan": {}, "wide_pairs": []}
 
     pruned = ledger.prune(today)
 
@@ -892,7 +896,12 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
         "ideas": {"status": ideas_result["status"], "reason": ideas_result.get("reason", ""),
                  "ideas_count": ideas_result.get("ideas_count", 0),
                  "matched_pairs": ideas_result.get("matched_pairs", 0),
-                 "asked": ideas_result.get("asked", 0), "catalog": ideas_result.get("catalog") or {}},
+                 "asked": ideas_result.get("asked", 0), "catalog": ideas_result.get("catalog") or {},
+                 # 2026-09-23 晚：早報外掃描統計（見 ideas_layer._wide_scan）＋早報外每對命中
+                 # （含 unrelated，只給週度校準用，不對外渲染；早報外的 supports／refutes／
+                 # unjudged 已經另外進 idea_hits.json，見 ideas_layer.run_ideas_step）
+                 "wide_scan": ideas_result.get("wide_scan") or {},
+                 "wide_pairs": ideas_result.get("wide_pairs") or []},
         "idea_hits": ideas_result.get("hits"),
     }
     return result, ledger
@@ -928,4 +937,4 @@ def unavailable_result(today: str, reason: str) -> dict:
             "ledger": {"available": False, "note": reason}, "items": [], "top": [], "more": [],
             "low_priority": [], "unjudged": [], "quality": {}, "jev_cache": {},
             "ideas": {"status": "unavailable", "reason": reason, "ideas_count": 0, "matched_pairs": 0,
-                     "asked": 0, "catalog": {}}, "idea_hits": None}
+                     "asked": 0, "catalog": {}, "wide_scan": {}, "wide_pairs": []}, "idea_hits": None}

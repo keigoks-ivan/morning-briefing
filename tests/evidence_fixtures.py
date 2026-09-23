@@ -81,7 +81,8 @@ class FakeJev:
                 opts = list(q["criteria"])
                 if qid in ("novelty", "stage", "attribution", "timing"):
                     label, conf = case.get(qid, [opts[-1], 0.5])
-                elif qid == "verdict":   # 2026-09-23：投資想法查核點的窄問題（見 ideas_layer.py）
+                elif "::" in qid:   # 想法／查核點的窄問題，qid 是 "idea_id::checkpoint_id"（見
+                                    # ideas_layer.py 2026-09-23 晚改的逐則批次問法，一個 qid 對一個查核點）
                     label, conf = case.get("idea_verdict", [opts[-1], 0.5])
                 elif qid.startswith("var_"):
                     v = (case.get("vars") or {}).get(qid[4:])
@@ -167,6 +168,50 @@ def sample_ideas() -> list[dict]:
                  "supports_if": "x", "refutes_if": "y"},
             ],
         },
+    ]
+
+
+def wide_rss_pool(today: str = TODAY) -> list[dict]:
+    """離線重播用的合成「早報外」新聞池（briefing/ideas_layer.py 的早報外掃描，2026-09-23 晚
+    新增）。不是真實抓到的新聞——刻意把 ideas.json 真實查核點（HBM 合約價、Cloudflare bot
+    management…）的關鍵詞寫進標題，示範早報外掃描抓不抓得到；也刻意放一則過舊、一則純中文，
+    示範程式把關會怎麼擋。跟 evidence_20260922_briefing.json 的早報候選是分開的兩份素材，
+    early-report headlines 那邊不會出現這些標題。"""
+    from datetime import datetime, timedelta
+    d = datetime.strptime(today, "%Y-%m-%d")
+
+    def ago(days: int) -> str:
+        return (d - timedelta(days=days)).strftime("%Y-%m-%d %H:%M")
+
+    return [
+        {"title": "SK Hynix and Samsung lock in higher HBM4 contract price deals for 2027 supply",
+         "summary": "Both memory makers are said to have raised HBM4 contract prices for next year's allocations amid tight DRAM supply.",
+         "link": "https://example.com/wide/hbm-contract-price", "source": "DigiTimes",
+         "published": ago(0)},
+        {"title": "Cloudflare expands signed bot management for verified AI shopping agents",
+         "summary": "The network operator says its bot management product now issues verified-agent signatures so merchants can tell legitimate AI shopping agents from scrapers.",
+         "link": "https://example.com/wide/cloudflare-bot-management", "source": "The Register",
+         "published": ago(0)},
+        {"title": "GE Vernova says gas turbine and transformer backlog now stretches past 2029",
+         "summary": "Grid interconnection queues are lengthening as utilities wait longer for turbines and transformers, GE Vernova's CEO said on an investor call.",
+         "link": "https://example.com/wide/ge-vernova-backlog", "source": "Reuters",
+         "published": ago(0)},
+        {"title": "Shopify expands agentic commerce checkout tools as AI agent shopping grows",
+         "summary": "Shopify is rolling out agentic commerce APIs so AI agent checkout flows can complete purchases on merchant sites directly.",
+         "link": "https://example.com/wide/shopify-agentic-commerce", "source": "TechCrunch",
+         "published": ago(0)},
+        {"title": "Micron quietly agrees new DRAM contract price deal, terms still pending",
+         "summary": "A memory contract price deal for next quarter was reportedly agreed last week, though final terms are not yet disclosed.",
+         "link": "https://example.com/wide/micron-old-contract-price", "source": "Nikkei Asia",
+         "published": ago(6)},   # 過舊（>3 天）：應該被 stale_event 擋下
+        {"title": "美光調漲第四季存儲器報價，客戶下單意願轉強",
+         "summary": "美光近期調漲多項存儲器產品報價，市場人士指出下游客戶下單意願明顯轉強，出貨動能可望延續至明年。",
+         "link": "https://example.com/wide/micron-zh", "source": "MoneyDJ",
+         "published": ago(0)},   # 純中文：英文關鍵詞比對不到，只計入 chinese_count
+        {"title": "Regional weather roundup: mild temperatures expected across the northeast",
+         "summary": "No major weather disruptions are expected this week, forecasters said.",
+         "link": "https://example.com/wide/weather", "source": "AP",
+         "published": ago(0)},   # 對照組：跟任何查核點都無關，應該完全比對不到
     ]
 
 
