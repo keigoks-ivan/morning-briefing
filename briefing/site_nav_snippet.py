@@ -43,6 +43,8 @@ _consolidation_system_20260823.md）。
 裁決實績／持倉週掃／實單主系統四個下拉項移除（頁面仍可直達，只是不進系統群選單）。
 三塊已由 canonical full_nav_block('market','brief'/'week'/'earn') 重生為 byte-identical。
 2026-09-13 補：同步 canonical 的「模擬」入口，置於「系統」之後。
+2026-09-23 補：研究 ▾ 下拉新增「個股儀表板」(/stock-dash/)，緊接在「個股研究」之後；
+BRIEF/WEEK/EARN 三塊皆已由 canonical full_nav_block 重生為 byte-identical。
 """
 
 # group='market', item='brief'  (daily briefing pages, /briefing/ — 2026-08-17 重新掛回選單)
@@ -100,6 +102,7 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/t/">個股研究</a>
+          <a href="/stock-dash/">個股儀表板</a>
           <a href="/id/">產業研究</a>
           <a href="/id/tier_matrix.html">Tier Matrix</a>
         </div>
@@ -178,6 +181,7 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/t/">個股研究</a>
+          <a href="/stock-dash/">個股儀表板</a>
           <a href="/id/">產業研究</a>
           <a href="/id/tier_matrix.html">Tier Matrix</a>
         </div>
@@ -256,6 +260,7 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/t/">個股研究</a>
+          <a href="/stock-dash/">個股儀表板</a>
           <a href="/id/">產業研究</a>
           <a href="/id/tier_matrix.html">Tier Matrix</a>
         </div>
