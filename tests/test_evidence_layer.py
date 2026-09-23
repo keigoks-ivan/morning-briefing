@@ -229,11 +229,10 @@ class Acceptance20260922Tests(unittest.TestCase):
         self.assertEqual(self.ev["ledger"]["restated"], 1)
 
     def test_main_block_order_and_limits(self):
-        # 2026-09-23 排序改版：派到具體標的（DD／持倉）的排在只有研究主題／什麼都沒派到的前面，
-        # 所以派到 DD ticker TSM 的白埔案排第一，不是分數最高但沒派到任何具體標的的南韓出口。
+        # 2026-09-23 排序改版：有派到任何研究的排在沒派到的前面，同層再比重要度分數
         self.assertLessEqual(len(self.ev["top"]), evidence_layer.TOP_SHOWN)
         first = next(x for x in self.ev["items"] if x["id"] == self.ev["top"][0])
-        self.assertIn("Kaohsiung packaging park", first["headline"])
+        self.assertIn("South Korea", first["headline"])
         top_heads = " ".join(x["headline"] for x in self.ev["items"] if x["id"] in self.ev["top"])
         self.assertNotIn("Copilot", top_heads)
         self.assertNotIn("AMD", top_heads)
@@ -629,14 +628,14 @@ class RankingTests(unittest.TestCase):
         new_fact = self._item("new_fact", imp=1.0)
         self.assertEqual(sorted([review, new_fact], key=evidence_layer._rank_key), [new_fact, review])
 
-    def test_dd_or_holdings_route_outranks_theme_only_despite_lower_importance(self):
+    def test_any_research_route_outranks_unrouted_despite_lower_importance(self):
         dd_routed = self._item("new_fact", imp=1.0, routes={"dd": [{"ticker": "TSM"}], "holdings": [], "themes": []})
-        holdings_routed = self._item("new_fact", imp=1.0, routes={"dd": [], "holdings": [{"position": "QQQ"}], "themes": []})
-        theme_only = self._item("new_fact", imp=3.0, routes={"dd": [], "holdings": [], "themes": [{"key": "X"}]})
+        theme_only = self._item("new_fact", imp=2.0, routes={"dd": [], "holdings": [], "themes": [{"key": "X"}]})
+        macro_only = self._item("new_fact", imp=3.0, routes={"dd": [], "holdings": [], "themes": [], "macro": [{"key": "M"}]})
         nothing = self._item("new_fact", imp=3.0, routes={"dd": [], "holdings": [], "themes": []})
-        ordered = sorted([theme_only, nothing, dd_routed, holdings_routed], key=evidence_layer._rank_key)
-        self.assertEqual(ordered[:2], [dd_routed, holdings_routed])
-        self.assertEqual(ordered[2:], [theme_only, nothing])
+        ordered = sorted([nothing, dd_routed, theme_only, macro_only], key=evidence_layer._rank_key)
+        # 有派到研究的一層，層內照重要度；DD 不再壓過主題／總經
+        self.assertEqual(ordered, [macro_only, theme_only, dd_routed, nothing])
 
     def test_needs_review_never_lands_in_top_end_to_end(self):
         # 09-22 案例：SB Energy 是 needs_review、重要度分數也不低，照樣要被擠到 more

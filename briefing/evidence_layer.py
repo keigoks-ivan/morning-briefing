@@ -460,19 +460,15 @@ def _status(final: dict, routes: dict) -> dict:
 def _rank_key(it: dict) -> tuple:
     """main 區排序（2026-09-23 改，取代單比 Jev 重要度分數）：
     ① 新事實／進度更新排在待複核前面；
-    ② 有沒有派到具體標的（DD 或系統持倉）比只派到研究主題更值得看，比什麼都沒派到更值得看；
+    ② 有派到任何研究（DD、系統持倉、研究主題、總經報告、產業環節）排在什麼都沒派到的前面；
+       不再細分 DD 高於主題：9/23 回放時 DD 優先會讓「Apple 開發健身手環」擠掉產業級消息；
     ③ 同一層再比 Jev 重要度分數；
     ④ 一手來源比只有標題／簡介的更可信；
     ⑤ 最後比早報原本的區塊優先序。
     needs_review 是否真的擋在 top 外面，由呼叫端另外過濾（這裡只決定 main 內部次序）。"""
     cls_rank = 0 if it["classification"]["class"] in ("new_fact", "progress_update") else 1
     routes = it.get("routes") or {}
-    if routes.get("dd") or routes.get("holdings"):
-        rel_rank = 0
-    elif routes.get("themes"):
-        rel_rank = 1
-    else:
-        rel_rank = 2
+    rel_rank = 0 if any(routes.get(k) for k in ("dd", "holdings", "themes", "macro", "segments")) else 1
     imp = (it.get("importance") or {}).get("score") or 0
     basis_rank = {"primary_document": 2, "headline_summary": 1}.get(it["evidence_basis"]["code"], 0)
     prio = dict(BLOCK_PRIORITY).get(it["block"], 0.3)
