@@ -45,6 +45,9 @@ _consolidation_system_20260823.md）。
 2026-09-13 補：同步 canonical 的「模擬」入口，置於「系統」之後。
 2026-09-23 補：研究 ▾ 下拉新增「個股儀表板」(/stock-dash/)，緊接在「個股研究」之後；
 BRIEF/WEEK/EARN 三塊皆已由 canonical full_nav_block 重生為 byte-identical。
+2026-09-23 晚補：研究 ▾ 下拉新增「投資想法」(/ideas/)，置於「產業研究」之後、「Tier
+Matrix」之前——canonical 同日同步。BRIEF/WEEK/EARN 三塊皆已由 canonical
+full_nav_block 重生為 byte-identical。
 """
 
 # group='market', item='brief'  (daily briefing pages, /briefing/ — 2026-08-17 重新掛回選單)
@@ -104,6 +107,7 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
           <a href="/t/">個股研究</a>
           <a href="/stock-dash/">個股儀表板</a>
           <a href="/id/">產業研究</a>
+          <a href="/ideas/">投資想法</a>
           <a href="/id/tier_matrix.html">Tier Matrix</a>
         </div>
       </div>
@@ -183,6 +187,7 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
           <a href="/t/">個股研究</a>
           <a href="/stock-dash/">個股儀表板</a>
           <a href="/id/">產業研究</a>
+          <a href="/ideas/">投資想法</a>
           <a href="/id/tier_matrix.html">Tier Matrix</a>
         </div>
       </div>
@@ -262,6 +267,7 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
           <a href="/t/">個股研究</a>
           <a href="/stock-dash/">個股儀表板</a>
           <a href="/id/">產業研究</a>
+          <a href="/ideas/">投資想法</a>
           <a href="/id/tier_matrix.html">Tier Matrix</a>
         </div>
       </div>
