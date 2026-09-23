@@ -265,7 +265,8 @@ def _curated_card_as_pool_item(card: dict) -> dict:
 
 
 def _wide_scan(rss_items: list[dict], cand_by_id: dict, matcher, ledger, ideas: list[dict],
-              today: str, hits_history_rows: list[dict], curated_cards: list[dict] | None = None) -> tuple[list[dict], dict]:
+              today: str, hits_history_rows: list[dict], curated_cards: list[dict] | None = None,
+              sitemap_items: list[dict] | None = None) -> tuple[list[dict], dict]:
     """早報外掃描（見檔頭②）。rss_items：main.py 傳進 run_evidence_layer 的去重後完整新聞池
     （已經是 rss_items 參數本身，不用另外從 main.py 多傳一份——news_fetcher.fetch_rss_news()
     回傳的就是去重後的池子）。cand_by_id：事件判斷層自己的候選（不分早報候選最終被判成什麼
@@ -273,7 +274,11 @@ def _wide_scan(rss_items: list[dict], cand_by_id: dict, matcher, ledger, ideas: 
     evidence_layer.run_evidence_layer 算好的「沒進候選名額的既有新聞卡」（BLOCK_PRIORITY 全部
     區塊＋WIDE_SCAN_EXTRA_BLOCKS，已經排除變成候選或被併入 twin 的卡；2026-09-23 新增，Task
     4）——早報候選只來自容量有限的一小部分區塊／名額，這些卡不進 RSS 池，不加這個參數永遠
-    掃不到，例如「HBM3E contract prices +20% QoQ」這種 tech_trends 卡。
+    掃不到，例如「HBM3E contract prices +20% QoQ」這種 tech_trends 卡。sitemap_items：
+    sitemap_source.to_pool_items() 算好的「全部近期 sitemap 項目」（2026-09-24 新增，見
+    CLAUDE.md「Sitemap 候選」段）——已經是 RSS 條目形狀（title／summary／link／source／
+    published，link 是真實網址），不用像 curated_cards 那樣轉形狀；變成 sitemap 候選的項目
+    網址已經在 cand_by_id 裡，會被下面的 used_urls 比對自然排除，不用另外濾一次。
 
     回 (candidates, stats)。candidates 是通過全部把關、可以拿去問 Jev 的（每筆有
     headline／text／source／url／published／days_ago／matches／company_keys）；stats 是
@@ -285,7 +290,8 @@ def _wide_scan(rss_items: list[dict], cand_by_id: dict, matcher, ledger, ideas: 
     hist_titles = {_normalize_title_key(r["headline"]) for r in hits_history_rows if r.get("headline")}
 
     curated_cards = curated_cards or []
-    pool = list(rss_items or []) + [_curated_card_as_pool_item(c) for c in curated_cards]
+    sitemap_items = sitemap_items or []
+    pool = list(rss_items or []) + [_curated_card_as_pool_item(c) for c in curated_cards] + list(sitemap_items)
     already = chinese = matched_items = 0
     skipped = {"stale_event": 0, "ledger_known_figure": 0, "hits_history_duplicate": 0, "near_dup_briefing": 0}
     candidates = []
@@ -339,7 +345,8 @@ def _wide_scan(rss_items: list[dict], cand_by_id: dict, matcher, ledger, ideas: 
             "matches": matches, "company_keys": company_keys,
         })
 
-    stats = {"pool_size": len(pool), "curated_pool_size": len(curated_cards), "already_in_candidates": already,
+    stats = {"pool_size": len(pool), "curated_pool_size": len(curated_cards),
+             "sitemap_pool_size": len(sitemap_items), "already_in_candidates": already,
              "chinese_count": chinese, "matched_items": matched_items, "skipped_by_reason": skipped, "asked_items": 0}
     return candidates, stats
 
@@ -423,7 +430,8 @@ def _merge_hits(hits_fetch, today: str, today_rows: list[dict]) -> dict:
 def run_ideas_step(items: list[dict], cand_by_id: dict, jev, today: str, *,
                    ideas: list[dict] | None = None, fetch=None, hits_fetch=None,
                    matcher=None, rss_items: list[dict] | None = None, ledger=None,
-                   curated_cards: list[dict] | None = None) -> dict:
+                   curated_cards: list[dict] | None = None,
+                   sitemap_items: list[dict] | None = None) -> dict:
     """就地在 items 的每一則加上 `ideas` 欄位（沒比對到就是空清單；早報外的候選不會出現在
     items 裡，見檔頭②）。回一份摘要：
     {"status", "ideas_count", "matched_pairs", "asked", "catalog", "hits", "wide_scan", "wide_pairs"}。
@@ -434,12 +442,15 @@ def run_ideas_step(items: list[dict], cand_by_id: dict, jev, today: str, *,
     rss_items：main.py 傳進 run_evidence_layer 的去重後新聞池（早報外掃描的候選來源）；
     ledger：evidence_ledger.Ledger，早報外掃描要查「先前紀錄有沒有同公司／主題＋同數字」；
     curated_cards：evidence_layer.run_evidence_layer 算好的「沒進候選名額的既有新聞卡」，見
-    _wide_scan 的參數說明（2026-09-23 新增，Task 4）。
+    _wide_scan 的參數說明（2026-09-23 新增，Task 4）。sitemap_items：
+    sitemap_source.to_pool_items() 算好的「全部近期 sitemap 項目」（2026-09-24 新增），見
+    _wide_scan 的參數說明。
     matcher／ledger 任一沒給就跳過早報外掃描（測試裡只測早報候選時常見；早報正式流程一律會給）。"""
     fetch = fetch or (lambda url, timeout=15: (None, "missing"))
     hits_fetch = hits_fetch or fetch
     rss_items = rss_items or []
     curated_cards = curated_cards or []
+    sitemap_items = sitemap_items or []
 
     for it in items:
         it["ideas"] = []
@@ -451,7 +462,8 @@ def run_ideas_step(items: list[dict], cand_by_id: dict, jev, today: str, *,
 
     today_rows: list[dict] = []
     wide_pairs: list[dict] = []
-    wide_stats = {"pool_size": len(rss_items) + len(curated_cards), "curated_pool_size": len(curated_cards),
+    wide_stats = {"pool_size": len(rss_items) + len(curated_cards) + len(sitemap_items),
+                 "curated_pool_size": len(curated_cards), "sitemap_pool_size": len(sitemap_items),
                  "already_in_candidates": 0, "chinese_count": 0,
                  "matched_items": 0, "skipped_by_reason": {}, "asked_items": 0}
     briefing_matched_pairs = wide_matched_pairs = asked_briefing_count = 0
@@ -509,7 +521,7 @@ def run_ideas_step(items: list[dict], cand_by_id: dict, jev, today: str, *,
         if matcher is not None and ledger is not None:
             hist_rows = _load_hits_rows(hits_fetch)
             wide_cands, scan_stats = _wide_scan(rss_items, cand_by_id, matcher, ledger, ideas, today, hist_rows,
-                                               curated_cards=curated_cards)
+                                               curated_cards=curated_cards, sitemap_items=sitemap_items)
             wide_matched_pairs = sum(len(c["matches"]) for c in wide_cands)
             asked_wide, _overflow_wide = _rank_and_cap(wide_cands, MAX_WIDE_IDEA_ITEMS)
             scan_stats["asked_items"] = len(asked_wide)

@@ -501,6 +501,38 @@ class WideScanTests(unittest.TestCase):
         card2 = {"headline": "H", "body": "B text"}
         self.assertEqual(ideas_layer._curated_card_as_pool_item(card2)["summary"], "B text")
 
+    # ── sitemap_items（2026-09-24 新增，見 CLAUDE.md「Sitemap 候選」段）：已經是 RSS 條目形狀
+    # （sitemap_source.to_pool_items()），不用像 curated_cards 那樣轉形狀，真實網址保留 ────
+    def test_sitemap_item_is_included_and_matched(self):
+        sitemap_items = [{"title": "TSMC expands CoWoS packaging capacity for next-gen substrates",
+                          "summary": "", "link": "https://example.com/sitemap/a", "source": "CNBC",
+                          "published": f"{fx.TODAY}T09:00:00Z"}]
+        cands, stats = ideas_layer._wide_scan([], {}, self._matcher(), Ledger([]), self.IDEAS, fx.TODAY, [],
+                                              sitemap_items=sitemap_items)
+        self.assertEqual(stats["sitemap_pool_size"], 1)
+        self.assertEqual(stats["pool_size"], 1)
+        self.assertEqual(len(cands), 1)
+        self.assertEqual(cands[0]["url"], "https://example.com/sitemap/a")
+
+    def test_sitemap_items_default_to_empty_and_do_not_change_existing_behaviour(self):
+        pool = [{"title": "TSMC expands CoWoS packaging capacity at new site", "summary": "",
+                "link": "https://x/g", "published": f"{fx.TODAY} 09:00", "source": "Reuters"}]
+        cands, stats = ideas_layer._wide_scan(pool, {}, self._matcher(), Ledger([]), self.IDEAS, fx.TODAY, [])
+        self.assertEqual(stats["sitemap_pool_size"], 0)
+        self.assertEqual(stats["pool_size"], 1)
+        self.assertEqual(len(cands), 1)
+
+    def test_sitemap_item_already_used_by_a_briefing_candidate_is_excluded_by_real_url(self):
+        # sitemap 項目保留真實網址（不像 curated_cards 那樣 link 是空字串），已經變成 evidence
+        # 候選的網址要能被既有的 used_urls 比對排除，不用另外寫規則
+        sitemap_items = [{"title": "TSMC boosts CoWoS capacity again", "summary": "",
+                          "link": "https://x/sitemap-a", "source": "CNBC", "published": f"{fx.TODAY}T09:00:00Z"}]
+        cand_by_id = {"c1": {"headline": "TSMC boosts CoWoS", "rss": [{"url": "https://x/sitemap-a"}]}}
+        cands, stats = ideas_layer._wide_scan([], cand_by_id, self._matcher(), Ledger([]), self.IDEAS, fx.TODAY, [],
+                                              sitemap_items=sitemap_items)
+        self.assertEqual(stats["already_in_candidates"], 1)
+        self.assertEqual(cands, [])
+
 
 class HitsFileTests(unittest.TestCase):
     """idea_hits.json 的合併：冪等、同日去重、history 抓不到時的兩種情況、365 天保留。"""

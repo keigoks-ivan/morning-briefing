@@ -912,7 +912,9 @@ class GdeltIntegrationTests(unittest.TestCase):
 
     def test_gdelt_disabled_by_default_when_not_configured(self):
         ev, _ = run()   # run() 不傳 gdelt_fetch
-        self.assertEqual(ev["quality"]["gdelt"], {"enabled": False, "reason": "not configured"})
+        # slots_used=0：2026-09-24 起 GDELT／sitemap 共用保留名額，_merge_reserved_candidates
+        # 一律補這個欄位（見 evidence_layer.py），沒配置時自然是 0。
+        self.assertEqual(ev["quality"]["gdelt"], {"enabled": False, "reason": "not configured", "slots_used": 0})
         self.assertEqual([it for it in ev["items"] if it["block"] == "gdelt"], [])
 
     def test_gdelt_failure_does_not_break_the_briefing(self):
@@ -927,6 +929,157 @@ class GdeltIntegrationTests(unittest.TestCase):
         self.assertFalse(ev["quality"]["gdelt"]["enabled"])
         self.assertIn("error", ev["quality"]["gdelt"])
         self.assertTrue(ev["items"])   # 早報既有候選照樣判斷完成，不被 GDELT 拖垮
+
+
+class SitemapIntegrationTests(unittest.TestCase):
+    """2026-09-24 新增：sitemap 候選（briefing/sitemap_source.py）餵進 run_evidence_layer。
+    這裡只測整合（block、quality、渲染、跟 GDELT 共用保留名額），sitemap_source.py 自己的抓取／
+    解析／篩選邏輯見 test_sitemap_source.py；一律不連網（sitemap_fetch 用假的或直接不傳）。"""
+
+    def _fake_sitemap_fetch(self, title="TrendForce says DRAM contract prices rise 12% this quarter",
+                            **quality_overrides):
+        import sitemap_source
+
+        def fetch(routing, matcher, dd, holdings, dedup_titles, today, max_kept=8, **kw):
+            item = {"title": title, "url": "https://example.com/trendforce-dram", "source_name": "TrendForce",
+                   "companies": matcher.match(title), "figures": ["pct:12"],
+                   "published_iso": "2026-09-22T09:00:00Z", "priority": False, "has_figure": True,
+                   "title_from_slug": False}
+            cand = sitemap_source.make_candidate(item, matcher, today)
+            pool = sitemap_source.to_pool_items([item])
+            quality = {"enabled": True, "sources": {"TrendForce": {"status": "ok", "items_seen": 1, "items_recent": 1}},
+                      "items_seen_total": 1, "items_recent_total": 1, "matched": 1, "kept": 1,
+                      "kept_titles": [title], "pool_size": 1}
+            quality.update(quality_overrides)
+            return ([cand], pool, quality) if max_kept > 0 else ([], pool, quality)
+        return fetch
+
+    def test_sitemap_candidates_flow_through_and_render_badge(self):
+        jev, _ = fx.fake_client()
+        ev, _ = evidence_layer.run_evidence_layer(
+            fx.briefing_data(), [], fx.watchlist(), fx.news_quality(), fx.TODAY, None,
+            ledger=fx.seed_ledger(), holdings_json=fx.holdings(), jev=jev, fetch=fx.no_fetch,
+            sec_user_agent=None, official_fetch=fx.offline_sources, sitemap_fetch=self._fake_sitemap_fetch())
+
+        sm_items = [it for it in ev["items"] if it["block"] == "sitemap"]
+        self.assertEqual(len(sm_items), 1)
+        self.assertEqual(sm_items[0]["source"], "TrendForce")
+        self.assertEqual(ev["quality"]["sitemap"]["kept"], 1)
+        self.assertEqual(ev["quality"]["sitemap"]["slots_used"], 1)
+        self.assertLessEqual(len(ev["items"]), evidence_layer.MAX_CANDIDATES)
+
+        page = html_template._evidence_section(ev)
+        self.assertIn("Found via sitemap", page)
+
+    def test_sitemap_disabled_by_default_when_not_configured(self):
+        ev, _ = run()   # run() 不傳 sitemap_fetch
+        self.assertEqual(ev["quality"]["sitemap"], {"enabled": False, "reason": "not configured", "slots_used": 0})
+        self.assertEqual([it for it in ev["items"] if it["block"] == "sitemap"], [])
+
+    def test_sitemap_failure_does_not_break_the_briefing(self):
+        def boom(*a, **k):
+            raise RuntimeError("sitemap down")
+
+        jev, _ = fx.fake_client()
+        ev, _ = evidence_layer.run_evidence_layer(
+            fx.briefing_data(), [], fx.watchlist(), fx.news_quality(), fx.TODAY, None,
+            ledger=fx.seed_ledger(), holdings_json=fx.holdings(), jev=jev, fetch=fx.no_fetch,
+            sec_user_agent=None, official_fetch=fx.offline_sources, sitemap_fetch=boom)
+        self.assertFalse(ev["quality"]["sitemap"]["enabled"])
+        self.assertIn("error", ev["quality"]["sitemap"])
+        self.assertTrue(ev["items"])   # 早報既有候選照樣判斷完成，不被 sitemap 拖垮
+
+    def test_sitemap_pool_reaches_wide_scan_even_with_zero_evidence_slots(self):
+        # 早報候選＋GDELT 用光名額（用假的 gdelt_fetch 一次吃光 slots），sitemap 仍要把全部近期
+        # 項目餵進早報外掃描（見 CLAUDE.md「Sitemap 候選」段）；用一個含查核點關鍵詞的標題，
+        # 讓早報外掃描（ideas_layer._wide_scan）真的比對到、寫進 ev["ideas"]["wide_scan"]。
+        import gdelt_source
+
+        # 每則主題不同（不是同一句模板只換一個數字）：news_fetcher._near_same_title 的 Jaccard
+        # 門檻是 0.82，個位數編號在 _title_tokens 的正則（[a-z0-9][a-z0-9.\-]{1,}，至少 2 字元）
+        # 底下根本不算一個 token，模板式編號標題會被誤判成彼此近似而被去重，讓 gdelt 填不滿
+        # slots；每個主題換一組不同公司＋不同環節詞，才能保證 20 則都是各自獨立的候選。
+        FILLER_TOPICS = [
+            "Broadcom custom silicon backlog", "Nvidia data center GPU shipments",
+            "Micron DRAM pricing trends", "Qualcomm smartphone chip demand",
+            "Marvell networking silicon orders", "Texas Instruments analog chip supply",
+            "Analog Devices industrial sensor sales", "Applied Materials equipment orders",
+            "Lam Research etch tool backlog", "KLA inspection tool demand",
+            "ASML lithography system orders", "Intel foundry capacity expansion",
+            "Samsung memory chip output", "Western Digital storage shipments",
+            "Seagate hard drive demand", "Cisco networking equipment orders",
+            "Dell server shipments this quarter", "Oracle cloud infrastructure spending",
+            "IBM mainframe system orders", "Corning optical fiber demand",
+            "Coherent laser component orders", "Teradyne test equipment backlog",
+        ]
+
+        def gdelt_fill_all_slots(routing, matcher, dd, holdings, dedup_titles, today, max_kept=8, **kw):
+            # priority=True／has_figure=True：跟 _match_score 同一個 tuple 排序鍵最高分，保證每個
+            # gdelt filler 都排在 sitemap 那則（has_figure=True 但 priority=False）前面，穩定排序
+            # 下 gdelt 會先佔滿全部名額（見 evidence_layer._merge_reserved_candidates 的註解）。
+            cands = []
+            for i in range(max_kept):
+                title = f"{FILLER_TOPICS[i % len(FILLER_TOPICS)]} rises sharply, new industry data shows"
+                art = {"title": title, "url": f"https://example.com/filler-{i}", "domain": "example.com",
+                      "companies": matcher.match(title), "figures": ["pct:10"], "seendate": "20260922T010000Z",
+                      "priority": True, "has_figure": True}
+                cands.append(gdelt_source.make_candidate(art, matcher, today))
+            return cands, {"enabled": True, "kept": len(cands)}
+
+        sitemap_fetch = self._fake_sitemap_fetch(
+            title="SK hynix and Samsung lock in higher HBM4 contract price deals for 2027 supply")
+        jev, _ = fx.fake_client()
+        ev, _ = evidence_layer.run_evidence_layer(
+            fx.briefing_data(), [], fx.watchlist(), fx.news_quality(), fx.TODAY, None,
+            ledger=fx.seed_ledger(), holdings_json=fx.holdings(), jev=jev, fetch=fx.no_fetch,
+            sec_user_agent=None, official_fetch=fx.offline_sources, gdelt_fetch=gdelt_fill_all_slots,
+            sitemap_fetch=sitemap_fetch, ideas=fx.sample_ideas())
+
+        self.assertEqual([it for it in ev["items"] if it["block"] == "sitemap"], [])   # 沒搶到 evidence 名額
+        self.assertEqual(ev["quality"]["sitemap"]["slots_used"], 0)
+        self.assertEqual(ev["ideas"]["wide_scan"]["sitemap_pool_size"], 1)
+
+
+class MergeReservedCandidatesTests(unittest.TestCase):
+    """2026-09-24 新增：GDELT／sitemap 候選共用剩下名額的排序與去重
+    （evidence_layer._merge_reserved_candidates），不繞經 run_evidence_layer 直接測。"""
+
+    def _cand(self, headline, *, priority=False, has_figure=False, published_at="2026-09-22T01:00:00Z",
+             block="gdelt"):
+        return {"headline": headline, "block": block, "_match_priority": priority,
+               "_match_has_figure": has_figure, "published_at": published_at}
+
+    def test_gdelt_empty_lets_sitemap_fill_all_slots(self):
+        sitemap = [self._cand("A", block="sitemap"), self._cand("B", block="sitemap")]
+        kept = evidence_layer._merge_reserved_candidates([], sitemap, slots=5)
+        self.assertEqual([c["headline"] for c in kept], ["A", "B"])
+
+    def test_sitemap_empty_lets_gdelt_fill_all_slots(self):
+        gdelt = [self._cand("A"), self._cand("B")]
+        kept = evidence_layer._merge_reserved_candidates(gdelt, [], slots=5)
+        self.assertEqual([c["headline"] for c in kept], ["A", "B"])
+
+    def test_higher_match_strength_from_either_source_ranks_first(self):
+        gdelt = [self._cand("GDELT plain", priority=False, has_figure=False)]
+        sitemap = [self._cand("Sitemap priority with figure", priority=True, has_figure=True, block="sitemap")]
+        kept = evidence_layer._merge_reserved_candidates(gdelt, sitemap, slots=5)
+        self.assertEqual(kept[0]["headline"], "Sitemap priority with figure")
+
+    def test_result_capped_at_slots(self):
+        gdelt = [self._cand(f"G{i}") for i in range(3)]
+        sitemap = [self._cand(f"S{i}", block="sitemap") for i in range(3)]
+        kept = evidence_layer._merge_reserved_candidates(gdelt, sitemap, slots=2)
+        self.assertEqual(len(kept), 2)
+
+    def test_zero_slots_returns_empty(self):
+        self.assertEqual(evidence_layer._merge_reserved_candidates([self._cand("A")], [], slots=0), [])
+
+    def test_cross_source_near_duplicate_titles_keep_only_the_higher_ranked_one(self):
+        gdelt = [self._cand("TSMC posts 34% revenue growth in August", priority=True, has_figure=True)]
+        sitemap = [self._cand("TSMC posts 34 pct revenue growth in August", block="sitemap")]
+        kept = evidence_layer._merge_reserved_candidates(gdelt, sitemap, slots=5)
+        self.assertEqual(len(kept), 1)
+        self.assertEqual(kept[0]["block"], "gdelt")
 
 
 class FeedStatusTests(unittest.TestCase):

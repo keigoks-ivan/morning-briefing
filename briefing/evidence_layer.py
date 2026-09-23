@@ -48,7 +48,9 @@ SEED_PATH = Path(__file__).resolve().parents[1] / "data" / "evidence_seed_ledger
 MAX_CANDIDATES = 30        # 每天最多判斷幾則（依區塊優先序）；2026-09-23：24→30，配合
                             # JevClient 預設每次執行 30 個請求上限，讓 GDELT 保留的名額都能被問到
 GDELT_MAX_SLOTS = 8         # 早報自己的新聞卡填完 MAX_CANDIDATES-GDELT_MAX_SLOTS 個名額之後，
-                            # 剩下的名額（最多 8 個）留給 GDELT 候選（2026-09-23）
+                            # 剩下的名額（最多 8 個）留給 GDELT／sitemap 候選共用（2026-09-23 定，
+                            # 2026-09-24 改成兩邊共用同一批名額，不是各自獨立 8 個；見
+                            # _merge_reserved_candidates／CLAUDE.md「Sitemap 候選」段）
 TOP_SHOWN = 5              # 早報主區塊最多顯示幾則
 NOVELTY_MIN_CONF = 0.60    # 新舊分類信心低於此 → 待複核
 VAR_MIN_CONF = 0.50        # 變數判定信心低於此 → 不當成影響
@@ -66,6 +68,9 @@ BLOCK_PRIORITY = [
     ("tech_trends", 0.35), ("startup_news", 0.3),   # 2026-09-23：Deep tech／Startups 加入候選
                                                      # （HBM／CoWoS 合約與產能、新創輪次），見 CLAUDE.md
     ("gdelt", 0.2),   # 2026-09-23：GDELT 候選（早報既有 RSS 以外的公司專屬新聞），優先序最低
+    ("sitemap", 0.2),   # 2026-09-24：新聞網站自己的 sitemap 候選（briefing/sitemap_source.py），
+                        # 跟 gdelt 並列最低優先序，兩者共用 GDELT_MAX_SLOTS 剩下的名額，見下方
+                        # _merge_reserved_candidates。
 ]
 
 # 早報外掃描（ideas_layer._wide_scan）額外納入的「沒進 BLOCK_PRIORITY 候選、但仍是新聞卡」區塊
@@ -634,13 +639,45 @@ def _jp_codes(keys: list[str], routing: dict) -> set:
     return codes
 
 
+def _match_score(cand: dict) -> tuple:
+    """GDELT／sitemap 候選共用名額的排序鍵（2026-09-24，見 _merge_reserved_candidates）：命中
+    DD／持倉優先公司排最前，其次標題帶數字，最後新的排前面。兩個來源的 make_candidate 都會
+    寫 `_match_priority`／`_match_has_figure` 這兩個內部欄位（不進最終 item，只在這裡用）。"""
+    return (bool(cand.get("_match_priority")), bool(cand.get("_match_has_figure")),
+            cand.get("published_at") or cand.get("source_date") or "")
+
+
+def _merge_reserved_candidates(gdelt_cands: list[dict], sitemap_cands: list[dict], slots: int) -> list[dict]:
+    """GDELT／sitemap 候選共用剩下的名額（2026-09-24）：GDELT 在 GitHub Actions 上常態性被限流
+    （2026-09-24 排程：rate_limited 3、kept 0，見 CLAUDE.md），slots 名額不再固定切給 GDELT，
+    改成兩邊候選合併，依 _match_score 排序取前 slots 個——GDELT 沒查到就整批由 sitemap 補；
+    sitemap 也沒有就是空清單，不補假資料；兩邊都有就按命中強度＋新舊交錯，不是先放完一個來源
+    的再放另一個。跟既有標題近似的（含跨兩個來源撞到同一則新聞）互相去重，只留分數較高、已經
+    排在前面的那一則。"""
+    if slots <= 0:
+        return []
+    from news_fetcher import _near_same_title   # 延遲載入，理由跟 gdelt_source.filter_and_rank 同一條
+    combined = sorted(gdelt_cands + sitemap_cands, key=_match_score, reverse=True)
+    kept: list[dict] = []
+    kept_titles: list[str] = []
+    for cand in combined:
+        title = cand.get("headline") or ""
+        if any(_near_same_title(title, t) for t in kept_titles):
+            continue
+        kept.append(cand)
+        kept_titles.append(title)
+        if len(kept) >= slots:
+            break
+    return kept
+
+
 def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list[dict] | None,
                        news_quality: dict | None, today: str, data_dir: Path | None = None, *,
                        routing: dict | None = None, ledger: Ledger | None = None,
                        holdings_json: dict | None = None, jev: JevClient | None = None,
                        fetch=_fetch_json, sec_get_json=_sec_get_json,
                        sec_user_agent: str | None = None, official_fetch=http_text,
-                       full_text_fetch=None, gdelt_fetch=None,
+                       full_text_fetch=None, gdelt_fetch=None, sitemap_fetch=None,
                        ideas: list[dict] | None = None) -> tuple[dict, Ledger]:
     routing = routing or load_routing()
     dd = dd_index(watchlist)
@@ -661,20 +698,38 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
     official = OfficialSources(routing.get("official_sources") or {}, fetch_text=official_fetch, today=today)
     official.prefetch()   # 官方來源每次執行只抓一次（並行）
 
-    # 早報自己的新聞卡先佔名額，留 GDELT_MAX_SLOTS 個名額給 GDELT（2026-09-23；gdelt_fetch 沒傳就不查，
-    # 測試預設不連網）。GDELT 失敗、逾時、被限流都不能連累這一層，全部包一層 try/except。
+    # 早報自己的新聞卡先佔名額，留 GDELT_MAX_SLOTS 個名額給 GDELT／sitemap 共用（2026-09-23 定
+    # GDELT、2026-09-24 加 sitemap 並改成共用，見 _merge_reserved_candidates；gdelt_fetch／
+    # sitemap_fetch 沒傳就不查，測試預設不連網）。兩邊失敗、逾時、被限流都不能連累這一層，
+    # 各自包一層 try/except。
     cands = build_candidates(data, rss_items or [], matcher, today, max_n=MAX_CANDIDATES - GDELT_MAX_SLOTS)
+    dedup_titles = [str(c.get("headline") or c.get("title") or "") for _, _, c in collect_cards(data)] + \
+        [it.get("title", "") for it in (rss_items or [])]
+    slots = max(0, MAX_CANDIDATES - len(cands))
+
     gdelt_quality: dict = {"enabled": False, "reason": "not configured"}
+    gdelt_cands: list[dict] = []
     if gdelt_fetch is not None:
         try:
-            dedup_titles = [str(c.get("headline") or c.get("title") or "") for _, _, c in collect_cards(data)] + \
-                [it.get("title", "") for it in (rss_items or [])]
-            slots = max(0, MAX_CANDIDATES - len(cands))
             gdelt_cands, gdelt_quality = gdelt_fetch(routing, matcher, dd, holdings, dedup_titles, today,
                                                       max_kept=slots)
-            cands += gdelt_cands[:slots]
         except Exception as e:  # noqa: BLE001 — GDELT 掛掉不能連累早報
             gdelt_quality = {"enabled": False, "error": f"{type(e).__name__}: {e}"}
+
+    sitemap_quality: dict = {"enabled": False, "reason": "not configured"}
+    sitemap_cands: list[dict] = []
+    sitemap_pool: list[dict] = []
+    if sitemap_fetch is not None:
+        try:
+            sitemap_cands, sitemap_pool, sitemap_quality = sitemap_fetch(
+                routing, matcher, dd, holdings, dedup_titles, today, max_kept=slots)
+        except Exception as e:  # noqa: BLE001 — sitemap 候選掛掉不能連累早報
+            sitemap_quality = {"enabled": False, "error": f"{type(e).__name__}: {e}"}
+
+    reserved = _merge_reserved_candidates(gdelt_cands, sitemap_cands, slots)
+    gdelt_quality["slots_used"] = sum(1 for c in reserved if c.get("block") == "gdelt")
+    sitemap_quality["slots_used"] = sum(1 for c in reserved if c.get("block") == "sitemap")
+    cands += reserved
 
     # ①b 全文（2026-09-23 新增）：只抓最前面 12 則（見 evidence_fulltext.MAX_FULLTEXT），
     # 抓到就把摘要塞進 state 給 Jev、把數字／關鍵詞併進去給官方來源比對用、basis 升級成
@@ -874,7 +929,7 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
         from ideas_layer import run_ideas_step
         ideas_result = run_ideas_step(items, cand_by_id, jev, today, ideas=ideas, fetch=fetch,
                                       matcher=matcher, rss_items=rss_items, ledger=ledger,
-                                      curated_cards=curated_pool)
+                                      curated_cards=curated_pool, sitemap_items=sitemap_pool)
     except Exception as e:  # noqa: BLE001 — 想法層掛掉不能連累事件判斷層其餘輸出
         for it in items:
             it.setdefault("ideas", [])
@@ -916,6 +971,7 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
     quality = quality_record(news_quality, data, cands, items, jev.stats, routing)
     quality["official_sources"] = official.summary()
     quality["gdelt"] = gdelt_quality
+    quality["sitemap"] = sitemap_quality
     result = {
         "schema": SCHEMA, "date": today, "generated_at": _now_iso(), "model": MODEL,
         "jev": {"status": jev_status, "reason": reason},

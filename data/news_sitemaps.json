@@ -1,0 +1,59 @@
+{
+  "_comment": "briefing/sitemap_source.py 的來源清單（2026-09-24 新增，見 CLAUDE.md「Sitemap 候選」段）。type: news_sitemap（Google News 相容格式，直接有 news:title／news:publication_date）／sitemap_index（先抓索引頁，取最新 max_children 個子 sitemap 當 news_sitemap 解析）／site_sitemap（沒有 news: 標籤，只有 lastmod，要靠 url_filter 篩，標題用網址 slug 猜）。url_filter 是正則，只有 site_sitemap 用得到，對 <loc> 比對。max_age_hours 沒填預設 48。money.udn.com 有現成的 gnews sitemap 但 robots.txt 明文寫『Any other uses are not permitted...for large language models (LLMs)...』且直接列名 Disallow: Claude／ClaudeBot，沒有收進來；DigiTimes 英文站只有 RSS（daily.xml），sitemap.xml 等路徑都是 soft-404 的 SPA 頁面；ctee.com.tw 在本機測試被 Cloudflare WAF 擋掉回 403；cnyes 的 news sitemap 快照是 2021 年的舊資料，不是即時更新；四個都不收，見 CLAUDE.md 與任務報告。",
+  "sources": [
+    {
+      "name": "CNBC",
+      "url": "https://www.cnbc.com/sitemap_news.xml",
+      "type": "news_sitemap",
+      "lang": "en",
+      "max_age_hours": 48
+    },
+    {
+      "name": "Reuters",
+      "url": "https://www.reuters.com/arc/outboundfeeds/news-sitemap/?outputType=xml",
+      "type": "news_sitemap",
+      "lang": "en",
+      "max_age_hours": 48
+    },
+    {
+      "name": "TheElec",
+      "url": "https://www.thelec.net/sitemap.xml",
+      "type": "news_sitemap",
+      "lang": "en",
+      "max_age_hours": 48,
+      "_note": "路徑雖然叫 sitemap.xml，實測（2026-09-24）是直接的 news sitemap（100 則，含 news:title／news:publication_date），不是索引頁。"
+    },
+    {
+      "name": "Korea Herald",
+      "url": "https://www.koreaherald.com/sitemap/latest-articles",
+      "type": "news_sitemap",
+      "lang": "en",
+      "max_age_hours": 48
+    },
+    {
+      "name": "Nikkei Asia",
+      "url": "https://asia.nikkei.com/sitemap_news.xml",
+      "type": "sitemap_index",
+      "lang": "en",
+      "max_age_hours": 48,
+      "max_children": 2,
+      "_note": "索引頁按日期分檔（?date=YYYYMMDD），today+yesterday 兩個子檔剛好對到 48 小時窗；nikkei.com 已經在 evidence_fulltext.PAYWALL_DOMAINS，asia.nikkei.com 是子網域也會被擋，全文不抓，只用標題。"
+    },
+    {
+      "name": "Tom's Hardware",
+      "url": "https://www.tomshardware.com/sitemap-news.xml",
+      "type": "news_sitemap",
+      "lang": "en",
+      "max_age_hours": 48
+    },
+    {
+      "name": "TrendForce",
+      "url": "https://www.trendforce.com/sitemap.xml",
+      "type": "site_sitemap",
+      "lang": "en",
+      "max_age_hours": 48,
+      "url_filter": "/presscenter/news/\\d{8}-\\d+\\.html$",
+      "_note": "全站 sitemap 沒有 news: 標籤，只有 lastmod；presscenter/news 的 slug 是日期＋流水號，猜不出有意義的標題，一律 title_from_slug=true。2026-09-24 實測這個 sitemap 本身似乎不是每天重新產生，presscenter/news 最新一筆 lastmod 落後當天超過 48 小時，常態性 items_recent=0，非錯誤。"
+    }
+  ]
+}

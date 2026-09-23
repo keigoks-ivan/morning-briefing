@@ -1074,6 +1074,20 @@ def _ev_row_detail(item: dict) -> str:
 _GDELT_BADGE = ('<span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;'
                'margin-left:6px;background:#E8F0FE;color:#1B3A5C;vertical-align:middle;">'
                "Found via GDELT (not in the briefing&#39;s feeds)</span>")
+# 2026-09-24 新增：sitemap 候選（briefing/sitemap_source.py）跟 GDELT 並列最低優先序，共用
+# 同一批保留名額（見 evidence_layer.GDELT_MAX_SLOTS），畫面上用同一種樣式、換一句文字。
+_SITEMAP_BADGE = ('<span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;'
+                  'margin-left:6px;background:#E8F0FE;color:#1B3A5C;vertical-align:middle;">'
+                  "Found via sitemap (not in the briefing&#39;s feeds)</span>")
+
+
+def _ev_source_badge(item: dict) -> str:
+    block = item.get("block")
+    if block == "gdelt":
+        return _GDELT_BADGE
+    if block == "sitemap":
+        return _SITEMAP_BADGE
+    return ""
 
 
 def _ev_top_card(item: dict) -> str:
@@ -1084,7 +1098,7 @@ def _ev_top_card(item: dict) -> str:
     cl = item.get("classification") or {}
     st = item.get("status") or {}
     style = _EV_STATUS_STYLE.get(st.get("code"), _EV_STATUS_STYLE["logged"])
-    gdelt_badge = _GDELT_BADGE if item.get("block") == "gdelt" else ""
+    gdelt_badge = _ev_source_badge(item)
     why_new = item.get("new_today", "")
     why_html = (f'<div style="font-size:13px;color:#555;line-height:1.6;margin:3px 0;">{_esc(why_new)}</div>'
                 if why_new else "")
@@ -1113,7 +1127,7 @@ def _ev_item_brief(item: dict) -> str:
     st = item.get("status") or {}
     style = _EV_STATUS_STYLE.get(st.get("code"), _EV_STATUS_STYLE["logged"])
     cl = item.get("classification") or {}
-    gdelt_badge = _GDELT_BADGE if item.get("block") == "gdelt" else ""
+    gdelt_badge = _ev_source_badge(item)
     return (f'<div style="padding:6px 0;border-bottom:0.5px solid #f5f5f5;font-size:13px;color:#333;line-height:1.6;">'
             f'{_esc(item.get("headline", ""))}{gdelt_badge} '
             f'<span style="color:#999;font-size:12px;">{_esc(cl.get("display", ""))}</span> '
@@ -1152,7 +1166,15 @@ def _ev_quality_line(ev: dict) -> str:
     gd = q.get("gdelt") or {}
     if gd.get("enabled"):
         bits.append(f'GDELT: {gd.get("requests_sent", 0)} requests ({gd.get("rate_limited", 0)} rate-limited), '
-                    f'{gd.get("articles_seen", 0)} articles seen, {gd.get("kept", 0)} kept')
+                    f'{gd.get("articles_seen", 0)} articles seen, {gd.get("kept", 0)} kept'
+                    + (f', {gd["slots_used"]} used' if gd.get("slots_used") is not None else ""))
+    sm = q.get("sitemap") or {}
+    if sm.get("enabled"):
+        srcs = sm.get("sources") or {}
+        ok_n = sum(1 for s in srcs.values() if s.get("status") == "ok")
+        bits.append(f'Sitemap: {ok_n}/{len(srcs)} sources ok, {sm.get("items_seen_total", 0)} items seen, '
+                    f'{sm.get("kept", 0)} kept'
+                    + (f', {sm["slots_used"]} used' if sm.get("slots_used") is not None else ""))
     line = " · ".join(bits)
     if osrc.get("failed"):
         failed_off = ", ".join(sorted(osrc["failed"]))[:200]
@@ -1166,6 +1188,13 @@ def _ev_quality_line(ev: dict) -> str:
                   f'which is not the same as no news): {_esc(", ".join((failed + empty)[:10]))}</div>')
     if failed_off:
         extra += f'<div style="margin-top:3px;color:#856404;">Official sources not read today: {_esc(failed_off)}</div>'
+    sm_sources = sm.get("sources") or {}
+    sitemap_not_ok = sorted(sm_sources)
+    sitemap_not_ok = [f'{name} ({(sm_sources[name] or {}).get("status", "?")})'
+                      for name in sitemap_not_ok if (sm_sources[name] or {}).get("status") != "ok"]
+    if sitemap_not_ok:
+        extra += ('<div style="margin-top:3px;color:#856404;">Sitemap sources not read today: '
+                  f'{_esc(", ".join(sitemap_not_ok[:10]))}</div>')
     gaps = q.get("primary_source_gaps") or []
     if gaps:
         extra += f'<div style="margin-top:3px;">Primary sources not connected: {_esc("; ".join(gaps[:5]))}</div>'

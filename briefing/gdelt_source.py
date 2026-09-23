@@ -306,6 +306,10 @@ def make_candidate(art: dict, matcher, today: str) -> dict:
         "rss": [{"source": art["domain"], "title": title, "summary": "", "url": art["url"],
                  "published": published_iso, "also_in": []}],
         "basis": {"code": "headline_summary", "display": "Headline and feed summary only, unverified"},
+        # 2026-09-24：給 evidence_layer._merge_reserved_candidates 跟 sitemap 候選一起排序用
+        # （見 sitemap_source.py 同名欄位的註解），不是給 Jev 或畫面用的欄位。
+        "_match_priority": bool(art.get("priority")),
+        "_match_has_figure": bool(art.get("has_figure")),
     }
 
 
