@@ -1289,6 +1289,11 @@ def _ev_row_detail(item: dict) -> str:
     return f'<table style="margin:8px 0 4px;border-collapse:collapse;">{"".join(rows)}</table>'
 
 
+_GDELT_BADGE = ('<span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;'
+               'margin-left:6px;background:#E8F0FE;color:#1B3A5C;vertical-align:middle;">'
+               "Found via GDELT (not in the briefing&#39;s feeds)</span>")
+
+
 def _ev_item(item: dict, open_: bool = False) -> str:
     st = item.get("status") or {}
     style = _EV_STATUS_STYLE.get(st.get("code"), _EV_STATUS_STYLE["logged"])
@@ -1296,10 +1301,11 @@ def _ev_item(item: dict, open_: bool = False) -> str:
     stage = (item.get("stage") or {}).get("display")
     topics = ", ".join(x["label"] for x in item.get("topics") or [])
     sub = " · ".join(x for x in (cl.get("display"), stage, topics) if x)
+    gdelt_badge = _GDELT_BADGE if item.get("block") == "gdelt" else ""
     return f'''
 <details {"open" if open_ else ""} style="padding:10px 0;border-bottom:0.5px solid #f0f0f0;">
   <summary style="cursor:pointer;list-style:none;">
-    <div style="font-size:15px;font-weight:500;color:#222;line-height:1.5;">{_esc(item.get("headline", ""))}</div>
+    <div style="font-size:15px;font-weight:500;color:#222;line-height:1.5;">{_esc(item.get("headline", ""))}{gdelt_badge}</div>
     <div style="font-size:12px;color:#888;margin:2px 0 4px;">{_esc(sub)} · {_esc(item.get("source", ""))} {_esc(item.get("source_date", ""))}</div>
     <div style="font-size:13px;line-height:1.7;">
       <span style="color:#888;">Direct impact:</span> {_ev_vars(item)}
@@ -1337,6 +1343,10 @@ def _ev_quality_line(ev: dict) -> str:
     osrc = q.get("official_sources") or {}
     if osrc.get("total"):
         bits.append(f'official sources read {osrc.get("ok", 0)}/{osrc["total"]}')
+    gd = q.get("gdelt") or {}
+    if gd.get("enabled"):
+        bits.append(f'GDELT: {gd.get("requests_sent", 0)} requests ({gd.get("rate_limited", 0)} rate-limited), '
+                    f'{gd.get("articles_seen", 0)} articles seen, {gd.get("kept", 0)} kept')
     line = " · ".join(bits)
     if osrc.get("failed"):
         failed_off = ", ".join(sorted(osrc["failed"]))[:200]

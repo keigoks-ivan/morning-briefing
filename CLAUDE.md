@@ -159,6 +159,7 @@ Google verification`）——那是機器人偵測，不繞。而且就算加成
 - `briefing/evidence_ledger.py`：跨日事實紀錄、數字正規化、找先前紀錄
 - `briefing/evidence_routing.py`：DD／研究主題／總經報告／系統持倉派送、可能受影響的產業、SEC 查核
 - `briefing/evidence_sources.py`：一手來源（官方 RSS、證交所與櫃買中心重大訊息、官方網域的 Google News site: 查詢、當事公司新聞稿）
+- `briefing/gdelt_source.py`（2026-09-23 新增）：第二個候選來源，查 GDELT DOC 2.0，找早報自己 RSS 以外的公司專屬新聞
 - `briefing/jev_client.py`：HTTP 客戶端，含快取與每次執行的請求上限
 - `data/evidence_routing.json`：人工對照表。人工環節、91 個研究主題的英文辨識詞、27 個總經主題與國家、國別對應的指數部部位、官方來源清單。
 - `data/evidence_routing_auto.json`：自動產生，不要手改。來自 financial-analysis-bot 的研究主題（ID）成員與角色欄公司名、總經報告（MACRO）的關鍵指標。重建：`python3 briefing/evidence_build_data.py routing --fab ~/financial-analysis-bot`
@@ -178,13 +179,17 @@ Google verification`）——那是機器人偵測，不繞。而且就算加成
 - 一手來源分兩級：內容對上（數字或用字重疊）才升級成「官方文件已對到」；同公司、同日期但內容沒對上，只列為「附近有公告」。當事公司新聞稿只收標題開頭是該公司名的，別家新聞稿順帶提到的不算。
 - 總經提醒由程式加：官員發言不是決策、市場定價不是預測、部分月份資料、初值常修正、談判不是協議、預測不是結果、政策決定要看官方公告。
 
+**GDELT 候選（2026-09-23 新增）**：早報自己的候選只來自約 60 個 RSS 來源，個股專屬新聞常常漏接。`gdelt_source.py` 另外用公司名組 OR 查詢查 GDELT DOC 2.0，公司名優先序是 DD 已有報告／系統持倉在前，研究主題成員在後；`sourcelang:english`，一次最多 20 個請求，限流一次／5 秒（超過回 HTTP 429＋純文字訊息，程式判斷後等 5 秒重試一次，再不行就放棄那一題）。查詢字元上限（`MAX_QUERY_CHARS`）先用保守值 1200：沙盒環境對外 IP 一直被限流，隔了 20～90 秒還是 429，沒能實測出 GDELT 真正的上限，之後常態性因為太長被拒再收窄。標題要點到一家研究公司、而且有帶單位的數字或主題／環節辨識詞才留；跟既有新聞卡或 RSS 標題近似的丟掉，黑名單網域（`source_registry.is_blacklisted`）丟掉；每天最多留 10 則，排序先看公司在不在 DD／持倉，再看有沒有數字，最後比新舊。候選的 `block` 叫 `gdelt`，`BLOCK_PRIORITY` 裡優先序全早報最低；`MAX_CANDIDATES` 24→30，留 8 個名額給 GDELT（配合 `JevClient` 預設每次執行 30 個請求的上限，讓保留的名額都問得到 Jev；估算單則輸入 token 沒有明顯變化，400,000 上限還很有餘裕）。`run_evidence_layer` 新增 `gdelt_fetch` 參數，預設 `None`（不查、不連網，測試安全）；`main.py` 傳 `gdelt_fetch=fetch_gdelt_candidates` 才真的查。GDELT 掛掉、逾時、被限流都包一層 try/except，不影響早報，記在 `quality["gdelt"]`（`requests_sent`／`ok`／`rate_limited`／`articles_seen`／`kept`）與 `source_quality_*.json`。news 頁每則 GDELT 候選旁邊有「Found via GDELT (not in the briefing's feeds)」標籤（`html_template._ev_item`）。
+
+**韓國出口統計配不到研究主題的坑（2026-09-23 修）**：live 版 `evidence_latest.json` 裡「Korea chip exports up 259%…」零派送，同一天「Korea's chip exports to Malaysia up 5.7x…」卻有派送。原因是 `data/evidence_routing.json` 的 `countries.KR` 只認 South Korea／Korea's／Korean，光講 Korea 配不到國家，scoped 的 TRADE_DATA 主題就退回預設美國；`theme_keywords.MemorySupercycle` 也只收 Korean chip exports／Korea's chip exports 兩種寫法。修法：`countries.KR` 加一筆 `Korea chip`，`theme_keywords.MemorySupercycle` 加一筆 `Korea chip exports`。沒有直接加裸的 `Korea`，避免跟 North Korea 的新聞撞在一起。
+
 **DD／研究主題不再更新時**：這一層照常運作，判斷新舊用的是每天累積的事實紀錄，不是報告。每個 DD、研究主題、總經報告連結旁邊標報告日期；超過 120 天標 older report；另標「報告之後紀錄裡又多了幾則新事實」（+N new since）。報告成了基準線，每天的紀錄是它的後續。
 
 **Secrets（兩個都選填）**：`TYPESAFE_API_KEY`（沒有就只標未判斷，不花錢）、`SEC_USER_AGENT`（SEC 要求帶聯絡方式；沒有就跳過查核並標成缺口）。
 
-**成本**：2026-09-22 十則實測約 6.5 萬 input token，約 0.0027 美元。官方來源約 35 個請求、3 秒，不花錢。每次執行上限 30 個請求、40 萬 token（`JevClient` 參數）。
+**成本**：2026-09-22 十則實測約 6.5 萬 input token，約 0.0027 美元。官方來源約 35 個請求、3 秒，不花錢。每次執行上限 30 個請求、40 萬 token（`JevClient` 參數）；2026-09-23 `MAX_CANDIDATES` 24→30 之後最多也是 30 個請求，還在上限內。GDELT 另外算，不花 Jev 的錢，20 個請求＋限流間隔約 100～150 秒。
 
-**測試**：`python3.12 -m pytest -q tests`（不呼叫付費 API）。離線重播 9/22 案例：`python3.12 tests/evidence_offline_replay.py --out /tmp/evidence_replay --mode fake`（`--mode nokey` 看沒金鑰的畫面）。fake 模式用的是測試劇本，不是真實 Jev 輸出。官方來源在測試裡讀 `tests/fixtures/official_20260922/` 的快照，不連網。
+**測試**：`python3.12 -m pytest -q tests`（不呼叫付費 API，GDELT 也不連網）。`tests/test_gdelt_source.py` 測查詢組裝、限流偵測與重試、標題過濾與排序、候選形狀；`tests/test_evidence_layer.py` 的 `GdeltIntegrationTests` 測 `gdelt_fetch` 參數怎麼接進 `run_evidence_layer`（假的 fetch、預設不查、掛掉不連累早報）。離線重播 9/22 案例：`python3.12 tests/evidence_offline_replay.py --out /tmp/evidence_replay --mode fake`（`--mode nokey` 看沒金鑰的畫面）。fake 模式用的是測試劇本，不是真實 Jev 輸出。官方來源在測試裡讀 `tests/fixtures/official_20260922/` 的快照，不連網。
 
 ---
 

@@ -43,7 +43,10 @@ SCHEMA = "evidence-layer-v1"
 SITE_DATA_URL = "https://research.investmquest.com/briefing/data"
 SEED_PATH = Path(__file__).resolve().parents[1] / "data" / "evidence_seed_ledger.json"
 
-MAX_CANDIDATES = 24        # 每天最多判斷幾則（依區塊優先序）
+MAX_CANDIDATES = 30        # 每天最多判斷幾則（依區塊優先序）；2026-09-23：24→30，配合
+                            # JevClient 預設每次執行 30 個請求上限，讓 GDELT 保留的名額都能被問到
+GDELT_MAX_SLOTS = 8         # 早報自己的新聞卡填完 MAX_CANDIDATES-GDELT_MAX_SLOTS 個名額之後，
+                            # 剩下的名額（最多 8 個）留給 GDELT 候選（2026-09-23）
 TOP_SHOWN = 5              # 早報主區塊最多顯示幾則
 NOVELTY_MIN_CONF = 0.60    # 新舊分類信心低於此 → 待複核
 VAR_MIN_CONF = 0.50        # 變數判定信心低於此 → 不當成影響
@@ -54,6 +57,7 @@ MAX_COMPANIES_PER_ITEM = 5
 BLOCK_PRIORITY = [
     ("top_stories", 1.0), ("industry_developments", 0.9), ("watchlist_news", 0.85),
     ("ai_industry", 0.7), ("macro", 0.6), ("regional_tech", 0.5), ("geopolitical", 0.4),
+    ("gdelt", 0.2),   # 2026-09-23：GDELT 候選（早報既有 RSS 以外的公司專屬新聞），優先序最低
 ]
 PRIMARY_DOMAINS = ("sec.gov", "federalreserve.gov", "fda.gov", "mops.twse.com.tw", "customs.go.kr",
                    "motie.go.kr", "pr.tsmc.com", "nvidianews.nvidia.com", "news.microsoft.com",
@@ -526,7 +530,8 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
                        routing: dict | None = None, ledger: Ledger | None = None,
                        holdings_json: dict | None = None, jev: JevClient | None = None,
                        fetch=_fetch_json, sec_get_json=_sec_get_json,
-                       sec_user_agent: str | None = None, official_fetch=http_text) -> tuple[dict, Ledger]:
+                       sec_user_agent: str | None = None, official_fetch=http_text,
+                       gdelt_fetch=None) -> tuple[dict, Ledger]:
     routing = routing or load_routing()
     dd = dd_index(watchlist)
     matcher = EntityMatcher(routing, {t: v.get("name", "") for t, v in dd.items()})
@@ -541,7 +546,20 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
     official = OfficialSources(routing.get("official_sources") or {}, fetch_text=official_fetch, today=today)
     official.prefetch()   # 官方來源每次執行只抓一次（並行）
 
-    cands = build_candidates(data, rss_items or [], matcher, today)
+    # 早報自己的新聞卡先佔名額，留 GDELT_MAX_SLOTS 個名額給 GDELT（2026-09-23；gdelt_fetch 沒傳就不查，
+    # 測試預設不連網）。GDELT 失敗、逾時、被限流都不能連累這一層，全部包一層 try/except。
+    cands = build_candidates(data, rss_items or [], matcher, today, max_n=MAX_CANDIDATES - GDELT_MAX_SLOTS)
+    gdelt_quality: dict = {"enabled": False, "reason": "not configured"}
+    if gdelt_fetch is not None:
+        try:
+            dedup_titles = [str(c.get("headline") or c.get("title") or "") for _, _, c in collect_cards(data)] + \
+                [it.get("title", "") for it in (rss_items or [])]
+            slots = max(0, MAX_CANDIDATES - len(cands))
+            gdelt_cands, gdelt_quality = gdelt_fetch(routing, matcher, dd, holdings, dedup_titles, today,
+                                                      max_kept=slots)
+            cands += gdelt_cands[:slots]
+        except Exception as e:  # noqa: BLE001 — GDELT 掛掉不能連累早報
+            gdelt_quality = {"enabled": False, "error": f"{type(e).__name__}: {e}"}
 
     # ① 問 Jev（每則一個請求；同樣的請求從快取拿）
     judged = []
@@ -717,6 +735,7 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
 
     quality = quality_record(news_quality, data, cands, items, jev.stats, routing)
     quality["official_sources"] = official.summary()
+    quality["gdelt"] = gdelt_quality
     result = {
         "schema": SCHEMA, "date": today, "generated_at": _now_iso(), "model": MODEL,
         "jev": {"status": jev_status, "reason": reason},
