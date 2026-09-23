@@ -38,6 +38,7 @@ from evidence_routing import (
     public_holdings_view, route, sec_check, segment_gaps,
 )
 from evidence_sources import OfficialSources, http_text
+from ideas_layer import MAX_IDEA_PAIRS
 from jev_client import MODEL, JevClient, get_api_key
 
 SCHEMA = "evidence-layer-v1"
@@ -636,7 +637,10 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
         holdings_json, _ = fetch(os.environ.get("PUBLIC_HOLDINGS_URL", "https://research.investmquest.com/pm/holdings.json"))
     holdings = public_holdings_view(holdings_json)
     if jev is None:
-        jev = JevClient(api_key=get_api_key(), cache=load_jev_cache(today, data_dir, fetch))
+        # 請求上限＝候選數＋想法步驟的名額＋2 備用。2026-09-23：預設 30 會被 MAX_CANDIDATES=30
+        # 用光，想法步驟（在最後跑）一題都問不到、全部變 unjudged。
+        jev = JevClient(api_key=get_api_key(), cache=load_jev_cache(today, data_dir, fetch),
+                        max_requests=MAX_CANDIDATES + MAX_IDEA_PAIRS + 2)
     if sec_user_agent is None:
         sec_user_agent = os.environ.get("SEC_USER_AGENT", "").strip() or None
     official = OfficialSources(routing.get("official_sources") or {}, fetch_text=official_fetch, today=today)
