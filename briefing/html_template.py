@@ -1382,6 +1382,107 @@ _IDEA_VERDICT_STYLE = {
     "unjudged": ("未判斷", "background:#F1F1F1;color:#666;"),
 }
 
+# ── 想法「深入查核」（research.json，另一個雲端 routine idea-watch-auto，每天 05:15 台北，
+# 見 ideas_layer.load_research）：跟上面 idea_hits.json 那條早報自己的 Jev 比對是兩份獨立
+# 資料，這裡只負責渲染，不做任何比對。狀態／verdict 中文對照跟 fab-watch 想法頁
+# （docs/ideas/*.html）用同一套字：supports／shaky／refutes／no_data → 支持／動搖／推翻／
+# 尚無資料；entries 的 verdict 少一種 no_data、多一種 neutral（中性）。2026-09-23 晚新增。
+_RESEARCH_STATUS_ZH = {"supports": "支持", "shaky": "動搖", "refutes": "推翻", "no_data": "尚無資料"}
+_RESEARCH_VERDICT_STYLE = {
+    "supports": ("支持", "background:#EAF3DE;color:#3B6D11;"),
+    "refutes": ("推翻", "background:#FCEBEB;color:#A32D2D;"),
+    "shaky": ("動搖", "background:#FAF0DA;color:#854F0B;"),
+    "neutral": ("中性", "background:#F1F1F1;color:#666;"),
+}
+_RESEARCH_KIND_ZH = {"search": "主動搜尋", "earnings": "財報", "transcript": "法說逐字稿"}
+
+
+def _cp_number_label(checkpoint_id: str) -> str:
+    """'cp2' -> '查核點 2'（跟 email 摘要／news 頁的變化列用同一種簡稱，比完整 label 短）；
+    不符合 cpN 這個既有慣例（見 financial-analysis-bot ideas.json）就原樣顯示，不猜。"""
+    cpid = str(checkpoint_id or "")
+    if cpid.startswith("cp") and cpid[2:].isdigit():
+        return f"查核點 {cpid[2:]}"
+    return cpid
+
+
+def _research_today_payload(research: dict | None, today: str) -> dict:
+    """research：ev.get('idea_research')，形狀 {'status', 'data'}（見 evidence_layer.py）。
+    只有 run.date == today 才把 entries／changes 當「今天」的（run.date 不是今天，代表深入
+    查核今天還沒跑完，不能把上一次跑的資料誤標成今天——即使裡面剛好有欄位等於今天的日期字
+    串也一樣，一律以 run.date 為準，見 CLAUDE.md「投資想法／查核點」段）。"""
+    if not isinstance(research, dict) or research.get("status") != "ok":
+        return {"available": False, "stale": False, "run_date": "", "entries": [], "changes": []}
+    data = research.get("data") or {}
+    run = data.get("run") or {}
+    run_date = run.get("date") or ""
+    if not run_date or run_date != today:
+        return {"available": True, "stale": bool(run_date), "run_date": run_date, "entries": [], "changes": []}
+    entries = [e for e in (data.get("entries") or []) if e.get("date") == today]
+    changes = [c for c in (data.get("changes") or []) if c.get("date") == today]
+    return {"available": True, "stale": False, "run_date": run_date, "entries": entries, "changes": changes}
+
+
+def _research_stale_line(payload: dict) -> str:
+    if not payload.get("available") or not payload.get("stale"):
+        return ""
+    return (f'<div style="font-size:13px;color:#888;padding:2px 0;">'
+           f'今天的深入查核尚未完成，顯示 {_esc(payload.get("run_date", ""))} 的狀態</div>')
+
+
+def _research_changes_block(changes: list[dict], catalog: dict) -> str:
+    """今天的查核點狀態變化，放在整個區塊最頂端：keystone 優先，推翻用紅字（2026-09-23 晚
+    新增）。例：「★ AI 剪刀差・查核點 2：支持 → 動搖（理由）」。"""
+    if not changes:
+        return ""
+    ordered = sorted(changes, key=lambda c: (0 if c.get("keystone") else 1, 0 if c.get("to") == "refutes" else 1))
+    lines = ""
+    for c in ordered:
+        idea_id, cpid = c.get("idea", ""), c.get("checkpoint", "")
+        meta = catalog.get(idea_id) or {}
+        short = meta.get("short") or idea_id
+        anchor = f"{meta.get('url', '')}#{cpid}"
+        star = "★ " if c.get("keystone") else ""
+        from_zh = _RESEARCH_STATUS_ZH.get(c.get("from", ""), c.get("from", "") or "—")
+        to_zh = _RESEARCH_STATUS_ZH.get(c.get("to", ""), c.get("to", "") or "—")
+        style = "color:#A32D2D;font-weight:600;" if c.get("to") == "refutes" else "color:#333;"
+        reason = c.get("reason") or ""
+        reason_html = f'（{_esc(reason)}）' if reason else ""
+        lines += (f'<div style="padding:3px 0;font-size:13px;{style}line-height:1.6;">'
+                 f'{star}{_ev_link(anchor, short)}・{_esc(_cp_number_label(cpid))}：'
+                 f'{_esc(from_zh)} → {_esc(to_zh)}{reason_html}</div>')
+    return f'<div style="margin-bottom:6px;">{lines}</div>'
+
+
+def _research_entry_line(e: dict, cp_labels: dict) -> str:
+    label, style = _RESEARCH_VERDICT_STYLE.get(e.get("verdict"), _RESEARCH_VERDICT_STYLE["neutral"])
+    cp_label = cp_labels.get(e.get("checkpoint", ""), e.get("checkpoint", ""))
+    kind_zh = _RESEARCH_KIND_ZH.get(e.get("kind", ""), "")
+    tag = _ev_chip("深入查核", "background:#EDEBFB;color:#534AB7;")
+    kind_html = f' <span style="font-size:12px;color:#999;">{_esc(kind_zh)}</span>' if kind_zh else ""
+    return (f'<div style="padding:4px 0;font-size:13px;color:#333;line-height:1.6;">'
+           f'{_ev_chip(label, style)} {tag}{_esc(cp_label)} &middot; {_esc(e.get("summary", ""))}{kind_html}</div>')
+
+
+def _research_changes_email_line(changes: list[dict], catalog: dict) -> str:
+    """Email 摘要只在今天有查核點狀態變化時顯示一行（不需要今天有早報命中也會顯示），例：
+    「查核點狀態變化：AI 剪刀差 1 項（查核點 2 支持→動搖）」。2026-09-23 晚新增。"""
+    if not changes:
+        return ""
+    by_idea: dict = {}
+    for c in changes:
+        by_idea.setdefault(c.get("idea", ""), []).append(c)
+    parts = []
+    for idea_id, items in by_idea.items():
+        short = (catalog.get(idea_id) or {}).get("short") or idea_id
+        detail = "、".join(
+            f'{_esc(_cp_number_label(c.get("checkpoint", "")))} '
+            f'{_esc(_RESEARCH_STATUS_ZH.get(c.get("from", ""), c.get("from", "") or "—"))}'
+            f'→{_esc(_RESEARCH_STATUS_ZH.get(c.get("to", ""), c.get("to", "") or "—"))}'
+            for c in items)
+        parts.append(f'{_esc(short)} {len(items)} 項（{detail}）')
+    return f'<div style="font-size:13px;color:#555;padding:2px 0;">查核點狀態變化：{"、".join(parts)}</div>'
+
 
 def _due_soon(catalog: dict, today: str, *, within_days: int = 7) -> list[dict]:
     """catalog（ideas_layer._catalog，每個想法的 due 清單，只收 active 想法）攤平＋依日期排序，
@@ -1427,30 +1528,45 @@ def _ideas_section(ev: dict | None) -> str:
     info = ev.get("ideas") or {}
     ideas_link = f'{_SITE}/ideas/'
     today = ev.get("date", "")
-    due_block = _due_soon_block(info.get("catalog") or {}, today)
+    catalog = info.get("catalog") or {}
+    due_block = _due_soon_block(catalog, today)
+    # 深入查核（research.json，跟早報自己的 idea_hits.json 是兩份獨立資料；讀不到或跟
+    # ev["ideas"] 的狀態無關，見 _research_today_payload）。
+    research_payload = _research_today_payload(ev.get("idea_research"), today)
+    stale_line = _research_stale_line(research_payload)
+    changes_block = _research_changes_block(research_payload["changes"], catalog)
+    entries_by_idea: dict = {}
+    for e in research_payload["entries"]:
+        entries_by_idea.setdefault(e.get("idea", ""), []).append(e)
     if info.get("status") != "ok":
         return f'''
 <div class="section">
   <div class="section-label">今天動到的想法</div>
+  {changes_block}
   <div style="font-size:14px;color:#888;padding:6px 0;">想法清單沒讀到。</div>
+  {stale_line}
   {due_block}
 </div>'''
     hits_doc = ev.get("idea_hits") or {}
     rows_today = [r for r in (hits_doc.get("hits") or [])
                  if r.get("date") == today and r.get("verdict") in ("supports", "refutes", "unjudged")]
-    if not rows_today:
+    if not rows_today and not entries_by_idea:
         return f'''
 <div class="section">
   <div class="section-label">今天動到的想法</div>
+  {changes_block}
   <div style="font-size:14px;color:#888;padding:6px 0;">今天沒有新證據動到任何想法。{_ev_link(ideas_link, "想法清單")}</div>
+  {stale_line}
   {due_block}
 </div>'''
-    catalog = info.get("catalog") or {}
     grouped: dict = {}
     for r in rows_today:
         grouped.setdefault(r.get("idea", ""), []).append(r)
+    idea_ids = list(dict.fromkeys(list(grouped.keys()) + list(entries_by_idea.keys())))
     body = ""
-    for idea_id, rows in grouped.items():
+    for idea_id in idea_ids:
+        rows = grouped.get(idea_id, [])
+        entries = entries_by_idea.get(idea_id, [])
         meta = catalog.get(idea_id) or {}
         short = meta.get("short") or idea_id
         url = meta.get("url") or "/ideas/"
@@ -1469,13 +1585,18 @@ def _ideas_section(ev: dict | None) -> str:
                            + '<span style="font-size:12px;color:#999;">只讀到標題與摘要</span> ')
             lines += (f'<div style="padding:4px 0;font-size:13px;color:#333;line-height:1.6;">'
                      f'{_ev_chip(label, style)} {wide_tag}{_esc(cp_label)} &middot; {headline_html}</div>')
+        for e in entries:   # 深入查核（research.json，今天的），跟上面早報 Jev 命中同一組群裡
+            lines += _research_entry_line(e, cp_labels)
+        total = len(rows) + len(entries)
         body += (f'<div style="padding:8px 0;border-bottom:0.5px solid #f0f0f0;">'
                 f'<div style="font-size:14px;font-weight:600;color:#222;">{_ev_link(url, short)}'
-                f' <span style="color:#888;font-weight:400;">（{len(rows)} 則）</span></div>{lines}</div>')
+                f' <span style="color:#888;font-weight:400;">（{total} 則）</span></div>{lines}</div>')
     return f'''
 <div class="section">
   <div class="section-label">今天動到的想法</div>
+  {changes_block}
   {body}
+  {stale_line}
   {due_block}
 </div>'''
 
@@ -1497,7 +1618,9 @@ def _ideas_due_email_line(catalog: dict, today: str) -> str:
 def _ideas_email_summary(ev: dict | None) -> str:
     """Email 摘要：有命中才顯示一行（每個想法各一行），格式「想法：X N 則（支持 A、推翻 B）」。
     沒有命中（包含想法清單沒讀到）就不顯示任何東西；2 天內到期的查核點另外多一行（見
-    _ideas_due_email_line），這行不需要今天有命中也會顯示。"""
+    _ideas_due_email_line），這行不需要今天有命中也會顯示。今天有查核點狀態變化（研究層
+    research.json，跟早報自己的命中是兩回事）也另外多一行，見 _research_changes_email_line，
+    同樣不需要今天有早報命中也會顯示。"""
     if not isinstance(ev, dict):
         return ""
     info = ev.get("ideas") or {}
@@ -1506,11 +1629,13 @@ def _ideas_email_summary(ev: dict | None) -> str:
     catalog = info.get("catalog") or {}
     today = ev.get("date", "")
     due_line = _ideas_due_email_line(catalog, today)
+    research_payload = _research_today_payload(ev.get("idea_research"), today)
+    research_line = _research_changes_email_line(research_payload["changes"], catalog)
     hits_doc = ev.get("idea_hits") or {}
     rows_today = [r for r in (hits_doc.get("hits") or [])
                  if r.get("date") == today and r.get("verdict") in ("supports", "refutes", "unjudged")]
     if not rows_today:
-        return due_line
+        return due_line + research_line
     by_idea: dict = {}
     for r in rows_today:
         by_idea.setdefault(r.get("idea", ""), []).append(r.get("verdict"))
@@ -1521,7 +1646,8 @@ def _ideas_email_summary(ev: dict | None) -> str:
         counts = [f'{verdict_label[k]} {verdicts.count(k)}' for k in ("supports", "refutes", "unjudged") if verdicts.count(k)]
         lines += (f'<div style="font-size:13px;color:#555;padding:2px 0;">想法：{_esc(short)} '
                  f'{len(verdicts)} 則（{"、".join(counts)}）</div>')
-    return f'<div style="margin:4px 0;">{due_line}{lines}</div>' if (lines or due_line) else ""
+    return (f'<div style="margin:4px 0;">{due_line}{research_line}{lines}</div>'
+           if (lines or due_line or research_line) else "")
 
 
 def _evidence_section(ev: dict | None) -> str:

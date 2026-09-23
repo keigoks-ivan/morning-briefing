@@ -855,6 +855,16 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
                         "ideas_count": 0, "matched_pairs": 0, "asked": 0, "catalog": {}, "hits": None,
                         "wide_scan": {}, "wide_pairs": []}
 
+    # ④b 想法查核點的「深入查核」（research.json，另一個雲端 routine idea-watch-auto 產出，見
+    # ideas_layer.load_research）：跟早報自己的 Jev 比對完全獨立（不問 Jev、不比對新聞），只是
+    # 多讀一份每日更新的檔案給 html_template.py 渲染，獨立包 try/except，失敗只讓這一份標
+    # unavailable，不影響 idea_hits 那條既有鏈路。
+    try:
+        from ideas_layer import load_research
+        research_data, research_status = load_research(fetch)
+    except Exception:  # noqa: BLE001
+        research_data, research_status = None, "unavailable"
+
     pruned = ledger.prune(today)
 
     # 排序與分道（2026-09-22 版只比 Jev 重要度分數，分數接近飽和時排序沒意義，
@@ -903,6 +913,7 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
                  "wide_scan": ideas_result.get("wide_scan") or {},
                  "wide_pairs": ideas_result.get("wide_pairs") or []},
         "idea_hits": ideas_result.get("hits"),
+        "idea_research": {"status": research_status, "data": research_data},
     }
     return result, ledger
 
@@ -937,4 +948,5 @@ def unavailable_result(today: str, reason: str) -> dict:
             "ledger": {"available": False, "note": reason}, "items": [], "top": [], "more": [],
             "low_priority": [], "unjudged": [], "quality": {}, "jev_cache": {},
             "ideas": {"status": "unavailable", "reason": reason, "ideas_count": 0, "matched_pairs": 0,
-                     "asked": 0, "catalog": {}, "wide_scan": {}, "wide_pairs": []}, "idea_hits": None}
+                     "asked": 0, "catalog": {}, "wide_scan": {}, "wide_pairs": []}, "idea_hits": None,
+            "idea_research": {"status": "unavailable", "data": None}}

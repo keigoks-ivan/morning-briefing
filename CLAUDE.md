@@ -304,10 +304,33 @@ checkpoint) 去重、history 404＝空清單／其他錯誤標 unavailable、只
 到期時才顯示（`_ideas_due_email_line`），不需要今天有命中也會顯示；今天有命中才照舊各想法
 各一行「想法：X N 則（支持 A、推翻 B）」。
 
+**深入查核併入早報（2026-09-23 晚新增，Task C）**：另一個雲端 routine `idea-watch-auto`（每天
+05:15 台北，financial-analysis-bot `.claude/skills/idea-watch/SKILL.md`）對每個查核點主動搜尋、
+讀財報，寫 `docs/ideas/data/research.json`（每個查核點目前的 supports／shaky／refutes／no_data
+狀態＋逐則證據 `entries`＋當天狀態變化 `changes`），跟本層自己的 Jev 比對（`idea_hits.json`）是
+兩份完全獨立的資料，只在渲染層合併。載入：`ideas_layer.load_research(fetch)`（跟 `load_ideas`
+同一種慣例：env `IDEA_RESEARCH_JSON_PATH` 本機檔案 → fetch 站上網址 → 都沒有就跳過，
+`evidence_layer.py` 在想法步驟 ④ 之後獨立包一層 try/except 呼叫，寫進 `ev["idea_research"]`
+＝`{"status", "data"}`，失敗只讓這份標 `unavailable`，不影響 `idea_hits` 那條既有鏈路）。渲染
+（`html_template._research_today_payload` 先判斷：`data.run.date != today` 就算「還沒跑完」，
+`entries`／`changes` 一律當空——即使裡面剛好有欄位等於今天的日期字串也不算，一律以
+`run.date` 為準）：
+- `_ideas_section`：今天的 `changes`（keystone 優先、推翻紅字，例「★ AI 剪刀差・查核點 2：
+  支持 → 動搖（理由）」）放在整個區塊最頂端；今天的 `entries` 掛一個「深入查核」標籤，跟早報
+  自己的命中並列在同一個想法群組底下（含只有深入查核、沒有早報命中的想法）；`run.date` 不是
+  今天顯示一行灰字「今天的深入查核尚未完成，顯示 `<run.date>` 的狀態」，不把舊資料當今天的。
+- `_ideas_email_summary`：今天有 `changes` 才多一行「查核點狀態變化：X N 項（查核點 2
+  支持→動搖）」（`_research_changes_email_line`），不需要今天有早報命中也會顯示，跟到期提醒
+  同一種「獨立於命中之外」的待遇。
+- `research.json` 完全讀不到／`status: unavailable` 就整段不顯示（不噴錯誤訊息），不影響其餘
+  「今天動到的想法」內容——跟 `ideas.json`／`idea_hits.json` 各自的失效保護是同一種紀律。
+
 測試：`tests/test_ideas_layer.py`（假 Jev、不連網），涵蓋載入順序、比對規則 (a)/(b)、逐則批次
 問法（一個請求多題）、早報候選與早報外各自的 8 則上限、早報外四道把關各自的獨立測試
 （`WideScanTests`）、`idea_hits.json` 的合併／去重／冪等／history／保留天數、`due` 攤平與渲染
-（`CatalogDueTests`／`DueSoonTests`）、news 頁與 email 的渲染。離線重播
+（`CatalogDueTests`／`DueSoonTests`）、`research.json` 載入與渲染（`LoadResearchTests`／
+`IdeaResearchRenderingTests`：正常渲染／`run.date` 不是今天／完全讀不到三種情境）、news 頁與
+email 的渲染。離線重播
 （`tests/evidence_offline_replay.py`，合成的早報外新聞池見 `evidence_fixtures.wide_rss_pool`）
 可以拿真實 ideas.json（`IDEAS_JSON_PATH=~/financial-analysis-bot/docs/ideas/ideas.json`）示範
 早報外掃描的比對結果。company key 目前不是每個都在 `evidence_routing.json`／

@@ -57,6 +57,7 @@ from evidence_routing import _keyword_hits
 from source_registry import normalize_url
 
 IDEAS_URL = "https://research.investmquest.com/ideas/ideas.json"
+RESEARCH_URL = "https://research.investmquest.com/ideas/data/research.json"
 HITS_URL = "https://research.investmquest.com/briefing/data/idea_hits.json"
 HITS_SCHEMA = "idea-hits-v1"
 HITS_WINDOW_DAYS = 365   # idea_hits.json 只留最近這麼多天
@@ -86,6 +87,28 @@ def load_ideas(fetch) -> tuple[list[dict], str]:
     if status == "ok" and isinstance(payload, dict):
         return list(payload.get("ideas") or []), "ok"
     return [], "unavailable"
+
+
+def load_research(fetch) -> tuple[dict | None, str]:
+    """載入 docs/ideas/data/research.json（另一個雲端 routine idea-watch-auto，每天 05:15
+    台北，見 financial-analysis-bot `.claude/skills/idea-watch/SKILL.md`，對每個查核點做
+    主動搜尋／到期事件讀財報的「深入查核」，寫每個查核點目前的 supports／shaky／refutes／
+    no_data 狀態＋逐則證據＋當天狀態變化）。跟 load_ideas 同一種載入慣例：env
+    IDEA_RESEARCH_JSON_PATH（本機檔案，開發／測試用）→ fetch 站上網址 → 都沒有就整步跳過。
+    回 (research_dict_or_None, status)；status："ok"／"unavailable"。這一層只負責把整份
+    research.json 原樣載回來，過濾「今天」與排序留給 html_template.py 的渲染函式（早報這裡
+    只是多一個資料來源，不做 Jev 比對，不影響 run_ideas_step 本身）。"""
+    local = os.environ.get("IDEA_RESEARCH_JSON_PATH")
+    if local:
+        try:
+            payload = json.loads(Path(local).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None, "unavailable"
+        return payload, "ok"
+    payload, status = fetch(RESEARCH_URL)
+    if status == "ok" and isinstance(payload, dict):
+        return payload, "ok"
+    return None, "unavailable"
 
 
 def _catalog(ideas: list[dict]) -> dict:

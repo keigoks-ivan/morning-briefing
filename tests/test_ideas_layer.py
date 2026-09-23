@@ -83,6 +83,50 @@ class LoadIdeasTests(unittest.TestCase):
         self.assertEqual((ideas, status), ([], "unavailable"))
 
 
+class LoadResearchTests(unittest.TestCase):
+    """docs/ideas/data/research.json（另一個雲端 routine idea-watch-auto 產出的「深入查核」結果，
+    2026-09-23 晚新增）跟 load_ideas 同一種載入慣例，這裡照同一套情境測。"""
+
+    SAMPLE = {"schema": "idea-research-v1", "run": {"date": "2026-09-22", "status": "ok"},
+             "status": {}, "entries": [], "changes": []}
+
+    def test_local_path_loads_research(self):
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "research.json"
+            p.write_text(json.dumps(self.SAMPLE), encoding="utf-8")
+            with mock.patch.dict(os.environ, {"IDEA_RESEARCH_JSON_PATH": str(p)}):
+                data, status = ideas_layer.load_research(fx.no_fetch)
+            self.assertEqual(status, "ok")
+            self.assertEqual(data["run"]["date"], "2026-09-22")
+
+    def test_local_path_missing_file_is_unavailable(self):
+        with mock.patch.dict(os.environ, {"IDEA_RESEARCH_JSON_PATH": "/nonexistent/research.json"}):
+            data, status = ideas_layer.load_research(fx.no_fetch)
+        self.assertEqual((data, status), (None, "unavailable"))
+
+    def test_fetch_used_when_no_env_var(self):
+        def fetch(url, timeout=15):
+            self.assertEqual(url, ideas_layer.RESEARCH_URL)
+            return self.SAMPLE, "ok"
+        with mock.patch.dict(os.environ):
+            os.environ.pop("IDEA_RESEARCH_JSON_PATH", None)
+            data, status = ideas_layer.load_research(fetch)
+        self.assertEqual(status, "ok")
+        self.assertEqual(data["run"]["date"], "2026-09-22")
+
+    def test_fetch_404_is_unavailable_not_yet_deployed(self):
+        with mock.patch.dict(os.environ):
+            os.environ.pop("IDEA_RESEARCH_JSON_PATH", None)
+            data, status = ideas_layer.load_research(fx.no_fetch)
+        self.assertEqual((data, status), (None, "unavailable"))
+
+    def test_fetch_error_is_unavailable(self):
+        with mock.patch.dict(os.environ):
+            os.environ.pop("IDEA_RESEARCH_JSON_PATH", None)
+            data, status = ideas_layer.load_research(fx.all_sources_down)
+        self.assertEqual((data, status), (None, "unavailable"))
+
+
 _TSMC_TEXT = ("TSMC rallies equipment and material suppliers into Kaohsiung packaging park. Taiwan broke ground "
              "on the Baipu advanced packaging industrial park in Kaohsiung, anchored by TSMC facilities "
              "including a technology validation lab and CoWoS tool validation mini-loop. TrendForce reports "
@@ -575,6 +619,105 @@ class RenderingTests(unittest.TestCase):
         page = html_template._ideas_section(ev)
         self.assertNotIn("早報外", page)
         self.assertNotIn("只讀到標題與摘要", page)
+
+
+class IdeaResearchRenderingTests(unittest.TestCase):
+    """深入查核（research.json，另一個雲端 routine idea-watch-auto，2026-09-23 晚新增，Task C）
+    在 news 頁與 email 摘要的渲染：正常渲染／run.date 不是今天（stale）／完全讀不到（missing）
+    三種情境都要顧到，任一種都不能讓其餘內容跟著壞掉。"""
+
+    CATALOG = {"ai-scissors": {"short": "AI 剪刀差", "url": "/ideas/ai-scissors.html",
+                               "checkpoints": {"cp1": "AI 營收成長跑贏降價", "cp2": "GPU 雲租金"}}}
+    TODAY = "2026-09-24"
+
+    def _ev(self, idea_research=None, hits=None):
+        return {"date": self.TODAY, "ideas": {"status": "ok", "catalog": self.CATALOG},
+               "idea_hits": {"hits": hits or []}, "idea_research": idea_research}
+
+    def test_renders_entries_and_changes_for_today(self):
+        research = {"status": "ok", "data": {
+            "run": {"date": self.TODAY, "status": "ok"},
+            "entries": [
+                {"date": self.TODAY, "idea": "ai-scissors", "checkpoint": "cp1", "verdict": "supports",
+                 "summary": "OpenRouter 用量續創高", "kind": "search"},
+                {"date": "2026-09-23", "idea": "ai-scissors", "checkpoint": "cp1", "verdict": "supports",
+                 "summary": "昨天的紀錄，不該當今天的", "kind": "search"},
+            ],
+            "changes": [
+                {"date": self.TODAY, "idea": "ai-scissors", "checkpoint": "cp2", "keystone": True,
+                 "from": "supports", "to": "refutes", "reason": "CoreWeave 新約降價 6%"},
+            ],
+        }}
+        page = html_template._ideas_section(self._ev(idea_research=research))
+        self.assertIn("深入查核", page)
+        self.assertIn("OpenRouter 用量續創高", page)
+        self.assertIn("主動搜尋", page)
+        self.assertNotIn("昨天的紀錄，不該當今天的", page)
+        self.assertIn("★", page)
+        self.assertIn("查核點 2", page)
+        self.assertIn("支持 → 推翻", page)
+        self.assertIn("CoreWeave 新約降價 6%", page)
+
+    def test_keystone_refutes_rendered_in_red(self):
+        research = {"status": "ok", "data": {
+            "run": {"date": self.TODAY, "status": "ok"}, "entries": [],
+            "changes": [{"date": self.TODAY, "idea": "ai-scissors", "checkpoint": "cp2", "keystone": True,
+                        "from": "supports", "to": "refutes", "reason": "x"}],
+        }}
+        page = html_template._ideas_section(self._ev(idea_research=research))
+        self.assertIn("color:#A32D2D", page)
+
+    def test_stale_run_shows_muted_line_and_no_entries(self):
+        research = {"status": "ok", "data": {
+            "run": {"date": "2026-09-23", "status": "ok"},
+            "entries": [{"date": "2026-09-23", "idea": "ai-scissors", "checkpoint": "cp1",
+                        "verdict": "supports", "summary": "不該出現：run 不是今天", "kind": "search"}],
+            "changes": [],
+        }}
+        page = html_template._ideas_section(self._ev(idea_research=research))
+        self.assertIn("今天的深入查核尚未完成，顯示 2026-09-23 的狀態", page)
+        self.assertNotIn("不該出現：run 不是今天", page)
+
+    def test_missing_research_does_not_break_page(self):
+        page = html_template._ideas_section(self._ev(idea_research=None))
+        self.assertIn("今天動到的想法", page)
+        self.assertIn("今天沒有新證據動到任何想法", page)
+        self.assertNotIn("深入查核", page)
+
+    def test_missing_research_status_unavailable_does_not_break_page(self):
+        page = html_template._ideas_section(self._ev(idea_research={"status": "unavailable", "data": None}))
+        self.assertIn("今天動到的想法", page)
+        self.assertNotIn("深入查核", page)
+
+    def test_entries_group_shown_even_without_briefing_hits_today(self):
+        research = {"status": "ok", "data": {
+            "run": {"date": self.TODAY, "status": "ok"},
+            "entries": [{"date": self.TODAY, "idea": "ai-scissors", "checkpoint": "cp1",
+                        "verdict": "shaky", "summary": "只有深入查核，沒有早報命中", "kind": "earnings"}],
+            "changes": [],
+        }}
+        page = html_template._ideas_section(self._ev(idea_research=research))
+        self.assertNotIn("今天沒有新證據動到任何想法", page)
+        self.assertIn("只有深入查核，沒有早報命中", page)
+        self.assertIn("財報", page)
+        self.assertIn("動搖", page)
+
+    def test_email_line_only_when_changes_today(self):
+        research = {"status": "ok", "data": {
+            "run": {"date": self.TODAY, "status": "ok"}, "entries": [],
+            "changes": [{"date": self.TODAY, "idea": "ai-scissors", "checkpoint": "cp2", "keystone": True,
+                        "from": "supports", "to": "shaky", "reason": "x"}],
+        }}
+        line = html_template._ideas_email_summary(self._ev(idea_research=research))
+        self.assertIn("查核點狀態變化：AI 剪刀差 1 項（查核點 2 支持→動搖）", line)
+
+    def test_email_line_empty_when_no_changes_today(self):
+        research = {"status": "ok", "data": {"run": {"date": self.TODAY, "status": "ok"},
+                                             "entries": [], "changes": []}}
+        self.assertEqual(html_template._ideas_email_summary(self._ev(idea_research=research)), "")
+
+    def test_email_line_empty_when_research_missing(self):
+        self.assertEqual(html_template._ideas_email_summary(self._ev(idea_research=None)), "")
 
 
 class DueSoonTests(unittest.TestCase):
