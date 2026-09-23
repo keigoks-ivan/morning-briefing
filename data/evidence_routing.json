@@ -1881,7 +1881,7 @@
   ]
  },
  "official_sources": {
-  "_comment": "一手來源。rss＝直接抓官方 feed；gn＝官方網域擋爬蟲，改用 Google News 的 site: 查詢找到官方頁；twse_json＝證交所／櫃買中心重大訊息；company_wires＝當事公司的新聞稿（Business Wire／GlobeNewswire／PR Newswire，公司自己發的）。covers＝這個來源負責的公司 key 或總經主題 key（總經可加 @國別）。",
+  "_comment": "一手來源。rss＝直接抓官方 feed；gn＝官方網域擋爬蟲，改用 Google News 的 site: 查詢找到官方頁；twse_json＝證交所／櫃買中心重大訊息；tdnet_html＝東證 TDnet 適時開示清單頁（日股，逐日逐頁抓，見 evidence_sources._load_tdnet）；company_wires＝當事公司的新聞稿（Business Wire／GlobeNewswire／PR Newswire，公司自己發的）。covers＝這個來源負責的公司 key 或總經主題 key（總經可加 @國別；*JP＝東證代號比對，見 evidence_layer._jp_codes）。韓國 DART（dart.fss.or.kr）還沒接，缺 API key，先不加。",
   "fed_press": {
    "label": "Federal Reserve press releases",
    "kind": "rss",
@@ -2134,6 +2134,16 @@
    "covers": [
     "TRADE_DATA@JP",
     "YEN"
+   ]
+  },
+  "tdnet_disclosure": {
+   "label": "TDnet timely disclosure (Tokyo Stock Exchange)",
+   "kind": "tdnet_html",
+   "base_url": "https://www.release.tdnet.info/inbs/",
+   "lookback_days": 4,
+   "max_pages_per_day": 10,
+   "covers": [
+    "*JP"
    ]
   },
   "company_wires": {

@@ -587,6 +587,18 @@ def _tw_codes(keys: list[str], routing: dict) -> set:
     return codes
 
 
+def _jp_codes(keys: list[str], routing: dict) -> set:
+    """東證代號：4 碼（有些新代號含字母，如 285A）＋ .T。TDnet 清單頁的代號多一碼檢查碼，
+    parse_tdnet 已經只留前 4 碼，這裡對回同樣的 4 碼。"""
+    codes = set()
+    for k in keys:
+        for tk in _company_tickers(k, routing):
+            m = re.fullmatch(r"([0-9A-Z]{4})\.T", tk)
+            if m:
+                codes.add(m.group(1))
+    return codes
+
+
 def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list[dict] | None,
                        news_quality: dict | None, today: str, data_dir: Path | None = None, *,
                        routing: dict | None = None, ledger: Ledger | None = None,
@@ -653,7 +665,8 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
         ent_keys |= {tk for k in (check_keys or cand["companies"]) for tk in _company_tickers(k, routing)}
         names = [matcher.name(k) for k in (check_keys or cand["companies"])] + \
                 [matcher.subject_label(s).split(" (")[0] for s in cand["subjects"]]
-        off = official.match(cand, ent_keys, names, _tw_codes(check_keys or cand["companies"], routing), today)
+        off = official.match(cand, ent_keys, names, _tw_codes(check_keys or cand["companies"], routing), today,
+                             jp_codes=_jp_codes(check_keys or cand["companies"], routing))
         primary["official"] = off
         for f in off["failed"]:
             primary["gaps"].append({"source": f["source"], "reason": f"not read today ({f['reason']})"})
