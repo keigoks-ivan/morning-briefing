@@ -65,7 +65,7 @@ SOURCE_REGISTRY = {
     "nikkei_asia": _source("Nikkei Asia", ["Nikkei Asia (GN)"], ["asia.nikkei.com"], "A", "Semis & Asia", ["semiconductor", "regional_asia"]),
     "scmp": _source("South China Morning Post", ["SCMP", "SCMP Tech"], ["scmp.com"], "B", "Semis & Asia", ["regional_asia", "ai"]),
     "cna": _source("CNA", ["Focus Taiwan", "Focus Taiwan／中央社", "中央社", "中央社 財經"], ["cna.com.tw", "focustaiwan.tw"], "A", "Semis & Asia", ["regional_asia", "macro", "semiconductor"]),
-    "moneydj": _source("MoneyDJ", ["MoneyDJ 國際財經", "MoneyDJ 台股", "MoneyDJ 科技產業", "MoneyDJ (GN)"], ["moneydj.com"], "B", "Semis & Asia", ["markets", "regional_asia", "semiconductor"]),
+    "moneydj": _source("MoneyDJ", ["MoneyDJ 國際財經 (GN)", "MoneyDJ 台股 (GN)", "MoneyDJ 科技產業 (GN)"], ["moneydj.com"], "B", "Semis & Asia", ["markets", "regional_asia", "semiconductor"]),
     "ctee": _source("Commercial Times", ["工商時報 (GN)", "工商時報"], ["ctee.com.tw"], "B", "Semis & Asia", ["macro", "regional_asia", "semiconductor"]),
     "yonhap": _source("Yonhap", ["Yonhap News Agency"], ["yna.co.kr"], "A", "Semis & Asia", ["regional_asia", "semiconductor"]),
     "korea_herald": _source("Korea Herald", [], ["koreaherald.com"], "B", "Semis & Asia", ["regional_asia", "semiconductor"]),

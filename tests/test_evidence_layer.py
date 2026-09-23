@@ -183,7 +183,8 @@ class Acceptance20260922Tests(unittest.TestCase):
         # 同一個金額 8/17 已出現：不自動算新證據，送複核並講清楚要查什麼
         self.assertEqual(it["classification"]["class"], "needs_review")
         self.assertIn("2026-08-17", " ".join(it["classification"]["reasons"]))
-        self.assertEqual(lanes_of(self.ev, it), ["top"])
+        # 2026-09-23 排序改版：needs_review 一律不進 top（still 在 main 排序裡，只是被擠到 more）
+        self.assertEqual(lanes_of(self.ev, it), ["more"])
         self.assertIn("capex", direct_vars(it))
         self.assertNotIn("demand", direct_vars(it))
         self.assertIn("does not show more GPU orders", " ".join(it["unconfirmed"]))
@@ -228,12 +229,16 @@ class Acceptance20260922Tests(unittest.TestCase):
         self.assertEqual(self.ev["ledger"]["restated"], 1)
 
     def test_main_block_order_and_limits(self):
+        # 2026-09-23 排序改版：派到具體標的（DD／持倉）的排在只有研究主題／什麼都沒派到的前面，
+        # 所以派到 DD ticker TSM 的白埔案排第一，不是分數最高但沒派到任何具體標的的南韓出口。
         self.assertLessEqual(len(self.ev["top"]), evidence_layer.TOP_SHOWN)
         first = next(x for x in self.ev["items"] if x["id"] == self.ev["top"][0])
-        self.assertIn("South Korea", first["headline"])
+        self.assertIn("Kaohsiung packaging park", first["headline"])
         top_heads = " ".join(x["headline"] for x in self.ev["items"] if x["id"] in self.ev["top"])
         self.assertNotIn("Copilot", top_heads)
         self.assertNotIn("AMD", top_heads)
+        # needs_review（SB Energy）一律不進 top，就算分數不低
+        self.assertNotIn("SB Energy", top_heads)
 
     def test_potential_impact_lists_industries_without_price_calls(self):
         it = item(self.ev, "Kaohsiung packaging park")
@@ -517,6 +522,128 @@ class MacroAndCoverageTests(unittest.TestCase):
         page = html_template._evidence_section(ev)
         self.assertIn("Official sources not read today", page)
         self.assertNotIn("no impact", page.lower())
+
+
+def _j(novelty=("new_fact", 0.95), stage="reported_result", variables=None):
+    """規則 A／B 測試用的最小 Jev 判斷（interpret() 的輸出形狀），不連 API。"""
+    return {"novelty": {"label": novelty[0], "confidence": novelty[1]},
+            "stage": {"label": stage, "confidence": 0.9},
+            "attribution": {"label": "named_media_report", "confidence": 0.9},
+            "importance": {"score": 2.0, "confidence": 0.8},
+            "variables": variables or {}, "parties": {}}
+
+
+class StaleEventRuleTests(unittest.TestCase):
+    """規則 A（2026-09-23）：事件日期本身過舊（>3 天），程式比 Jev 的新舊判斷更可信。
+    案例對應 2026-09-23 真實早報的 Fed 升息 bug：event_date 2026-09-16、7 天前的事，
+    Jev 卻答 new_fact 0.97，先前紀錄裡明明就有 09-16／09-17 記過同一次升息。"""
+
+    def test_stale_event_with_matching_prior_is_restated(self):
+        cand = {"companies": [], "subjects": ["FED"], "headline_figures": ["pct:4"], "figures": ["pct:4"],
+                "text": "Fed hikes 25bp to 3.75-4.00%, more tightening signaled",
+                "event_date": "2026-09-16", "date_basis": "stated"}
+        priors = [{"companies": [], "subjects": ["FED"], "figures": ["pct:3.75", "pct:4"],
+                   "event_date": "2026-09-16", "first_seen": "2026-09-16",
+                   "sources": [{"source": "Financial Times"}]}]
+        final = evidence_layer.decide(cand, _j(novelty=("new_fact", 0.97)), priors, True, "2026-09-23")
+        self.assertEqual(final["class"], "known_restatement")
+        self.assertEqual(final["lane"], "low")
+        notes = " ".join(final["notes"])
+        self.assertIn("Event dated 2026-09-16", notes)
+        self.assertIn("already recorded on 2026-09-16", notes)
+        self.assertIn("Financial Times", notes)
+
+    def test_stale_event_without_matching_prior_needs_review(self):
+        cand = {"companies": ["ACME"], "subjects": [], "headline_figures": [], "figures": [],
+                "text": "Acme announces new product", "event_date": "2026-09-10", "date_basis": "stated"}
+        final = evidence_layer.decide(cand, _j(novelty=("new_fact", 0.9)), [], True, "2026-09-23")
+        self.assertEqual(final["class"], "needs_review")
+        self.assertIn("Event dated 2026-09-10, 13 days ago; no earlier record found", final["reasons"])
+
+    def test_future_dated_event_is_not_treated_as_stale(self):
+        cand = {"companies": ["ACME"], "subjects": [], "headline_figures": [], "figures": [],
+                "text": "Acme to hold a summit", "event_date": "2026-09-24", "date_basis": "stated"}
+        final = evidence_layer.decide(cand, _j(novelty=("new_fact", 0.9)), [], True, "2026-09-23")
+        self.assertEqual(final["class"], "new_fact")
+        self.assertEqual(final["reasons"], [])
+
+    def test_published_date_basis_uses_the_same_stale_check_as_stated(self):
+        # extract_event_date() 給的 date_basis 沒寫明日期時是 published，規則 A 要照樣適用
+        cand = {"companies": ["ACME"], "subjects": [], "headline_figures": ["n:1e+06"], "figures": ["n:1e+06"],
+                "text": "Acme reports results", "event_date": "2026-09-14", "date_basis": "published"}
+        priors = [{"companies": ["ACME"], "subjects": [], "figures": ["n:1e+06"],
+                   "event_date": "2026-09-15", "first_seen": "2026-09-15", "sources": [{"source": "Reuters"}]}]
+        final = evidence_layer.decide(cand, _j(novelty=("new_fact", 0.9)), priors, True, "2026-09-23")
+        self.assertEqual(final["class"], "known_restatement")
+
+
+class FigureOverlapEntityTests(unittest.TestCase):
+    """規則 B（2026-09-23）：_figure_overlap 只能算「該筆先前紀錄也跟候選共享公司或主題」的數字。
+    案例對應 2026-09-23 真實早報：AMD 市值破兆撞到不相干的國庫券回購公告，兩邊都只是剛好有「1 trillion」。"""
+
+    def test_figure_overlap_ignored_without_shared_entity(self):
+        cand = {"companies": ["AMD"], "subjects": [], "headline_figures": ["n:1e+12"], "figures": ["n:1e+12"],
+                "text": "AMD tops $1 trillion market cap", "event_date": "2026-09-22", "date_basis": "stated"}
+        priors = [{"companies": [], "subjects": ["YIELDS@US"], "figures": ["n:1e+12"],
+                   "event_date": "2026-09-09", "first_seen": "2026-09-09", "sources": [{"source": "CNBC"}]}]
+        overlap = evidence_layer._figure_overlap(cand, priors)
+        self.assertEqual(overlap, {"all_seen": False, "seen": []})
+        final = evidence_layer.decide(cand, _j(novelty=("new_fact", 0.9)), priors, True, "2026-09-22")
+        self.assertEqual(final["class"], "new_fact")
+
+    def test_figure_overlap_still_counts_with_shared_company(self):
+        cand = {"companies": ["MSFT"], "subjects": [], "headline_figures": ["n:3e+07"], "figures": ["n:3e+07"],
+                "text": "Microsoft 365 Copilot tops 30 million paid seats",
+                "event_date": "2026-09-21", "date_basis": "published"}
+        priors = [{"companies": ["MSFT"], "subjects": [], "figures": ["n:3e+07"],
+                   "event_date": "2026-07-30", "first_seen": "2026-07-30", "sources": [{"source": "DD report"}]}]
+        overlap = evidence_layer._figure_overlap(cand, priors)
+        self.assertTrue(overlap["all_seen"])
+        self.assertEqual(overlap["seen"][0]["figure"], "30 million")
+
+    def test_bare_percent_figure_without_entity_does_not_trigger_followon_review(self):
+        # 文中雖然有「additional」，但唯一撞到的數字（4%）是跟不相干主題（OIL）的舊紀錄撞到的，
+        # 不該被拿來當「同一件事被追加報導」的證據
+        cand = {"companies": [], "subjects": ["FED"], "headline_figures": ["pct:4"], "figures": ["pct:4"],
+                "text": "Fed hikes to 4%, with additional tightening flagged",
+                "event_date": "2026-09-22", "date_basis": "stated"}
+        priors = [{"companies": [], "subjects": ["OIL"], "figures": ["pct:4"],
+                   "event_date": "2026-09-15", "first_seen": "2026-09-15", "sources": [{"source": "Reuters"}]}]
+        overlap = evidence_layer._figure_overlap(cand, priors)
+        self.assertEqual(overlap["seen"], [])
+        final = evidence_layer.decide(cand, _j(novelty=("new_fact", 0.9)), priors, True, "2026-09-22")
+        self.assertEqual(final["class"], "new_fact")
+        self.assertNotIn("calls it additional", " ".join(final["reasons"]))
+
+
+class RankingTests(unittest.TestCase):
+    """規則 C（2026-09-23）：main 區排序、needs_review 不進 top。"""
+
+    @staticmethod
+    def _item(cls, block="top_stories", imp=2.0, basis="headline_summary", routes=None):
+        return {"classification": {"class": cls}, "block": block, "importance": {"score": imp},
+                "evidence_basis": {"code": basis}, "routes": routes or {"dd": [], "holdings": [], "themes": []}}
+
+    def test_needs_review_ranks_after_new_fact_regardless_of_importance(self):
+        review = self._item("needs_review", imp=3.0)
+        new_fact = self._item("new_fact", imp=1.0)
+        self.assertEqual(sorted([review, new_fact], key=evidence_layer._rank_key), [new_fact, review])
+
+    def test_dd_or_holdings_route_outranks_theme_only_despite_lower_importance(self):
+        dd_routed = self._item("new_fact", imp=1.0, routes={"dd": [{"ticker": "TSM"}], "holdings": [], "themes": []})
+        holdings_routed = self._item("new_fact", imp=1.0, routes={"dd": [], "holdings": [{"position": "QQQ"}], "themes": []})
+        theme_only = self._item("new_fact", imp=3.0, routes={"dd": [], "holdings": [], "themes": [{"key": "X"}]})
+        nothing = self._item("new_fact", imp=3.0, routes={"dd": [], "holdings": [], "themes": []})
+        ordered = sorted([theme_only, nothing, dd_routed, holdings_routed], key=evidence_layer._rank_key)
+        self.assertEqual(ordered[:2], [dd_routed, holdings_routed])
+        self.assertEqual(ordered[2:], [theme_only, nothing])
+
+    def test_needs_review_never_lands_in_top_end_to_end(self):
+        # 09-22 案例：SB Energy 是 needs_review、重要度分數也不低，照樣要被擠到 more
+        ev, _ = run()
+        it = item(ev, "SB Energy")
+        self.assertNotIn(it["id"], ev["top"])
+        self.assertIn(it["id"], ev["more"])
 
 
 class FeedStatusTests(unittest.TestCase):

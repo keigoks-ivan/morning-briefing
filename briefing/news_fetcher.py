@@ -1194,12 +1194,14 @@ _GN_TW = "https://news.google.com/rss/search?q={q}&hl=zh-TW&gl=TW&ceid=TW:zh-Han
 RSS_FEEDS = [
     # (source_label, url, max_items, max_age_hours)
     # 台灣／中文
-    ("MoneyDJ 國際財經", "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB010000", 10, 24),
-    ("MoneyDJ 台股",     "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB020000", 10, 24),
-    ("MoneyDJ 科技產業", "https://www.moneydj.com/KMDJ/RSS/NewsRSS.aspx?a=MB060000", 10, 24),
+    # 2026-09-23：MoneyDJ 舊版 NewsRSS.aspx（a=MB010000／MB020000／MB060000）三個分類全部 302
+    # 到 KMDJ/errors/PageNotFound.aspx，確認已停用。新版 RssCenter.aspx 只剩一個不分類的全站 feed，
+    # 沒有台股／科技產業的分類版本；moneydj.com 官方網域在 GitHub runner 上原本就有已知的 SSL 問題
+    # （2026-08-17 已記過），三個分類全部改走 GN 代理、用關鍵詞模擬原本的分類，關鍵詞查詢實測有回條目。
+    ("MoneyDJ 國際財經 (GN)", _GN_TW.format(q="site:moneydj.com+(國際財經+OR+美股+OR+聯準會+OR+央行+OR+美國)+when:1d"), 10, 24),
+    ("MoneyDJ 台股 (GN)",     _GN_TW.format(q="site:moneydj.com+(台股+OR+上市+OR+上櫃+OR+台積電+OR+加權指數)+when:1d"), 10, 24),
+    ("MoneyDJ 科技產業 (GN)", _GN_TW.format(q="site:moneydj.com+(半導體+OR+科技+OR+AI+OR+晶片+OR+封裝)+when:1d"), 10, 24),
     ("中央社 財經",      "https://feeds.feedburner.com/rsscna/finance", 10, 24),
-    # MoneyDJ 官方 RSS 在 GitHub runner 上抓不到（2026-08-17 兩次 CI 皆 0 條，本機 SSL 錯），加 GN 代理保底
-    ("MoneyDJ (GN)",    _GN_TW.format(q="site:moneydj.com+when:1d"), 12, 24),
     ("工商時報 (GN)",   _GN_TW.format(q="site:ctee.com.tw+(半導體+OR+台積電+OR+AI+OR+聯準會+OR+關稅)+when:1d"), 8, 24),
     # 通用財經
     ("CNBC Top",        "https://www.cnbc.com/id/100003114/device/rss/rss.html", 12, 24),

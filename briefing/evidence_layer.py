@@ -49,6 +49,8 @@ NOVELTY_MIN_CONF = 0.60    # 新舊分類信心低於此 → 待複核
 VAR_MIN_CONF = 0.50        # 變數判定信心低於此 → 不當成影響
 INDIRECT_MIN_CONF = 0.70   # 間接影響門檻較高（2026-09-22 真 Jev 實測：間接很容易被標滿）
 MAX_COMPANIES_PER_ITEM = 5
+STALE_EVENT_DAYS = 3       # 事件日期超過這麼多天才算「過舊」（規則 A，2026-09-23）
+STALE_MATCH_WINDOW_DAYS = 2  # 過舊事件要跟先前紀錄的事件日期差在幾天內，才當成同一件事的重述
 
 # 候選來源：去重後的新聞卡，依早報既有的優先序
 BLOCK_PRIORITY = [
@@ -230,11 +232,25 @@ def build_state(cand: dict, priors: list[dict], matcher: EntityMatcher) -> dict:
 
 
 # ── 判斷規則（程式） ─────────────────────────────────────────────────────
+def _day_gap(a: str, b: str) -> int | None:
+    """a 減 b 差幾天（只取前 10 碼 YYYY-MM-DD）；算不出來回 None。2026-09-23 新增，供規則 A 用。"""
+    try:
+        return (datetime.strptime(a[:10], "%Y-%m-%d") - datetime.strptime(b[:10], "%Y-%m-%d")).days
+    except (TypeError, ValueError):
+        return None
+
+
 def _figure_overlap(cand: dict, priors: list[dict]) -> dict:
-    """標題數字是否全部在先前紀錄出現過（同公司）。回 {all_seen, seen: [(fig, date, outlet)]}。"""
+    """標題數字是否全部在先前紀錄出現過。回 {all_seen, seen: [(fig, date, outlet)]}。
+    2026-09-23：只算「該筆先前紀錄也跟候選共享公司或主題」的數字，避免不相干事實只因巧合撞到同一個
+    數字就被當成重述的證據（例：個股新聞裡的百分比／整數金額，撞到毫不相干總經公告的同一個數字）。"""
+    cand_entities = set(cand["companies"]) | set(cand.get("subjects") or [])
     seen = []
     prior_figs = {}
     for r in priors:
+        r_entities = set(r.get("companies") or []) | set(r.get("subjects") or [])
+        if not (cand_entities & r_entities):
+            continue
         for f in r.get("figures") or []:
             prior_figs.setdefault(f, r)
     key_figs = cand["headline_figures"] or []
@@ -246,11 +262,28 @@ def _figure_overlap(cand: dict, priors: list[dict]) -> dict:
     return {"all_seen": bool(key_figs) and len(seen) == len(key_figs), "seen": seen}
 
 
+def _stale_event_match(cand: dict, priors: list[dict], today: str) -> dict | None:
+    """規則 A（2026-09-23）：候選的事件日期（不論 date_basis 是 stated 還是 published，見
+    extract_event_date）比今天早超過 STALE_EVENT_DAYS 天，就算「過舊」；未來日期（差值為負，例如
+    後天才開的高峰會）不算過舊，回 None。過舊時，priors 裡（已經跟候選共享公司或主題）只要有一筆事件
+    日期落在候選事件日期 ±STALE_MATCH_WINDOW_DAYS 天內，代表這件事其實早就記過，回 {"prior": 那筆紀錄}；
+    找不到就回 {"prior": None}，代表這麼舊的事件卻沒有先前紀錄，要送複核而不是直接放行。"""
+    event_date = cand.get("event_date") or ""
+    age = _day_gap(today, event_date)
+    if age is None or age <= STALE_EVENT_DAYS:
+        return None
+    for r in priors:
+        gap = _day_gap(event_date, r.get("event_date") or "")
+        if gap is not None and abs(gap) <= STALE_MATCH_WINDOW_DAYS:
+            return {"age": age, "prior": r}
+    return {"age": age, "prior": None}
+
+
 # 「追加／另一筆」字眼：同金額再出現時，可能是第二筆交易，不能由程式直接判成重述
 _FOLLOW_ON_RE = re.compile(r"\b(additional|another|second|third|further|follow-on|top-up|tops? up|adds? \$?[\d.]+ ?\w* to)\b", re.I)
 
 
-def decide(cand: dict, j: dict | None, priors: list[dict], ledger_available: bool) -> dict:
+def decide(cand: dict, j: dict | None, priors: list[dict], ledger_available: bool, today: str) -> dict:
     """Jev 答案＋程式訊號 → 最終分類。Jev 沒答就是 not_judged，不補。
     reasons：需要人複核的原因（有就進待複核）。notes：程式覆寫或補充說明（不觸發複核）。"""
     overlap = _figure_overlap(cand, priors)
@@ -264,6 +297,21 @@ def decide(cand: dict, j: dict | None, priors: list[dict], ledger_available: boo
     if j["stage"]["label"] == "market_price_only" and set(direct) <= {"market_valuation"} and lab in ("new_fact", "progress_update"):
         cls = "market_move_only"
         notes.append("Only a price or valuation move is stated, so it is not counted as fundamental evidence")
+    # 規則 A（2026-09-23，跑在追加字眼規則之前）：事件本身已經過舊，且先前紀錄裡有同一天前後的紀錄，
+    # 就直接判重述，不管 Jev 怎麼答；過舊卻找不到先前紀錄，送複核而不是照單全收。防的是「7 天前的
+    # Fed 升息被當成今天的新事實」這種：事件日期一過舊，程式比 Jev 的新舊判斷更可信。
+    stale = _stale_event_match(cand, priors, today)
+    if stale is not None:
+        if stale["prior"] is not None:
+            r = stale["prior"]
+            if cls != "known_restatement":
+                notes.append(f"Event dated {cand.get('event_date', '')}, already recorded on "
+                             f"{r.get('event_date') or r.get('first_seen', '')} ({_prior_brief(r)['outlet']}); "
+                             "treated as a restatement")
+            cls = "known_restatement"
+        else:
+            reasons.append(f"Event dated {cand.get('event_date', '')}, {stale['age']} days ago; "
+                           "no earlier record found")
     if cls == "new_fact" and overlap["all_seen"]:
         s = overlap["seen"][0]
         if _FOLLOW_ON_RE.search(cand["text"]):
@@ -407,6 +455,28 @@ def _status(final: dict, routes: dict) -> dict:
     if linked:
         return {"code": "routed", "display": "Routed to research"}
     return {"code": "logged", "display": "Logged; no research link"}
+
+
+def _rank_key(it: dict) -> tuple:
+    """main 區排序（2026-09-23 改，取代單比 Jev 重要度分數）：
+    ① 新事實／進度更新排在待複核前面；
+    ② 有沒有派到具體標的（DD 或系統持倉）比只派到研究主題更值得看，比什麼都沒派到更值得看；
+    ③ 同一層再比 Jev 重要度分數；
+    ④ 一手來源比只有標題／簡介的更可信；
+    ⑤ 最後比早報原本的區塊優先序。
+    needs_review 是否真的擋在 top 外面，由呼叫端另外過濾（這裡只決定 main 內部次序）。"""
+    cls_rank = 0 if it["classification"]["class"] in ("new_fact", "progress_update") else 1
+    routes = it.get("routes") or {}
+    if routes.get("dd") or routes.get("holdings"):
+        rel_rank = 0
+    elif routes.get("themes"):
+        rel_rank = 1
+    else:
+        rel_rank = 2
+    imp = (it.get("importance") or {}).get("score") or 0
+    basis_rank = {"primary_document": 2, "headline_summary": 1}.get(it["evidence_basis"]["code"], 0)
+    prio = dict(BLOCK_PRIORITY).get(it["block"], 0.3)
+    return (cls_rank, rel_rank, -imp, -basis_rank, -prio)
 
 
 # ── 主流程 ───────────────────────────────────────────────────────────────
@@ -553,7 +623,7 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
         questions = build_questions(len(cand["companies"]), var_ids_for(cand["kind"]))
         resp = jev.ask(state, questions)
         j = interpret(resp["answers"], cand["companies"], var_min_conf=VAR_MIN_CONF) if resp else None
-        judged.append((cand, priors, resp, j, decide(cand, j, priors, ledger.available)))
+        judged.append((cand, priors, resp, j, decide(cand, j, priors, ledger.available, today)))
 
     # ② 當事公司自己發的新聞稿：所有候選的當事公司一次查齊
     party_names = {}
@@ -695,16 +765,15 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
 
     pruned = ledger.prune(today)
 
-    # 排序與分道
-    def rank_key(it):
-        imp = (it.get("importance") or {}).get("score") or 0
-        basis_rank = {"primary_document": 2, "headline_summary": 1}.get(it["evidence_basis"]["code"], 0)
-        prio = dict(BLOCK_PRIORITY).get(it["block"], 0.3)
-        return (-imp, -basis_rank, -prio)
-
-    main = sorted([it for it in items if it["lane"] == "main"], key=rank_key)
+    # 排序與分道（2026-09-22 版只比 Jev 重要度分數，分數接近飽和時排序沒意義，
+    # needs_review 也可能混進 top；2026-09-23 改成 _rank_key 的五層排序，見該函式註解）：
+    main = sorted([it for it in items if it["lane"] == "main"], key=_rank_key)
     low = [it for it in items if it["lane"] == "low"]
     unjudged = [it for it in items if it["lane"] == "unjudged"]
+    # needs_review 一律不進 top（就算分數再高），排定後另外分：
+    top = [it for it in main if it["classification"]["class"] != "needs_review"][:TOP_SHOWN]
+    top_ids = {it["id"] for it in top}
+    more = [it for it in main if it["id"] not in top_ids]
 
     if not jev.available and not jev.stats["cache_hits"]:
         jev_status, reason = "unavailable", "TYPESAFE_API_KEY not set"
@@ -724,8 +793,8 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
                    "pruned": pruned, **ledger_actions},
         "holdings_source": {"kind": "public system portfolio (/pm/holdings.json)", "available": holdings["available"],
                             "as_of": holdings["as_of"]},
-        "top": [it["id"] for it in main[:TOP_SHOWN]],
-        "more": [it["id"] for it in main[TOP_SHOWN:]],
+        "top": [it["id"] for it in top],
+        "more": [it["id"] for it in more],
         "low_priority": [it["id"] for it in low],
         "unjudged": [it["id"] for it in unjudged],
         "items": items,
