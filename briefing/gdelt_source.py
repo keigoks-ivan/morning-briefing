@@ -162,6 +162,7 @@ def fetch_raw_articles(queries: list[str], *, http_get=_default_http_get, sleep=
               "http_errors": 0, "network_errors": 0, "articles_seen": 0}
     start = now()
     last_call = None
+    blocked_in_a_row = 0   # 2026-09-23：本機實測被 GDELT 封 IP 後，重試只會越查越久；連續 3 個查詢都被擋就收手
 
     def _call(query: str) -> tuple[str, int | None]:
         url = GDELT_ENDPOINT + "?" + urllib.parse.urlencode({
@@ -194,7 +195,13 @@ def fetch_raw_articles(queries: list[str], *, http_get=_default_http_get, sleep=
             arts = _parse_articles(text)
         if arts is None:
             quality["http_errors"] += 1
+            if status == 429 or _RATE_LIMIT_RE.search(text or ""):
+                blocked_in_a_row += 1
+                if blocked_in_a_row >= 3:
+                    quality["stopped_reason"] = "rate_limited_3_in_a_row"
+                    break
             continue
+        blocked_in_a_row = 0
         quality["ok"] += 1
         quality["articles_seen"] += len(arts)
         articles.extend(arts)

@@ -99,6 +99,17 @@ class FetchRawArticlesTests(unittest.TestCase):
         self.assertEqual(quality["http_errors"], 1)
         self.assertEqual(quality["ok"], 0)
 
+    def test_stops_after_three_blocked_queries_in_a_row(self):
+        # 2026-09-23：IP 被封時不要把 20 個查詢都試完
+        def http_get(url, timeout=20):
+            return ("Please limit requests to one every 5 seconds.", 429)
+
+        queries = [f'("Co{i}") sourcelang:english' for i in range(10)]
+        articles, quality = gd.fetch_raw_articles(queries, http_get=http_get, sleep=lambda s: None, now=_clock())
+        self.assertEqual(articles, [])
+        self.assertEqual(quality["requests_sent"], 6)   # 3 個查詢 × （原請求＋重試一次）
+        self.assertEqual(quality["stopped_reason"], "rate_limited_3_in_a_row")
+
     def test_network_failure_is_recorded_not_raised(self):
         def http_get(url, timeout=20):
             return ("", None)
