@@ -129,6 +129,44 @@ class JevContractTests(unittest.TestCase):
         self.assertIsNone(JevClient(api_key=None, transport=transport).ask("other", qs))
         self.assertEqual(len(sent), 1)
 
+    def test_adding_timing_question_leaves_stale_cache_entries_unused_not_crashed(self):
+        """2026-09-23：新增 timing 題目後 request_hash 會變（見 jev_client.request_hash，questions
+        本身進雜湊）。模擬舊快取（沒有 timing 這題的答案）：新的請求雜湊對不上，程式要當快取沒命中，
+        正常發新請求，不能在 validate_response 或別處炸掉。"""
+        def _stub_answers(qs: dict) -> dict:
+            out = {}
+            for qid, q in qs.items():
+                if q["type"] == "score":
+                    out[qid] = {"type": "score", "score": 1.0, "confidence": 0.5, "legend": {}, "probabilities": {}}
+                elif q["type"] == "noul":
+                    out[qid] = {"type": "noul", "noul": 0.5}
+                else:
+                    out[qid] = {"type": "choice", "choice": next(iter(q["criteria"])), "confidence": 0.9,
+                                "probabilities": {}}
+            return out
+
+        old_qs = build_questions(0)
+        del old_qs["timing"]   # 這一題還沒加進去以前的題目形狀
+        stale_hash = request_hash("state", old_qs)
+        stale_cache = {stale_hash: {"model": "jev-1.13.0", "answers": _stub_answers(old_qs), "usage": {}}}
+
+        new_qs = build_questions(0)
+        self.assertIn("timing", new_qs)
+        sent = []
+
+        def transport(body, key):
+            req = json.loads(body)
+            sent.append(req)
+            return {"model": "jev-1.13.0", "answers": _stub_answers(req["questions"]), "usage": {"input_tokens": 20}}
+
+        c = JevClient(api_key="k", cache=stale_cache, transport=transport)
+        resp = c.ask("state", new_qs)
+        self.assertIsNotNone(resp)             # 沒有因為舊快取形狀不合而炸掉
+        self.assertFalse(resp["cached"])       # 沒誤用舊快取
+        self.assertIn("timing", resp["answers"])
+        self.assertEqual(len(sent), 1)         # 正常發了一次新請求
+        self.assertIn(stale_hash, c.cache)     # 舊項目留著沒被清掉，但也不會被之後的請求誤用
+
     def test_client_failure_and_budget_return_none(self):
         qs = {"q": {"type": "noul", "instructions": "x"}}
         c = JevClient(api_key="k", transport=lambda b, k: (_ for _ in ()).throw(RuntimeError("HTTP 500")))
@@ -305,6 +343,7 @@ class RobustnessTests(unittest.TestCase):
         for it in ev["items"]:
             self.assertEqual(it["classification"]["class"], "not_judged")
             self.assertIsNone(it["stage"])
+            self.assertIsNone(it["timing"])
             self.assertIsNone(it["classification"]["confidence"])
             self.assertEqual(it["variables"], {"direct": [], "indirect": []})
             self.assertEqual(it["routes"]["dd"], [])            # 沒驗證當事人就不派 DD
@@ -671,6 +710,62 @@ class RankingTests(unittest.TestCase):
         it = item(ev, "SB Energy")
         self.assertNotIn(it["id"], ev["top"])
         self.assertIn(it["id"], ev["more"])
+
+    def test_timing_does_not_affect_ranking(self):
+        # 2026-09-23：timing 是 display-only，兩則除了 timing 以外完全相同的項目排序要一樣
+        a = self._item("new_fact", imp=2.0)
+        a["timing"] = {"label": "this_quarter", "display": "This quarter", "confidence": 0.9}
+        b = self._item("new_fact", imp=2.0)
+        b["timing"] = {"label": "beyond_three_years", "display": "More than 3 years out", "confidence": 0.9}
+        self.assertEqual(evidence_layer._rank_key(a), evidence_layer._rank_key(b))
+
+
+class TimingQuestionTests(unittest.TestCase):
+    """2026-09-23 新增的窄問題「timing」：主要事實何時實際生效，display-only，供之後校準
+    （不進 _rank_key、不進 decide、不進 route，見 evidence_layer.py 組裝 item["timing"] 處的註解）。"""
+
+    def test_timing_present_on_item_and_ledger_record(self):
+        # 沒特別覆寫劇本時，FakeJev 對 timing 的預設答案是 ("unclear", 0.5)
+        ev, led = run()
+        it = item(ev, "Kaohsiung packaging park")
+        self.assertEqual(it["timing"], {"label": "unclear", "display": "Timing unclear", "confidence": 0.5})
+        rec = next(r for r in led.records if r["fact_key"] == it["fact_key"])
+        self.assertEqual(rec["timing"], "unclear")
+
+    def test_timing_confident_label_shows_mapped_display(self):
+        jev, _ = fx.fake_client({"Kaohsiung packaging park": {"timing": ["one_to_three_years", 0.8]}})
+        ev, led = run(jev=jev)
+        it = item(ev, "Kaohsiung packaging park")
+        self.assertEqual(it["timing"], {"label": "one_to_three_years", "display": "1–3 years out", "confidence": 0.8})
+        rec = next(r for r in led.records if r["fact_key"] == it["fact_key"])
+        self.assertEqual(rec["timing"], "one_to_three_years")
+
+    def test_timing_low_confidence_displays_as_unclear_but_keeps_raw_label(self):
+        # 信心 < 0.5：畫面顯示「Timing unclear」，但原始 label／confidence 照實存放供校準用
+        jev, _ = fx.fake_client({"AMD market cap tops": {"timing": ["already_in_effect", 0.3]}})
+        ev, _ = run(jev=jev)
+        it = item(ev, "AMD market cap tops")
+        self.assertEqual(it["timing"]["label"], "already_in_effect")
+        self.assertEqual(it["timing"]["confidence"], 0.3)
+        self.assertEqual(it["timing"]["display"], "Timing unclear")
+
+    def test_timing_does_not_change_classification_or_lane(self):
+        # 同一則新聞，timing 給不同答案，classification／lane 都不能變
+        base, _ = run()
+        base_it = item(base, "Kaohsiung packaging park")
+        jev, _ = fx.fake_client({"Kaohsiung packaging park": {"timing": ["beyond_three_years", 0.95]}})
+        changed, _ = run(jev=jev)
+        changed_it = item(changed, "Kaohsiung packaging park")
+        self.assertEqual(base_it["classification"]["class"], changed_it["classification"]["class"])
+        self.assertEqual(lanes_of(base, base_it), lanes_of(changed, changed_it))
+        self.assertEqual(base["top"], changed["top"])
+
+    def test_timing_shown_next_to_stage_on_news_page(self):
+        jev, _ = fx.fake_client({"Kaohsiung packaging park": {"timing": ["one_to_three_years", 0.8]}})
+        ev, _ = run(jev=jev)
+        row = html_template._ev_item(item(ev, "Kaohsiung packaging park"))
+        self.assertIn("stage: Construction started", row)
+        self.assertIn("timing: 1–3 years out", row)
 
 
 _SBE_RSS = [{"title": "Nvidia to buy more SB Energy shares before IPO", "summary": "Nvidia will buy $1.5 billion more.",

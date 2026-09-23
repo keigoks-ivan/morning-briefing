@@ -1263,6 +1263,9 @@ def _ev_row_detail(item: dict) -> str:
         cls_txt += f' · classification confidence {cl["confidence"]:.2f} ({_esc(cl.get("by") or "")})'
     if item.get("stage"):
         cls_txt += f' · stage: {_esc(item["stage"]["display"])}'
+    if item.get("timing"):
+        # 2026-09-23：display-only，記錄供之後校準用，不影響排序／分類／派送
+        cls_txt += f' · timing: {_esc(item["timing"]["display"])}'
     for reason in cl.get("reasons") or []:
         cls_txt += f'<div style="color:#856404;margin-top:2px;">{_esc(reason)}</div>'
     for note in cl.get("notes") or []:
@@ -1299,8 +1302,10 @@ def _ev_item(item: dict, open_: bool = False) -> str:
     style = _EV_STATUS_STYLE.get(st.get("code"), _EV_STATUS_STYLE["logged"])
     cl = item.get("classification") or {}
     stage = (item.get("stage") or {}).get("display")
+    # 2026-09-23：timing 顯示在 stage 旁邊，display-only，不影響排序／分類／派送
+    timing = (item.get("timing") or {}).get("display")
     topics = ", ".join(x["label"] for x in item.get("topics") or [])
-    sub = " · ".join(x for x in (cl.get("display"), stage, topics) if x)
+    sub = " · ".join(x for x in (cl.get("display"), stage, timing, topics) if x)
     gdelt_badge = _GDELT_BADGE if item.get("block") == "gdelt" else ""
     return f'''
 <details {"open" if open_ else ""} style="padding:10px 0;border-bottom:0.5px solid #f0f0f0;">

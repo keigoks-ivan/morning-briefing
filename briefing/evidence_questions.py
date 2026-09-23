@@ -95,6 +95,15 @@ ATTRIBUTION_DISPLAY = {
     "commentary_or_analysis": "Commentary",
     "official_statement": "Official's statement",
 }
+# 2026-09-23 新增：只記錄供之後校準用，不進排序／分道／分類／派送規則，見 evidence_layer.py 的用法註解
+TIMING_DISPLAY = {
+    "already_in_effect": "Already in effect",
+    "this_quarter": "This quarter",
+    "within_12_months": "Within 12 months",
+    "one_to_three_years": "1–3 years out",
+    "beyond_three_years": "More than 3 years out",
+    "unclear": "Timing unclear",
+}
 
 _NOVELTY = {
     "type": "choice",
@@ -163,6 +172,26 @@ _ATTRIBUTION = {
     },
 }
 
+# 2026-09-23 新增：主要事實何時實際對營運／總經產生效果（不是何時被公布）。目前只顯示、不進任何判斷規則。
+_TIMING = {
+    "type": "choice",
+    "instructions": (
+        "When does the main business or economic fact in `today` actually take effect, not when it was "
+        "announced? Judge only from dates or periods `today` states. A plan with a stated start date uses "
+        "that date. A plant or line said to begin production in a stated quarter or year uses that period. "
+        "A rate, price or rule already in force is 'already in effect'. Do not guess a timeline `today` does "
+        "not state; choose 'unclear' instead."
+    ),
+    "criteria": {
+        "already_in_effect": "The effect is already in force: a decision has taken effect, a plant is already producing, a rate, price or rule already applies",
+        "this_quarter": "`today` states the effect starts, ships or lands within the current calendar quarter",
+        "within_12_months": "`today` states or clearly implies a start date beyond this quarter but within about a year",
+        "one_to_three_years": "`today` states a start date, completion date or milestone one to three years out, such as a plant slated to begin production in a stated later year",
+        "beyond_three_years": "`today` states a start date, completion date or milestone more than three years out",
+        "unclear": "`today` states no date, period or stage from which the timing of the effect can be judged",
+    },
+}
+
 
 def _var_question(var_id: str, definition: str) -> dict:
     return {
@@ -218,8 +247,10 @@ def _party_question(i: int) -> dict:
 
 
 def build_questions(n_companies: int, var_ids: list[str] | None = None) -> dict:
-    """var_ids：要問哪些變數（預設公司那組）。每個變數一題 Choice＋一題方向。"""
-    qs = {"novelty": _NOVELTY, "stage": _STAGE, "importance": _IMPORTANCE, "attribution": _ATTRIBUTION}
+    """var_ids：要問哪些變數（預設公司那組）。每個變數一題 Choice＋一題方向。
+    timing：每則都問（公司與總經都要），2026-09-23 新增，見 _TIMING 註解。"""
+    qs = {"novelty": _NOVELTY, "stage": _STAGE, "importance": _IMPORTANCE, "attribution": _ATTRIBUTION,
+          "timing": _TIMING}
     for var_id in var_ids or COMPANY_VAR_IDS:
         definition = _VAR_DEF[var_id]
         qs[f"var_{var_id}"] = _var_question(var_id, definition)
@@ -259,6 +290,7 @@ def interpret(answers: dict, company_keys: list[str], *, var_min_conf: float) ->
     return {
         "novelty": choice("novelty"),
         "stage": choice("stage"),
+        "timing": choice("timing"),
         "attribution": choice("attribution"),
         "importance": {"score": round(float(imp.get("score") or 0), 2),
                        "confidence": round(float(imp.get("confidence") or 0), 3)},

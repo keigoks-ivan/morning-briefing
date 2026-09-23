@@ -79,7 +79,7 @@ class FakeJev:
                                 "probabilities": {str(i): 0.25 for i in range(len(q["criteria"]))}}
             else:
                 opts = list(q["criteria"])
-                if qid in ("novelty", "stage", "attribution"):
+                if qid in ("novelty", "stage", "attribution", "timing"):
                     label, conf = case.get(qid, [opts[-1], 0.5])
                 elif qid.startswith("var_"):
                     v = (case.get("vars") or {}).get(qid[4:])

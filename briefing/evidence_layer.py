@@ -30,8 +30,8 @@ from evidence_ledger import (
     EntityMatcher, Ledger, content_tokens, extract_event_date, extract_figures, fact_key, figure_label,
 )
 from evidence_questions import (
-    ATTRIBUTION_DISPLAY, COMPANY_VAR_IDS, MACRO_VAR_IDS, NOVELTY_DISPLAY, STAGE_DISPLAY, VAR_LABEL,
-    build_questions, interpret,
+    ATTRIBUTION_DISPLAY, COMPANY_VAR_IDS, MACRO_VAR_IDS, NOVELTY_DISPLAY, STAGE_DISPLAY, TIMING_DISPLAY,
+    VAR_LABEL, build_questions, interpret,
 )
 from evidence_routing import (
     PARTY_NO, PARTY_YES, _company_tickers, _keyword_hits, dd_index, load_routing, potential_impact,
@@ -52,6 +52,8 @@ TOP_SHOWN = 5              # 早報主區塊最多顯示幾則
 NOVELTY_MIN_CONF = 0.60    # 新舊分類信心低於此 → 待複核
 VAR_MIN_CONF = 0.50        # 變數判定信心低於此 → 不當成影響
 INDIRECT_MIN_CONF = 0.70   # 間接影響門檻較高（2026-09-22 真 Jev 實測：間接很容易被標滿）
+TIMING_MIN_CONF = 0.50     # timing 顯示門檻（2026-09-23）：低於此一律顯示「Timing unclear」，
+                           # 原始 label 仍照實存放供之後校準，不因此改寫
 MAX_COMPANIES_PER_ITEM = 5
 STALE_EVENT_DAYS = 3       # 事件日期超過這麼多天才算「過舊」（規則 A，2026-09-23）
 STALE_MATCH_WINDOW_DAYS = 2  # 過舊事件要跟先前紀錄的事件日期差在幾天內，才當成同一件事的重述
@@ -749,6 +751,13 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
             },
             "stage": ({"label": j["stage"]["label"], "display": STAGE_DISPLAY.get(j["stage"]["label"], ""),
                        "confidence": j["stage"]["confidence"]} if j else None),
+            # 2026-09-23 新增，display-only：何時對營運／總經產生效果，只記錄供之後校準用，
+            # 不進排序（_rank_key）、不進分道／分類（decide）、不進派送（route）。低信心一律顯示
+            # 「Timing unclear」，但 label 仍存 Jev 原始答案，不因信心低被改寫。
+            "timing": ({"label": j["timing"]["label"],
+                        "display": (TIMING_DISPLAY.get(j["timing"]["label"], "Timing unclear")
+                                    if j["timing"]["confidence"] >= TIMING_MIN_CONF else "Timing unclear"),
+                        "confidence": j["timing"]["confidence"]} if j else None),
             "attribution": ({"label": j["attribution"]["label"],
                              "display": ATTRIBUTION_DISPLAY.get(j["attribution"]["label"], ""),
                              "confidence": j["attribution"]["confidence"]} if j else None),
@@ -798,6 +807,7 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
             "claim": cand["headline"], "detail": cand["text"][len(cand["headline"]):].strip()[:400],
             "figures": cand["figures"], "terms": cand["terms"], "tokens": sorted(cand["tokens"])[:40],
             "stage": j["stage"]["label"] if j else None,
+            "timing": j["timing"]["label"] if j else None,  # 2026-09-23：只記錄供之後校準，不參與任何判斷規則
             "novelty": final["class"], "jev_novelty": final["jev_label"],
             "variables_direct": direct, "variables_indirect": indirect,
             "sources": [{"source": r["source"], "url": r["url"], "published": r["published"]} for r in cand["rss"]]
