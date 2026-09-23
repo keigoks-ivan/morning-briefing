@@ -1224,7 +1224,7 @@ _RESEARCH_VERDICT_STYLE = {
     "shaky": ("動搖", "background:#FAF0DA;color:#854F0B;"),
     "neutral": ("中性", "background:#F1F1F1;color:#666;"),
 }
-_RESEARCH_KIND_ZH = {"search": "主動搜尋", "earnings": "財報", "transcript": "法說逐字稿"}
+_RESEARCH_KIND_ZH = {"search": "主動搜尋", "earnings": "財報", "transcript": "法說逐字稿", "reverify": "週一複查"}
 
 
 def _cp_number_label(checkpoint_id: str) -> str:
