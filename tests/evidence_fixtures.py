@@ -106,6 +106,40 @@ def no_fetch(url: str, timeout: int = 15):
     return None, "missing"
 
 
+# ── 想法判斷步驟的假 Claude CLI（2026-09-24 新增，取代舊版 FakeJev 問想法查核點那條路） ────
+def fake_judge_call(verdict_by=None, default_verdict: str = "supports", default_reason: str = "測試理由",
+                    fail: bool = False, calls: list | None = None):
+    """回一個符合 ideas_layer.run_ideas_step(judge_call=...) 形狀的假函式：
+    (system_prompt, user_prompt) -> {"verdicts": [...]}。verdict_by：{(item_id, idea_id,
+    checkpoint_id): verdict} 覆寫，其餘用 default_verdict。fail=True 模擬整批判斷失敗（呼叫端
+    要把涵蓋的 (item, checkpoint) 全部退回 candidate）。calls（可選，傳一個 list 進來）會被
+    追加每次呼叫解析出來的 payload，方便測試檢查一次請求裡帶了哪些候選／查核點。"""
+    verdict_by = verdict_by or {}
+
+    def call(system_prompt: str, user_prompt: str) -> dict:
+        payload = json.loads(user_prompt)
+        if calls is not None:
+            calls.append(payload)
+        if fail:
+            raise RuntimeError("claude CLI exited 1: boom")
+        out = []
+        for it in payload.get("items", []):
+            for cp in it.get("checkpoints", []):
+                key = (it["id"], cp["idea"], cp["checkpoint"])
+                verdict = verdict_by.get(key, default_verdict)
+                out.append({"id": it["id"], "idea": cp["idea"], "checkpoint": cp["checkpoint"],
+                           "verdict": verdict, "reason_zh": default_reason})
+        return {"verdicts": out}
+    return call
+
+
+def no_fulltext_dict(cands, **kwargs):
+    """給 ideas_layer.run_ideas_step(full_text_fetch=...) 用的假全文抓取：離線測試預設不抓
+    （跟 evidence_fixtures.no_fulltext 給事件判斷層本體用的是同一個精神，只是回傳形狀要對到
+    evidence_fulltext.fetch_fulltext 的 {cid: outcome} 形狀）。"""
+    return {}
+
+
 _OFFICIAL_DIR = FX / "official_20260922"
 _OFFICIAL_INDEX = json.loads((_OFFICIAL_DIR / "index.json").read_text(encoding="utf-8"))["urls"]
 

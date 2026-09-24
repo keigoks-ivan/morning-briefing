@@ -1,8 +1,10 @@
 """投資想法／查核點層（briefing/ideas_layer.py）離線測試。不呼叫付費 API、不連網、不寄信。
 
 涵蓋：載入順序（IDEAS_JSON_PATH → fetch → 跳過）、比對規則 (a)/(b)、跟 run_evidence_layer
-的整合（分類篩選、Jev 未判斷、每天 8 對上限）、idea_hits.json 的合併／去重／冪等／保留天數、
-news 頁與 email 摘要的渲染。
+的整合（分類篩選、每天 12／20 則上限、判斷步驟批次呼叫與失敗退回 candidate）、idea_hits.json
+的合併／去重／冪等／保留天數、news 頁與 email 摘要的渲染。2026-09-24 改版：想法查核點的判斷
+從 Jev 改成同一次執行內的 Claude Opus CLI（假的 judge_call，見 evidence_fixtures.fake_judge_call），
+事件判斷層本體（新舊／階段／變數）仍用 Jev，不受影響。
 """
 
 from __future__ import annotations
@@ -28,7 +30,7 @@ import ideas_layer  # noqa: E402
 from evidence_ledger import EntityMatcher, Ledger  # noqa: E402
 
 
-def run(jev=None, ideas="default", fetch=None, hits_fetch=None):
+def run(jev=None, ideas="default", fetch=None, hits_fetch=None, judge_call=None, idea_full_text_fetch=None):
     if jev is None:
         jev, _ = fx.fake_client()
     ideas_arg = fx.sample_ideas() if ideas == "default" else ideas
@@ -36,7 +38,9 @@ def run(jev=None, ideas="default", fetch=None, hits_fetch=None):
         fx.briefing_data(), [], fx.watchlist(), fx.news_quality(), fx.TODAY, None,
         ledger=fx.seed_ledger(), holdings_json=fx.holdings(), jev=jev,
         fetch=fetch or fx.no_fetch, sec_user_agent=None, official_fetch=fx.offline_sources,
-        full_text_fetch=fx.no_fulltext, ideas=ideas_arg)
+        full_text_fetch=fx.no_fulltext, ideas=ideas_arg,
+        idea_full_text_fetch=idea_full_text_fetch or fx.no_fulltext_dict,
+        idea_judge_call=judge_call or fx.fake_judge_call())
 
 
 def item(ev, fragment):
@@ -189,7 +193,9 @@ class MatchingRuleTests(unittest.TestCase):
 
 
 class IdeasIntegrationTests(unittest.TestCase):
-    """跟 run_evidence_layer 的整合：分類篩選、Jev 未判斷、每天 8 對上限、全文不落地。"""
+    """跟 run_evidence_layer 的整合：分類篩選、判斷步驟批次呼叫與失敗退回 candidate、每天
+    12／20 則上限、全文不落地。事件判斷層本體（新舊／階段／變數）仍用假 Jev，不受這次改版
+    影響，見 run() helper。"""
 
     def test_progress_update_item_gets_matched_checkpoints(self):
         ev, _ = run()
@@ -197,9 +203,12 @@ class IdeasIntegrationTests(unittest.TestCase):
         ids = {h["checkpoint"] for h in it["ideas"]}
         self.assertEqual(ids, {"cp-a-only", "cp-b1-two", "cp-b1-phrase", "cp-b2-theme"})
         for h in it["ideas"]:
-            self.assertIn(h["verdict"], ("supports", "refutes", "unrelated", "unjudged"))
+            self.assertIn(h["verdict"], ideas_layer.JUDGE_VERDICTS)
             self.assertEqual(h["idea"], "ai-scissors")
             self.assertTrue(h["label"])
+            self.assertIn("rule", h)
+            self.assertIn(h["rule"], ("company+keyword", "two keywords", "phrase", "theme+keyword", "keyword"))
+            self.assertIsInstance(h["matched_keywords"], list)
 
     def test_excluded_classes_get_no_ideas_even_with_matching_keywords(self):
         # SB Energy=needs_review, AMD=market_move_only, Copilot=known_restatement：都不是
@@ -212,19 +221,15 @@ class IdeasIntegrationTests(unittest.TestCase):
         for frag in ("SB Energy", "AMD market cap tops", "Copilot tops 30 million"):
             self.assertEqual(item(ev, frag)["ideas"], [], frag)
 
-    def test_jev_budget_exhausted_keeps_match_as_unjudged(self):
-        # 沒有 key 的話連主分類都會是 not_judged（進不了新事實／進度更新，就沒有想法可比對），
-        # 所以這裡改用「主分類問完剛好把預算用完」模擬想法層自己被擋預算的情況：fixture 有 6 則
-        # 候選（各問一次 Jev），max_requests=6 讓後面想法查核點的請求全部被預算擋下。
-        fake = fx.FakeJev()
-        jev = evidence_layer.JevClient(api_key="test-key-not-real", cache={}, transport=fake, max_requests=6)
-        ev, _ = run(jev=jev)
+    def test_judge_call_failure_keeps_matches_as_candidate(self):
+        # CLI 掛掉／逾時／JSON 解不開：那一批涵蓋的全部 (item, checkpoint) 退回 candidate
+        # （可能相關），不猜、不補假答案——跟舊版 Jev 預算用完標 unjudged 同一種失效保護精神。
+        ev, _ = run(judge_call=fx.fake_judge_call(fail=True))
         it = item(ev, "Kaohsiung packaging park")
-        self.assertEqual(it["classification"]["class"], "progress_update")   # 主分類正常問完
         self.assertTrue(it["ideas"])
         for h in it["ideas"]:
-            self.assertEqual(h["verdict"], "unjudged")
-            self.assertIsNone(h["confidence"])
+            self.assertEqual(h["verdict"], "candidate")
+            self.assertEqual(h["reason_zh"], "")
 
     def test_no_ideas_configured_marks_step_unavailable(self):
         with mock.patch.dict(os.environ):
@@ -237,23 +242,20 @@ class IdeasIntegrationTests(unittest.TestCase):
         self.assertIsNotNone(ev["idea_hits"])
         self.assertEqual(ev["idea_hits"]["hits"], [])
 
-    def test_all_checkpoints_matched_by_one_item_are_batched_into_one_request(self):
-        # 2026-09-23 晚改成逐則批次問法：一則新聞命中幾個查核點，就在同一次 Jev 請求裡問完，
-        # 不是每對 (item, checkpoint) 各一個請求，所以一則新聞就算命中 12 個查核點也不會被
-        # 「每天 8 對」卡住——會卡的是「每天最多幾則新聞」（見 ItemCapTests）。
+    def test_all_checkpoints_matched_by_one_item_are_kept_together(self):
+        # 一則新聞命中幾個查核點，都在同一份候選裡列出來給判斷步驟一次看完，不會被「每天最多
+        # 幾則新聞」的上限拆散——會卡的是候選「則數」，不是「查核點對數」（見 ItemCapTests）。
         checkpoints = [{"id": f"cp{i}", "label": f"test{i}", "companies": [], "keywords": ["cowos", "capacity"],
                         "themes": [], "supports_if": "s", "refutes_if": "r"} for i in range(12)]
         ideas = [{"id": "many-checkpoints", "short": "多查核點", "url": "/x", "status": "active",
                  "checkpoints": checkpoints}]
-        jev, fake = fx.fake_client()
-        ev, _ = run(ideas=ideas, jev=jev)
+        ev, _ = run(ideas=ideas)
         it = item(ev, "Kaohsiung packaging park")
         self.assertEqual(len(it["ideas"]), 12)
         for h in it["ideas"]:
-            self.assertIsNotNone(h["confidence"])
-            self.assertNotEqual(h["verdict"], "unjudged")
+            self.assertNotEqual(h["verdict"], "candidate")
         self.assertEqual(ev["ideas"]["matched_pairs"], 12)
-        self.assertEqual(ev["ideas"]["asked"], 1)   # 一則新聞，一個請求（不是 12 個請求）
+        self.assertEqual(ev["ideas"]["kept"], 1)   # 一則新聞算一個「候選」，不是 12 個
 
     def test_ideas_step_failure_does_not_break_evidence_layer(self):
         def boom(fetch):
@@ -266,10 +268,10 @@ class IdeasIntegrationTests(unittest.TestCase):
         for it in ev["items"]:
             self.assertEqual(it["ideas"], [])
 
-    def test_full_text_reaches_idea_jev_state_but_never_persisted(self):
+    def test_full_text_reaches_idea_judge_prompt_but_never_persisted(self):
         marker = "IDEA_FULLTEXT_MARKER_" + ("Q" * 30)
 
-        def ft_fetch(cands):
+        def ft_fetch(cands, **kwargs):
             out = {}
             for c in cands:
                 if "Kaohsiung packaging park" in c["headline"]:
@@ -278,24 +280,13 @@ class IdeasIntegrationTests(unittest.TestCase):
                                      "quotes": [], "figures": []}
             return out
 
-        jev, _fake = fx.fake_client()
-        orig_transport = jev.transport
         captured = []
+        judge_call = fx.fake_judge_call(calls=captured)
 
-        def spy(body, api_key):
-            captured.append(json.loads(body))
-            return orig_transport(body, api_key)
-        jev.transport = spy
+        ev, ledger = run(idea_full_text_fetch=ft_fetch, judge_call=judge_call)
 
-        ev, ledger = evidence_layer.run_evidence_layer(
-            fx.briefing_data(), [], fx.watchlist(), fx.news_quality(), fx.TODAY, None,
-            ledger=fx.seed_ledger(), holdings_json=fx.holdings(), jev=jev, fetch=fx.no_fetch,
-            sec_user_agent=None, official_fetch=fx.offline_sources, full_text_fetch=ft_fetch,
-            ideas=fx.sample_ideas())
-
-        idea_reqs = [r for r in captured if any("::" in qid for qid in r.get("questions", {}))]
-        self.assertTrue(idea_reqs)
-        self.assertTrue(any(marker in json.dumps(r["state"]) for r in idea_reqs))
+        self.assertTrue(captured)
+        self.assertTrue(any(marker in json.dumps(c) for c in captured))
         self.assertNotIn(marker, json.dumps(ev, ensure_ascii=False))
         with tempfile.TemporaryDirectory() as td:
             written = evidence_layer.save_outputs(ev, ledger, Path(td), fx.TODAY)
@@ -305,30 +296,31 @@ class IdeasIntegrationTests(unittest.TestCase):
 
 
 class BatchingTests(unittest.TestCase):
-    """一則新聞命中多個查核點，Jev 只收到一個請求、裡面有多題（2026-09-23 晚改的逐則批次問法）。"""
+    """判斷步驟一次呼叫涵蓋整批候選：一則新聞命中多個查核點在同一個 item 裡列出幾個
+    checkpoints（2026-09-24 改版，見 ideas_layer._build_judge_entries）；不同的候選新聞也會被
+    合併進同一次 judge_call 請求（不是各自一個請求），除非總字數超過 MAX_BATCH_CHARS 才切批。"""
 
-    def test_one_jev_request_carries_all_matched_checkpoints_for_the_item(self):
-        jev, fake = fx.fake_client()
-        orig_transport = jev.transport
+    def test_one_judge_call_carries_all_matched_checkpoints_for_the_item(self):
         captured = []
-
-        def spy(body, api_key):
-            captured.append(json.loads(body))
-            return orig_transport(body, api_key)
-        jev.transport = spy
-
-        ev, _ = run(jev=jev)   # fx.sample_ideas() 的 ai-scissors 對 Kaohsiung 候選命中 4 個查核點
+        ev, _ = run(judge_call=fx.fake_judge_call(calls=captured))   # ai-scissors 對 Kaohsiung 候選命中 4 個查核點
         it = item(ev, "Kaohsiung packaging park")
         self.assertEqual(len(it["ideas"]), 4)
-        idea_reqs = [r for r in captured
-                    if "Kaohsiung packaging park" in (r.get("state", {}).get("today", {}).get("headline", ""))
-                    and any("::" in qid for qid in r.get("questions", {}))]
-        self.assertEqual(len(idea_reqs), 1)   # 4 個查核點只發了 1 個請求
-        self.assertEqual(len(idea_reqs[0]["questions"]), 4)   # 該請求裡有 4 題
+        matching = [c for c in captured for entry in c.get("items", [])
+                   if "Kaohsiung packaging park" in entry.get("headline", "")]
+        self.assertEqual(len(matching), 1)   # 只有一批呼叫看得到這則
+        entry = next(e for e in matching[0]["items"] if "Kaohsiung packaging park" in e["headline"])
+        self.assertEqual(len(entry["checkpoints"]), 4)   # 該候選的 payload 裡有 4 個查核點
+
+    def test_all_matched_candidates_share_one_judge_call_when_small(self):
+        # 這批候選的總字數遠低於 MAX_BATCH_CHARS，不管當天比對到幾則新聞，都應該只發一次
+        # judge_call 請求（_split_into_batches 只有在字數過大才切批，見 ideas_layer.py）。
+        captured = []
+        run(judge_call=fx.fake_judge_call(calls=captured))
+        self.assertEqual(len(captured), 1)
 
 
 class ItemCapTests(unittest.TestCase):
-    """每天最多幾則新聞問 Jev（不是每對 (item, checkpoint)），見 ideas_layer.run_ideas_step。"""
+    """每天最多幾則新聞進候選（不是每對 (item, checkpoint)），見 ideas_layer.run_ideas_step。"""
 
     IDEA = [{"id": "cap-test", "short": "上限測試", "url": "/x", "status": "active",
             "checkpoints": [{"id": "cp1", "label": "test", "companies": [], "keywords": ["alpha", "beta"],
@@ -344,39 +336,40 @@ class ItemCapTests(unittest.TestCase):
                "source": "Reuters", "source_date": fx.TODAY, "rss": []}
         return it, cand
 
-    def test_briefing_item_cap_leaves_the_rest_unjudged(self):
+    def test_briefing_item_cap_drops_the_rest(self):
         items, cand_by_id = [], {}
-        for i in range(10):
+        for i in range(15):
             it, cand = self._briefing_item(i)
             items.append(it)
             cand_by_id[it["id"]] = cand
-        jev, _fake = fx.fake_client()
-        result = ideas_layer.run_ideas_step(items, cand_by_id, jev, fx.TODAY, ideas=self.IDEA,
-                                            fetch=fx.no_fetch)
-        judged_items = [it for it in items if it["ideas"] and it["ideas"][0]["confidence"] is not None]
-        unjudged_items = [it for it in items if it["ideas"] and it["ideas"][0]["confidence"] is None]
-        self.assertEqual(len(judged_items), ideas_layer.MAX_BRIEFING_IDEA_ITEMS)
-        self.assertEqual(len(unjudged_items), 10 - ideas_layer.MAX_BRIEFING_IDEA_ITEMS)
-        self.assertEqual(result["matched_pairs"], 10)
-        self.assertEqual(result["asked"], ideas_layer.MAX_BRIEFING_IDEA_ITEMS)
-        for it in unjudged_items:
-            self.assertEqual(it["ideas"][0]["verdict"], "unjudged")
+        result = ideas_layer.run_ideas_step(items, cand_by_id, fx.TODAY, ideas=self.IDEA, fetch=fx.no_fetch,
+                                            full_text_fetch=fx.no_fulltext_dict, judge_call=fx.fake_judge_call())
+        kept_items = [it for it in items if it["ideas"]]
+        dropped_items = [it for it in items if not it["ideas"]]
+        self.assertEqual(len(kept_items), ideas_layer.MAX_BRIEFING_IDEA_ITEMS)
+        self.assertEqual(len(dropped_items), 15 - ideas_layer.MAX_BRIEFING_IDEA_ITEMS)
+        self.assertEqual(result["matched_pairs"], 15)
+        self.assertEqual(result["kept"], ideas_layer.MAX_BRIEFING_IDEA_ITEMS)
+        self.assertEqual(result["dropped_by_cap"], 15 - ideas_layer.MAX_BRIEFING_IDEA_ITEMS)
+        for it in kept_items:
+            self.assertNotEqual(it["ideas"][0]["verdict"], "candidate")
 
     def test_wide_item_cap_matches_max_wide_idea_items(self):
         ideas = self.IDEA
         matcher = EntityMatcher({})
         ledger = Ledger([])
         pool = []
-        for i in range(10):
+        for i in range(25):
             pool.append({"title": f"Alpha beta wide story {i}", "summary": "alpha and beta both mentioned here",
                         "link": f"https://example.com/wide{i}", "source": "Wire", "published": f"{fx.TODAY} 09:00"})
-        jev, _fake = fx.fake_client()
-        result = ideas_layer.run_ideas_step([], {}, jev, fx.TODAY, ideas=ideas, fetch=fx.no_fetch,
-                                            matcher=matcher, rss_items=pool, ledger=ledger)
+        result = ideas_layer.run_ideas_step([], {}, fx.TODAY, ideas=ideas, fetch=fx.no_fetch,
+                                            matcher=matcher, rss_items=pool, ledger=ledger,
+                                            full_text_fetch=fx.no_fulltext_dict, judge_call=fx.fake_judge_call())
         ws = result["wide_scan"]
-        self.assertEqual(ws["pool_size"], 10)
-        self.assertEqual(ws["matched_items"], 10)
-        self.assertEqual(ws["asked_items"], ideas_layer.MAX_WIDE_IDEA_ITEMS)
+        self.assertEqual(ws["pool_size"], 25)
+        self.assertEqual(ws["matched_items"], 25)
+        self.assertEqual(ws["kept_items"], ideas_layer.MAX_WIDE_IDEA_ITEMS)
+        self.assertEqual(ws["dropped_by_cap"], 25 - ideas_layer.MAX_WIDE_IDEA_ITEMS)
 
 
 class WideScanTests(unittest.TestCase):
@@ -585,8 +578,11 @@ class HitsFileTests(unittest.TestCase):
         self.assertEqual(merged["hits"], [])
 
     def test_unrelated_verdicts_are_dropped_from_hits_file(self):
-        jev, _ = fx.fake_client({"TSMC rallies": {"idea_verdict": ["unrelated", 0.9]}})
-        ev, _ = run(jev=jev)
+        ideas = [{"id": "catch-all", "short": "測試", "url": "/x", "status": "active",
+                 "checkpoints": [{"id": "cp-catch", "label": "test", "companies": ["TSM"],
+                                  "keywords": ["cowos"], "themes": [],
+                                  "supports_if": "s", "refutes_if": "r"}]}]
+        ev, _ = run(ideas=ideas, judge_call=fx.fake_judge_call(default_verdict="unrelated"))
         it = item(ev, "Kaohsiung packaging park")
         self.assertTrue(any(h["verdict"] == "unrelated" for h in it["ideas"]))  # 留在當天 JSON 供校準
         hit_ids = {(r["evidence_id"], r["checkpoint"]) for r in ev["idea_hits"]["hits"]}
@@ -639,9 +635,10 @@ class RenderingTests(unittest.TestCase):
             "idea_hits": {"hits": [
                 {"date": "2026-09-22", "idea": "ai-scissors", "checkpoint": "cp1", "verdict": "supports"},
                 {"date": "2026-09-22", "idea": "ai-scissors", "checkpoint": "cp2", "verdict": "refutes"},
+                {"date": "2026-09-22", "idea": "ai-scissors", "checkpoint": "cp3", "verdict": "shaky"},
             ]},
         }
-        self.assertIn("想法：AI 剪刀差 2 則（支持 1、推翻 1）", html_template._ideas_email_summary(ev))
+        self.assertIn("想法：支持 1、推翻 1、動搖 1", html_template._ideas_email_summary(ev))
 
     def test_email_summary_empty_when_no_hits(self):
         ev = {"date": "2026-09-22", "ideas": {"status": "ok", "catalog": {}}, "idea_hits": {"hits": []}}
@@ -668,14 +665,15 @@ class RenderingTests(unittest.TestCase):
                                 "checkpoints": {"cp3": "記憶體合約價"}, "due": []}}},
             "idea_hits": {"hits": [
                 {"date": "2026-09-22", "idea": "ai-scissors", "checkpoint": "cp3", "verdict": "supports",
-                 "confidence": 0.8, "headline": "HBM contract prices rise again",
-                 "url": "https://example.com/hbm", "origin": "wide"},
+                 "headline": "HBM contract prices rise again", "reason_zh": "HBM 合約價再度調漲",
+                 "basis": "headline_summary", "url": "https://example.com/hbm", "origin": "wide"},
             ]},
         }
         page = html_template._ideas_section(ev)
         self.assertIn("早報外", page)
-        self.assertIn("只讀到標題與摘要", page)
+        self.assertIn("只讀到標題", page)
         self.assertIn("HBM contract prices rise again", page)
+        self.assertIn("HBM 合約價再度調漲", page)
 
     def test_briefing_origin_hit_has_no_wide_tag(self):
         ev = {

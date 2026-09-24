@@ -66,6 +66,27 @@ def load_sources(path: Path | None = None) -> list[dict]:
     return [s for s in (payload.get("sources") or []) if isinstance(s, dict) and s.get("url")]
 
 
+def _compile_exclusion_regex(patterns: list) -> "re.Pattern | None":
+    pats = [p for p in (patterns or []) if isinstance(p, str) and p.strip()]
+    if not pats:
+        return None
+    return re.compile("|".join(f"(?:{p})" for p in pats), re.I)
+
+
+def load_exclusions(path: Path | None = None) -> dict:
+    """全域雜訊排除規則（2026-09-24 新增，見 data/news_sitemaps.json 的 exclude_url_patterns／
+    exclude_title_patterns 與 _exclude_comment）：消費性購物／優惠券／評測這類跟研究無關的內容，
+    不分來源，在 fetch_one_source 解析階段就濾掉——早報候選（filter_for_evidence）跟早報外掃描
+    （to_pool_items 的池子）因此共用同一份排除結果，不用各自濾一次。讀不到設定檔就當沒有排除
+    規則（回兩個 None），不擋早報。"""
+    try:
+        payload = json.loads(Path(path or CONFIG_PATH).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"url": None, "title": None}
+    return {"url": _compile_exclusion_regex(payload.get("exclude_url_patterns")),
+           "title": _compile_exclusion_regex(payload.get("exclude_title_patterns"))}
+
+
 # ── HTTP（可替換，測試用假的） ───────────────────────────────────────────
 def _default_http_get(url: str, timeout: int = FETCH_TIMEOUT) -> tuple[str, int | None]:
     """回 (內容, HTTP 狀態碼)。網路失敗回 ("", None)。支援 gzip：requests 本來就會處理
@@ -214,13 +235,18 @@ def _normalize_item(block: dict, cfg: dict) -> tuple[dict, datetime | None] | No
 
 # ── 抓單一來源（三種 type 都走這支） ─────────────────────────────────────
 def fetch_one_source(cfg: dict, *, http_get=None, sleep=None,
-                     now=None) -> tuple[list[dict], dict]:
+                     now=None, exclusions: dict | None = None) -> tuple[list[dict], dict]:
     """回 (items, status)。status 一定有 status（ok／empty／blocked／error）、items_seen
-    （這份 sitemap 原始 <url> 筆數，篩選前）、items_recent（套用 url_filter＋48 小時窗之後）。
-    被擋（403／429）或解析失敗就整個來源收手，不重試第三次、不影響其他來源（見 fetch_all）。"""
+    （這份 sitemap 原始 <url> 筆數，篩選前）、items_recent（套用 url_filter＋48 小時窗＋全域雜訊
+    排除之後）、excluded（被 exclusions 濾掉幾則，2026-09-24 新增，見 load_exclusions）。
+    被擋（403／429）或解析失敗就整個來源收手，不重試第三次、不影響其他來源（見 fetch_all）。
+    exclusions：{"url": 編譯好的 re.Pattern 或 None, "title": 同左}，沒給就不排除（單元測試
+    直接呼叫這支、不關心排除規則時常見；fetch_all 會自動載入並傳下來）。"""
     http_get = http_get or _default_http_get
     sleep = sleep or time.sleep
     now = now or (lambda: datetime.now(timezone.utc))
+    exclusions = exclusions or {}
+    excl_url, excl_title = exclusions.get("url"), exclusions.get("title")
 
     kind = cfg.get("type", "news_sitemap")
     max_age = float(cfg.get("max_age_hours") or DEFAULT_MAX_AGE_HOURS)
@@ -264,6 +290,7 @@ def fetch_one_source(cfg: dict, *, http_get=None, sleep=None,
 
     items_seen = len(blocks)
     items: list[dict] = []
+    excluded = 0
     for block in blocks:
         if url_filter and not url_filter.search(block.get("loc") or ""):
             continue
@@ -271,26 +298,35 @@ def fetch_one_source(cfg: dict, *, http_get=None, sleep=None,
         if normalized is None:
             continue
         it, dt = normalized
+        if (excl_url and excl_url.search(it["url"])) or (excl_title and excl_title.search(it["title"])):
+            excluded += 1
+            continue   # 消費性購物／優惠券／評測這類雜訊，見 data/news_sitemaps.json 的
+                       # exclude_url_patterns／exclude_title_patterns（2026-09-24 新增）
         if dt is None or dt < cutoff:
             continue   # 沒有可用日期，或超過 max_age_hours：不採用（見檔頭）
         items.append(it)
 
     status = "ok" if items_seen else "empty"
     return items, {"status": status, "http_status": status_code, "items_seen": items_seen,
-                   "items_recent": len(items)}
+                   "items_recent": len(items), "excluded": excluded}
 
 
 def fetch_all(configs: list[dict] | None = None, *, http_get=None, sleep=None,
-             now=None) -> tuple[list[dict], dict]:
+             now=None, exclusions: dict | None = None) -> tuple[list[dict], dict]:
     """抓全部設定來源，一個一個來（不平行——來源數少、逐一抓對伺服器比較客氣）。單一來源出錯
-    不拖垮其他來源。回 (全部近期項目, {來源名稱: status})。"""
+    不拖垮其他來源。exclusions 沒給就用 load_exclusions() 讀 data/news_sitemaps.json 的全域
+    排除規則（早報候選與早報外掃描的池子都吃到同一份，見 filter_for_evidence／to_pool_items
+    的呼叫順序：這裡濾掉之後兩邊才各自處理，不用各自再濾一次）。回 (全部近期項目，已排除雜訊，
+    {來源名稱: status})。"""
     configs = configs if configs is not None else load_sources()
+    exclusions = exclusions if exclusions is not None else load_exclusions()
     all_items: list[dict] = []
     per_source: dict = {}
     for cfg in configs:
         name = cfg.get("name") or cfg.get("url", "?")
         try:
-            items, status = fetch_one_source(cfg, http_get=http_get, sleep=sleep, now=now)
+            items, status = fetch_one_source(cfg, http_get=http_get, sleep=sleep, now=now,
+                                             exclusions=exclusions)
         except Exception as e:  # noqa: BLE001 — 單一來源出錯不能拖垮其他來源
             items, status = [], {"status": "error", "items_seen": 0, "items_recent": 0,
                                  "error": f"{type(e).__name__}: {e}"}
@@ -302,8 +338,12 @@ def fetch_all(configs: list[dict] | None = None, *, http_get=None, sleep=None,
 # ── evidence 候選：篩選與排序 ─────────────────────────────────────────────
 def filter_for_evidence(items: list[dict], matcher, routing: dict, dedup_titles: list[str],
                         dd: dict, holdings: dict) -> list[dict]:
-    """標題要點到研究公司，或點到研究主題／環節辨識詞（兩者有一個就算，比 GDELT 的「公司＋
-    數字或主題」寬——sitemap 來源本身就是精選媒體，不是搜尋索引，見 CLAUDE.md）；跟既有標題
+    """標題要點到研究公司或研究主題／環節辨識詞（兩者有一個就算，比 GDELT 的「公司且數字或
+    主題」寬——sitemap 來源本身就是精選媒體，不是搜尋索引，見 CLAUDE.md），而且還要有主題／
+    環節辨識詞「或」帶單位的數字（2026-09-24 收緊，見 CLAUDE.md「Sitemap 候選」段）：光提到
+    一家研究公司、標題裡沒有任何主題關鍵詞也沒有數字，不夠具體，不算合格候選（例如「Royal
+    Caribbean 執行長受訪」這種純提及，沒有數字也沒點到任何研究主題）。全域雜訊（購物／優惠券／
+    評測，見 data/news_sitemaps.json）已經在 fetch_one_source 濾掉，這裡不用重濾。跟既有標題
     近似的丟掉；黑名單網域丟掉；依 DD／持倉公司優先 → 有公司命中優先（比只有主題命中強）→
     有數字優先 → 新的優先排序。不在這裡截斷成 max_kept——留給呼叫端（
     fetch_sitemap_candidates）截斷，好讓 quality 同時看得到「符合條件的全部」與「實際留用的」
@@ -332,16 +372,19 @@ def filter_for_evidence(items: list[dict], matcher, routing: dict, dedup_titles:
         theme_hit = any(_keyword_hits(title, kws) for kws in kw_lists)
         if not (companies or theme_hit):
             continue   # 標題沒點到研究公司，也沒點到研究主題／環節辨識詞：不夠具體
+        figures = extract_figures(title)
+        has_figure = bool(figures)
+        if not (theme_hit or has_figure):
+            continue   # 只有公司命中、沒有主題關鍵詞也沒有帶單位的數字：純提及，太籠統
         if any(_near_same_title(title, t) for t in dedup_titles):
             continue   # 跟早報既有新聞卡／RSS 標題撞了，不重複帶進來
         if any(_near_same_title(title, t) for t in kept_titles):
             continue
         seen_urls.add(url)
         kept_titles.append(title)
-        figures = extract_figures(title)
         is_priority = any(c in priority_tickers or any(tk in priority_tickers for tk in _company_tickers(c, routing))
                           for c in companies)
-        kept.append({**it, "companies": companies, "figures": figures, "has_figure": bool(figures),
+        kept.append({**it, "companies": companies, "figures": figures, "has_figure": has_figure,
                     "company_match": bool(companies), "theme_hit": theme_hit, "priority": is_priority})
     # 穩定排序，由次要到主要依序套（跟 gdelt_source.filter_and_rank 同一個寫法）：
     # 新的優先 → 有數字優先 → 公司命中優先（比只有主題命中強）→ DD／持倉公司優先
@@ -410,6 +453,9 @@ def fetch_sitemap_candidates(routing: dict, matcher, dd: dict, holdings: dict, d
         quality["sources"] = per_source
         quality["items_seen_total"] = sum(s.get("items_seen", 0) for s in per_source.values())
         quality["items_recent_total"] = sum(s.get("items_recent", 0) for s in per_source.values())
+        # 2026-09-24 新增：exclude_url_patterns／exclude_title_patterns 這一輪各來源濾掉幾則
+        # （見 fetch_one_source／data/news_sitemaps.json），供任務報告與人工檢視用。
+        quality["excluded_total"] = sum(s.get("excluded", 0) for s in per_source.values())
         pool_items = to_pool_items(items)
         quality["pool_size"] = len(pool_items)
         matched = filter_for_evidence(items, matcher, routing, dedup_titles, dd, holdings)

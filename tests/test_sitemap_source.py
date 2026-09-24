@@ -235,6 +235,73 @@ class FetchOneSourceTests(unittest.TestCase):
         self.assertEqual(status["status"], "empty")
 
 
+class ExclusionTests(unittest.TestCase):
+    """全域雜訊排除（2026-09-24 新增，見 data/news_sitemaps.json 的 exclude_url_patterns／
+    exclude_title_patterns）：fetch_one_source 解析階段就濾掉，早報候選與早報外掃描的池子
+    因此共用同一份排除結果。"""
+
+    def _exclusions(self):
+        return {"url": sm._compile_exclusion_regex(["/deals", "/select/"]),
+               "title": sm._compile_exclusion_regex([r"%\s*off", r"\bdeal\b", r"\bhow to\b"])}
+
+    def test_title_pattern_drops_matching_item(self):
+        xml = _news_sitemap_xml([
+            ("Upgrade your gaming experience with this 27-inch monitor, 45% off", "2026-09-24T04:00:00Z"),
+            ("China's ByteDance gained access to over 2,000 Nvidia B200 chips", "2026-09-24T04:00:00Z"),
+        ])
+        cfg = {"name": "Example", "url": "https://example.com/sitemap_news.xml", "type": "news_sitemap"}
+        items, status = sm.fetch_one_source(cfg, http_get=lambda u, timeout=15: (xml, 200),
+                                            sleep=lambda s: None, now=NOW, exclusions=self._exclusions())
+        self.assertEqual(len(items), 1)
+        self.assertIn("ByteDance", items[0]["title"])
+        self.assertEqual(status["excluded"], 1)
+        self.assertEqual(status["items_seen"], 2)
+
+    def test_url_pattern_drops_matching_item(self):
+        xml = _news_sitemap_xml([("Some deal roundup for readers", "2026-09-24T04:00:00Z")])
+        # 手動塞一個會命中 /deals 的網址（_news_sitemap_xml 的網址是 /0，改用 url_filter 以外的
+        # 判斷：直接組一份帶 /deals/ 路徑的 xml）
+        xml_with_path = xml.replace("https://example.com/0", "https://example.com/deals/monitor")
+        cfg = {"name": "Example", "url": "https://example.com/sitemap_news.xml", "type": "news_sitemap"}
+        items, status = sm.fetch_one_source(cfg, http_get=lambda u, timeout=15: (xml_with_path, 200),
+                                            sleep=lambda s: None, now=NOW, exclusions=self._exclusions())
+        self.assertEqual(items, [])
+        self.assertEqual(status["excluded"], 1)
+
+    def test_no_exclusions_given_keeps_everything(self):
+        xml = _news_sitemap_xml([("Big sale event, 50% off everything", "2026-09-24T04:00:00Z")])
+        cfg = {"name": "Example", "url": "https://example.com/sitemap_news.xml", "type": "news_sitemap"}
+        items, status = sm.fetch_one_source(cfg, http_get=lambda u, timeout=15: (xml, 200),
+                                            sleep=lambda s: None, now=NOW)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(status.get("excluded", 0), 0)
+
+    def test_load_exclusions_reads_real_config_file(self):
+        excl = sm.load_exclusions()
+        self.assertIsNotNone(excl["url"])
+        self.assertIsNotNone(excl["title"])
+        self.assertTrue(excl["title"].search("45% off"))
+        self.assertTrue(excl["title"].search("Amazon Prime settlement update: See if you qualify for a payout"))
+        self.assertFalse(excl["title"].search("Amazon Prime settlement reached in court case"))
+        self.assertTrue(excl["url"].search("https://example.com/deals/foo"))
+        self.assertFalse(excl["url"].search("https://example.com/news/foo"))
+
+    def test_load_exclusions_missing_file_returns_none(self):
+        excl = sm.load_exclusions(Path("/nonexistent/news_sitemaps.json"))
+        self.assertEqual(excl, {"url": None, "title": None})
+
+    def test_fetch_all_loads_exclusions_by_default_and_reports_totals(self):
+        xml = _news_sitemap_xml([
+            ("Upgrade your gaming experience with this 27-inch monitor, 45% off", "2026-09-24T04:00:00Z"),
+            ("China's ByteDance gained access to over 2,000 Nvidia B200 chips", "2026-09-24T04:00:00Z"),
+        ])
+        configs = [{"name": "Example", "url": "https://example.com/sitemap_news.xml", "type": "news_sitemap"}]
+        items, per_source = sm.fetch_all(configs, http_get=lambda u, timeout=15: (xml, 200),
+                                         sleep=lambda s: None, now=NOW)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(per_source["Example"]["excluded"], 1)
+
+
 class HttpGetGzipTests(unittest.TestCase):
     def test_default_http_get_decompresses_gzip_payload(self):
         import types
@@ -305,6 +372,25 @@ class FilterForEvidenceTests(unittest.TestCase):
                  "published_iso": "2026-09-24T01:00:00Z"}]
         kept = sm.filter_for_evidence(items, MATCHER, ROUTING, [], DD, HOLDINGS)
         self.assertEqual(kept, [])
+
+    def test_bare_company_mention_with_no_theme_or_figure_is_dropped(self):
+        # 2026-09-24 收緊：只有公司命中，標題裡沒有任何主題／環節關鍵詞、也沒有帶單位的數字
+        # （純提及），不夠具體，不再算合格候選（見 CLAUDE.md「Sitemap 候選」段）。
+        items = [{"title": "TSMC shares traded higher in Taipei session",
+                 "url": "https://example.com/bare", "domain": "example.com", "source_name": "Example",
+                 "published_iso": "2026-09-24T01:00:00Z"}]
+        kept = sm.filter_for_evidence(items, MATCHER, ROUTING, [], DD, HOLDINGS)
+        self.assertEqual(kept, [])
+
+    def test_company_mention_with_figure_but_no_theme_is_kept(self):
+        # 公司命中＋帶單位的數字（即使沒有點到任何主題關鍵詞）仍算合格，例如純財務數字新聞。
+        items = [{"title": "TSMC shares rise 3% in Taipei trading",
+                 "url": "https://example.com/figure-only", "domain": "example.com", "source_name": "Example",
+                 "published_iso": "2026-09-24T01:00:00Z"}]
+        kept = sm.filter_for_evidence(items, MATCHER, ROUTING, [], DD, HOLDINGS)
+        self.assertEqual(len(kept), 1)
+        self.assertTrue(kept[0]["has_figure"])
+        self.assertFalse(kept[0]["theme_hit"])
 
     def test_near_duplicate_of_briefing_title_is_dropped(self):
         title = "TSMC posts 34% revenue growth in August"

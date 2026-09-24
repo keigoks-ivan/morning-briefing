@@ -1,5 +1,27 @@
 {
   "_comment": "briefing/sitemap_source.py 的來源清單（2026-09-24 新增，見 CLAUDE.md「Sitemap 候選」段）。type: news_sitemap（Google News 相容格式，直接有 news:title／news:publication_date）／sitemap_index（先抓索引頁，取最新 max_children 個子 sitemap 當 news_sitemap 解析）／site_sitemap（沒有 news: 標籤，只有 lastmod，要靠 url_filter 篩，標題用網址 slug 猜）。url_filter 是正則，只有 site_sitemap 用得到，對 <loc> 比對。max_age_hours 沒填預設 48。money.udn.com 有現成的 gnews sitemap 但 robots.txt 明文寫『Any other uses are not permitted...for large language models (LLMs)...』且直接列名 Disallow: Claude／ClaudeBot，沒有收進來；DigiTimes 英文站只有 RSS（daily.xml），sitemap.xml 等路徑都是 soft-404 的 SPA 頁面；ctee.com.tw 在本機測試被 Cloudflare WAF 擋掉回 403；cnyes 的 news sitemap 快照是 2021 年的舊資料，不是即時更新；四個都不收，見 CLAUDE.md 與任務報告。",
+  "_exclude_comment": "2026-09-24 收緊（見 CLAUDE.md）：exclude_url_patterns／exclude_title_patterns 是全域正則清單（不分來源，大小寫不分），命中任何一條就整則丟掉——在 sitemap_source.fetch_one_source 解析階段就濾掉，早報候選（filter_for_evidence）跟早報外掃描（to_pool_items 的池子）共用同一份，不用各自濾一次。exclude_title_patterns 裡 settlement 那條要『settlement』與『payout 或 qualify』同時出現才算（正則用 lookahead），其餘都是單一片語命中就算；『best』那條抓的是『best 後面接常見消費性電子產品名詞』這種選購文，不是任何帶 best 的標題。discount／deal／sale 這類字也可能出現在真正的產業新聞（例如『Fed 討論 discount window』『晶片廠簽了大 deal』），這是關鍵字過濾的已知取捨，見任務報告；exclude_url_patterns 對 <loc>（完整網址，含路徑）比對。",
+  "exclude_url_patterns": [
+    "/select/",
+    "/deals",
+    "/best-picks/",
+    "/coupon",
+    "/shopping",
+    "/buying-guide",
+    "/review"
+  ],
+  "exclude_title_patterns": [
+    "%\\s*off",
+    "\\bdeals?\\b",
+    "\\bdiscount(?:ed)?\\b",
+    "\\bcoupon(?:s)?\\b",
+    "(?=.*\\bsettlement\\b)(?=.*\\b(?:payout|qualify)\\b)",
+    "\\bhow to\\b",
+    "\\bbest\\b.{0,40}\\b(?:laptops?|headphones?|earbuds?|tvs?|monitors?|speakers?|phones?|tablets?|cameras?|routers?|watches?|vacuums?|gifts?|picks?)\\b",
+    "\\breview:",
+    "\\bgiveaway\\b",
+    "\\bsale\\b"
+  ],
   "sources": [
     {
       "name": "CNBC",

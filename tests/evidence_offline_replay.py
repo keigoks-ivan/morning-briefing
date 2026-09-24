@@ -41,10 +41,13 @@ def main() -> None:
         jev = JevClient(api_key=None, cache={})
     # rss_items：合成的「早報外」新聞池（見 evidence_fixtures.wide_rss_pool），讓 ideas_layer 的
     # 早報外掃描（2026-09-23 晚新增）在離線重播裡也有東西可以示範比對；不是真實抓到的新聞。
+    # idea_full_text_fetch／idea_judge_call：想法查核點的判斷步驟（2026-09-24 改版）不連網、
+    # 不呼叫真的 Claude CLI——假的 judge_call 一律答 supports，只是示範批次判斷的形狀。
     ev, ledger = run_evidence_layer(
         data, fx.wide_rss_pool(), fx.watchlist(), fx.news_quality(failed_feeds=("Korea Tech (GN)",)), fx.TODAY, out,
         ledger=fx.seed_ledger(), holdings_json=fx.holdings(), jev=jev, fetch=fx.no_fetch, sec_user_agent=None,
-        official_fetch=fx.offline_sources)
+        official_fetch=fx.offline_sources, idea_full_text_fetch=fx.no_fulltext_dict,
+        idea_judge_call=fx.fake_judge_call())
     data["evidence_layer"] = ev
     data["date"] = "Tue 22 Sep 2026, 06:15 TST (offline replay)"
     written = save_outputs(ev, ledger, out, fx.TODAY)
@@ -72,8 +75,9 @@ def main() -> None:
     print("ledger:", json.dumps(ev["ledger"]))
     print("jev:", json.dumps(ev["jev"]), json.dumps(ev["quality"]["jev"]))
 
-    # 2026-09-23：投資想法／查核點層（briefing/ideas_layer.py）。設 IDEAS_JSON_PATH 才會真的讀到
-    # 想法定義；沒設就會照常標 unavailable（本檔 fetch 一律用 fx.no_fetch，不連網）。
+    # 投資想法／查核點層（briefing/ideas_layer.py，2026-09-24 改版：判斷不再是 Jev，是同一次
+    # 執行內的 Claude Opus CLI，本檔用假的 judge_call，不連網、不呼叫真的 CLI）。設
+    # IDEAS_JSON_PATH 才會真的讀到想法定義；沒設就會照常標 unavailable。
     print("ideas:", json.dumps(ev.get("ideas")))
     hit_items = [it for it in ev["items"] if it.get("ideas")]
     print(f"idea matches: {sum(len(it['ideas']) for it in hit_items)} pair(s) across {len(hit_items)} item(s)")
@@ -81,19 +85,19 @@ def main() -> None:
         print(f"  [{it['classification']['class']}] {it['headline'][:70]}")
         for h in it["ideas"]:
             print(f"    -> {h['idea']}/{h['checkpoint']} ({h['label']}): {h['verdict']} "
-                  f"conf={h['confidence']}")
+                  f"rule={h.get('rule')} reason={h.get('reason_zh')!r}")
     if ev.get("idea_hits") is not None:
         rows = ev["idea_hits"].get("hits") or []
         print(f"idea_hits.json: history={ev['idea_hits'].get('history')} rows_today={len(rows)}")
 
-    # 早報外掃描（ideas_layer._wide_scan，2026-09-23 晚新增）：程式規則從去重後新聞池挑出跟
-    # 查核點比對到的項目，只有比對到的才問 Jev；報 pool_size／chinese_count／matched_items／
-    # skipped_by_reason／asked_items，以及實際問到並判斷出來的 verdict（供人工檢視關鍵詞準不準）。
+    # 早報外掃描（ideas_layer._wide_scan）：程式規則從去重後新聞池挑出跟查核點比對到的項目，
+    # 報 pool_size／chinese_count／matched_items／skipped_by_reason／kept_items／dropped_by_cap，
+    # 以及實際判斷出來的 verdict（供人工檢視關鍵詞準不準）。
     ws = (ev.get("ideas") or {}).get("wide_scan") or {}
     print("wide_scan:", json.dumps(ws, ensure_ascii=False))
     for p in (ev.get("ideas") or {}).get("wide_pairs") or []:
         print(f"  [wide] {p['headline'][:70]} -> {p['idea']}/{p['checkpoint']} ({p['label']}): "
-              f"{p['verdict']} conf={p['confidence']}")
+              f"{p['verdict']} rule={p.get('rule')} reason={p.get('reason_zh')!r}")
 
 
 if __name__ == "__main__":

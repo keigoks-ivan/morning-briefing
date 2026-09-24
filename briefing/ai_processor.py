@@ -84,12 +84,16 @@ def _supports_restricted(cli: str) -> bool:
 
 
 def _call_claude_code(system_prompt: str, user_prompt: str, label: str,
-                      thinking_tokens: int = 0) -> dict:
+                      thinking_tokens: int = 0, model: str | None = None,
+                      timeout: int | None = None) -> dict:
     """用 Claude Code CLI 跑一次 prompt，回傳解析好的 JSON dict。
 
     `--allowed-tools ""` 讓它純文字生成不動工具（這三個任務都只是把輸入轉成
     JSON，不需要讀檔或上網）。thinking 預設關（實測開著會拖到 8 分鐘以上，
     這類「整理成 JSON」任務不需要）。失敗一律 raise，讓上層 fallback 接手。
+    model／timeout 沒給就用這三條既有任務（分析／新聞／財報）本來的
+    CLAUDE_CODE_MODEL／CLAUDE_CODE_TIMEOUT（2026-09-24 新增這兩個參數，給
+    ideas_layer.py 的投資想法判斷步驟換一個模型與較短逾時用，不影響既有三條呼叫）。
     """
     cli = shutil.which("claude")
     if not cli:
@@ -97,6 +101,8 @@ def _call_claude_code(system_prompt: str, user_prompt: str, label: str,
     if not (os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") or os.environ.get("CLAUDE_CODE_USE_LOCAL_AUTH")):
         raise RuntimeError("CLAUDE_CODE_OAUTH_TOKEN not set")
 
+    model = model or CLAUDE_CODE_MODEL
+    timeout = timeout if timeout is not None else CLAUDE_CODE_TIMEOUT
     env = _cli_env()
     env["MAX_THINKING_TOKENS"] = str(thinking_tokens)
 
@@ -115,13 +121,13 @@ def _call_claude_code(system_prompt: str, user_prompt: str, label: str,
         cmd = [
             cli, "-p",
             "--output-format", "json",
-            "--model", CLAUDE_CODE_MODEL,
+            "--model", model,
             "--system-prompt", system_prompt + "\n" + guard,
             "--allowed-tools", "",
         ]
         if _supports_restricted(cli):
             cmd.insert(2, "--restricted")
-        print(f"  → [{label} / Claude Code] Calling {CLAUDE_CODE_MODEL} "
+        print(f"  → [{label} / Claude Code] Calling {model} "
               f"(Max 訂閱, thinking={thinking_tokens}, attempt {attempt}/{max_attempts})...")
         try:
             proc = subprocess.run(
@@ -129,7 +135,7 @@ def _call_claude_code(system_prompt: str, user_prompt: str, label: str,
                 input=user_prompt,
                 capture_output=True,
                 text=True,
-                timeout=CLAUDE_CODE_TIMEOUT,
+                timeout=timeout,
                 cwd="/tmp",
                 env=env,
             )

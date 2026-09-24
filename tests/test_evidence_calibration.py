@@ -557,66 +557,50 @@ class AggregateIdeaHitsTests(unittest.TestCase):
         self.assertEqual(agg2["suggestions"], [])
 
 
-class IdeaSecondOpinionTests(unittest.TestCase):
-    def test_skips_when_cli_unavailable(self):
-        with mock.patch.object(ec, "_cli_available", return_value=False):
-            result = ec.run_idea_second_opinion(
-                [{"idea": "x", "checkpoint": "y", "verdict": "supports", "headline": "h"}], {}, cli_call=None)
-        self.assertEqual(result["status"], "skipped")
-        self.assertEqual(result["checked"], 0)
+class CrossCheckCandidateReviewsTests(unittest.TestCase):
+    """cross_check_candidate_reviews（2026-09-24 新增）：research.json 的 candidate_reviews
+    （如果有）當可選交叉比對，不是主要指標；沒有這個欄位就整段 unavailable，不擋主要指標。"""
 
-    def test_agreement_rate_and_disagreements(self):
+    def test_unavailable_when_research_json_missing(self):
+        result = ec.cross_check_candidate_reviews([], fetch=lambda u, timeout=15: (None, "missing"))
+        self.assertEqual(result["status"], "unavailable")
+
+    def test_unavailable_when_no_candidate_reviews_field(self):
+        def fetch(url, timeout=15):
+            return {"schema": "idea-research-v1", "run": {"date": "2026-09-29"}}, "ok"
+        result = ec.cross_check_candidate_reviews([], fetch=fetch)
+        self.assertEqual(result["status"], "unavailable")
+
+    def test_matches_by_url_idea_checkpoint(self):
         pairs = [
-            {"idea": "ai-scissors", "checkpoint": "cp3", "verdict": "supports", "headline": "h1", "summary": "s1"},
-            {"idea": "ai-scissors", "checkpoint": "cp3", "verdict": "refutes", "headline": "h2", "summary": "s2"},
+            {"idea": "ai-scissors", "checkpoint": "cp3", "url": "https://example.com/a"},
+            {"idea": "ai-scissors", "checkpoint": "cp3", "url": "https://example.com/b"},
         ]
-        defs = ec.idea_checkpoint_defs(IDEAS_FIXTURE)
 
-        def fake_cli(sys_p, user_p, model, timeout):
-            return {"verdict": "supports"}   # 一律答 supports：第一對一致，第二對分歧
+        def fetch(url, timeout=15):
+            return {"candidate_reviews": [
+                {"date": "2026-09-25", "hit_date": "2026-09-24", "url": "https://example.com/a",
+                 "idea": "ai-scissors", "checkpoint": "cp3", "verdict": "supports"},
+                {"date": "2026-09-25", "hit_date": "2026-09-24", "url": "https://example.com/b",
+                 "idea": "ai-scissors", "checkpoint": "cp3", "verdict": "unrelated"},
+            ]}, "ok"
 
-        result = ec.run_idea_second_opinion(pairs, defs, cli_call=fake_cli)
-        self.assertEqual(result["status"], "judged")
-        self.assertEqual(result["checked"], 2)
-        self.assertEqual(result["agreement_rate"], 0.5)
-        self.assertEqual(len(result["disagreements"]), 1)
-        self.assertEqual(result["disagreements"][0]["jev"], "refutes")
-        self.assertEqual(result["disagreements"][0]["sonnet"], "supports")
+        result = ec.cross_check_candidate_reviews(pairs, fetch=fetch)
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["matched"], 2)
+        self.assertEqual(result["unrelated"], 1)
+        self.assertEqual(result["unrelated_share"], 0.5)
 
-    def test_single_pair_failure_does_not_stop_others(self):
-        pairs = [{"idea": "a", "checkpoint": "b", "verdict": "supports", "headline": "h1"},
-                {"idea": "a", "checkpoint": "b", "verdict": "supports", "headline": "h2"}]
-        calls = {"n": 0}
+    def test_no_overlap_when_urls_do_not_match(self):
+        pairs = [{"idea": "ai-scissors", "checkpoint": "cp3", "url": "https://example.com/other"}]
 
-        def fake_cli(sys_p, user_p, model, timeout):
-            calls["n"] += 1
-            if calls["n"] == 1:
-                raise RuntimeError("down")
-            return {"verdict": "supports"}
+        def fetch(url, timeout=15):
+            return {"candidate_reviews": [
+                {"url": "https://example.com/a", "idea": "ai-scissors", "checkpoint": "cp3", "verdict": "supports"},
+            ]}, "ok"
 
-        result = ec.run_idea_second_opinion(pairs, {}, cli_call=fake_cli)
-        self.assertEqual(result["attempted"], 2)
-        self.assertEqual(result["checked"], 1)
-        self.assertEqual(len(result["errors"]), 1)
-
-    def test_caps_at_max_items(self):
-        pairs = [{"idea": "a", "checkpoint": "b", "verdict": "supports", "headline": f"h{i}"} for i in range(5)]
-        calls = {"n": 0}
-
-        def fake_cli(sys_p, user_p, model, timeout):
-            calls["n"] += 1
-            return {"verdict": "supports"}
-
-        ec.run_idea_second_opinion(pairs, {}, cli_call=fake_cli, max_items=2)
-        self.assertEqual(calls["n"], 2)
-
-    def test_unrecognised_verdict_is_treated_as_a_failure(self):
-        def fake_cli(sys_p, user_p, model, timeout):
-            return {"verdict": "maybe"}
-        result = ec.run_idea_second_opinion(
-            [{"idea": "a", "checkpoint": "b", "verdict": "supports", "headline": "h"}], {}, cli_call=fake_cli)
-        self.assertEqual(result["checked"], 0)
-        self.assertEqual(len(result["errors"]), 1)
+        result = ec.cross_check_candidate_reviews(pairs, fetch=fetch)
+        self.assertEqual(result["status"], "no_overlap")
 
 
 class RunIdeaCalibrationIntegrationTests(unittest.TestCase):
@@ -624,22 +608,25 @@ class RunIdeaCalibrationIntegrationTests(unittest.TestCase):
         result = ec.run_idea_calibration("2026-09-29", fetch=lambda u, timeout=15: (None, "missing"))
         self.assertEqual(result["status"], "unavailable")
         self.assertEqual(result["checked"], 0)
-        self.assertEqual(result["second_opinion"]["status"], "skipped")
+        self.assertEqual(result["candidate_reviews"]["status"], "unavailable")
 
     def test_full_run_with_injected_ideas_and_pairs(self):
+        # 2026-09-24 改版：判斷不再是 Jev supports／refutes／unrelated 三選一，是同一次執行內
+        # Claude 判斷出來的 supports／refutes／shaky／neutral／unrelated，見 ideas_layer.py。
         it = idea_evidence_item(ideas_hits=[
-            {"idea": "ai-scissors", "checkpoint": "cp3", "label": "L", "verdict": "unrelated", "confidence": 0.5}])
+            {"idea": "ai-scissors", "checkpoint": "cp3", "label": "L", "verdict": "unrelated",
+             "reason_zh": "跟查核點無關"}])
 
         def fetch(url, timeout=15):
             if url.endswith("evidence_2026-09-22.json"):
                 return {"date": "2026-09-22", "items": [it]}, "ok"
             return None, "missing"
 
-        result = ec.run_idea_calibration("2026-09-29", fetch=fetch,
-                                         cli_call=lambda *a, **k: {"verdict": "unrelated"}, ideas=IDEAS_FIXTURE)
+        result = ec.run_idea_calibration("2026-09-29", fetch=fetch, ideas=IDEAS_FIXTURE)
         self.assertEqual(result["status"], "ok")
         self.assertEqual(result["checked"], 1)
-        self.assertEqual(result["second_opinion"]["agreement_rate"], 1.0)
+        self.assertEqual(result["by_checkpoint"][0]["unrelated"], 1)
+        self.assertEqual(result["by_checkpoint"][0]["keyword_precision"], 0.0)
 
     def test_run_calibration_includes_ideas_block_and_never_writes_ideas_json(self):
         # 「只建議，不自動改 ideas.json」：這裡沒有給任何寫檔路徑，只要 run_calibration 能正常
