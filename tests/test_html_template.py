@@ -231,3 +231,12 @@ class EvidenceSectionCompactTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ParseJsonControlCharTests(unittest.TestCase):
+    def test_literal_newline_and_tab_inside_string_are_accepted(self):
+        import ai_processor
+        raw = '{"top_stories": [{"headline": "Yields hit\\n19-year high", "body": "a\\tb"}]}'
+        raw = raw.replace("\\n", "\n").replace("\\t", "\t")
+        out = ai_processor._parse_json(raw)
+        self.assertEqual(out["top_stories"][0]["headline"], "Yields hit\n19-year high")

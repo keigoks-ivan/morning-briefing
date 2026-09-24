@@ -1190,9 +1190,10 @@ def _parse_json(raw_text: str) -> dict:
     if start != -1 and end > start:
         text = text[start:end]
 
-    # 第一次嘗試直接解析
+    # 第一次嘗試直接解析。strict=False：字串裡夾了換行、tab 等控制字元也接受
+    # （2026-09-24 重跑時 News 連三次「Invalid control character」失敗，新聞整段掉光）
     try:
-        return json.loads(text)
+        return json.loads(text, strict=False)
     except json.JSONDecodeError:
         pass
 
@@ -1207,7 +1208,7 @@ def _parse_json(raw_text: str) -> dict:
     text = re.sub(r'}\s*\n\s*"', '},\n"', text)
     text = re.sub(r']\s*\n\s*"', '],\n"', text)
 
-    return json.loads(text)
+    return json.loads(text, strict=False)
 
 
 def _call_gemini_pro(market_context: str, news_text: str) -> dict:
