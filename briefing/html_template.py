@@ -103,6 +103,7 @@ REGION_COLOR = {
 
 BASE_CSS = """
 * { box-sizing:border-box; margin:0; padding:0; }
+html, body { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; text-size-adjust:100%; }
 body { font-family:Arial,sans-serif; max-width:1140px; margin:0 auto;
        padding:24px 20px; color:#222; background:#fff; }
 .section { margin-bottom:28px; }
@@ -883,7 +884,7 @@ def _watchlist_news_section(items: list) -> str:
   <div style="margin-bottom:4px;">
     <span style="display:inline-block;font-size:12px;font-weight:700;letter-spacing:.5px;color:#fff;
                  background:#1B3A5C;padding:2px 8px;border-radius:3px;margin-right:8px;vertical-align:middle;">{s.get("ticker","")}</span>
-    <span style="font-size:16px;font-weight:500;color:#222;line-height:1.5;vertical-align:middle;">{s.get("headline","")}{badge}</span>
+    <span style="font-size:17px;font-weight:600;color:#111;line-height:1.5;vertical-align:middle;">{s.get("headline","")}{badge}</span>
   </div>
   <div style="font-size:15px;color:#555;line-height:1.65;">{s.get("body","")}</div>
   {source_html}
@@ -1600,7 +1601,7 @@ def _news_section(title: str, items: list, tag_style_map: dict | None = None) ->
         rows += f'''
 <div style="padding:12px 0;border-bottom:0.5px solid #f0f0f0;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:5px;">
-    <div style="font-size:16px;font-weight:500;color:#222;line-height:1.5;flex:1;">
+    <div style="font-size:17px;font-weight:600;color:#111;line-height:1.5;flex:1;">
       {s.get("headline","")}{badge}
     </div>
     <span style="font-size:12px;font-weight:500;padding:2px 7px;border-radius:3px;
@@ -1734,7 +1735,7 @@ def _geopolitical_section(items: list) -> str:
   <div style="background:#D85A30;border-radius:2px;"></div>
   <div>
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px;">
-      <div style="font-size:16px;font-weight:500;color:#222;flex:1;">{s.get("headline","")}{badge}</div>
+      <div style="font-size:17px;font-weight:600;color:#111;flex:1;">{s.get("headline","")}{badge}</div>
       <span style="font-size:12px;font-weight:500;padding:2px 7px;border-radius:3px;
                    white-space:nowrap;background:#FCF0EC;color:#993C1D;">{region}</span>
     </div>
@@ -1797,7 +1798,7 @@ def _fintech_crypto_section(items: list) -> str:
         rows += f'''
 <div style="padding:11px 0;border-bottom:0.5px solid #f0f0f0;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px;">
-    <div style="font-size:16px;font-weight:500;color:#222;flex:1;">{s.get("headline","")}{badge}</div>
+    <div style="font-size:17px;font-weight:600;color:#111;flex:1;">{s.get("headline","")}{badge}</div>
     <span style="font-size:12px;font-weight:500;padding:2px 7px;border-radius:3px;
                  white-space:nowrap;{ts}">{tag}</span>
   </div>
@@ -1864,7 +1865,7 @@ def _tech_trends(trends: list) -> str:
   <div style="background:{accent};border-radius:2px;"></div>
   <div>
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;">
-      <div style="font-size:16px;font-weight:500;color:#222;line-height:1.45;flex:1;">{t.get("headline","")}</div>
+      <div style="font-size:17px;font-weight:600;color:#111;line-height:1.45;flex:1;">{t.get("headline","")}</div>
       <span style="font-size:12px;font-weight:500;padding:2px 7px;border-radius:3px;white-space:nowrap;{ts}">{t.get("label","")}</span>
     </div>
     <div style="font-size:15px;color:#555;line-height:1.7;margin-bottom:8px;">{t.get("summary","")}</div>
@@ -1919,7 +1920,7 @@ def _startup_news(startups: list) -> str:
   <div style="background:{accent};border-radius:2px;"></div>
   <div>
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px;">
-      <div style="font-size:16px;font-weight:500;color:#222;flex:1;">{s.get("headline","")}{badge}</div>
+      <div style="font-size:17px;font-weight:600;color:#111;flex:1;">{s.get("headline","")}{badge}</div>
       <span style="font-size:12px;font-weight:500;padding:2px 7px;border-radius:3px;white-space:nowrap;{ts}">{s.get("tag","")}</span>
     </div>
     <div style="font-size:15px;color:#555;line-height:1.6;">{s.get("summary","")}</div>
@@ -1960,7 +1961,7 @@ def _frontier_tech(items_data: list) -> str:
   <div style="background:{accent};border-radius:2px;"></div>
   <div>
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px;">
-      <div style="font-size:16px;font-weight:500;color:#222;line-height:1.45;flex:1;">{t.get("headline","")}{badge}</div>
+      <div style="font-size:17px;font-weight:600;color:#111;line-height:1.45;flex:1;">{t.get("headline","")}{badge}</div>
       <span style="font-size:12px;font-weight:500;padding:2px 7px;border-radius:3px;white-space:nowrap;{ts}">{t.get("field","")}</span>
     </div>
     {meta}
@@ -2400,7 +2401,7 @@ def _fun_fact(fact: dict) -> str:
 <div class="section">
   <div class="section-label">One last thing</div>
   <div style="background:#FFFBEA;border-radius:6px;padding:14px 16px;">
-    <div style="font-size:16px;font-weight:500;color:#222;margin-bottom:6px;">💡 {fact.get("title","")}</div>
+    <div style="font-size:17px;font-weight:600;color:#111;margin-bottom:6px;">💡 {fact.get("title","")}</div>
     <div style="font-size:15px;color:#555;line-height:1.65;margin-bottom:8px;">{fact.get("content","")}</div>
     <div style="font-size:14px;color:#888;border-top:0.5px solid #f0e6c0;padding-top:8px;">
       📎 {fact.get("connection","")}
@@ -2582,7 +2583,7 @@ def _world_news(items: list) -> str:
         rows += f'''
 <div style="padding:11px 0;border-bottom:0.5px solid #f0f0f0;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px;">
-    <div style="font-size:16px;font-weight:500;color:#222;flex:1;line-height:1.5;">{s.get("headline","")}{badge}</div>
+    <div style="font-size:17px;font-weight:600;color:#111;flex:1;line-height:1.5;">{s.get("headline","")}{badge}</div>
     <div style="display:flex;gap:4px;flex-shrink:0;">
       <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:3px;white-space:nowrap;background:#1B3A5C;color:#fff;">{region}</span>
       <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:3px;white-space:nowrap;background:#e8e8e8;color:#555;">{tag}</span>
@@ -2920,6 +2921,7 @@ def _page_wrapper(page: str, date: str, content: str, title: str) -> str:
 <title>{title} &mdash; Morning Briefing {date}</title>
 <style>
 * {{ box-sizing:border-box; margin:0; padding:0; }}
+html, body {{ -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; text-size-adjust:100%; }}
 body {{ font-family:Arial,sans-serif; max-width:1140px; margin:0 auto; background:#fff; color:#333; }}
 a {{ color:inherit; }}
 .sticky-nav {{ position:sticky; top:0; z-index:100; }}
