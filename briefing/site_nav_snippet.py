@@ -48,6 +48,11 @@ BRIEF/WEEK/EARN 三塊皆已由 canonical full_nav_block 重生為 byte-identica
 2026-09-23 晚補：研究 ▾ 下拉新增「投資想法」(/ideas/)，置於「產業研究」之後、「Tier
 Matrix」之前——canonical 同日同步。BRIEF/WEEK/EARN 三塊皆已由 canonical
 full_nav_block 重生為 byte-identical。
+2026-09-30 補（catch-up，含 09-24／09-25 落後）：研究 ▾ 下拉緊接「個股儀表板」
+之後新增「ETF 儀表板」(/etf-dash/，canonical 2026-09-24 新增) 與「主動式 ETF」
+(/active-etf/，canonical 2026-09-25 新增)；「個股研究」標籤改「研究清單」
+（canonical 2026-09-30，個股內容併入個股儀表板）。BRIEF/WEEK/EARN 三塊皆已由
+canonical full_nav_block 重生為 byte-identical。
 """
 
 # group='market', item='brief'  (daily briefing pages, /briefing/ — 2026-08-17 重新掛回選單)
@@ -104,8 +109,10 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
-          <a href="/t/">個股研究</a>
+          <a href="/t/">研究清單</a>
           <a href="/stock-dash/">個股儀表板</a>
+          <a href="/etf-dash/">ETF 儀表板</a>
+          <a href="/active-etf/">主動式 ETF</a>
           <a href="/id/">產業研究</a>
           <a href="/ideas/">投資想法</a>
           <a href="/id/tier_matrix.html">Tier Matrix</a>
@@ -184,8 +191,10 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
-          <a href="/t/">個股研究</a>
+          <a href="/t/">研究清單</a>
           <a href="/stock-dash/">個股儀表板</a>
+          <a href="/etf-dash/">ETF 儀表板</a>
+          <a href="/active-etf/">主動式 ETF</a>
           <a href="/id/">產業研究</a>
           <a href="/ideas/">投資想法</a>
           <a href="/id/tier_matrix.html">Tier Matrix</a>
@@ -264,8 +273,10 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
       <div class="imq-dd">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
-          <a href="/t/">個股研究</a>
+          <a href="/t/">研究清單</a>
           <a href="/stock-dash/">個股儀表板</a>
+          <a href="/etf-dash/">ETF 儀表板</a>
+          <a href="/active-etf/">主動式 ETF</a>
           <a href="/id/">產業研究</a>
           <a href="/ideas/">投資想法</a>
           <a href="/id/tier_matrix.html">Tier Matrix</a>
