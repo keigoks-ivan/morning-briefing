@@ -53,6 +53,8 @@ full_nav_block 重生為 byte-identical。
 (/active-etf/，canonical 2026-09-25 新增)；「個股研究」標籤改「研究清單」
 （canonical 2026-09-30，個股內容併入個股儀表板）。BRIEF/WEEK/EARN 三塊皆已由
 canonical full_nav_block 重生為 byte-identical。
+2026-10-05 補：研究 ▾ 下拉緊接「研究清單」之後加回「DD Screener」(/dd-screener/)——
+canonical 同日同步。BRIEF/WEEK/EARN 三塊皆已由 canonical full_nav_block 重生為 byte-identical。
 """
 
 # group='market', item='brief'  (daily briefing pages, /briefing/ — 2026-08-17 重新掛回選單)
@@ -110,6 +112,7 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/t/">研究清單</a>
+          <a href="/dd-screener/">DD Screener</a>
           <a href="/stock-dash/">個股儀表板</a>
           <a href="/etf-dash/">ETF 儀表板</a>
           <a href="/active-etf/">主動式 ETF</a>
@@ -192,6 +195,7 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/t/">研究清單</a>
+          <a href="/dd-screener/">DD Screener</a>
           <a href="/stock-dash/">個股儀表板</a>
           <a href="/etf-dash/">ETF 儀表板</a>
           <a href="/active-etf/">主動式 ETF</a>
@@ -274,6 +278,7 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
         <button type="button" class="imq-dd-btn">研究<span class="imq-caret">▾</span></button>
         <div class="imq-dd-menu">
           <a href="/t/">研究清單</a>
+          <a href="/dd-screener/">DD Screener</a>
           <a href="/stock-dash/">個股儀表板</a>
           <a href="/etf-dash/">ETF 儀表板</a>
           <a href="/active-etf/">主動式 ETF</a>
