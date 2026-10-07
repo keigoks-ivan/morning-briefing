@@ -913,6 +913,190 @@ def _esc(text) -> str:
     return _html.escape(str(text or ""), quote=True)
 
 
+def _new_highs_section(nh: dict, max_near=None) -> str:
+    """US new highs (adjusted close): breadth, ATH, 52w-only, near-ATH watch list, sector strength,
+    track record. Table layout for anything with columns (email clients). max_near caps the near list."""
+    if not nh:
+        return ""
+    head_style = ('font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;'
+                  'color:#1B3A5C;margin-bottom:6px;')
+    sub_style = 'font-size:13px;font-weight:700;color:#333;margin:12px 0 4px;'
+    grey = '<div style="font-size:12px;color:#999;padding:3px 0;">{}</div>'
+    cell = 'padding:2px 4px;font-size:11px;text-align:right;'
+    if nh.get("status") == "unavailable":
+        return (f'<div class="section"><div style="{head_style}">US new highs</div>'
+                + grey.format(f'New-high scan unavailable ({_esc(nh.get("reason", ""))}).') + '</div>')
+    try:
+        asof = datetime.strptime(nh.get("as_of", ""), "%Y-%m-%d")
+        asof_txt = f"{asof.strftime('%a')} {asof.day} {asof.strftime('%b')}"
+    except ValueError:
+        asof_txt = _esc(nh.get("as_of", ""))
+    out = (f'<div class="section"><div style="{head_style}">US new highs &middot; close {asof_txt} &middot; '
+           f'S&amp;P 500 + 400 + Nasdaq-100 &middot; adjusted for dividends &amp; splits</div>')
+
+    def chip(txt):
+        return (f'<span style="font-size:10px;color:#666;background:#F1F1F1;border-radius:3px;'
+                f'padding:0 4px;margin-left:3px;">{txt}</span>')
+
+    def stock(r, kind):
+        chg = r.get("chg_pct") or 0
+        color = "#0F6E56" if chg >= 0 else "#A32D2D"
+        x = (f'<span style="white-space:nowrap;"><span style="font-weight:600;color:#222;">{_esc(r["ticker"])}</span> '
+             f'<span style="color:{color};">{chg:+.1f}%</span>')
+        if kind == "ath":
+            pd_ = r.get("prev_high_date")
+            try:
+                old = pd_ and (datetime.strptime(nh.get("as_of", ""), "%Y-%m-%d")
+                               - datetime.strptime(pd_, "%Y-%m-%d")).days > 90
+            except ValueError:
+                old = False
+            if old:
+                x += f' <span style="font-size:11px;color:#999;">prev high {_esc(pd_)}</span>'
+        elif r.get("pct_below_ath") is not None:
+            x += f' <span style="font-size:11px;color:#999;">{r["pct_below_ath"]:+.0f}% vs ATH</span>'
+        if r.get("short_history"):
+            x += chip("&lt;1y listed")
+        return x + '</span>'
+
+    def block(title, rows, kind):
+        h = f'<div style="{sub_style}">{title} ({len(rows)})</div>'
+        if not rows:
+            return h + grey.format("None today.")
+        by_sec: dict = {}
+        for r in rows:
+            by_sec.setdefault(r.get("sector") or "Other", {}).setdefault(r.get("sub_industry") or "Other", []).append(r)
+        for sec in sorted(by_sec, key=lambda k: (-sum(len(v) for v in by_sec[k].values()), k)):
+            n = sum(len(v) for v in by_sec[sec].values())
+            h += (f'<div style="font-size:12px;font-weight:600;color:#1B3A5C;margin-top:6px;">'
+                  f'{_esc(sec)} <span style="color:#999;font-weight:400;">{n}</span></div>')
+            for sub in sorted(by_sec[sec], key=lambda k: (-len(by_sec[sec][k]), k)):
+                items = sorted(by_sec[sec][sub], key=lambda r: (-(r.get("chg_pct") or 0), r["ticker"]))
+                h += (f'<div style="font-size:12px;color:#555;line-height:1.7;padding-left:8px;">'
+                      f'{_esc(sub)} &mdash; '
+                      + ' &middot; '.join(stock(r, kind) for r in items) + '</div>')
+        return h
+
+    # A. breadth
+    br = nh.get("breadth") or {}
+    if br:
+        out += (f'<div style="{sub_style}">Breadth: new highs vs new lows</div>'
+                f'<div style="font-size:13px;color:#333;">52w highs <b style="color:#0F6E56;">{br["highs"]}</b> &middot; '
+                f'52w lows <b style="color:#A32D2D;">{br["lows"]}</b> &middot; net <b>{br["net"]:+d}</b></div>')
+        hist = br.get("history") or []
+        if hist:
+            def md(d):
+                try:
+                    x = datetime.strptime(d, "%Y-%m-%d")
+                    return f"{x.month}/{x.day}"
+                except ValueError:
+                    return _esc(d)
+            out += ('<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:4px;">'
+                    '<tr><td style="' + cell + 'color:#999;text-align:left;"></td>'
+                    + ''.join(f'<td style="{cell}color:#999;">{md(h["date"])}</td>' for h in hist) + '</tr>'
+                    '<tr><td style="' + cell + 'color:#999;text-align:left;">Highs</td>'
+                    + ''.join(f'<td style="{cell}color:#0F6E56;font-weight:600;">{h["highs"]}</td>' for h in hist) + '</tr>'
+                    '<tr><td style="' + cell + 'color:#999;text-align:left;">Lows</td>'
+                    + ''.join(f'<td style="{cell}color:#A32D2D;font-weight:600;">{h["lows"]}</td>' for h in hist)
+                    + '</tr></table>')
+        if br.get("lows") and br.get("lows_by_sector"):
+            out += grey.format("New lows by sector: " + " &middot; ".join(
+                f"{_esc(k)} {v}" for k, v in br["lows_by_sector"].items()))
+
+    out += block("All-time high", nh.get("ath") or [], "ath")
+    out += block("52-week high, not ATH", nh.get("high52") or [], "h52")
+
+    # C. near ATH
+    near = nh.get("near_ath") or []
+    out += f'<div style="{sub_style}">Near all-time high, within 5% ({len(near)})</div>'
+    if not near:
+        out += grey.format("None today.")
+    else:
+        shown = sorted(near, key=lambda r: (-r["pct_below_ath"], r["ticker"]))
+        more = 0
+        if max_near is not None and len(shown) > max_near:
+            more = len(shown) - max_near
+            shown = shown[:max_near]
+        by_sec = {}
+        for r in shown:
+            by_sec.setdefault(r.get("sector") or "Other", []).append(r)
+        tot = {}
+        for r in near:
+            tot[r.get("sector") or "Other"] = tot.get(r.get("sector") or "Other", 0) + 1
+        for sec in sorted(by_sec, key=lambda k: (-tot[k], k)):
+            out += (f'<div style="font-size:12px;color:#555;line-height:1.7;padding:2px 0;">'
+                    f'<span style="font-weight:600;color:#1B3A5C;">{_esc(sec)} ({tot[sec]}):</span> '
+                    + ' &middot; '.join(
+                        f'<span style="white-space:nowrap;"><b style="color:#222;">{_esc(r["ticker"])}</b> '
+                        + (f'{r["pct_below_ath"]:.2f}%' if abs(r["pct_below_ath"]) < 0.1 else f'{r["pct_below_ath"]:.1f}%').replace("-", "&minus;") + '</span>' for r in by_sec[sec])
+                    + '</div>')
+        if more:
+            out += grey.format(f"+{more} more on the site")
+
+    # D. sector strength
+    sc = nh.get("sectors") or {}
+    if sc.get("rows"):
+        th = 'padding:3px 6px;font-size:11px;color:#999;font-weight:600;text-align:right;'
+        td = 'padding:3px 6px;font-size:12px;color:#333;text-align:right;'
+        out += (f'<div style="{sub_style}">Sector strength</div>'
+                '<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:520px;">'
+                f'<tr><td style="{th}text-align:left;">Sector</td><td style="{th}">Stocks</td>'
+                f'<td style="{th}">Near ATH</td><td style="{th}">vs 20d ago</td><td style="{th}">&gt;200d</td></tr>')
+        for r in sc["rows"]:
+            d = r.get("delta_pp")
+            dcol = "#999" if d is None else ("#0F6E56" if d > 0 else "#A32D2D" if d < 0 else "#999")
+            dtxt = "n/a" if d is None else f"{d:+.0f}pp"
+            a2 = r.get("above200_pct")
+            out += (f'<tr style="border-top:1px solid #EEE;"><td style="{td}text-align:left;">{_esc(r["sector"])}</td>'
+                    f'<td style="{td}">{r["n"]}</td><td style="{td}font-weight:600;">{r["near_pct"]:.0f}%</td>'
+                    f'<td style="{td}color:{dcol};">{dtxt}</td>'
+                    f'<td style="{td}">{"n/a" if a2 is None else f"{a2:.0f}%"}</td></tr>')
+        out += '</table>'
+        subs = sc.get("sub_industries") or []
+        if subs:
+            out += grey.format("Strongest sub-industries: " + " &middot; ".join(
+                f'{_esc(x["sub_industry"])} {x["near_pct"]:.0f}% ({x["near"]}/{x["n"]})' for x in subs))
+
+    # E. track record
+    tr = nh.get("track") or {}
+    out += f'<div style="{sub_style}">Track record: forward returns of past lists</div>'
+    if tr.get("status") == "unavailable" or not tr:
+        out += grey.format(f'Track record unavailable ({_esc(tr.get("reason", ""))}).')
+    elif not tr.get("matured_any"):
+        est = tr.get("est") or {}
+        out += grey.format(f'Track record: collecting since {_esc(tr.get("first_logged", ""))}. '
+                           f'First 5-day read &asymp; {_esc(est.get("5", "n/a"))}, '
+                           f'20-day &asymp; {_esc(est.get("20", "n/a"))}.')
+    else:
+        th = 'padding:3px 6px;font-size:11px;color:#999;font-weight:600;text-align:right;'
+        td = 'padding:3px 6px;font-size:12px;color:#333;text-align:right;'
+
+        def f(v, sign=True):
+            return "n/a" if v is None else (f"{v * 100:+.1f}%" if sign else f"{v * 100:.1f}%")
+
+        def ex(r, g):
+            e, h = r.get(g + "_excess"), r.get(g + "_hit")
+            if e is None:
+                return "n/a"
+            col = "#0F6E56" if e > 0 else "#A32D2D"
+            return f'<span style="color:{col};">{e * 100:+.1f}pp</span> <span style="color:#999;">({h:.0f}%)</span>'
+        out += ('<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
+                f'<tr><td style="{th}text-align:left;">Horizon</td><td style="{th}">Lists</td><td style="{th}">Universe</td>'
+                f'<td style="{th}">ATH</td><td style="{th}">52w</td><td style="{th}">Near</td></tr>')
+        for r in tr["horizons"]:
+            out += (f'<tr style="border-top:1px solid #EEE;"><td style="{td}text-align:left;">{r["h"]}d</td>'
+                    f'<td style="{td}">{r["n"]}</td><td style="{td}">{f(r.get("base"))}</td>'
+                    f'<td style="{td}">{f(r.get("ath"))}<br>{ex(r, "ath")}</td>'
+                    f'<td style="{td}">{f(r.get("high52"))}<br>{ex(r, "high52")}</td>'
+                    f'<td style="{td}">{f(r.get("near"))}<br>{ex(r, "near")}</td></tr>')
+        out += '</table>' + grey.format("Excess vs universe, with hit rate in brackets.")
+    if tr.get("status") != "unavailable" and tr:
+        out += grey.format("Equal-weight averages; read with caution until ~30 lists have matured.")
+
+    if nh.get("status") == "partial":
+        out += grey.format(f'Scanned {nh.get("evaluated_n", 0)} of {nh.get("universe_n", 0)}.')
+    return out + '</div>'
+
+
 def _ev_link(path: str, label: str) -> str:
     if not path:
         return _esc(label)
@@ -2976,6 +3160,7 @@ def build_index_html(data: dict) -> str:
     content += _market_strip(data.get("market_data", {}))
     content += _index_factor_reading(data.get("index_factor_reading", {}))
     content += _market_pulse(data.get("market_pulse", {}))
+    content += _new_highs_section(data.get("new_highs"))
     return _page_wrapper("index", date, content, "Markets")
 
 
@@ -3703,6 +3888,7 @@ def build_html(data: dict, screener_result: dict = None) -> str:
 {_market_strip(data.get("market_data", {}))}
 {_index_factor_reading(data.get("index_factor_reading", {}))}
 {_market_pulse(data.get("market_pulse", {}))}
+{_new_highs_section(data.get("new_highs"), max_near=40)}
 {_ideas_email_summary(data.get("evidence_layer"))}
 {_evidence_email_digest(data.get("evidence_layer"))}
 {_news_section("Top stories", data.get("top_stories",[]))}

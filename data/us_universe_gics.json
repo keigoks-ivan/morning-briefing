@@ -1,0 +1,6447 @@
+{
+ "fetched_at": "2026-10-07T05:21:23Z",
+ "n": 918,
+ "tickers": [
+  {
+   "ticker": "MMM",
+   "name": "3M",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Conglomerates",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AOS",
+   "name": "A. O. Smith",
+   "sector": "Industrials",
+   "sub_industry": "Building Products",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ABT",
+   "name": "Abbott Laboratories",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ABBV",
+   "name": "AbbVie",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ACN",
+   "name": "Accenture",
+   "sector": "Information Technology",
+   "sub_industry": "IT Consulting & Other Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ADBE",
+   "name": "Adobe Inc.",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AMD",
+   "name": "Advanced Micro Devices",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AES",
+   "name": "AES Corporation",
+   "sector": "Utilities",
+   "sub_industry": "Independent Power Producers & Energy Traders",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AFL",
+   "name": "Aflac",
+   "sector": "Financials",
+   "sub_industry": "Life & Health Insurance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "A",
+   "name": "Agilent Technologies",
+   "sector": "Health Care",
+   "sub_industry": "Life Sciences Tools & Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "APD",
+   "name": "Air Products",
+   "sector": "Materials",
+   "sub_industry": "Industrial Gases",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ABNB",
+   "name": "Airbnb",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Hotels, Resorts & Cruise Lines",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AKAM",
+   "name": "Akamai Technologies",
+   "sector": "Information Technology",
+   "sub_industry": "Internet Services & Infrastructure",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ALB",
+   "name": "Albemarle Corporation",
+   "sector": "Materials",
+   "sub_industry": "Specialty Chemicals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ARE",
+   "name": "Alexandria Real Estate Equities",
+   "sector": "Real Estate",
+   "sub_industry": "Office REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ALGN",
+   "name": "Align Technology",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Supplies",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ALLE",
+   "name": "Allegion",
+   "sector": "Industrials",
+   "sub_industry": "Building Products",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "LNT",
+   "name": "Alliant Energy",
+   "sector": "Utilities",
+   "sub_industry": "Electric Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ALL",
+   "name": "Allstate",
+   "sector": "Financials",
+   "sub_industry": "Property & Casualty Insurance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GOOGL",
+   "name": "Alphabet Inc. (Class A)",
+   "sector": "Communication Services",
+   "sub_industry": "Interactive Media & Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GOOG",
+   "name": "Alphabet Inc. (Class C)",
+   "sector": "Communication Services",
+   "sub_industry": "Interactive Media & Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MO",
+   "name": "Altria",
+   "sector": "Consumer Staples",
+   "sub_industry": "Tobacco",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AMZN",
+   "name": "Amazon",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Broadline Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AMCR",
+   "name": "Amcor",
+   "sector": "Materials",
+   "sub_industry": "Paper & Plastic Packaging Products & Materials",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AEE",
+   "name": "Ameren",
+   "sector": "Utilities",
+   "sub_industry": "Multi-Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AEP",
+   "name": "American Electric Power",
+   "sector": "Utilities",
+   "sub_industry": "Electric Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AXP",
+   "name": "American Express",
+   "sector": "Financials",
+   "sub_industry": "Consumer Finance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AIG",
+   "name": "American International Group",
+   "sector": "Financials",
+   "sub_industry": "Multi-line Insurance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AMT",
+   "name": "American Tower",
+   "sector": "Real Estate",
+   "sub_industry": "Telecom Tower REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AWK",
+   "name": "American Water Works",
+   "sector": "Utilities",
+   "sub_industry": "Water Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AMP",
+   "name": "Ameriprise Financial",
+   "sector": "Financials",
+   "sub_industry": "Asset Management & Custody Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AME",
+   "name": "Ametek",
+   "sector": "Industrials",
+   "sub_industry": "Electrical Components & Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AMGN",
+   "name": "Amgen",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "APH",
+   "name": "Amphenol",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Components",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ADI",
+   "name": "Analog Devices",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AON",
+   "name": "Aon plc",
+   "sector": "Financials",
+   "sub_industry": "Insurance Brokers",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "APA",
+   "name": "APA Corporation",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Exploration & Production",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "APO",
+   "name": "Apollo Global Management",
+   "sector": "Financials",
+   "sub_industry": "Asset Management & Custody Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AAPL",
+   "name": "Apple Inc.",
+   "sector": "Information Technology",
+   "sub_industry": "Technology Hardware, Storage & Peripherals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AMAT",
+   "name": "Applied Materials",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductor Materials & Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "APP",
+   "name": "AppLovin",
+   "sector": "Communication Services",
+   "sub_industry": "Advertising",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "APTV",
+   "name": "Aptiv",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Automotive Parts & Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ACGL",
+   "name": "Arch Capital Group",
+   "sector": "Financials",
+   "sub_industry": "Property & Casualty Insurance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ADM",
+   "name": "Archer Daniels Midland",
+   "sector": "Consumer Staples",
+   "sub_industry": "Agricultural Products & Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ARES",
+   "name": "Ares Management",
+   "sector": "Financials",
+   "sub_industry": "Asset Management & Custody Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ANET",
+   "name": "Arista Networks",
+   "sector": "Information Technology",
+   "sub_industry": "Communications Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AJG",
+   "name": "Arthur J. Gallagher & Co.",
+   "sector": "Financials",
+   "sub_industry": "Insurance Brokers",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AIZ",
+   "name": "Assurant",
+   "sector": "Financials",
+   "sub_industry": "Multi-line Insurance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "T",
+   "name": "AT&T",
+   "sector": "Communication Services",
+   "sub_industry": "Integrated Telecommunication Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ATO",
+   "name": "Atmos Energy",
+   "sector": "Utilities",
+   "sub_industry": "Gas Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ADSK",
+   "name": "Autodesk",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ADP",
+   "name": "Automatic Data Processing",
+   "sector": "Industrials",
+   "sub_industry": "Human Resource & Employment Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AZO",
+   "name": "AutoZone",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Automotive Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AVY",
+   "name": "Avery Dennison",
+   "sector": "Materials",
+   "sub_industry": "Paper & Plastic Packaging Products & Materials",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AXON",
+   "name": "Axon Enterprise",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BKR",
+   "name": "Baker Hughes",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Equipment & Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BALL",
+   "name": "Ball Corporation",
+   "sector": "Materials",
+   "sub_industry": "Metal, Glass & Plastic Containers",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BAC",
+   "name": "Bank of America",
+   "sector": "Financials",
+   "sub_industry": "Diversified Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BAX",
+   "name": "Baxter International",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BDX",
+   "name": "Becton Dickinson",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BRK.B",
+   "name": "Berkshire Hathaway",
+   "sector": "Financials",
+   "sub_industry": "Multi-Sector Holdings",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BBY",
+   "name": "Best Buy",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Computer & Electronics Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TECH",
+   "name": "Bio-Techne",
+   "sector": "Health Care",
+   "sub_industry": "Life Sciences Tools & Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BIIB",
+   "name": "Biogen",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BLK",
+   "name": "BlackRock",
+   "sector": "Financials",
+   "sub_industry": "Asset Management & Custody Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BX",
+   "name": "Blackstone Inc.",
+   "sector": "Financials",
+   "sub_industry": "Asset Management & Custody Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "XYZ",
+   "name": "Block, Inc.",
+   "sector": "Financials",
+   "sub_industry": "Transaction & Payment Processing Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BE",
+   "name": "Bloom Energy",
+   "sector": "Industrials",
+   "sub_industry": "Electrical Components & Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BNY",
+   "name": "BNY Mellon",
+   "sector": "Financials",
+   "sub_industry": "Asset Management & Custody Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BA",
+   "name": "Boeing",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BKNG",
+   "name": "Booking Holdings",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Hotels, Resorts & Cruise Lines",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BSX",
+   "name": "Boston Scientific",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BMY",
+   "name": "Bristol Myers Squibb",
+   "sector": "Health Care",
+   "sub_industry": "Pharmaceuticals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AVGO",
+   "name": "Broadcom",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BR",
+   "name": "Broadridge Financial Solutions",
+   "sector": "Industrials",
+   "sub_industry": "Data Processing & Outsourced Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BRO",
+   "name": "Brown & Brown",
+   "sector": "Financials",
+   "sub_industry": "Insurance Brokers",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BF.B",
+   "name": "Brown–Forman",
+   "sector": "Consumer Staples",
+   "sub_industry": "Distillers & Vintners",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BG",
+   "name": "Bunge Global",
+   "sector": "Consumer Staples",
+   "sub_industry": "Agricultural Products & Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BXP",
+   "name": "BXP, Inc.",
+   "sector": "Real Estate",
+   "sub_industry": "Office REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CHRW",
+   "name": "C.H. Robinson",
+   "sector": "Industrials",
+   "sub_industry": "Air Freight & Logistics",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CDNS",
+   "name": "Cadence Design Systems",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CPT",
+   "name": "Camden Property Trust",
+   "sector": "Real Estate",
+   "sub_industry": "Multi-Family Residential REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "COF",
+   "name": "Capital One",
+   "sector": "Financials",
+   "sub_industry": "Consumer Finance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CAH",
+   "name": "Cardinal Health",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Distributors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CCL",
+   "name": "Carnival Corporation",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Hotels, Resorts & Cruise Lines",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CARR",
+   "name": "Carrier Global",
+   "sector": "Industrials",
+   "sub_industry": "Building Products",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CVNA",
+   "name": "Carvana",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Automotive Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CASY",
+   "name": "Casey's",
+   "sector": "Consumer Staples",
+   "sub_industry": "Food Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CAT",
+   "name": "Caterpillar Inc.",
+   "sector": "Industrials",
+   "sub_industry": "Construction Machinery & Heavy Transportation Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CBOE",
+   "name": "Cboe Global Markets",
+   "sector": "Financials",
+   "sub_industry": "Financial Exchanges & Data",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CBRE",
+   "name": "CBRE Group",
+   "sector": "Real Estate",
+   "sub_industry": "Real Estate Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CDW",
+   "name": "CDW Corporation",
+   "sector": "Information Technology",
+   "sub_industry": "Technology Distributors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "COR",
+   "name": "Cencora",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Distributors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CNC",
+   "name": "Centene Corporation",
+   "sector": "Health Care",
+   "sub_industry": "Managed Health Care",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CNP",
+   "name": "CenterPoint Energy",
+   "sector": "Utilities",
+   "sub_industry": "Multi-Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CF",
+   "name": "CF Industries",
+   "sector": "Materials",
+   "sub_industry": "Fertilizers & Agricultural Chemicals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CRL",
+   "name": "Charles River Laboratories",
+   "sector": "Health Care",
+   "sub_industry": "Life Sciences Tools & Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SCHW",
+   "name": "Charles Schwab Corporation",
+   "sector": "Financials",
+   "sub_industry": "Investment Banking & Brokerage",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CHTR",
+   "name": "Charter Communications",
+   "sector": "Communication Services",
+   "sub_industry": "Cable & Satellite",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CVX",
+   "name": "Chevron Corporation",
+   "sector": "Energy",
+   "sub_industry": "Integrated Oil & Gas",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CMG",
+   "name": "Chipotle Mexican Grill",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Restaurants",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CB",
+   "name": "Chubb Limited",
+   "sector": "Financials",
+   "sub_industry": "Property & Casualty Insurance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CHD",
+   "name": "Church & Dwight",
+   "sector": "Consumer Staples",
+   "sub_industry": "Household Products",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CIEN",
+   "name": "Ciena",
+   "sector": "Information Technology",
+   "sub_industry": "Communications Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CI",
+   "name": "Cigna",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CINF",
+   "name": "Cincinnati Financial",
+   "sector": "Financials",
+   "sub_industry": "Property & Casualty Insurance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CTAS",
+   "name": "Cintas",
+   "sector": "Industrials",
+   "sub_industry": "Diversified Support Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CSCO",
+   "name": "Cisco",
+   "sector": "Information Technology",
+   "sub_industry": "Communications Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "C",
+   "name": "Citigroup",
+   "sector": "Financials",
+   "sub_industry": "Diversified Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CFG",
+   "name": "Citizens Financial Group",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CLX",
+   "name": "Clorox",
+   "sector": "Consumer Staples",
+   "sub_industry": "Household Products",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CME",
+   "name": "CME Group",
+   "sector": "Financials",
+   "sub_industry": "Financial Exchanges & Data",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CMS",
+   "name": "CMS Energy",
+   "sector": "Utilities",
+   "sub_industry": "Multi-Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "KO",
+   "name": "Coca-Cola Company (The)",
+   "sector": "Consumer Staples",
+   "sub_industry": "Soft Drinks & Non-alcoholic Beverages",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CTSH",
+   "name": "Cognizant",
+   "sector": "Information Technology",
+   "sub_industry": "IT Consulting & Other Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "COHR",
+   "name": "Coherent Corp.",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Components",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "COIN",
+   "name": "Coinbase",
+   "sector": "Financials",
+   "sub_industry": "Financial Exchanges & Data",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CL",
+   "name": "Colgate-Palmolive",
+   "sector": "Consumer Staples",
+   "sub_industry": "Household Products",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CMCSA",
+   "name": "Comcast",
+   "sector": "Communication Services",
+   "sub_industry": "Cable & Satellite",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FIX",
+   "name": "Comfort Systems USA",
+   "sector": "Industrials",
+   "sub_industry": "Construction & Engineering",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "COP",
+   "name": "ConocoPhillips",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Exploration & Production",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ED",
+   "name": "Consolidated Edison",
+   "sector": "Utilities",
+   "sub_industry": "Multi-Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "STZ",
+   "name": "Constellation Brands",
+   "sector": "Consumer Staples",
+   "sub_industry": "Distillers & Vintners",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CEG",
+   "name": "Constellation Energy",
+   "sector": "Utilities",
+   "sub_industry": "Electric Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "COO",
+   "name": "Cooper Companies (The)",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Supplies",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CPRT",
+   "name": "Copart",
+   "sector": "Industrials",
+   "sub_industry": "Diversified Support Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GLW",
+   "name": "Corning Inc.",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Components",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CPAY",
+   "name": "Corpay",
+   "sector": "Financials",
+   "sub_industry": "Transaction & Payment Processing Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CTVA",
+   "name": "Corteva",
+   "sector": "Materials",
+   "sub_industry": "Fertilizers & Agricultural Chemicals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CSGP",
+   "name": "CoStar Group",
+   "sector": "Real Estate",
+   "sub_industry": "Real Estate Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "COST",
+   "name": "Costco",
+   "sector": "Consumer Staples",
+   "sub_industry": "Consumer Staples Merchandise Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CRH",
+   "name": "CRH plc",
+   "sector": "Materials",
+   "sub_industry": "Construction Materials",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CRWD",
+   "name": "CrowdStrike",
+   "sector": "Information Technology",
+   "sub_industry": "Systems Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CCI",
+   "name": "Crown Castle",
+   "sector": "Real Estate",
+   "sub_industry": "Telecom Tower REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CSX",
+   "name": "CSX Corporation",
+   "sector": "Industrials",
+   "sub_industry": "Rail Transportation",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CMI",
+   "name": "Cummins",
+   "sector": "Industrials",
+   "sub_industry": "Construction Machinery & Heavy Transportation Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CVS",
+   "name": "CVS Health",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DHR",
+   "name": "Danaher Corporation",
+   "sector": "Health Care",
+   "sub_industry": "Life Sciences Tools & Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DRI",
+   "name": "Darden Restaurants",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Restaurants",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DDOG",
+   "name": "Datadog",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DVA",
+   "name": "DaVita",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DECK",
+   "name": "Deckers Brands",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Footwear",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DE",
+   "name": "Deere & Company",
+   "sector": "Industrials",
+   "sub_industry": "Agricultural & Farm Machinery",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DELL",
+   "name": "Dell Technologies",
+   "sector": "Information Technology",
+   "sub_industry": "Technology Hardware, Storage & Peripherals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DAL",
+   "name": "Delta Air Lines",
+   "sector": "Industrials",
+   "sub_industry": "Passenger Airlines",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DVN",
+   "name": "Devon Energy",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Exploration & Production",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DXCM",
+   "name": "Dexcom",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FANG",
+   "name": "Diamondback Energy",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Exploration & Production",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DLR",
+   "name": "Digital Realty",
+   "sector": "Real Estate",
+   "sub_industry": "Data Center REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DG",
+   "name": "Dollar General",
+   "sector": "Consumer Staples",
+   "sub_industry": "Consumer Staples Merchandise Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DLTR",
+   "name": "Dollar Tree",
+   "sector": "Consumer Staples",
+   "sub_industry": "Consumer Staples Merchandise Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "D",
+   "name": "Dominion Energy",
+   "sector": "Utilities",
+   "sub_industry": "Multi-Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DPZ",
+   "name": "Domino's",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Restaurants",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DASH",
+   "name": "DoorDash",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Specialized Consumer Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DOV",
+   "name": "Dover Corporation",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DOW",
+   "name": "Dow Inc.",
+   "sector": "Materials",
+   "sub_industry": "Commodity Chemicals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DHI",
+   "name": "D. R. Horton",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Homebuilding",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DTE",
+   "name": "DTE Energy",
+   "sector": "Utilities",
+   "sub_industry": "Multi-Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DUK",
+   "name": "Duke Energy",
+   "sector": "Utilities",
+   "sub_industry": "Electric Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DD",
+   "name": "DuPont",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Conglomerates",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ETN",
+   "name": "Eaton Corporation",
+   "sector": "Industrials",
+   "sub_industry": "Electrical Components & Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "EBAY",
+   "name": "eBay Inc.",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Broadline Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ECHO",
+   "name": "EchoStar",
+   "sector": "Communication Services",
+   "sub_industry": "Wireless Telecommunication Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ECL",
+   "name": "Ecolab",
+   "sector": "Materials",
+   "sub_industry": "Specialty Chemicals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "EIX",
+   "name": "Edison International",
+   "sector": "Utilities",
+   "sub_industry": "Electric Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "EW",
+   "name": "Edwards Lifesciences",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ELV",
+   "name": "Elevance Health",
+   "sector": "Health Care",
+   "sub_industry": "Managed Health Care",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "EME",
+   "name": "Emcor",
+   "sector": "Industrials",
+   "sub_industry": "Construction & Engineering",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "EMR",
+   "name": "Emerson Electric",
+   "sector": "Industrials",
+   "sub_industry": "Electrical Components & Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ETR",
+   "name": "Entergy",
+   "sector": "Utilities",
+   "sub_industry": "Electric Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "EOG",
+   "name": "EOG Resources",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Exploration & Production",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "EQT",
+   "name": "EQT Corporation",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Exploration & Production",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "EFX",
+   "name": "Equifax",
+   "sector": "Industrials",
+   "sub_industry": "Research & Consulting Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "EQIX",
+   "name": "Equinix",
+   "sector": "Real Estate",
+   "sub_industry": "Data Center REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ERIE",
+   "name": "Erie Indemnity",
+   "sector": "Financials",
+   "sub_industry": "Insurance Brokers",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ESS",
+   "name": "Essex Property Trust",
+   "sector": "Real Estate",
+   "sub_industry": "Multi-Family Residential REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "EL",
+   "name": "Estée Lauder Companies (The)",
+   "sector": "Consumer Staples",
+   "sub_industry": "Personal Care Products",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "EG",
+   "name": "Everest Group",
+   "sector": "Financials",
+   "sub_industry": "Reinsurance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "EVRG",
+   "name": "Evergy",
+   "sector": "Utilities",
+   "sub_industry": "Electric Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "P",
+   "name": "Everpure",
+   "sector": "Information Technology",
+   "sub_industry": "Technology Hardware, Storage & Peripherals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ES",
+   "name": "Eversource Energy",
+   "sector": "Utilities",
+   "sub_industry": "Electric Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "EXC",
+   "name": "Exelon",
+   "sector": "Utilities",
+   "sub_industry": "Electric Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "EXE",
+   "name": "Expand Energy",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Exploration & Production",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "EXPE",
+   "name": "Expedia Group",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Hotels, Resorts & Cruise Lines",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "EXPD",
+   "name": "Expeditors International",
+   "sector": "Industrials",
+   "sub_industry": "Air Freight & Logistics",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "EXR",
+   "name": "Extra Space Storage",
+   "sector": "Real Estate",
+   "sub_industry": "Self-Storage REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "XOM",
+   "name": "ExxonMobil",
+   "sector": "Energy",
+   "sub_industry": "Integrated Oil & Gas",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FFIV",
+   "name": "F5, Inc.",
+   "sector": "Information Technology",
+   "sub_industry": "Communications Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FDS",
+   "name": "FactSet",
+   "sector": "Financials",
+   "sub_industry": "Financial Exchanges & Data",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FICO",
+   "name": "Fair Isaac",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FAST",
+   "name": "Fastenal",
+   "sector": "Industrials",
+   "sub_industry": "Trading Companies & Distributors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FRT",
+   "name": "Federal Realty Investment Trust",
+   "sector": "Real Estate",
+   "sub_industry": "Retail REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FDX",
+   "name": "FedEx",
+   "sector": "Industrials",
+   "sub_industry": "Air Freight & Logistics",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FDXF",
+   "name": "FedEx Freight",
+   "sector": "Industrials",
+   "sub_industry": "Cargo Ground Transportation",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FERG",
+   "name": "Ferguson Enterprises",
+   "sector": "Industrials",
+   "sub_industry": "Trading Companies & Distributors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FIS",
+   "name": "Fidelity National Information Services",
+   "sector": "Financials",
+   "sub_industry": "Transaction & Payment Processing Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FITB",
+   "name": "Fifth Third Bancorp",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FSLR",
+   "name": "First Solar",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FE",
+   "name": "FirstEnergy",
+   "sector": "Utilities",
+   "sub_industry": "Electric Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FISV",
+   "name": "Fiserv",
+   "sector": "Financials",
+   "sub_industry": "Transaction & Payment Processing Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FLEX",
+   "name": "Flex Ltd.",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Manufacturing Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "F",
+   "name": "Ford Motor Company",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Automobile Manufacturers",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FTNT",
+   "name": "Fortinet",
+   "sector": "Information Technology",
+   "sub_industry": "Systems Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FTV",
+   "name": "Fortive",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FOXA",
+   "name": "Fox Corporation (Class A)",
+   "sector": "Communication Services",
+   "sub_industry": "Broadcasting",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FOX",
+   "name": "Fox Corporation (Class B)",
+   "sector": "Communication Services",
+   "sub_industry": "Broadcasting",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "BEN",
+   "name": "Franklin Resources",
+   "sector": "Financials",
+   "sub_industry": "Asset Management & Custody Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "FCX",
+   "name": "Freeport-McMoRan",
+   "sector": "Materials",
+   "sub_industry": "Copper",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GRMN",
+   "name": "Garmin",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Consumer Electronics",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "IT",
+   "name": "Gartner",
+   "sector": "Information Technology",
+   "sub_industry": "IT Consulting & Other Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GE",
+   "name": "GE Aerospace",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GEHC",
+   "name": "GE HealthCare",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GEV",
+   "name": "GE Vernova",
+   "sector": "Industrials",
+   "sub_industry": "Heavy Electrical Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GEN",
+   "name": "Gen Digital",
+   "sector": "Information Technology",
+   "sub_industry": "Systems Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GNRC",
+   "name": "Generac",
+   "sector": "Industrials",
+   "sub_industry": "Heavy Electrical Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GD",
+   "name": "General Dynamics",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GIS",
+   "name": "General Mills",
+   "sector": "Consumer Staples",
+   "sub_industry": "Packaged Foods & Meats",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GM",
+   "name": "General Motors",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Automobile Manufacturers",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GPC",
+   "name": "Genuine Parts Company",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Distributors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GILD",
+   "name": "Gilead Sciences",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GPN",
+   "name": "Global Payments",
+   "sector": "Financials",
+   "sub_industry": "Transaction & Payment Processing Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GL",
+   "name": "Globe Life",
+   "sector": "Financials",
+   "sub_industry": "Life & Health Insurance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GDDY",
+   "name": "GoDaddy",
+   "sector": "Information Technology",
+   "sub_industry": "Internet Services & Infrastructure",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GS",
+   "name": "Goldman Sachs",
+   "sector": "Financials",
+   "sub_industry": "Investment Banking & Brokerage",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HAL",
+   "name": "Halliburton",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Equipment & Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HIG",
+   "name": "Hartford (The)",
+   "sector": "Financials",
+   "sub_industry": "Property & Casualty Insurance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HAS",
+   "name": "Hasbro",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Leisure Products",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HCA",
+   "name": "HCA Healthcare",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Facilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DOC",
+   "name": "Healthpeak Properties",
+   "sector": "Real Estate",
+   "sub_industry": "Health Care REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HSIC",
+   "name": "Henry Schein",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Distributors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HSY",
+   "name": "Hershey Company (The)",
+   "sector": "Consumer Staples",
+   "sub_industry": "Packaged Foods & Meats",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HPE",
+   "name": "Hewlett Packard Enterprise",
+   "sector": "Information Technology",
+   "sub_industry": "Technology Hardware, Storage & Peripherals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HLT",
+   "name": "Hilton Worldwide",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Hotels, Resorts & Cruise Lines",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HD",
+   "name": "Home Depot (The)",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Home Improvement Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HONA",
+   "name": "Honeywell Aerospace",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HON",
+   "name": "Honeywell Technologies",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Conglomerates",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HRL",
+   "name": "Hormel Foods",
+   "sector": "Consumer Staples",
+   "sub_industry": "Packaged Foods & Meats",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HST",
+   "name": "Host Hotels & Resorts",
+   "sector": "Real Estate",
+   "sub_industry": "Hotel & Resort REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HWM",
+   "name": "Howmet Aerospace",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HPQ",
+   "name": "HP Inc.",
+   "sector": "Information Technology",
+   "sub_industry": "Technology Hardware, Storage & Peripherals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HUBB",
+   "name": "Hubbell Incorporated",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HUM",
+   "name": "Humana",
+   "sector": "Health Care",
+   "sub_industry": "Managed Health Care",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HBAN",
+   "name": "Huntington Bancshares",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HII",
+   "name": "Huntington Ingalls Industries",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "IBM",
+   "name": "IBM",
+   "sector": "Information Technology",
+   "sub_industry": "IT Consulting & Other Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "IEX",
+   "name": "IDEX Corporation",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "IDXX",
+   "name": "Idexx Laboratories",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ITW",
+   "name": "Illinois Tool Works",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ILMN",
+   "name": "Illumina, Inc.",
+   "sector": "Health Care",
+   "sub_industry": "Life Sciences Tools & Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "INCY",
+   "name": "Incyte",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "IR",
+   "name": "Ingersoll Rand",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PODD",
+   "name": "Insulet Corporation",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "INTC",
+   "name": "Intel",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "IBKR",
+   "name": "Interactive Brokers",
+   "sector": "Financials",
+   "sub_industry": "Investment Banking & Brokerage",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ICE",
+   "name": "Intercontinental Exchange",
+   "sector": "Financials",
+   "sub_industry": "Financial Exchanges & Data",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "IFF",
+   "name": "International Flavors & Fragrances",
+   "sector": "Materials",
+   "sub_industry": "Specialty Chemicals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "IP",
+   "name": "International Paper",
+   "sector": "Materials",
+   "sub_industry": "Paper & Plastic Packaging Products & Materials",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "INTU",
+   "name": "Intuit",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ISRG",
+   "name": "Intuitive Surgical",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "IVZ",
+   "name": "Invesco",
+   "sector": "Financials",
+   "sub_industry": "Asset Management & Custody Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "INVH",
+   "name": "Invitation Homes",
+   "sector": "Real Estate",
+   "sub_industry": "Single-Family Residential REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "IQV",
+   "name": "IQVIA",
+   "sector": "Health Care",
+   "sub_industry": "Life Sciences Tools & Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "IRM",
+   "name": "Iron Mountain",
+   "sector": "Real Estate",
+   "sub_industry": "Other Specialized REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "JBHT",
+   "name": "J.B. Hunt",
+   "sector": "Industrials",
+   "sub_industry": "Cargo Ground Transportation",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "JBL",
+   "name": "Jabil",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Manufacturing Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "JKHY",
+   "name": "Jack Henry & Associates",
+   "sector": "Financials",
+   "sub_industry": "Transaction & Payment Processing Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "J",
+   "name": "Jacobs Solutions",
+   "sector": "Industrials",
+   "sub_industry": "Construction & Engineering",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "JNJ",
+   "name": "Johnson & Johnson",
+   "sector": "Health Care",
+   "sub_industry": "Pharmaceuticals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "JCI",
+   "name": "Johnson Controls",
+   "sector": "Industrials",
+   "sub_industry": "Building Products",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "JPM",
+   "name": "JPMorgan Chase",
+   "sector": "Financials",
+   "sub_industry": "Diversified Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "KVUE",
+   "name": "Kenvue",
+   "sector": "Consumer Staples",
+   "sub_industry": "Personal Care Products",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "KDP",
+   "name": "Keurig Dr Pepper",
+   "sector": "Consumer Staples",
+   "sub_industry": "Soft Drinks & Non-alcoholic Beverages",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "KEY",
+   "name": "KeyCorp",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "KEYS",
+   "name": "Keysight Technologies",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Equipment & Instruments",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "KMB",
+   "name": "Kimberly-Clark",
+   "sector": "Consumer Staples",
+   "sub_industry": "Household Products",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "KIM",
+   "name": "Kimco Realty",
+   "sector": "Real Estate",
+   "sub_industry": "Retail REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "KMI",
+   "name": "Kinder Morgan",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Storage & Transportation",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "KKR",
+   "name": "KKR & Co.",
+   "sector": "Financials",
+   "sub_industry": "Asset Management & Custody Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "KLAC",
+   "name": "KLA Corporation",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductor Materials & Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "KHC",
+   "name": "Kraft Heinz",
+   "sector": "Consumer Staples",
+   "sub_industry": "Packaged Foods & Meats",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "KR",
+   "name": "Kroger",
+   "sector": "Consumer Staples",
+   "sub_industry": "Food Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "LHX",
+   "name": "L3Harris",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "LH",
+   "name": "Labcorp",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "LRCX",
+   "name": "Lam Research",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductor Materials & Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "LVS",
+   "name": "Las Vegas Sands",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Casinos & Gaming",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "LDOS",
+   "name": "Leidos",
+   "sector": "Industrials",
+   "sub_industry": "Diversified Support Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "LEN",
+   "name": "Lennar",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Homebuilding",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "LII",
+   "name": "Lennox International",
+   "sector": "Industrials",
+   "sub_industry": "Building Products",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "LLY",
+   "name": "Lilly (Eli)",
+   "sector": "Health Care",
+   "sub_industry": "Pharmaceuticals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "LIN",
+   "name": "Linde plc",
+   "sector": "Materials",
+   "sub_industry": "Industrial Gases",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "LYV",
+   "name": "Live Nation Entertainment",
+   "sector": "Communication Services",
+   "sub_industry": "Movies & Entertainment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "LMT",
+   "name": "Lockheed Martin",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "L",
+   "name": "Loews Corporation",
+   "sector": "Financials",
+   "sub_industry": "Multi-line Insurance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "LOW",
+   "name": "Lowe's",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Home Improvement Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "LULU",
+   "name": "Lululemon Athletica",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Apparel, Accessories & Luxury Goods",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "LITE",
+   "name": "Lumentum",
+   "sector": "Information Technology",
+   "sub_industry": "Communications Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "LYB",
+   "name": "LyondellBasell",
+   "sector": "Materials",
+   "sub_industry": "Specialty Chemicals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MTB",
+   "name": "M&T Bank",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MPC",
+   "name": "Marathon Petroleum",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Refining & Marketing",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MAR",
+   "name": "Marriott International",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Hotels, Resorts & Cruise Lines",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MRSH",
+   "name": "Marsh McLennan",
+   "sector": "Financials",
+   "sub_industry": "Insurance Brokers",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MLM",
+   "name": "Martin Marietta Materials",
+   "sector": "Materials",
+   "sub_industry": "Construction Materials",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MRVL",
+   "name": "Marvell Technology",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MAS",
+   "name": "Masco",
+   "sector": "Industrials",
+   "sub_industry": "Building Products",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MA",
+   "name": "Mastercard",
+   "sector": "Financials",
+   "sub_industry": "Transaction & Payment Processing Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MKC",
+   "name": "McCormick & Company",
+   "sector": "Consumer Staples",
+   "sub_industry": "Packaged Foods & Meats",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MCD",
+   "name": "McDonald's",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Restaurants",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MCK",
+   "name": "McKesson Corporation",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Distributors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MDT",
+   "name": "Medtronic",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MRK",
+   "name": "Merck & Co.",
+   "sector": "Health Care",
+   "sub_industry": "Pharmaceuticals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "META",
+   "name": "Meta Platforms",
+   "sector": "Communication Services",
+   "sub_industry": "Interactive Media & Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MET",
+   "name": "MetLife",
+   "sector": "Financials",
+   "sub_industry": "Life & Health Insurance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MTD",
+   "name": "Mettler Toledo",
+   "sector": "Health Care",
+   "sub_industry": "Life Sciences Tools & Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MGM",
+   "name": "MGM Resorts",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Casinos & Gaming",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MCHP",
+   "name": "Microchip Technology",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MU",
+   "name": "Micron Technology",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MSFT",
+   "name": "Microsoft",
+   "sector": "Information Technology",
+   "sub_industry": "Systems Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MAA",
+   "name": "Mid-America Apartment Communities",
+   "sector": "Real Estate",
+   "sub_industry": "Multi-Family Residential REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MRNA",
+   "name": "Moderna",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MDLZ",
+   "name": "Mondelez International",
+   "sector": "Consumer Staples",
+   "sub_industry": "Packaged Foods & Meats",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MPWR",
+   "name": "Monolithic Power Systems",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MNST",
+   "name": "Monster Beverage",
+   "sector": "Consumer Staples",
+   "sub_industry": "Soft Drinks & Non-alcoholic Beverages",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MCO",
+   "name": "Moody's Corporation",
+   "sector": "Financials",
+   "sub_industry": "Financial Exchanges & Data",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MS",
+   "name": "Morgan Stanley",
+   "sector": "Financials",
+   "sub_industry": "Investment Banking & Brokerage",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MOS",
+   "name": "Mosaic Company (The)",
+   "sector": "Materials",
+   "sub_industry": "Fertilizers & Agricultural Chemicals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MSI",
+   "name": "Motorola Solutions",
+   "sector": "Information Technology",
+   "sub_industry": "Communications Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "MSCI",
+   "name": "MSCI",
+   "sector": "Financials",
+   "sub_industry": "Financial Exchanges & Data",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NDAQ",
+   "name": "Nasdaq, Inc.",
+   "sector": "Financials",
+   "sub_industry": "Financial Exchanges & Data",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NTAP",
+   "name": "NetApp",
+   "sector": "Information Technology",
+   "sub_industry": "Technology Hardware, Storage & Peripherals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NFLX",
+   "name": "Netflix",
+   "sector": "Communication Services",
+   "sub_industry": "Movies & Entertainment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NEM",
+   "name": "Newmont",
+   "sector": "Materials",
+   "sub_industry": "Gold",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NWSA",
+   "name": "News Corp (Class A)",
+   "sector": "Communication Services",
+   "sub_industry": "Publishing",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NWS",
+   "name": "News Corp (Class B)",
+   "sector": "Communication Services",
+   "sub_industry": "Publishing",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NEE",
+   "name": "NextEra Energy",
+   "sector": "Utilities",
+   "sub_industry": "Multi-Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NKE",
+   "name": "Nike, Inc.",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Apparel, Accessories & Luxury Goods",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NI",
+   "name": "NiSource",
+   "sector": "Utilities",
+   "sub_industry": "Multi-Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NDSN",
+   "name": "Nordson Corporation",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NSC",
+   "name": "Norfolk Southern",
+   "sector": "Industrials",
+   "sub_industry": "Rail Transportation",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NTRS",
+   "name": "Northern Trust",
+   "sector": "Financials",
+   "sub_industry": "Asset Management & Custody Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NOC",
+   "name": "Northrop Grumman",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NCLH",
+   "name": "Norwegian Cruise Line Holdings",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Hotels, Resorts & Cruise Lines",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NRG",
+   "name": "NRG Energy",
+   "sector": "Utilities",
+   "sub_industry": "Independent Power Producers & Energy Traders",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NUE",
+   "name": "Nucor",
+   "sector": "Materials",
+   "sub_industry": "Steel",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NVDA",
+   "name": "Nvidia",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NVR",
+   "name": "NVR, Inc.",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Homebuilding",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NXPI",
+   "name": "NXP Semiconductors",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ORLY",
+   "name": "O'Reilly Automotive",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Automotive Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "OXY",
+   "name": "Occidental Petroleum",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Exploration & Production",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ODFL",
+   "name": "Old Dominion",
+   "sector": "Industrials",
+   "sub_industry": "Cargo Ground Transportation",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "OMC",
+   "name": "Omnicom Group",
+   "sector": "Communication Services",
+   "sub_industry": "Advertising",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ON",
+   "name": "ON Semiconductor",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "OKE",
+   "name": "Oneok",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Storage & Transportation",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ORCL",
+   "name": "Oracle Corporation",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "OTIS",
+   "name": "Otis Worldwide",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PCAR",
+   "name": "Paccar",
+   "sector": "Industrials",
+   "sub_industry": "Construction Machinery & Heavy Transportation Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PKG",
+   "name": "Packaging Corporation of America",
+   "sector": "Materials",
+   "sub_industry": "Paper & Plastic Packaging Products & Materials",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PLTR",
+   "name": "Palantir Technologies",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PANW",
+   "name": "Palo Alto Networks",
+   "sector": "Information Technology",
+   "sub_industry": "Systems Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PSKY",
+   "name": "Paramount Skydance Corporation",
+   "sector": "Communication Services",
+   "sub_industry": "Movies & Entertainment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PH",
+   "name": "Parker Hannifin",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PAYX",
+   "name": "Paychex",
+   "sector": "Industrials",
+   "sub_industry": "Human Resource & Employment Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PYPL",
+   "name": "PayPal",
+   "sector": "Financials",
+   "sub_industry": "Transaction & Payment Processing Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PNR",
+   "name": "Pentair",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PEP",
+   "name": "PepsiCo",
+   "sector": "Consumer Staples",
+   "sub_industry": "Soft Drinks & Non-alcoholic Beverages",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PFE",
+   "name": "Pfizer",
+   "sector": "Health Care",
+   "sub_industry": "Pharmaceuticals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PCG",
+   "name": "PG&E Corporation",
+   "sector": "Utilities",
+   "sub_industry": "Multi-Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PM",
+   "name": "Philip Morris International",
+   "sector": "Consumer Staples",
+   "sub_industry": "Tobacco",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PSX",
+   "name": "Phillips 66",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Refining & Marketing",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PNW",
+   "name": "Pinnacle West Capital",
+   "sector": "Utilities",
+   "sub_industry": "Multi-Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PNC",
+   "name": "PNC Financial Services",
+   "sector": "Financials",
+   "sub_industry": "Diversified Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PPG",
+   "name": "PPG Industries",
+   "sector": "Materials",
+   "sub_industry": "Specialty Chemicals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PPL",
+   "name": "PPL Corporation",
+   "sector": "Utilities",
+   "sub_industry": "Electric Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PFG",
+   "name": "Principal Financial Group",
+   "sector": "Financials",
+   "sub_industry": "Life & Health Insurance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PG",
+   "name": "Procter & Gamble",
+   "sector": "Consumer Staples",
+   "sub_industry": "Personal Care Products",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PGR",
+   "name": "Progressive Corporation",
+   "sector": "Financials",
+   "sub_industry": "Property & Casualty Insurance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PLD",
+   "name": "Prologis",
+   "sector": "Real Estate",
+   "sub_industry": "Industrial REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PRU",
+   "name": "Prudential Financial",
+   "sector": "Financials",
+   "sub_industry": "Life & Health Insurance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PEG",
+   "name": "Public Service Enterprise Group",
+   "sector": "Utilities",
+   "sub_industry": "Electric Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PTC",
+   "name": "PTC Inc.",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PSA",
+   "name": "Public Storage",
+   "sector": "Real Estate",
+   "sub_industry": "Self-Storage REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PHM",
+   "name": "PulteGroup",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Homebuilding",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "PWR",
+   "name": "Quanta Services",
+   "sector": "Industrials",
+   "sub_industry": "Construction & Engineering",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "QCOM",
+   "name": "Qualcomm",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DGX",
+   "name": "Quest Diagnostics",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "Q",
+   "name": "Qnity Electronics",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductor Materials & Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "RL",
+   "name": "Ralph Lauren Corporation",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Apparel, Accessories & Luxury Goods",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "RJF",
+   "name": "Raymond James Financial",
+   "sector": "Financials",
+   "sub_industry": "Investment Banking & Brokerage",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "RDDT",
+   "name": "Reddit",
+   "sector": "Communication Services",
+   "sub_industry": "Interactive Media & Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "RTX",
+   "name": "RTX Corporation",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "O",
+   "name": "Realty Income",
+   "sector": "Real Estate",
+   "sub_industry": "Retail REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "REG",
+   "name": "Regency Centers",
+   "sector": "Real Estate",
+   "sub_industry": "Retail REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "REGN",
+   "name": "Regeneron Pharmaceuticals",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "RF",
+   "name": "Regions Financial Corporation",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "RSG",
+   "name": "Republic Services",
+   "sector": "Industrials",
+   "sub_industry": "Environmental & Facilities Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "RMD",
+   "name": "ResMed|",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "RVTY",
+   "name": "Revvity",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "HOOD",
+   "name": "Robinhood Markets",
+   "sector": "Financials",
+   "sub_industry": "Investment Banking & Brokerage",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ROK",
+   "name": "Rockwell Automation",
+   "sector": "Industrials",
+   "sub_industry": "Electrical Components & Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ROL",
+   "name": "Rollins, Inc.",
+   "sector": "Industrials",
+   "sub_industry": "Environmental & Facilities Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ROP",
+   "name": "Roper Technologies",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Equipment & Instruments",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ROST",
+   "name": "Ross Stores",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Apparel Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "RCL",
+   "name": "Royal Caribbean Group",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Hotels, Resorts & Cruise Lines",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SPGI",
+   "name": "S&P Global",
+   "sector": "Financials",
+   "sub_industry": "Financial Exchanges & Data",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "CRM",
+   "name": "Salesforce",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SNDK",
+   "name": "Sandisk",
+   "sector": "Information Technology",
+   "sub_industry": "Technology Hardware, Storage & Peripherals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SBAC",
+   "name": "SBA Communications",
+   "sector": "Real Estate",
+   "sub_industry": "Telecom Tower REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SLB",
+   "name": "Schlumberger",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Equipment & Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "STX",
+   "name": "Seagate Technology",
+   "sector": "Information Technology",
+   "sub_industry": "Technology Hardware, Storage & Peripherals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SRE",
+   "name": "Sempra",
+   "sector": "Utilities",
+   "sub_industry": "Multi-Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "NOW",
+   "name": "ServiceNow",
+   "sector": "Information Technology",
+   "sub_industry": "Systems Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SHW",
+   "name": "Sherwin-Williams",
+   "sector": "Materials",
+   "sub_industry": "Specialty Chemicals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SPG",
+   "name": "Simon Property Group",
+   "sector": "Real Estate",
+   "sub_industry": "Retail REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SWKS",
+   "name": "Skyworks Solutions",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SJM",
+   "name": "J.M. Smucker Company (The)",
+   "sector": "Consumer Staples",
+   "sub_industry": "Packaged Foods & Meats",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SW",
+   "name": "Smurfit Westrock",
+   "sector": "Materials",
+   "sub_industry": "Paper & Plastic Packaging Products & Materials",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SNA",
+   "name": "Snap-on",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SOLV",
+   "name": "Solventum",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Technology",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SO",
+   "name": "Southern Company",
+   "sector": "Utilities",
+   "sub_industry": "Electric Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "LUV",
+   "name": "Southwest Airlines",
+   "sector": "Industrials",
+   "sub_industry": "Passenger Airlines",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SWK",
+   "name": "Stanley Black & Decker",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SBUX",
+   "name": "Starbucks",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Restaurants",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "STT",
+   "name": "State Street Corporation",
+   "sector": "Financials",
+   "sub_industry": "Asset Management & Custody Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "STLD",
+   "name": "Steel Dynamics",
+   "sector": "Materials",
+   "sub_industry": "Steel",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "STE",
+   "name": "Steris",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SYK",
+   "name": "Stryker Corporation",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SMCI",
+   "name": "Supermicro",
+   "sector": "Information Technology",
+   "sub_industry": "Technology Hardware, Storage & Peripherals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SYF",
+   "name": "Synchrony Financial",
+   "sector": "Financials",
+   "sub_industry": "Consumer Finance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SNPS",
+   "name": "Synopsys",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "SYY",
+   "name": "Sysco",
+   "sector": "Consumer Staples",
+   "sub_industry": "Food Distributors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TMUS",
+   "name": "T-Mobile US",
+   "sector": "Communication Services",
+   "sub_industry": "Wireless Telecommunication Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TROW",
+   "name": "T. Rowe Price",
+   "sector": "Financials",
+   "sub_industry": "Asset Management & Custody Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TTWO",
+   "name": "Take-Two Interactive",
+   "sector": "Communication Services",
+   "sub_industry": "Interactive Home Entertainment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TPR",
+   "name": "Tapestry, Inc.",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Apparel, Accessories & Luxury Goods",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TRGP",
+   "name": "Targa Resources",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Storage & Transportation",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TGT",
+   "name": "Target Corporation",
+   "sector": "Consumer Staples",
+   "sub_industry": "Consumer Staples Merchandise Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TEL",
+   "name": "TE Connectivity",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Manufacturing Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TDY",
+   "name": "Teledyne Technologies",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Equipment & Instruments",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TER",
+   "name": "Teradyne",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductor Materials & Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TSLA",
+   "name": "Tesla, Inc.",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Automobile Manufacturers",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TXN",
+   "name": "Texas Instruments",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TPL",
+   "name": "Texas Pacific Land Corporation",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Exploration & Production",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TXT",
+   "name": "Textron",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TMO",
+   "name": "Thermo Fisher Scientific",
+   "sector": "Health Care",
+   "sub_industry": "Life Sciences Tools & Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TJX",
+   "name": "TJX Companies",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Apparel Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TKO",
+   "name": "TKO Group Holdings",
+   "sector": "Communication Services",
+   "sub_industry": "Movies & Entertainment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TSCO",
+   "name": "Tractor Supply",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Other Specialty Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TT",
+   "name": "Trane Technologies",
+   "sector": "Industrials",
+   "sub_industry": "Building Products",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TDG",
+   "name": "TransDigm Group",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TRV",
+   "name": "Travelers Companies (The)",
+   "sector": "Financials",
+   "sub_industry": "Property & Casualty Insurance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TRMB",
+   "name": "Trimble Inc.",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TFC",
+   "name": "Truist Financial",
+   "sector": "Financials",
+   "sub_industry": "Diversified Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TYL",
+   "name": "Tyler Technologies",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "TSN",
+   "name": "Tyson Foods",
+   "sector": "Consumer Staples",
+   "sub_industry": "Packaged Foods & Meats",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "USB",
+   "name": "U.S. Bancorp",
+   "sector": "Financials",
+   "sub_industry": "Diversified Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "UBER",
+   "name": "Uber",
+   "sector": "Industrials",
+   "sub_industry": "Passenger Ground Transportation",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "UDR",
+   "name": "UDR, Inc.",
+   "sector": "Real Estate",
+   "sub_industry": "Multi-Family Residential REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ULTA",
+   "name": "Ulta Beauty",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Other Specialty Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "UNP",
+   "name": "Union Pacific Corporation",
+   "sector": "Industrials",
+   "sub_industry": "Rail Transportation",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "UAL",
+   "name": "United Airlines Holdings",
+   "sector": "Industrials",
+   "sub_industry": "Passenger Airlines",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "UPS",
+   "name": "United Parcel Service",
+   "sector": "Industrials",
+   "sub_industry": "Air Freight & Logistics",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "URI",
+   "name": "United Rentals",
+   "sector": "Industrials",
+   "sub_industry": "Trading Companies & Distributors",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "UNH",
+   "name": "UnitedHealth Group",
+   "sector": "Health Care",
+   "sub_industry": "Managed Health Care",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "UHS",
+   "name": "Universal Health Services",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Facilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "VLO",
+   "name": "Valero Energy",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Refining & Marketing",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "VEEV",
+   "name": "Veeva Systems",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Technology",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "VTR",
+   "name": "Ventas",
+   "sector": "Real Estate",
+   "sub_industry": "Health Care REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "VLTO",
+   "name": "Veralto",
+   "sector": "Industrials",
+   "sub_industry": "Environmental & Facilities Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "VRSN",
+   "name": "Verisign",
+   "sector": "Information Technology",
+   "sub_industry": "Internet Services & Infrastructure",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "VRSK",
+   "name": "Verisk Analytics",
+   "sector": "Industrials",
+   "sub_industry": "Research & Consulting Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "VZ",
+   "name": "Verizon",
+   "sector": "Communication Services",
+   "sub_industry": "Integrated Telecommunication Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "VRTX",
+   "name": "Vertex Pharmaceuticals",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "VRT",
+   "name": "Vertiv",
+   "sector": "Industrials",
+   "sub_industry": "Electrical Components & Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "VTRS",
+   "name": "Viatris",
+   "sector": "Health Care",
+   "sub_industry": "Pharmaceuticals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "VICI",
+   "name": "Vici Properties",
+   "sector": "Real Estate",
+   "sub_industry": "Hotel & Resort REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "V",
+   "name": "Visa Inc.",
+   "sector": "Financials",
+   "sub_industry": "Transaction & Payment Processing Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "VST",
+   "name": "Vistra Corp.",
+   "sector": "Utilities",
+   "sub_industry": "Electric Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "VMRK",
+   "name": "Vivmark Residential",
+   "sector": "Real Estate",
+   "sub_industry": "Multi-Family Residential REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "VMC",
+   "name": "Vulcan Materials Company",
+   "sector": "Materials",
+   "sub_industry": "Construction Materials",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "WRB",
+   "name": "W. R. Berkley Corporation",
+   "sector": "Financials",
+   "sub_industry": "Property & Casualty Insurance",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "GWW",
+   "name": "W. W. Grainger",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "WAB",
+   "name": "Wabtec",
+   "sector": "Industrials",
+   "sub_industry": "Construction Machinery & Heavy Transportation Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "WMT",
+   "name": "Walmart",
+   "sector": "Consumer Staples",
+   "sub_industry": "Consumer Staples Merchandise Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "DIS",
+   "name": "Walt Disney Company (The)",
+   "sector": "Communication Services",
+   "sub_industry": "Movies & Entertainment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "WBD",
+   "name": "Warner Bros. Discovery",
+   "sector": "Communication Services",
+   "sub_industry": "Broadcasting",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "WM",
+   "name": "Waste Management",
+   "sector": "Industrials",
+   "sub_industry": "Environmental & Facilities Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "WAT",
+   "name": "Waters Corporation",
+   "sector": "Health Care",
+   "sub_industry": "Life Sciences Tools & Services",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "WEC",
+   "name": "WEC Energy Group",
+   "sector": "Utilities",
+   "sub_industry": "Electric Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "WFC",
+   "name": "Wells Fargo",
+   "sector": "Financials",
+   "sub_industry": "Diversified Banks",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "WELL",
+   "name": "Welltower",
+   "sector": "Real Estate",
+   "sub_industry": "Health Care REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "WST",
+   "name": "West Pharmaceutical Services",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Supplies",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "WDC",
+   "name": "Western Digital",
+   "sector": "Information Technology",
+   "sub_industry": "Technology Hardware, Storage & Peripherals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "WY",
+   "name": "Weyerhaeuser",
+   "sector": "Real Estate",
+   "sub_industry": "Timber REITs",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "WSM",
+   "name": "Williams-Sonoma, Inc.",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Homefurnishing Retail",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "WMB",
+   "name": "Williams Companies",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Storage & Transportation",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "WTW",
+   "name": "Willis Towers Watson",
+   "sector": "Financials",
+   "sub_industry": "Insurance Brokers",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "WDAY",
+   "name": "Workday, Inc.",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "WYNN",
+   "name": "Wynn Resorts",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Casinos & Gaming",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "XEL",
+   "name": "Xcel Energy",
+   "sector": "Utilities",
+   "sub_industry": "Multi-Utilities",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "XYL",
+   "name": "Xylem Inc.",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "YUM",
+   "name": "Yum! Brands",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Restaurants",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ZBRA",
+   "name": "Zebra Technologies",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Equipment & Instruments",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ZBH",
+   "name": "Zimmer Biomet",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "ZTS",
+   "name": "Zoetis",
+   "sector": "Health Care",
+   "sub_industry": "Pharmaceuticals",
+   "tier": "sp500"
+  },
+  {
+   "ticker": "AA",
+   "name": "Alcoa",
+   "sector": "Materials",
+   "sub_industry": "Aluminum",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AAL",
+   "name": "American Airlines Group",
+   "sector": "Industrials",
+   "sub_industry": "Passenger Airlines",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AAON",
+   "name": "AAON",
+   "sector": "Industrials",
+   "sub_industry": "Building Products",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ACI",
+   "name": "Albertsons",
+   "sector": "Consumer Staples",
+   "sub_industry": "Food Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ACM",
+   "name": "AECOM",
+   "sector": "Industrials",
+   "sub_industry": "Construction & Engineering",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ADC",
+   "name": "Agree Realty",
+   "sector": "Real Estate",
+   "sub_industry": "Retail REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AEIS",
+   "name": "Advanced Energy",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductor Materials & Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AFG",
+   "name": "American Financial Group",
+   "sector": "Financials",
+   "sub_industry": "Multi-line Insurance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AGCO",
+   "name": "AGCO",
+   "sector": "Industrials",
+   "sub_industry": "Agricultural & Farm Machinery",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AGNC",
+   "name": "AGNC Investment",
+   "sector": "Financials",
+   "sub_industry": "Mortgage REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AHR",
+   "name": "American Healthcare REIT",
+   "sector": "Real Estate",
+   "sub_industry": "Health Care REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AIT",
+   "name": "Applied Industrial Technologies",
+   "sector": "Industrials",
+   "sub_industry": "Trading Companies & Distributors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ALGM",
+   "name": "Allegro MicroSystems",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ALK",
+   "name": "Alaska Air Group",
+   "sector": "Industrials",
+   "sub_industry": "Passenger Airlines",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ALLY",
+   "name": "Ally Financial",
+   "sector": "Financials",
+   "sub_industry": "Consumer Finance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ALSN",
+   "name": "Allison Transmission",
+   "sector": "Industrials",
+   "sub_industry": "Construction Machinery & Heavy Transportation Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ALV",
+   "name": "Autoliv",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Automotive Parts & Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AM",
+   "name": "Antero Midstream",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Storage & Transportation",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AMG",
+   "name": "Affiliated Managers Group",
+   "sector": "Financials",
+   "sub_industry": "Asset Management & Custody Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AMH",
+   "name": "American Homes 4 Rent",
+   "sector": "Real Estate",
+   "sub_industry": "Single-Family Residential REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AMKR",
+   "name": "Amkor Technology",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AN",
+   "name": "AutoNation",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Automotive Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ANF",
+   "name": "Abercrombie & Fitch",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Apparel Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "APG",
+   "name": "APi Group",
+   "sector": "Industrials",
+   "sub_industry": "Construction & Engineering",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "APPF",
+   "name": "AppFolio",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AR",
+   "name": "Antero Resources",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Exploration & Production",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ARMK",
+   "name": "Aramark",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Distributors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ARW",
+   "name": "Arrow Electronics",
+   "sector": "Information Technology",
+   "sub_industry": "Technology Distributors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ARWR",
+   "name": "Arrowhead Pharmaceuticals",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ASB",
+   "name": "Associated Bank",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ASH",
+   "name": "Ashland Global",
+   "sector": "Materials",
+   "sub_industry": "Diversified Chemicals",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ATI",
+   "name": "ATI Inc.",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ATR",
+   "name": "AptarGroup",
+   "sector": "Materials",
+   "sub_industry": "Metal, Glass & Plastic Containers",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AVAV",
+   "name": "AeroVironment",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AVNT",
+   "name": "Avient",
+   "sector": "Materials",
+   "sub_industry": "Specialty Chemicals",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AVT",
+   "name": "Avnet",
+   "sector": "Information Technology",
+   "sub_industry": "Technology Distributors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AVTR",
+   "name": "Avantor",
+   "sector": "Health Care",
+   "sub_industry": "Life Sciences Tools & Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AXTA",
+   "name": "Axalta",
+   "sector": "Materials",
+   "sub_industry": "Specialty Chemicals",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "AYI",
+   "name": "Acuity Brands",
+   "sector": "Industrials",
+   "sub_industry": "Electrical Components & Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BAH",
+   "name": "Booz Allen Hamilton",
+   "sector": "Industrials",
+   "sub_industry": "Research & Consulting Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BBWI",
+   "name": "Bath & Body Works, Inc.",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Other Specialty Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BC",
+   "name": "Brunswick",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Leisure Products",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BCO",
+   "name": "Brink's",
+   "sector": "Industrials",
+   "sub_industry": "Security & Alarm Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BDC",
+   "name": "Belden Inc.",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Components",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BHF",
+   "name": "Brighthouse Financial",
+   "sector": "Financials",
+   "sub_industry": "Life & Health Insurance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BILL",
+   "name": "Bill Holdings",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BIO",
+   "name": "Bio-Rad Laboratories",
+   "sector": "Health Care",
+   "sub_industry": "Life Sciences Tools & Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BJ",
+   "name": "BJ's Wholesale Club",
+   "sector": "Consumer Staples",
+   "sub_industry": "Consumer Staples Merchandise Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BKH",
+   "name": "Black Hills Corporation",
+   "sector": "Utilities",
+   "sub_industry": "Multi-Utilities",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BMRN",
+   "name": "BioMarin Pharmaceutical",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BRKR",
+   "name": "Bruker",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BROS",
+   "name": "Dutch Bros Inc.",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Restaurants",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BRX",
+   "name": "Brixmor Property Group",
+   "sector": "Real Estate",
+   "sub_industry": "Retail REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BSY",
+   "name": "Bentley Systems",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BTSG",
+   "name": "BrightSpring Health Services",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BURL",
+   "name": "Burlington Stores",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Apparel Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BWA",
+   "name": "BorgWarner",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Automotive Parts & Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BWXT",
+   "name": "BWX Technologies",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "BYD",
+   "name": "Boyd Gaming",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Casinos & Gaming",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CACI",
+   "name": "CACI International",
+   "sector": "Industrials",
+   "sub_industry": "Diversified Support Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CAR",
+   "name": "Avis Budget Group",
+   "sector": "Industrials",
+   "sub_industry": "Passenger Ground Transportation",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CART",
+   "name": "Maplebear Inc.",
+   "sector": "Consumer Staples",
+   "sub_industry": "Food Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CAVA",
+   "name": "Cava Group",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Restaurants",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CBSH",
+   "name": "Commerce Bancshares",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CBT",
+   "name": "Cabot Corp",
+   "sector": "Materials",
+   "sub_industry": "Diversified Chemicals",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CCK",
+   "name": "Crown Holdings",
+   "sector": "Materials",
+   "sub_industry": "Paper & Plastic Packaging Products & Materials",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CDE",
+   "name": "Coeur Mining",
+   "sector": "Materials",
+   "sub_industry": "Gold",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CDP",
+   "name": "COPT Defense Properties",
+   "sector": "Real Estate",
+   "sub_industry": "Office REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CELH",
+   "name": "Celsius Holdings",
+   "sector": "Consumer Staples",
+   "sub_industry": "Soft Drinks & Non-alcoholic Beverages",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CFR",
+   "name": "Frost Bank",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CG",
+   "name": "Carlyle Group (The)",
+   "sector": "Financials",
+   "sub_industry": "Asset Management & Custody Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CGNX",
+   "name": "Cognex",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Equipment & Instruments",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CHDN",
+   "name": "Churchill Downs Inc.",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Casinos & Gaming",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CHE",
+   "name": "Chemed Corp.",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CHH",
+   "name": "Choice Hotels",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Hotels, Resorts & Cruise Lines",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CHRD",
+   "name": "Chord Energy",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Exploration & Production",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CHWY",
+   "name": "Chewy",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Other Specialty Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CLF",
+   "name": "Cleveland-Cliffs",
+   "sector": "Materials",
+   "sub_industry": "Steel",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CLH",
+   "name": "Clean Harbors",
+   "sector": "Industrials",
+   "sub_industry": "Environmental & Facilities Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CMC",
+   "name": "Commercial Metals",
+   "sector": "Materials",
+   "sub_industry": "Steel",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CNH",
+   "name": "CNH Industrial",
+   "sector": "Industrials",
+   "sub_industry": "Agricultural & Farm Machinery",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CNM",
+   "name": "Core & Main",
+   "sector": "Industrials",
+   "sub_industry": "Trading Companies & Distributors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CNO",
+   "name": "CNO Financial Group",
+   "sector": "Financials",
+   "sub_industry": "Life & Health Insurance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CNX",
+   "name": "CNX Resources",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Exploration & Production",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "COKE",
+   "name": "Coca-Cola Consolidated",
+   "sector": "Consumer Staples",
+   "sub_industry": "Soft Drinks & Non-alcoholic Beverages",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "COLB",
+   "name": "Columbia Banking System",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "COLM",
+   "name": "Columbia Sportswear",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Apparel, Accessories & Luxury Goods",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CORT",
+   "name": "Corcept Therapeutics",
+   "sector": "Health Care",
+   "sub_industry": "Pharmaceuticals",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CR",
+   "name": "Crane",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CRBG",
+   "name": "Corebridge Financial",
+   "sector": "Financials",
+   "sub_industry": "Asset Management & Custody Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CROX",
+   "name": "Crocs",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Footwear",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CRS",
+   "name": "Carpenter Technology",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CRUS",
+   "name": "Cirrus Logic",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CSL",
+   "name": "Carlisle Companies",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Conglomerates",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CTRE",
+   "name": "CareTrust REIT",
+   "sector": "Real Estate",
+   "sub_industry": "Health Care REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CUBE",
+   "name": "CubeSmart",
+   "sector": "Real Estate",
+   "sub_industry": "Industrial REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CUZ",
+   "name": "Cousins Properties",
+   "sector": "Real Estate",
+   "sub_industry": "Office REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CVLT",
+   "name": "CommVault Systems",
+   "sector": "Information Technology",
+   "sub_industry": "Systems Software",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CW",
+   "name": "Curtiss-Wright",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CXT",
+   "name": "Crane NXT",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Equipment & Instruments",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "CYTK",
+   "name": "Cytokinetics",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "DAR",
+   "name": "Darling Ingredients",
+   "sector": "Consumer Staples",
+   "sub_industry": "Agricultural Products & Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "DBX",
+   "name": "Dropbox",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "DCI",
+   "name": "Donaldson Company",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "DINO",
+   "name": "HF Sinclair",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Refining & Marketing",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "DKS",
+   "name": "Dick's Sporting Goods",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Specialty Stores",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "DLB",
+   "name": "Dolby",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "DOCN",
+   "name": "DigitalOcean",
+   "sector": "Information Technology",
+   "sub_industry": "Internet Services & Infrastructure",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "DOCS",
+   "name": "Doximity",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Technology",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "DOCU",
+   "name": "Docusign",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "DT",
+   "name": "Dynatrace",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "DTM",
+   "name": "DT Midstream",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Storage & Transportation",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "DUOL",
+   "name": "Duolingo",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Education Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "DY",
+   "name": "Dycom Industries",
+   "sector": "Industrials",
+   "sub_industry": "Construction & Engineering",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "EAT",
+   "name": "Brinker International",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Restaurants",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "EEFT",
+   "name": "Euronet Worldwide",
+   "sector": "Financials",
+   "sub_industry": "Transaction & Payment Processing Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "EGP",
+   "name": "EastGroup Properties",
+   "sector": "Real Estate",
+   "sub_industry": "Industrial REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "EHC",
+   "name": "Encompass Health",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Facilities",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ELAN",
+   "name": "Elanco",
+   "sector": "Health Care",
+   "sub_industry": "Pharmaceuticals",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ELF",
+   "name": "e.l.f. Beauty",
+   "sector": "Consumer Staples",
+   "sub_industry": "Personal Care Products",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ELS",
+   "name": "Equity Lifestyle Properties",
+   "sector": "Real Estate",
+   "sub_industry": "Single-Family Residential REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ENS",
+   "name": "EnerSys",
+   "sector": "Industrials",
+   "sub_industry": "Electrical Components & Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ENSG",
+   "name": "Ensign Group",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Facilities",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ENTG",
+   "name": "Entegris",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductor Materials & Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "EPR",
+   "name": "EPR Properties",
+   "sector": "Real Estate",
+   "sub_industry": "Other Specialized REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "EQH",
+   "name": "Equitable Holdings",
+   "sector": "Financials",
+   "sub_industry": "Diversified Financial Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ESAB",
+   "name": "ESAB",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ESNT",
+   "name": "Essent Group Ltd.",
+   "sector": "Financials",
+   "sub_industry": "Commercial & Residential Mortgage Finance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "EVR",
+   "name": "Evercore",
+   "sector": "Financials",
+   "sub_industry": "Investment Banking & Brokerage",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "EWBC",
+   "name": "East West Bancorp",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "EXEL",
+   "name": "Exelixis",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "EXLS",
+   "name": "EXL Service",
+   "sector": "Industrials",
+   "sub_industry": "Data Processing & Outsourced Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "EXP",
+   "name": "Eagle Materials",
+   "sector": "Materials",
+   "sub_industry": "Construction Materials",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "EXPO",
+   "name": "Exponent, Inc.",
+   "sector": "Industrials",
+   "sub_industry": "Research & Consulting Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "FAF",
+   "name": "First American Financial Corporation",
+   "sector": "Financials",
+   "sub_industry": "Property & Casualty Insurance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "FBIN",
+   "name": "Fortune Brands Innovations",
+   "sector": "Industrials",
+   "sub_industry": "Building Products",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "FCFS",
+   "name": "FirstCash",
+   "sector": "Financials",
+   "sub_industry": "Consumer Finance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "FCN",
+   "name": "FTI Consulting",
+   "sector": "Industrials",
+   "sub_industry": "Research & Consulting Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "FFIN",
+   "name": "First Financial Bankshares",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "FHI",
+   "name": "Federated Hermes",
+   "sector": "Financials",
+   "sub_industry": "Asset Management & Custody Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "FHN",
+   "name": "First Horizon",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "FIVE",
+   "name": "Five Below",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Specialty Stores",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "FLG",
+   "name": "Flagstar Bank",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "FLR",
+   "name": "Fluor",
+   "sector": "Industrials",
+   "sub_industry": "Construction & Engineering",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "FLS",
+   "name": "Flowserve",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "FN",
+   "name": "Fabrinet",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Manufacturing Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "FNB",
+   "name": "FNB Corporation",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "FND",
+   "name": "Floor & Decor",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Home Improvement Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "FNF",
+   "name": "Fidelity National Financial",
+   "sector": "Financials",
+   "sub_industry": "Property & Casualty Insurance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "FOUR",
+   "name": "Shift4",
+   "sector": "Financials",
+   "sub_industry": "Transaction & Payment Processing Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "FR",
+   "name": "First Industrial Realty Trust",
+   "sector": "Real Estate",
+   "sub_industry": "Industrial REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "FTI",
+   "name": "TechnipFMC",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Equipment & Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "G",
+   "name": "Genpact",
+   "sector": "Industrials",
+   "sub_industry": "Data Processing & Outsourced Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "GAP",
+   "name": "Gap Inc.",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Apparel Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "GATX",
+   "name": "GATX",
+   "sector": "Industrials",
+   "sub_industry": "Construction Machinery & Heavy Transportation Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "GBCI",
+   "name": "Glacier Bancorp",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "GEF",
+   "name": "Greif, Inc.",
+   "sector": "Materials",
+   "sub_industry": "Metal, Glass & Plastic Containers",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "GGG",
+   "name": "Graco Inc.",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "GHC",
+   "name": "Graham Holdings",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Education Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "GLPI",
+   "name": "Gaming and Leisure Properties",
+   "sector": "Real Estate",
+   "sub_industry": "Other Specialized REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "GME",
+   "name": "GameStop",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Computer & Electronics Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "GMED",
+   "name": "Globus Medical",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "GNTX",
+   "name": "Gentex",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Automotive Parts & Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "GPK",
+   "name": "Graphic Packaging",
+   "sector": "Materials",
+   "sub_industry": "Paper & Plastic Packaging Products & Materials",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "GWRE",
+   "name": "Guidewire Software",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "GXO",
+   "name": "GXO Logistics",
+   "sector": "Industrials",
+   "sub_industry": "Air Freight & Logistics",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "H",
+   "name": "Hyatt",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Hotels, Resorts & Cruise Lines",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "HAE",
+   "name": "Haemonetics",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Supplies",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "HALO",
+   "name": "Halozyme",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "HGV",
+   "name": "Hilton Grand Vacations",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Hotels, Resorts & Cruise Lines",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "HIMS",
+   "name": "Hims & Hers Health",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "HL",
+   "name": "Hecla Mining",
+   "sector": "Materials",
+   "sub_industry": "Silver",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "HLI",
+   "name": "Houlihan Lokey",
+   "sector": "Financials",
+   "sub_industry": "Investment Banking & Brokerage",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "HLNE",
+   "name": "Hamilton Lane",
+   "sector": "Financials",
+   "sub_industry": "Asset Management & Custody Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "HOG",
+   "name": "Harley-Davidson",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Motorcycle Manufacturers",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "HOMB",
+   "name": "Home BancShares",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "HQY",
+   "name": "HealthEquity",
+   "sector": "Health Care",
+   "sub_industry": "Managed Health Care",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "HR",
+   "name": "Healthcare Realty Trust",
+   "sector": "Real Estate",
+   "sub_industry": "Health Care REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "HRB",
+   "name": "H&R Block",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Specialized Consumer Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "HUBS",
+   "name": "HubSpot",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "HWC",
+   "name": "Hancock Whitney",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "HXL",
+   "name": "Hexcel",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "IBOC",
+   "name": "Intl Bancshares Corp",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "IDA",
+   "name": "Idacorp",
+   "sector": "Utilities",
+   "sub_industry": "Electric Utilities",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "IDCC",
+   "name": "InterDigital",
+   "sector": "Information Technology",
+   "sub_industry": "Communications Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "IESC",
+   "name": "IES Holdings",
+   "sector": "Industrials",
+   "sub_industry": "Construction & Engineering",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "INGR",
+   "name": "Ingredion",
+   "sector": "Consumer Staples",
+   "sub_industry": "Agricultural Products & Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "IPGP",
+   "name": "IPG Photonics",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Manufacturing Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "IRT",
+   "name": "Independence Realty Trust",
+   "sector": "Real Estate",
+   "sub_industry": "Multi-Family Residential REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ITT",
+   "name": "ITT Inc.",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "JAZZ",
+   "name": "Jazz Pharmaceuticals",
+   "sector": "Health Care",
+   "sub_industry": "Pharmaceuticals",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "JEF",
+   "name": "Jefferies",
+   "sector": "Financials",
+   "sub_industry": "Multi-Sector Holdings",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "JLL",
+   "name": "Jones Lang LaSalle",
+   "sector": "Real Estate",
+   "sub_industry": "Real Estate Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "KBH",
+   "name": "KB Home",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Homebuilding",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "KBR",
+   "name": "KBR, Inc.",
+   "sector": "Industrials",
+   "sub_industry": "Diversified Support Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "KD",
+   "name": "Kyndryl",
+   "sector": "Information Technology",
+   "sub_industry": "IT Consulting & Other Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "KEX",
+   "name": "Kirby Corporation",
+   "sector": "Industrials",
+   "sub_industry": "Marine Transportation",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "KNF",
+   "name": "Knife River Corporation",
+   "sector": "Materials",
+   "sub_industry": "Construction Materials",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "KNSL",
+   "name": "Kinsale Capital Group",
+   "sector": "Financials",
+   "sub_industry": "Property & Casualty Insurance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "KNX",
+   "name": "Knight-Swift",
+   "sector": "Industrials",
+   "sub_industry": "Cargo Ground Transportation",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "KRC",
+   "name": "Kilroy Realty Corp",
+   "sector": "Real Estate",
+   "sub_industry": "Office REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "KRG",
+   "name": "Kite Realty Group Trust",
+   "sector": "Real Estate",
+   "sub_industry": "Retail REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "KRYS",
+   "name": "Krystal Biotech",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "KTOS",
+   "name": "Kratos Defense & Security Solutions",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "LAD",
+   "name": "Lithia Motors",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Automotive Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "LAMR",
+   "name": "Lamar Advertising Company",
+   "sector": "Real Estate",
+   "sub_industry": "Other Specialized REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "LEA",
+   "name": "Lear",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Automotive Parts & Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "LECO",
+   "name": "Lincoln Electric",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "LFUS",
+   "name": "Littelfuse",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Components",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "LIVN",
+   "name": "LivaNova",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "LNTH",
+   "name": "Lantheus Holdings",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Supplies",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "LOPE",
+   "name": "Grand Canyon Education",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Education Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "LPX",
+   "name": "Louisiana-Pacific",
+   "sector": "Industrials",
+   "sub_industry": "Building Products",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "LSCC",
+   "name": "Lattice Semiconductor",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "LSTR",
+   "name": "Landstar System",
+   "sector": "Industrials",
+   "sub_industry": "Cargo Ground Transportation",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "M",
+   "name": "Macy's",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Broadline Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MANH",
+   "name": "Manhattan Associates",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MAT",
+   "name": "Mattel",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Leisure Products",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MEDP",
+   "name": "Medpace",
+   "sector": "Health Care",
+   "sub_industry": "Life Sciences Tools & Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MIDD",
+   "name": "Middleby",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MKSI",
+   "name": "MKS Instruments",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductor Materials & Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MLI",
+   "name": "Mueller Industries",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MMS",
+   "name": "Maximus Inc.",
+   "sector": "Industrials",
+   "sub_industry": "Data Processing & Outsourced Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MOG.A",
+   "name": "Moog Inc.",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MOH",
+   "name": "Molina Healthcare",
+   "sector": "Health Care",
+   "sub_industry": "Managed Health Care",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MORN",
+   "name": "Morningstar, Inc.",
+   "sector": "Financials",
+   "sub_industry": "Financial Exchanges & Data",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MP",
+   "name": "MP Materials",
+   "sector": "Materials",
+   "sub_industry": "Diversified Metals & Mining",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MSA",
+   "name": "MSA Safety",
+   "sector": "Industrials",
+   "sub_industry": "Office Services & Supplies",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MSM",
+   "name": "MSC Industrial Direct",
+   "sector": "Industrials",
+   "sub_industry": "Trading Companies & Distributors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MTDR",
+   "name": "Matador Resources",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Exploration & Production",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MTG",
+   "name": "MGIC Investment Corporation",
+   "sector": "Financials",
+   "sub_industry": "Reinsurance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MTN",
+   "name": "Vail Resorts",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Hotels, Resorts & Cruise Lines",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MTSI",
+   "name": "MACOM Technology Solutions",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MTZ",
+   "name": "MasTec",
+   "sector": "Industrials",
+   "sub_industry": "Construction & Engineering",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MUR",
+   "name": "Murphy Oil",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Exploration & Production",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MUSA",
+   "name": "Murphy USA",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Automotive Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "MZTI",
+   "name": "The Marzetti Company",
+   "sector": "Consumer Staples",
+   "sub_industry": "Packaged Foods & Meats",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "NBIX",
+   "name": "Neurocrine Biosciences",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "NEU",
+   "name": "NewMarket Corporation",
+   "sector": "Materials",
+   "sub_industry": "Specialty Chemicals",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "NFG",
+   "name": "National Fuel Gas",
+   "sector": "Utilities",
+   "sub_industry": "Gas Utilities",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "NJR",
+   "name": "New Jersey Resources",
+   "sector": "Utilities",
+   "sub_industry": "Gas Utilities",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "NLY",
+   "name": "Annaly Capital Management",
+   "sector": "Financials",
+   "sub_industry": "Mortgage REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "NNN",
+   "name": "NNN Reit",
+   "sector": "Real Estate",
+   "sub_industry": "Retail REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "NOV",
+   "name": "NOV Inc.",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Equipment & Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "NOVT",
+   "name": "Novanta",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Equipment & Instruments",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "NTNX",
+   "name": "Nutanix",
+   "sector": "Information Technology",
+   "sub_industry": "Systems Software",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "NVST",
+   "name": "Envista Holdings",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Supplies",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "NVT",
+   "name": "nVent Electric plc",
+   "sector": "Industrials",
+   "sub_industry": "Electrical Components & Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "NWE",
+   "name": "NorthWestern Energy",
+   "sector": "Utilities",
+   "sub_industry": "Multi-Utilities",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "NXST",
+   "name": "Nexstar Media Group",
+   "sector": "Communication Services",
+   "sub_industry": "Broadcasting",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "NXT",
+   "name": "Nextpower",
+   "sector": "Industrials",
+   "sub_industry": "Electrical Components & Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "NYT",
+   "name": "New York Times Company",
+   "sector": "Communication Services",
+   "sub_industry": "Publishing",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "OC",
+   "name": "Owens Corning",
+   "sector": "Industrials",
+   "sub_industry": "Building Products",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "OGE",
+   "name": "OGE Energy",
+   "sector": "Utilities",
+   "sub_industry": "Multi-Utilities",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "OGS",
+   "name": "One Gas",
+   "sector": "Utilities",
+   "sub_industry": "Gas Utilities",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "OHI",
+   "name": "Omega Healthcare Investors",
+   "sector": "Real Estate",
+   "sub_industry": "Health Care REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "OKTA",
+   "name": "Okta, Inc.",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "OLED",
+   "name": "Universal Display",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "OLLI",
+   "name": "Ollie's Bargain Outlet",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Broadline Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "OLN",
+   "name": "Olin Corporation",
+   "sector": "Materials",
+   "sub_industry": "Diversified Chemicals",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ONB",
+   "name": "Old National Bank",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ONTO",
+   "name": "Onto Innovation",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductor Materials & Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "OPCH",
+   "name": "Option Care Health",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Facilities",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ORA",
+   "name": "Ormat Technologies",
+   "sector": "Utilities",
+   "sub_industry": "Renewable Electricity",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ORI",
+   "name": "Old Republic International",
+   "sector": "Financials",
+   "sub_industry": "Property & Casualty Insurance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "OSK",
+   "name": "Oshkosh",
+   "sector": "Industrials",
+   "sub_industry": "Construction Machinery & Heavy Transportation Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "OVV",
+   "name": "Ovintiv",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Exploration & Production",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "OZK",
+   "name": "Bank OZK",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "PAG",
+   "name": "Penske Automotive Group",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Automotive Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "PATH",
+   "name": "UiPath",
+   "sector": "Information Technology",
+   "sub_industry": "Systems Software",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "PB",
+   "name": "Prosperity Bancshares",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "PBF",
+   "name": "PBF Energy",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Refining & Marketing",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "PCTY",
+   "name": "Paylocity",
+   "sector": "Industrials",
+   "sub_industry": "Human Resource & Employment Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "PEGA",
+   "name": "Pegasystems",
+   "sector": "Information Technology",
+   "sub_industry": "Application Software",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "PEN",
+   "name": "Penumbra, Inc.",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "PFGC",
+   "name": "Performance Food Group",
+   "sector": "Consumer Staples",
+   "sub_industry": "Food Distributors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "PII",
+   "name": "Polaris",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Leisure Products",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "PINS",
+   "name": "Pinterest",
+   "sector": "Communication Services",
+   "sub_industry": "Interactive Home Entertainment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "PK",
+   "name": "Park Hotels & Resorts",
+   "sector": "Real Estate",
+   "sub_industry": "Hotel & Resort REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "PLNT",
+   "name": "Planet Fitness",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Leisure Facilities",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "PNFP",
+   "name": "Pinnacle Financial Partners",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "POR",
+   "name": "Portland General Electric",
+   "sector": "Utilities",
+   "sub_industry": "Electric Utilities",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "POST",
+   "name": "Post Holdings",
+   "sector": "Consumer Staples",
+   "sub_industry": "Packaged Foods & Meats",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "PPC",
+   "name": "Pilgrim's Pride",
+   "sector": "Consumer Staples",
+   "sub_industry": "Packaged Foods & Meats",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "PR",
+   "name": "Permian Resources",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Exploration & Production",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "PRI",
+   "name": "Primerica",
+   "sector": "Financials",
+   "sub_industry": "Life & Health Insurance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "PSN",
+   "name": "Parsons Corporation",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "PVH",
+   "name": "PVH Corp.",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Apparel, Accessories & Luxury Goods",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "QLYS",
+   "name": "Qualys",
+   "sector": "Information Technology",
+   "sub_industry": "Systems Software",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "R",
+   "name": "Ryder",
+   "sector": "Industrials",
+   "sub_industry": "Cargo Ground Transportation",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "RBA",
+   "name": "RB Global",
+   "sector": "Industrials",
+   "sub_industry": "Diversified Support Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "RBC",
+   "name": "RBC Bearings",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "REXR",
+   "name": "Rexford Industrial Realty",
+   "sector": "Real Estate",
+   "sub_industry": "Industrial REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "RGA",
+   "name": "Reinsurance Group of America",
+   "sector": "Financials",
+   "sub_industry": "Reinsurance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "RGEN",
+   "name": "Repligen",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "RGLD",
+   "name": "Royal Gold",
+   "sector": "Materials",
+   "sub_industry": "Gold",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "RH",
+   "name": "RH",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Homefurnishing Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "RLI",
+   "name": "RLI Corp.",
+   "sector": "Financials",
+   "sub_industry": "Property & Casualty Insurance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "RMBS",
+   "name": "Rambus",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "RNR",
+   "name": "RenaissanceRe",
+   "sector": "Financials",
+   "sub_industry": "Reinsurance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ROIV",
+   "name": "Roivant Sciences",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ROKU",
+   "name": "Roku, Inc.",
+   "sector": "Communication Services",
+   "sub_industry": "Movies & Entertainment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "RPM",
+   "name": "RPM International",
+   "sector": "Materials",
+   "sub_industry": "Specialty Chemicals",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "RRC",
+   "name": "Range Resources",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Exploration & Production",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "RRX",
+   "name": "Regal Rexnord",
+   "sector": "Industrials",
+   "sub_industry": "Electrical Components & Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "RS",
+   "name": "Reliance, Inc.",
+   "sector": "Materials",
+   "sub_industry": "Steel",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "RYAN",
+   "name": "Ryan Specialty",
+   "sector": "Financials",
+   "sub_industry": "Insurance Brokers",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "RYN",
+   "name": "Rayonier",
+   "sector": "Real Estate",
+   "sub_industry": "Timber REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SAIA",
+   "name": "Saia",
+   "sector": "Industrials",
+   "sub_industry": "Cargo Ground Transportation",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SAIC",
+   "name": "Science Applications Intl Corp",
+   "sector": "Industrials",
+   "sub_industry": "Diversified Support Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SANM",
+   "name": "Sanmina Corporation",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Manufacturing Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SARO",
+   "name": "StandardAero",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SBRA",
+   "name": "Sabra Health Care REIT",
+   "sector": "Real Estate",
+   "sub_industry": "Health Care REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SCI",
+   "name": "Service Corp Intl",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Specialized Consumer Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SEIC",
+   "name": "SEI Investments Company",
+   "sector": "Financials",
+   "sub_industry": "Asset Management & Custody Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SF",
+   "name": "Stifel",
+   "sector": "Financials",
+   "sub_industry": "Investment Banking & Brokerage",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SFM",
+   "name": "Sprouts Farmers Market",
+   "sector": "Consumer Staples",
+   "sub_industry": "Food Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SGI",
+   "name": "Somnigroup International",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Home Furnishings",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SHC",
+   "name": "Sotera Health",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SIGI",
+   "name": "Selective Insurance Group",
+   "sector": "Financials",
+   "sub_industry": "Property & Casualty Insurance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SIRI",
+   "name": "SiriusXM",
+   "sector": "Communication Services",
+   "sub_industry": "Broadcasting",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SITM",
+   "name": "SiTime",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SLAB",
+   "name": "Silicon Labs",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SLGN",
+   "name": "Silgan Holdings",
+   "sector": "Materials",
+   "sub_industry": "Metal, Glass & Plastic Containers",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SLM",
+   "name": "SLM Corp",
+   "sector": "Financials",
+   "sub_industry": "Consumer Finance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SMG",
+   "name": "Scotts Miracle-Gro Company",
+   "sector": "Materials",
+   "sub_industry": "Fertilizers & Agricultural Chemicals",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SMTC",
+   "name": "Semtech",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SN",
+   "name": "SharkNinja",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Household Appliances",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SNX",
+   "name": "TD Synnex",
+   "sector": "Information Technology",
+   "sub_industry": "Technology Distributors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SOLS",
+   "name": "Solstice Advanced Materials",
+   "sector": "Materials",
+   "sub_industry": "Specialty Chemicals",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SON",
+   "name": "Sonoco",
+   "sector": "Materials",
+   "sub_industry": "Paper & Plastic Packaging Products & Materials",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SPXC",
+   "name": "SPX Technologies",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SR",
+   "name": "Spire",
+   "sector": "Utilities",
+   "sub_industry": "Gas Utilities",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SSB",
+   "name": "South State Bank",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SSD",
+   "name": "Simpson Manufacturing",
+   "sector": "Industrials",
+   "sub_industry": "Building Products",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ST",
+   "name": "Sensata Technologies",
+   "sector": "Industrials",
+   "sub_industry": "Electrical Components & Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "STAG",
+   "name": "STAG Industrial",
+   "sector": "Real Estate",
+   "sub_industry": "Industrial REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "STRL",
+   "name": "Sterling Infrastructure",
+   "sector": "Industrials",
+   "sub_industry": "Construction & Engineering",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "STWD",
+   "name": "Starwood Property Trust",
+   "sector": "Financials",
+   "sub_industry": "Mortgage REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SUI",
+   "name": "Sun Communities",
+   "sector": "Real Estate",
+   "sub_industry": "Single-Family Residential REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SWX",
+   "name": "Southwest Gas Corp",
+   "sector": "Utilities",
+   "sub_industry": "Gas Utilities",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "SYNA",
+   "name": "Synaptics",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "TCBI",
+   "name": "Texas Capital Bancshares",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "TEX",
+   "name": "Terex",
+   "sector": "Industrials",
+   "sub_industry": "Construction Machinery & Heavy Transportation Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "THC",
+   "name": "Tenet Health",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Facilities",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "THG",
+   "name": "Hanover Insurance",
+   "sector": "Financials",
+   "sub_industry": "Property & Casualty Insurance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "THO",
+   "name": "Thor Industries",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Leisure Products",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "TKR",
+   "name": "Timken",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "TLN",
+   "name": "Talen Energy",
+   "sector": "Utilities",
+   "sub_industry": "Independent Power Producers & Energy Traders",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "TNL",
+   "name": "Travel + Leisure Co.",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Hotels, Resorts & Cruise Lines",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "TOL",
+   "name": "Toll Brothers",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Homebuilding",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "TOST",
+   "name": "Toast, Inc.",
+   "sector": "Financials",
+   "sub_industry": "Transaction & Payment Processing Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "TREX",
+   "name": "Trex",
+   "sector": "Industrials",
+   "sub_industry": "Building Products",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "TRU",
+   "name": "TransUnion",
+   "sector": "Industrials",
+   "sub_industry": "Research & Consulting Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "TTC",
+   "name": "Toro",
+   "sector": "Industrials",
+   "sub_industry": "Agricultural & Farm Machinery",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "TTEK",
+   "name": "Tetra Tech",
+   "sector": "Industrials",
+   "sub_industry": "Construction & Engineering",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "TTMI",
+   "name": "TTM Technologies",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Manufacturing Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "TWLO",
+   "name": "Twilio",
+   "sector": "Information Technology",
+   "sub_industry": "Systems Software",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "TXNM",
+   "name": "TXNM Energy",
+   "sector": "Utilities",
+   "sub_industry": "Electric Utilities",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "TXRH",
+   "name": "Texas Roadhouse",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Restaurants",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "UBSI",
+   "name": "United Bankshares",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "UFPI",
+   "name": "UFP Industries",
+   "sector": "Industrials",
+   "sub_industry": "Building Products",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "UGI",
+   "name": "UGI Corp",
+   "sector": "Utilities",
+   "sub_industry": "Gas Utilities",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ULS",
+   "name": "UL Solutions",
+   "sector": "Industrials",
+   "sub_industry": "Research & Consulting Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "UMBF",
+   "name": "UMB Financial Corp.",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "UNM",
+   "name": "Unum",
+   "sector": "Financials",
+   "sub_industry": "Life & Health Insurance",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "USFD",
+   "name": "US Foods",
+   "sector": "Consumer Staples",
+   "sub_industry": "Food Distributors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "UTHR",
+   "name": "United Therapeutics",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "VAL",
+   "name": "Valaris",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Drilling",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "VC",
+   "name": "Visteon",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Automotive Parts & Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "VFC",
+   "name": "VF Corporation",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Apparel, Accessories & Luxury Goods",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "VIAV",
+   "name": "Viavi Solutions",
+   "sector": "Information Technology",
+   "sub_industry": "Communications Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "VICR",
+   "name": "Vicor Corporation",
+   "sector": "Industrials",
+   "sub_industry": "Electrical Components & Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "VLY",
+   "name": "Valley Bank",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "VMI",
+   "name": "Valmont Industries",
+   "sector": "Industrials",
+   "sub_industry": "Industrial Machinery & Supplies & Components",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "VNO",
+   "name": "Vornado Realty Trust",
+   "sector": "Real Estate",
+   "sub_industry": "Office REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "VNOM",
+   "name": "Viper Energy",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Storage & Transportation",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "VNT",
+   "name": "Vontier",
+   "sector": "Information Technology",
+   "sub_industry": "Electronic Equipment & Instruments",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "VOYA",
+   "name": "Voya Financial",
+   "sector": "Financials",
+   "sub_industry": "Multi-Sector Holdings",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "VVV",
+   "name": "Valvoline",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Automotive Retail",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "WAL",
+   "name": "Western Alliance Bancorporation",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "WCC",
+   "name": "WESCO International",
+   "sector": "Industrials",
+   "sub_industry": "Trading Companies & Distributors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "WEX",
+   "name": "WEX Inc.",
+   "sector": "Financials",
+   "sub_industry": "Transaction & Payment Processing Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "WFRD",
+   "name": "Weatherford International",
+   "sector": "Energy",
+   "sub_industry": "Oil & Gas Equipment & Services",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "WH",
+   "name": "Wyndham Hotels & Resorts",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Hotels, Resorts & Cruise Lines",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "WHR",
+   "name": "Whirlpool Corporation",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Household Appliances",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "WING",
+   "name": "Wingstop",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Restaurants",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "WLK",
+   "name": "Westlake Corporation",
+   "sector": "Materials",
+   "sub_industry": "Specialty Chemicals",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "WMG",
+   "name": "Warner Music Group",
+   "sector": "Communication Services",
+   "sub_industry": "Movies & Entertainment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "WMS",
+   "name": "Advanced Drainage Systems",
+   "sector": "Industrials",
+   "sub_industry": "Building Products",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "WPC",
+   "name": "W. P. Carey",
+   "sector": "Real Estate",
+   "sub_industry": "Diversified REITs",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "WSO",
+   "name": "Watsco",
+   "sector": "Industrials",
+   "sub_industry": "Trading Companies & Distributors",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "WTFC",
+   "name": "Wintrust Financial",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "WTRG",
+   "name": "Essential Utilities",
+   "sector": "Utilities",
+   "sub_industry": "Water Utilities",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "WTS",
+   "name": "Watts Water Technologies",
+   "sector": "Industrials",
+   "sub_industry": "Building Products",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "WWD",
+   "name": "Woodward, Inc.",
+   "sector": "Industrials",
+   "sub_industry": "Electrical Components & Equipment",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "XPO",
+   "name": "XPO, Inc.",
+   "sector": "Industrials",
+   "sub_industry": "Cargo Ground Transportation",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "XRAY",
+   "name": "Dentsply Sirona",
+   "sector": "Health Care",
+   "sub_industry": "Health Care Supplies",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "YETI",
+   "name": "Yeti Holdings",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Leisure Products",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ZION",
+   "name": "Zions Bancorporation",
+   "sector": "Financials",
+   "sub_industry": "Regional Banks",
+   "tier": "sp400"
+  },
+  {
+   "ticker": "ALNY",
+   "name": "Alnylam Pharmaceuticals",
+   "sector": "Health Care",
+   "sub_industry": "Biotechnology",
+   "tier": "ndx",
+   "label_source": "yahoo"
+  },
+  {
+   "ticker": "ARM",
+   "name": "Arm Holdings",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "ndx",
+   "label_source": "yahoo"
+  },
+  {
+   "ticker": "ASML",
+   "name": "ASML Holding",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductor Equipment & Materials",
+   "tier": "ndx",
+   "label_source": "yahoo"
+  },
+  {
+   "ticker": "ALAB",
+   "name": "Astera Labs",
+   "sector": "Information Technology",
+   "sub_industry": "Semiconductors",
+   "tier": "ndx",
+   "label_source": "yahoo"
+  },
+  {
+   "ticker": "CCEP",
+   "name": "Coca-Cola Europacific Partners",
+   "sector": "Consumer Staples",
+   "sub_industry": "Beverages - Non-Alcoholic",
+   "tier": "ndx",
+   "label_source": "yahoo"
+  },
+  {
+   "ticker": "CRWV",
+   "name": "CoreWeave",
+   "sector": "Information Technology",
+   "sub_industry": "Software - Infrastructure",
+   "tier": "ndx",
+   "label_source": "yahoo"
+  },
+  {
+   "ticker": "FER",
+   "name": "Ferrovial",
+   "sector": "Industrials",
+   "sub_industry": "Engineering & Construction",
+   "tier": "ndx",
+   "label_source": "yahoo"
+  },
+  {
+   "ticker": "MELI",
+   "name": "Mercado Libre",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Internet Retail",
+   "tier": "ndx",
+   "label_source": "yahoo"
+  },
+  {
+   "ticker": "MSTR",
+   "name": "MicroStrategy",
+   "sector": "Information Technology",
+   "sub_industry": "Software - Application",
+   "tier": "ndx",
+   "label_source": "yahoo"
+  },
+  {
+   "ticker": "NBIS",
+   "name": "Nebius Group",
+   "sector": "Communication Services",
+   "sub_industry": "Internet Content & Information",
+   "tier": "ndx",
+   "label_source": "yahoo"
+  },
+  {
+   "ticker": "PDD",
+   "name": "PDD Holdings",
+   "sector": "Consumer Discretionary",
+   "sub_industry": "Internet Retail",
+   "tier": "ndx",
+   "label_source": "yahoo"
+  },
+  {
+   "ticker": "RKLB",
+   "name": "Rocket Lab",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "ndx",
+   "label_source": "yahoo"
+  },
+  {
+   "ticker": "SHOP",
+   "name": "Shopify",
+   "sector": "Information Technology",
+   "sub_industry": "Software - Application",
+   "tier": "ndx",
+   "label_source": "yahoo"
+  },
+  {
+   "ticker": "SPCX",
+   "name": "SpaceX",
+   "sector": "Industrials",
+   "sub_industry": "Aerospace & Defense",
+   "tier": "ndx",
+   "label_source": "yahoo"
+  },
+  {
+   "ticker": "TRI",
+   "name": "Thomson Reuters",
+   "sector": "Industrials",
+   "sub_industry": "Specialty Business Services",
+   "tier": "ndx",
+   "label_source": "yahoo"
+  }
+ ]
+}

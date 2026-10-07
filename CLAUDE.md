@@ -518,12 +518,23 @@ trigger.py → Render Cron → GitHub API
 呈現 risk appetite／liquidity／volatility，volatility 括號內帶 sentiment_analysis 的 stage 與
 credit_status，原本獨立的 VOLATILITY REGIME 區塊拿掉，見下方「市場頁精簡」段） 3._market_strip
 4._index_factor_reading（2026-09-23 起只剩單一 market_structure 欄位） 6._market_pulse（2026-09-23
-起只剩 hidden risk／hidden opportunity／key level，各一行） 7._daily_deep_dive
+起只剩 hidden risk／hidden opportunity／key level，各一行） 6b._new_highs_section（美股創高，見下方「美股創高區塊」） 7._daily_deep_dive
 7b._evidence_email_digest（今日新增證據，只放三行摘要＋連結；news 頁則是完整的 `_evidence_section`，排在 Top stories 之前）
 8.top_stories 8b._watchlist_news_section（關注清單動態） 9.world_news 10.us_market_recap 11.macro
 12.geopolitical 13.ai_industry 14.regional_tech 15.fintech_crypto
 16.system_status（System status） 17.tech_trends（Deep tech） 17b._frontier_tech（Frontier tech） 18.startup_news（Startups） 18b._weekend_reads_section（Weekend reads） 19.smart_money
 20.earnings_preview 21.implied_trends 22.fun_fact 23.today_events 24.footer
+
+---
+
+## 美股創高區塊（New highs，2026-10-07；第二版同日）
+
+- **範圍**：S&P 500 + S&P 400 + Nasdaq-100，約 918 檔。名單每次先抓 Wikipedia（urllib＋瀏覽器 UA＋`pd.read_html`），失敗或 < 800 檔就退回已 commit 的 `data/us_universe_gics.json`（結果 `universe_source` = live／snapshot）。NDX 表只有 ICB 分類，只有「不在 S&P 500/400」的約 15 檔：`--refresh-universe` 時用 `yf.Ticker(sym).info` 的 sector／industry 補（Yahoo 板塊名對映成 GICS 名，`label_source: "yahoo"`；失敗留 `Other (non-S&P)`）；live 路徑遇到這類列就從快照取標籤。
+- **定義**（全用還原收盤價 `yf.download(auto_adjust=True)`，嚴格大於）：最新交易日收盤 > 先前所有收盤＝ATH；非 ATH 且 > 近 365 日曆天先前收盤最高＝52 週新高。**最新日 `last` ＝各檔最後有效日的眾數**（平手取較早），不用 `index[-1]`，並把資料裁到 `<= last`，避免單檔多出一根未來 bar 讓全體變 no_data。最新日無收盤＝`no_data`；先前收盤 < 252 筆標 `short_history`（UI「<1y listed」）。同公司多股別（GOOGL/GOOG…）兩者都入榜時併成一列。
+- **區塊順序**（`_new_highs_section`，有欄位的都用 `<table>`）：標題 → A 廣度（52w 高／低家數與淨值＋近 10 日表＋新低按板塊）→ ATH → 52w → C 距 ATH 5% 內觀察清單（−5% 含、0 不含；email `max_near=40`，其餘寫「+N more on the site」）→ D 板塊強度（Near ATH %、與 20 日前比 pp、>200 日均線 %，不足 200 筆不計入後者；≥5 檔的子產業前 5）→ E 追蹤紀錄。
+- **追蹤紀錄（forward-only，不回補）**：累積檔 `docs/briefing/data/new_highs_log.json`（`new-highs-log-v1`，以 US 場次日 `as_of` 為 key，存 yfinance 代號的 ath／high52／near／universe；同日重跑或週一重複週五會覆寫同 key）。跑前從 `research.investmquest.com/briefing/data/` 抓舊檔：404＝從空白開始（但 `new_highs_latest.json` 已存在時視為站上暫時異常，標 unavailable、不寫 log）；其他失敗＝track 標 unavailable 且**本次不寫 log**（絕不用一天的紀錄覆蓋歷史）。5／20／60 場後的等權平均報酬，對照當日 universe 等權基準，列超額與勝率（贏過基準的場次比）；樣本約 30 份前僅供參考。
+- **輸出**：`run_new_highs()`（main.py 步驟 2.6）；快照 `new_highs_{date}.json`＋`new_highs_latest.json`，log 另寫（各自 try/except）。每個簡報日都跑。失敗：任何例外 → `status: "unavailable"` 一行灰字；評估檔數 < 宇宙 70% → `partial`，頁尾「Scanned X of Y」。早報照出。
+- **指令**：`python3 briefing/new_highs.py --refresh-universe` 重寫名單快照（約每季一次）；`python3 briefing/new_highs.py` 印今日摘要。全跑約 90 秒。測試：`tests/test_new_highs.py`。
 
 ---
 

@@ -131,6 +131,25 @@ def main() -> None:
         data["evidence_layer"] = unavailable_result(tz_now.strftime("%Y-%m-%d"), f"evidence layer error ({type(e).__name__})")
         print(f"      ⚠ evidence layer failed: {e}")
 
+    # 2.6 美股創高清單（還原收盤價：歷史新高／52 週新高）；失敗只讓區塊標「unavailable」
+    print("\n[2.6] US new highs...")
+    new_highs_log = None
+    try:
+        from new_highs import run_new_highs
+        data["new_highs"] = run_new_highs()
+        nh = data["new_highs"]
+        new_highs_log = nh.pop("_log", None)
+        print(f"      track={nh.get('track', {}).get('status')} {nh.get('track', {}).get('reason', '')}")
+        print(f"      status={nh['status']} {nh.get('reason','')}｜as_of={nh['as_of']}｜ATH={len(nh['ath'])} "
+              f"52w={len(nh['high52'])}｜evaluated {nh['evaluated_n']}/{nh['universe_n']} ({nh['universe_source']})")
+    except Exception as e:
+        data["new_highs"] = {"status": "unavailable", "reason": f"{type(e).__name__}", "as_of": "",
+                             "universe_source": "", "universe_n": 0, "evaluated_n": 0, "no_data_n": 0,
+                             "ath": [], "high52": [], "by_sector": {"ath": {}, "high52": {}},
+                             "breadth": {}, "near_ath": [], "sectors": {"rows": [], "sub_industries": []},
+                             "track": {"status": "unavailable", "reason": "scan error"}}
+        print(f"      ⚠ new highs failed: {e}")
+
     # 3. 生成多頁 HTML + Email 用單頁
     print("\n[3/4] Building HTML pages...")
     pages = build_all_pages(data, screener_result=screener_result, today_system=today_system, today_framework=today_framework)
@@ -180,6 +199,23 @@ def main() -> None:
         print(f"      Saved news quality snapshot → data/news_quality_{snap['date']}.json")
     except Exception as e:
         print(f"      ⚠ regime/news quality snapshot failed: {e}")
+
+    try:
+        import json as _json
+        nh_dir = os.path.join(docs_dir, "data")
+        os.makedirs(nh_dir, exist_ok=True)
+        nh_date = tz_now.strftime("%Y-%m-%d")
+        for fn in (f"new_highs_{nh_date}.json", "new_highs_latest.json"):
+            with open(os.path.join(nh_dir, fn), "w", encoding="utf-8") as f:
+                _json.dump({"date": nh_date, **data.get("new_highs", {})}, f, ensure_ascii=False, indent=1)
+        print(f"      Saved new highs snapshot → data/new_highs_{nh_date}.json")
+        # 累積紀錄：只有取得舊紀錄（或 404 起新檔）時才寫，絕不用一天的紀錄覆蓋歷史
+        if new_highs_log and data.get("new_highs", {}).get("track", {}).get("status") != "unavailable":
+            with open(os.path.join(nh_dir, "new_highs_log.json"), "w", encoding="utf-8") as f:
+                _json.dump(new_highs_log, f, ensure_ascii=False)
+            print(f"      Saved new_highs_log.json ({len(new_highs_log['sessions'])} sessions)")
+    except Exception as e:
+        print(f"      ⚠ new highs snapshot failed: {e}")
 
     # 3.7 事件判斷紀錄＋跨日事實紀錄＋來源品質（同日重跑覆寫同名檔，不追加）
     if evidence_ledger is not None:
