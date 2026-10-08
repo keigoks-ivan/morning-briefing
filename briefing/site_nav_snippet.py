@@ -55,6 +55,8 @@ full_nav_block 重生為 byte-identical。
 canonical full_nav_block 重生為 byte-identical。
 2026-10-05 補：研究 ▾ 下拉緊接「研究清單」之後加回「DD Screener」(/dd-screener/)——
 canonical 同日同步。BRIEF/WEEK/EARN 三塊皆已由 canonical full_nav_block 重生為 byte-identical。
+2026-10-08 補：市場 ▾ 下拉緊接「總經深度報告」之後新增「總經資料庫」(/macro/db/)——
+canonical 同日同步，已重新驗證對 canonical byte-identical。
 """
 
 # group='market', item='brief'  (daily briefing pages, /briefing/ — 2026-08-17 重新掛回選單)
@@ -102,6 +104,7 @@ NAV_BLOCK_BRIEF = """<style id="imq-nav-style">
           <a href="/briefing/" class="active">每日簡報</a>
           <a href="/rotation/radar.html">資產輪動雷達</a>
           <a href="/macro/">總經深度報告</a>
+          <a href="/macro/db/">總經資料庫</a>
           <a href="/earnings/">財報分析</a>
           <a href="/markets.html">Markets</a>
           <a href="/sectors.html">Sectors</a>
@@ -185,6 +188,7 @@ NAV_BLOCK_WEEK = """<style id="imq-nav-style">
           <a href="/briefing/">每日簡報</a>
           <a href="/rotation/radar.html">資產輪動雷達</a>
           <a href="/macro/">總經深度報告</a>
+          <a href="/macro/db/">總經資料庫</a>
           <a href="/earnings/">財報分析</a>
           <a href="/markets.html">Markets</a>
           <a href="/sectors.html">Sectors</a>
@@ -268,6 +272,7 @@ NAV_BLOCK_EARN = """<style id="imq-nav-style">
           <a href="/briefing/">每日簡報</a>
           <a href="/rotation/radar.html">資產輪動雷達</a>
           <a href="/macro/">總經深度報告</a>
+          <a href="/macro/db/">總經資料庫</a>
           <a href="/earnings/" class="active">財報分析</a>
           <a href="/markets.html">Markets</a>
           <a href="/sectors.html">Sectors</a>
