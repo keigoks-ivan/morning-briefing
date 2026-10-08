@@ -167,7 +167,7 @@ def _llm_search(system_content: str, user_content: str, max_tokens: int = 600,
     return {"answer": "", "sources": []}
 
 
-# 2026-09-09 擴充：RSS（見 RSS_FEEDS）負責「大量頭條」，Haiku 搜尋保留 18 題做「需要跨來源整理」的主題。
+# 2026-09-09 擴充：RSS（見 RSS_FEEDS）負責「大量頭條」，Haiku 搜尋保留 27 題做「需要跨來源整理」的主題。
 # 砍掉的：7 個地區題（RSS 覆蓋）、fintech 題（CoinDesk/The Block RSS）、國際新聞題（Reuters GN）、
 # AI 架構研究題（deep dive 已有）、「index levels」題（新聞區塊禁行情，題目本身違規）。
 # 每題末尾 Sources 只列 source_registry.py 中的白名單媒體。
@@ -180,15 +180,15 @@ PERPLEXITY_QUERIES = [
     # 能源／地緣／全球供應鏈
     "Oil, gas and industrial commodity developments in the past 24 hours: OPEC+, supply disruptions, US SPR, natural gas, copper and key agricultural shocks — events and quotes, not price charts. Sources: Bloomberg Reuters Financial Times WSJ",
     "Geopolitical developments in the past 24 hours with market impact: Middle East, US-China (tariffs, export controls, chips), Taiwan Strait, Russia-Ukraine. Sources: Bloomberg Reuters Financial Times WSJ Politico Foreign Affairs RAND Brookings",
-    "Global trade, shipping and industrial policy developments in the past 24 hours: tariffs, export controls, freight or port disruption, defense procurement, reshoring and major supply-chain bottlenecks. Sources: Bloomberg Reuters Financial Times WSJ Politico Nikkei Asia",
+    "Global trade, shipping and industrial policy developments in the past 24 hours: tariffs, export controls, freight or port disruption, defense procurement, reshoring and major supply-chain bottlenecks. Sources: Bloomberg Reuters Financial Times WSJ Politico Nikkei Asia Supply Chain Dive FreightWaves",
     # AI／半導體（指數部核心）
     "AI application deployments announced in the past 48 hours: named customers, contracts, seat counts or disclosed AI revenue in healthcare, finance, manufacturing, customer service and government; exclude demos without a named deployment. Sources: Bloomberg Reuters TechCrunch The Information Wired Ars Technica CNBC Axios STAT News",
-    "Data-center infrastructure in the past 24 hours: power generation and grid connections, cooling, networking and optical interconnects, construction capacity, named orders and capex from Vertiv, Eaton, Arista, Schneider, Siemens, GE Vernova and hyperscalers. Sources: Bloomberg Reuters Financial Times CNBC The Information DIGITIMES",
+    "Data-center infrastructure in the past 24 hours: power generation and grid connections, cooling, networking and optical interconnects, construction capacity, named orders and capex from Vertiv, Eaton, Arista, Schneider, Siemens, GE Vernova and hyperscalers. Sources: Bloomberg Reuters Financial Times CNBC The Information DIGITIMES Data Center Dynamics",
     "Semiconductor supply chain in the past 24 hours: TSMC, Nvidia, AMD, ASML, Samsung, SK Hynix, Micron — orders, capacity, pricing (DRAM/NAND/HBM contract prices), export controls. Sources: Bloomberg Reuters DIGITIMES TrendForce SemiAnalysis Nikkei Asia EE Times",
     "Taiwan and Korea tech in the past 24 hours: TSMC monthly revenue, MediaTek, Foxconn, Samsung, SK Hynix — company events and government policy. Sources: Bloomberg Reuters Nikkei Asia DIGITIMES Focus Taiwan Yonhap Korea Herald",
-    "Healthcare, biotech, pharma and medtech industry developments in the past 24 hours: FDA decisions, clinical trial readouts, AI drug discovery, hospital deployments, reimbursement, major licensing deals and manufacturing capacity. Sources: Reuters Bloomberg Financial Times STAT News Endpoints News Fierce Biotech CNBC Nature FDA",
+    "Healthcare, biotech, pharma and medtech industry developments in the past 24 hours: FDA decisions, clinical trial readouts, AI drug discovery, hospital deployments, reimbursement, major licensing deals and manufacturing capacity. Sources: Reuters Bloomberg Financial Times STAT News Biopharma Dive Fierce Biotech CNBC Nature FDA",
     "Enterprise software, cybersecurity and industrial AI developments in the past 24 hours: named agent/copilot deployments, disclosed AI revenue or seat counts, cloud migrations, major security incidents, platform pricing and enterprise contracts. Sources: Reuters Bloomberg Financial Times The Information TechCrunch Wired Ars Technica CNBC",
-    "Industrial automation, robotics, autonomous systems and aerospace or defense developments in the past 24 hours: named orders, production ramps, factory automation, defense procurement and supply-chain capacity. Sources: Reuters Bloomberg Financial Times WSJ CNBC Axios",
+    "Industrial automation, robotics, autonomous systems and aerospace or defense developments in the past 24 hours: named orders, production ramps, factory automation, defense procurement and supply-chain capacity. Sources: Reuters Bloomberg Financial Times WSJ CNBC Axios Defense News Breaking Defense",
     # 新創／創投
     "Largest startup funding rounds, IPO filings, and defense-tech / robotics investments announced in the past 24 hours, with amounts and lead investors. Sources: TechCrunch Bloomberg Reuters Crunchbase The Information Axios",
     "Startup financing detail in the past 24-48 hours: name the company, round stage (seed/Series A-E/growth), exact amount raised, post-money valuation if disclosed, lead and participating investors, and what the money is for. Cover the US, Europe and Asia. Sources: TechCrunch Crunchbase The Information Bloomberg Reuters Sifted Tech in Asia Axios",
@@ -197,6 +197,12 @@ PERPLEXITY_QUERIES = [
     "Frontier technology milestones in the past 72 hours outside mainstream semiconductors: quantum computing (qubit counts, error correction, commercial installs), nuclear fusion and advanced nuclear, humanoid and field robotics, brain-computer interfaces, space launch and satellite constellations, novel compute (photonics, neuromorphic, analog), advanced batteries and materials, synthetic biology and gene editing. For each: the named organisation, the specific technical milestone with numbers, and the stage (lab result, prototype, pilot, commercial). Sources: IEEE Spectrum MIT Technology Review Nature Science Quanta Magazine New Scientist SpaceNews The Quantum Insider Reuters Bloomberg Financial Times Ars Technica Wired",
     "Peer-reviewed research and national-lab results published in the past 72 hours with a plausible commercial path within five years: name the institution, the result with numbers, and what has to be true for it to scale. Exclude speculation and press releases without data. Sources: Nature Science IEEE Spectrum MIT Technology Review Quanta Magazine New Scientist Reuters",
     "US sector and large-cap stock movers in the latest completed session: only moves tied by the source to a named factual catalyst such as earnings, guidance, orders, regulation, M&A or management change; include exact move percentage and session timing, exclude technical-analysis explanations. Sources: Bloomberg Reuters CNBC WSJ Barron's Financial Times",
+    # 2026-10-08 新增（來源審計：消費／新興市場／日本／科技監管／電網各只有 0–2 個來源）
+    "US and European consumer demand and retailer results in the past 48 hours: same-store sales, traffic, guidance changes and retail-sales or card-spending data for named retailers and consumer brands (Walmart, Target, Costco, Nike, LVMH, Unilever, etc.), with exact figures and management quotes. Sources: Reuters Bloomberg Financial Times WSJ CNBC Barron's AP",
+    "India, Middle East and Latin America corporate and policy developments in the past 48 hours relevant to global investors: RBI/Banxico/BCB decisions, sovereign-fund deals (PIF, Mubadala, ADIA), large IPOs and listings, tariff or trade measures, capex announcements; name the entity and give the figures. Sources: Reuters Bloomberg Financial Times WSJ CNBC Mint",
+    "Japan corporate and policy developments in the past 24-48 hours: BOJ officials' remarks and policy path, Ministry of Finance statements on the yen (the comment or intervention event, not a price chart), and major company actions such as earnings, buybacks, M&A and governance changes at Toyota, SoftBank, Sony, Tokyo Electron, with figures. Sources: Reuters Bloomberg Nikkei Asia Financial Times BOJ",
+    "Technology, antitrust and AI regulation in the past 48 hours in the US, EU and China: DOJ/FTC cases, EU DMA and AI Act enforcement, China regulator actions (SAMR, CAC, MIIT), chip export-control rules; name the company, the penalty or rule, the amount and the deadline. Sources: Reuters Bloomberg Financial Times WSJ Politico Axios SCMP",
+    "Power grid, utility capex and data-center power deals in the past 48 hours: utility capital plans and rate cases, interconnection-queue and FERC/PJM/ERCOT decisions, named PPAs and gas, nuclear or renewable supply contracts with data-center operators, with MW/GW and dollar amounts. Sources: Reuters Bloomberg Financial Times WSJ Utility Dive Canary Media Data Center Dynamics",
     # 財報
     "US companies reporting earnings today (next US session) before open or after close: names, tickers, EPS and revenue consensus. Sources: Bloomberg Reuters CNBC WSJ Earnings Whispers",
     "US earnings reported in the last US session (pre-market, during, after-hours): beat/miss, guidance, key management quotes from earnings calls, investor days or analyst conferences. Sources: Bloomberg Reuters CNBC WSJ",
@@ -1228,7 +1234,9 @@ RSS_FEEDS = [
     # 半導體（指數部核心）
     ("DIGITIMES",       "https://www.digitimes.com/rss/daily.xml", 15, 24),
     ("TrendForce (GN)", _GN.format(q="site:trendforce.com+when:3d"), 6, 72),
-    ("SemiAnalysis",    "https://semianalysis.com/feed/", 3, 72),
+    # 2026-10-08：舊 WordPress feed（semianalysis.com/feed/）凍結在 2025-09-23，10 條全是 13 個月前，永遠 kept=0。
+    # 站方已搬到 Substack；改抓 newsletter 版（約每 2–5 天一篇）。分析稿不是即時新聞 → 窗 168h（weekly 標記）、算長文。
+    ("SemiAnalysis",    "https://newsletter.semianalysis.com/feed", 3, 168),
     ("Semis (GN)",      _GN.format(q="(TSMC+OR+Nvidia+OR+ASML+OR+%22SK+Hynix%22+OR+Micron+OR+AMD)+when:1d+(site:reuters.com+OR+site:bloomberg.com+OR+site:digitimes.com+OR+site:asia.nikkei.com+OR+site:ft.com)"), 12, 24),
     ("Taiwan Tech (GN)", _GN.format(q="(TSMC+OR+MediaTek+OR+Foxconn+OR+%22Taiwan+semiconductor%22)+when:1d+(site:focustaiwan.tw+OR+site:asia.nikkei.com+OR+site:digitimes.com+OR+site:reuters.com+OR+site:bloomberg.com)"), 8, 24),
     ("Korea Tech (GN)", _GN.format(q="(Samsung+OR+%22SK+Hynix%22+OR+Hyundai)+when:1d+(site:koreaherald.com+OR+site:koreajoongangdaily.joins.com+OR+site:en.yna.co.kr+OR+site:reuters.com+OR+site:bloomberg.com)"), 8, 24),
@@ -1238,7 +1246,8 @@ RSS_FEEDS = [
     ("ASEAN DC (GN)",   _GN.format(q="(Malaysia+OR+Singapore+OR+Vietnam+OR+Indonesia+OR+Thailand)+(%22data+center%22+OR+semiconductor+OR+chip)+when:2d"), 6, 48),
     # AI 應用（醫療／生技）
     ("STAT News (GN)",  _GN.format(q="site:statnews.com+when:2d"), 6, 48),
-    ("Endpoints (GN)",  _GN.format(q="site:endpts.com+when:2d"), 5, 48),
+    # 2026-10-08：Endpoints (GN) 連 10 天 0 條，移除，由 Biopharma Dive 取代
+    ("Biopharma Dive",  "https://www.biopharmadive.com/feeds/news/", 5, 48),
     ("Fierce Biotech (GN)", _GN.format(q="site:fiercebiotech.com+OR+site:fiercehealthcare.com+when:2d"), 5, 48),
     ("AI Health (GN)",  _GN.format(q="(%22AI%22+OR+%22artificial+intelligence%22)+(FDA+OR+%22drug+discovery%22+OR+hospital+OR+diagnostics)+when:2d+(site:reuters.com+OR+site:bloomberg.com+OR+site:ft.com+OR+site:statnews.com+OR+site:cnbc.com)"), 8, 48),
     ("AI Enterprise (GN)", _GN.format(q="(%22AI+agents%22+OR+%22AI+deployment%22+OR+%22AI+revenue%22+OR+copilot)+when:1d+(site:reuters.com+OR+site:bloomberg.com+OR+site:theinformation.com+OR+site:techcrunch.com+OR+site:ft.com)"), 8, 24),
@@ -1265,12 +1274,27 @@ RSS_FEEDS = [
     ("The Quantum Insider", "https://thequantuminsider.com/feed/", 5, 72),
     ("Ars Science",         "https://feeds.arstechnica.com/arstechnica/science", 5, 48),
     ("Frontier Tech (GN)",  _GN.format(q="(%22quantum+computing%22+OR+%22nuclear+fusion%22+OR+%22humanoid+robot%22+OR+%22brain-computer%22+OR+%22solid-state+battery%22+OR+%22gene+editing%22+OR+%22photonic+chip%22)+when:2d+(site:reuters.com+OR+site:bloomberg.com+OR+site:ft.com+OR+site:spectrum.ieee.org+OR+site:technologyreview.com+OR+site:nature.com+OR+site:science.org+OR+site:arstechnica.com)"), 8, 48),
+    # 能源／電力／資料中心電力、工業／國防／物流、印度、央行研究（2026-10-08 新增，審計發現這些領域 0–2 個來源）
+    ("Data Center Dynamics", "https://www.datacenterdynamics.com/en/rss/", 8, 24),
+    ("Utility Dive",        "https://www.utilitydive.com/feeds/news/", 5, 48),
+    ("Canary Media",        "https://www.canarymedia.com/rss.rss", 4, 48),
+    ("Supply Chain Dive",   "https://www.supplychaindive.com/feeds/news/", 5, 48),
+    ("FreightWaves",        "https://www.freightwaves.com/news/feed", 5, 24),
+    ("Defense News",        "https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml", 5, 48),
+    ("Breaking Defense",    "https://breakingdefense.com/feed/", 5, 24),
+    ("SCMP Economy",        "https://www.scmp.com/rss/92/feed", 6, 24),
+    ("Mint",                "https://www.livemint.com/rss/companies", 6, 24),
+    # 央行／研究機構的分析稿不是即時新聞：窗 168–336h（>72h → weekly 標記，只當背景／tech_trends／weekend_reads），並列入長文給連結
+    ("BIS Bulletins",       "https://www.bis.org/doclist/bisbulletins.rss", 2, 336),
+    ("FEDS Notes",          "https://www.federalreserve.gov/feeds/feds_notes.xml", 2, 168),
+    ("ECB Blog",            "https://www.ecb.europa.eu/rss/blog.html", 2, 336),
 ]
-RSS_TOTAL_CAP = 400
+RSS_TOTAL_CAP = 480  # 2026-10-08：400→480，新增 12 個 feed 不擠掉舊來源
 _LONGFORM_FEEDS = {"Financial Times", "FT Markets", "FT Tech", "FT Asia", "The Economist (GN)",
                    "The Information", "SemiAnalysis", "Ars Technica",
                    "IEEE Spectrum", "MIT Tech Review", "Quanta Magazine", "Nature News",
-                   "Science News", "New Scientist"}
+                   "Science News", "New Scientist",
+                   "BIS Bulletins", "FEDS Notes", "ECB Blog"}
 _RSS_NOISE = re.compile(r"開獎|中獎號碼|彩券|統一發票|訃聞|Podcast|podcast|The Download:|Crossword|Newsletter")
 _LAST_RSS_QUALITY: dict = {}
 _LAST_FEED_STATUS: dict = {}  # label → {status: ok|empty|error, entries, kept, blocked, error?}

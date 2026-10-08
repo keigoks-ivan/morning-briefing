@@ -111,9 +111,29 @@ class RssQualityTests(unittest.TestCase):
         self.assertTrue(all(args[4] == "deep-fixed" for args in calls))
         self.assertEqual(result["dynamic"], [])
 
-    def test_base_search_keeps_twenty_two_broad_queries(self):
+    def test_2026_10_08_feed_expansion_is_registered_and_tagged(self):
+        labels = {spec[0]: spec for spec in news_fetcher.RSS_FEEDS}
+        self.assertEqual(news_fetcher.RSS_TOTAL_CAP, 480)
+        self.assertNotIn("Endpoints (GN)", labels)
+        new_feeds = ["Data Center Dynamics", "Utility Dive", "Canary Media", "Supply Chain Dive", "Biopharma Dive",
+                     "Defense News", "Breaking Defense", "FreightWaves", "SCMP Economy", "Mint",
+                     "BIS Bulletins", "FEDS Notes", "ECB Blog"]
+        for label in new_feeds:
+            self.assertIn(label, labels)
+            # direct feed label must itself be an allowed source (the fetcher's identity fallback)
+            self.assertIsNotNone(canonicalize_source(label), label)
+        self.assertEqual(canonicalize_source("SCMP Economy"), "South China Morning Post")
+        # research / central-bank notes: window >72h so they carry the weekly flag, and they get links
+        for label in ("BIS Bulletins", "FEDS Notes", "ECB Blog", "SemiAnalysis"):
+            self.assertGreater(labels[label][3], 72, label)
+            self.assertIn(label, news_fetcher._LONGFORM_FEEDS)
+        # SemiAnalysis moved off the WordPress feed frozen at 2025-09
+        self.assertIn("newsletter.semianalysis.com", labels["SemiAnalysis"][1])
+        self.assertEqual(canonicalize_source("SemiAnalysis", "https://newsletter.semianalysis.com/p/x"), "SemiAnalysis")
+
+    def test_base_search_keeps_twenty_seven_broad_queries(self):
         queries = news_fetcher.PERPLEXITY_QUERIES
-        self.assertEqual(len(queries), 22)
+        self.assertEqual(len(queries), 27)
         combined = " ".join(queries).casefold()
         self.assertIn("startup financing detail", combined)
         self.assertIn("startup ecosystem structural news", combined)
@@ -124,6 +144,9 @@ class RssQualityTests(unittest.TestCase):
         self.assertIn("healthcare", combined)
         self.assertIn("data-center infrastructure", combined)
         self.assertIn("enterprise software, cybersecurity", combined)
+        for phrase in ("consumer demand and retailer results", "india, middle east and latin america",
+                       "japan corporate and policy", "antitrust and ai regulation", "power grid, utility capex"):
+            self.assertIn(phrase, combined)
         self.assertIn("industrial automation, robotics", combined)
         self.assertIn("ai application deployments", combined)
         self.assertIn("us sector and large-cap stock movers", combined)
