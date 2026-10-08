@@ -360,6 +360,8 @@ ideas.json 各查核點選填的 `due: [{date, label, approx}]`（沒有這個�
 supports／refutes／shaky 才顯示；到期提醒（**2 天內**才顯示，`_ideas_due_email_line`）跟
 狀態變化提醒（見下段）不需要今天有命中也會顯示，不受影響。
 
+**顯示整理（2026-10-08）**：「今天的命中」改成一篇文章一列（`_ideas_group_articles`：同想法內網址相同，或標題正規化後相同，合併；每個查核點一行徽章加 `reason_zh`，同一篇裡的中性查核點縮成一行灰字「另觸及 查核點 1、3（中性）」）。整篇文章的查核點全是中性的，不上主畫面，收進最後一個 `<details>`「另有 N 則中性（沒有新資訊）」，N 算文章數，內文依想法分組，列標題（有網址才連結）、查核點編號與一句理由；一則非中性都沒有時，先顯示一行灰字「今天沒有新聞支持、推翻或動搖任何查核點」再接折疊。另外 `ideas_layer._dedupe_exact_rows` 在寫入 `idea_hits.json` 前，把今天的列裡同日期、想法、查核點、標題正規化後相同的只留一列（優先順序：有網址、`full_article`、verdict 較強），歷史列不回頭改。空網址的來源：早報卡片（curated cards）是 AI 寫的，沒有連結欄位；早報自己的候選若只有「outlet named by the briefing」佔位來源也沒有網址。兩者資料裡都找不到可還原的連結，所以不修來源，渲染端對空網址只顯示純文字標題。深入查核（research.json）、到期提醒、判斷邏輯與 email 摘要都沒動。
+
 **深入查核併入早報（2026-09-23 晚新增，Task C；2026-09-24 起是次要／對照資料，不是主判斷）**：
 另一個雲端 routine `idea-watch-auto`（每天 05:15 台北，financial-analysis-bot
 `.claude/skills/idea-watch/SKILL.md`）對每個查核點主動搜尋、讀財報，寫

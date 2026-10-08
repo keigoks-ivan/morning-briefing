@@ -1587,52 +1587,147 @@ def _ideas_section(ev: dict | None) -> str:
   {stale_line}
   {due_block}
 </div>'''
+    # 2026-10-08 顯示整理：同一想法內一篇文章一列（多個查核點各一行）；整篇文章的查核點全是
+    # 中性的，收進最後一個折疊，不佔主畫面。只動畫面，idea_hits.json 的列不變。
     grouped: dict = {}
     for r in rows_today:
         grouped.setdefault(r.get("idea", ""), []).append(r)
+    articles_by_idea = {i: _ideas_group_articles(rs) for i, rs in grouped.items()}
     idea_ids = list(dict.fromkeys(list(grouped.keys()) + list(entries_by_idea.keys())))
     body = ""
+    visible_articles = 0
     for idea_id in idea_ids:
-        rows = grouped.get(idea_id, [])
+        articles = [a for a in articles_by_idea.get(idea_id, []) if not a["all_neutral"]]
+        visible_articles += len(articles)
         entries = entries_by_idea.get(idea_id, [])
+        if not articles and not entries:
+            continue
         meta = catalog.get(idea_id) or {}
         short = meta.get("short") or idea_id
         url = meta.get("url") or "/ideas/"
         cp_labels = meta.get("checkpoints") or {}
-        lines = ""
-        for r in rows:
-            label, style = _IDEA_VERDICT_STYLE.get(r.get("verdict"), _IDEA_VERDICT_STYLE["candidate"])
-            cp_label = cp_labels.get(r.get("checkpoint", ""), r.get("checkpoint", ""))
-            headline_html = (_ev_link(r["url"], r.get("headline", "")) if r.get("url")
-                             else _esc(r.get("headline", "")))
-            # 早報外掃描命中（ideas_layer._wide_scan）加一個灰色小標籤，講清楚這則不是早報自己
-            # 的候選（沒進事件判斷層 top／DD 派送）；「只讀到標題」改成看 basis（2026-09-24），
-            # 不再假設早報外一律沒有全文——兩邊現在都會試著抓原文再判斷。
-            wide_tag = _ev_chip("早報外", "background:#F1F1F1;color:#888;") if r.get("origin") == "wide" else ""
-            basis_tag = ('<span style="font-size:12px;color:#999;">只讀到標題</span> '
-                        if r.get("basis") == "headline_summary" else "")
-            reason_html = ""
-            if r.get("reason_zh"):
-                reason_html = (f'<div style="font-size:12px;color:#777;padding:1px 0 0 2px;">'
-                              f'{_esc(r["reason_zh"])}</div>')
-            lines += (f'<div style="padding:4px 0;font-size:13px;color:#333;line-height:1.6;">'
-                     f'{_ev_chip(label, style)} {wide_tag}{basis_tag}{_esc(cp_label)} &middot; '
-                     f'{headline_html}{reason_html}</div>')
+        lines = "".join(_ideas_article_row(a, cp_labels) for a in articles)
         for e in entries:   # 深入查核（research.json，今天的），跟上面早報命中同一組群裡
             lines += _research_entry_line(e, cp_labels)
-        total = len(rows) + len(entries)
+        total = len(articles) + len(entries)
         body += (f'<div style="padding:8px 0;border-bottom:0.5px solid #f0f0f0;">'
                 f'<div style="font-size:14px;font-weight:600;color:#222;">{_ev_link(url, short)}'
                 f' <span style="color:#888;font-weight:400;">（{total} 則）</span></div>{lines}</div>')
+    neutral_fold = _ideas_neutral_fold(articles_by_idea, catalog, idea_ids)
+    quiet_line = ""
+    if rows_today and not visible_articles:
+        quiet_line = ('<div style="font-size:13px;color:#888;padding:6px 0;">'
+                      '今天沒有新聞支持、推翻或動搖任何查核點。</div>')
     return f'''
 <div class="section">
   <div class="section-label">今天動到的想法</div>
   {_IDEAS_JUDGE_NOTE}
   {changes_block}
+  {quiet_line}
   {body}
+  {neutral_fold}
   {stale_line}
   {due_block}
 </div>'''
+
+
+def _ideas_group_articles(rows: list[dict]) -> list[dict]:
+    """同一想法當天的命中列，依文章合併：網址相同，或標題正規化後相同（空網址、或同一篇轉載
+    網址不同）算同一篇。回 [{"rows": [...], "all_neutral": bool}]，順序照第一次出現。"""
+    from ideas_layer import _normalize_title_key
+    from source_registry import normalize_url
+    groups: list[dict] = []
+    for r in rows:
+        ukey = normalize_url(r["url"]) if r.get("url") else ""
+        tkey = _normalize_title_key(r.get("headline", ""))
+        hit = None
+        for g in groups:
+            if (ukey and ukey in g["urls"]) or (tkey and tkey in g["titles"]):
+                hit = g
+                break
+        if hit is None:
+            hit = {"rows": [], "urls": set(), "titles": set()}
+            groups.append(hit)
+        hit["rows"].append(r)
+        if ukey:
+            hit["urls"].add(ukey)
+        if tkey:
+            hit["titles"].add(tkey)
+    return [{"rows": g["rows"], "all_neutral": all(r.get("verdict") == "neutral" for r in g["rows"])}
+            for g in groups]
+
+
+def _ideas_cp_numbers(rows: list[dict]) -> str:
+    """'cp1','cp3' -> '查核點 1、3'；不符合 cpN 慣例的 id 原樣列出。"""
+    nums, others = [], []
+    for r in rows:
+        cpid = str(r.get("checkpoint", ""))
+        if cpid.startswith("cp") and cpid[2:].isdigit():
+            if cpid[2:] not in nums:
+                nums.append(cpid[2:])
+        elif cpid and cpid not in others:
+            others.append(cpid)
+    nums.sort(key=int)
+    parts = nums + others
+    return ("查核點 " + "、".join(parts)) if nums else "、".join(parts)
+
+
+def _ideas_article_row(article: dict, cp_labels: dict) -> str:
+    rows = article["rows"]
+    first = max(rows, key=lambda r: bool(r.get("url")))   # 有網址的那列優先拿來當標題連結
+    headline_html = (_ev_link(first["url"], first.get("headline", "")) if first.get("url")
+                     else _esc(first.get("headline", "")))
+    # 早報外掃描命中加灰色小標籤；只讀到標題的話標「只讀到標題」（全部列都只讀標題才標）。
+    wide_tag = _ev_chip("早報外", "background:#F1F1F1;color:#888;") if first.get("origin") == "wide" else ""
+    basis_tag = ('<span style="font-size:12px;color:#999;">只讀到標題</span> '
+                if all(r.get("basis") == "headline_summary" for r in rows) else "")
+    source = first.get("source") or ""
+    source_html = f' <span style="font-size:12px;color:#999;">{_esc(source)}</span>' if source else ""
+    out = (f'<div style="padding:5px 0;font-size:13px;color:#333;line-height:1.6;">'
+          f'{wide_tag}{basis_tag}{headline_html}{source_html}')
+    neutral_rows = []
+    for r in rows:
+        if r.get("verdict") == "neutral":
+            neutral_rows.append(r)
+            continue
+        label, style = _IDEA_VERDICT_STYLE.get(r.get("verdict"), _IDEA_VERDICT_STYLE["candidate"])
+        cp_label = cp_labels.get(r.get("checkpoint", ""), r.get("checkpoint", ""))
+        reason = (f' <span style="font-size:12px;color:#777;">{_esc(r["reason_zh"])}</span>'
+                  if r.get("reason_zh") else "")
+        out += (f'<div style="padding:1px 0 0 8px;">{_ev_chip(label, style)}'
+               f'{_esc(cp_label)}{reason}</div>')
+    if neutral_rows:
+        out += (f'<div style="font-size:12px;color:#999;padding:1px 0 0 8px;">'
+               f'另觸及 {_esc(_ideas_cp_numbers(neutral_rows))}（中性）</div>')
+    return out + '</div>'
+
+
+def _ideas_neutral_fold(articles_by_idea: dict, catalog: dict, idea_ids: list) -> str:
+    """整篇文章的查核點都是中性的，收進一個折疊；N 算文章數（同想法內已合併）。"""
+    total = 0
+    blocks = ""
+    for idea_id in idea_ids:
+        arts = [a for a in articles_by_idea.get(idea_id, []) if a["all_neutral"]]
+        if not arts:
+            continue
+        total += len(arts)
+        meta = catalog.get(idea_id) or {}
+        lines = ""
+        for a in arts:
+            rows = a["rows"]
+            first = max(rows, key=lambda r: bool(r.get("url")))
+            headline_html = (_ev_link(first["url"], first.get("headline", "")) if first.get("url")
+                             else _esc(first.get("headline", "")))
+            reason = next((r["reason_zh"] for r in rows if r.get("reason_zh")), "")
+            reason_html = f' <span style="color:#999;">{_esc(reason)}</span>' if reason else ""
+            lines += (f'<div style="padding:2px 0;font-size:12px;color:#777;line-height:1.5;">'
+                     f'{headline_html} &middot; {_esc(_ideas_cp_numbers(rows))}{reason_html}</div>')
+        blocks += (f'<div style="padding:4px 0;"><div style="font-size:12px;font-weight:600;color:#666;">'
+                  f'{_esc(meta.get("short") or idea_id)}</div>{lines}</div>')
+    if not total:
+        return ""
+    return (f'<details style="margin-top:8px;"><summary style="font-size:12px;color:#888;cursor:pointer;">'
+            f'另有 {total} 則中性（沒有新資訊）</summary>{blocks}</details>')
 
 
 def _ideas_due_email_line(catalog: dict, today: str) -> str:

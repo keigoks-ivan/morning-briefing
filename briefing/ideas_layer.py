@@ -548,6 +548,33 @@ def _first_url(item: dict) -> str:
 
 
 # ── idea_hits.json（跨日累加，冪等） ────────────────────────────────────
+_VERDICT_STRENGTH = {"supports": 4, "refutes": 4, "shaky": 3, "candidate": 2, "unjudged": 2, "neutral": 1}
+
+
+def _dedupe_exact_rows(rows: list[dict]) -> list[dict]:
+    """2026-10-08：今天的列裡，同一天、同想法、同查核點、標題正規化後相同的只留一列（同一則
+    新聞被不同網址／轉載各抓一次）。留哪一列：有網址 > basis 是 full_article > verdict 較強
+    （支持／推翻 > 動搖 > 可能相關 > 中性）；都一樣就留先出現的。只在寫入前套用到今天的列，
+    不回頭改歷史列。標題空的列不比對（沒有東西可比）。順序維持第一次出現的位置。"""
+    def rank_of(r):
+        return (bool(r.get("url")), r.get("basis") == "full_article",
+                _VERDICT_STRENGTH.get(r.get("verdict"), 0))
+    best: dict[tuple, int] = {}
+    out: list[dict] = []
+    for r in rows:
+        tkey = _normalize_title_key(r.get("headline", ""))
+        if not tkey:
+            out.append(r)
+            continue
+        key = (r.get("date"), r.get("idea"), r.get("checkpoint"), tkey)
+        if key not in best:
+            best[key] = len(out)
+            out.append(r)
+        elif rank_of(r) > rank_of(out[best[key]]):
+            out[best[key]] = r
+    return out
+
+
 def _merge_hits(hits_fetch, today: str, today_rows: list[dict]) -> dict:
     """載入昨天的 idea_hits.json（同一種抓取形狀：(payload, status)，見 evidence_layer._fetch_json）
     → 丟掉今天舊的列（同一天重跑要能整批換掉，不是疊加）→ 併入今天的列（同一天內先依
@@ -567,7 +594,7 @@ def _merge_hits(hits_fetch, today: str, today_rows: list[dict]) -> dict:
 
     kept = [r for r in prior_rows if r.get("date") != today]
     seen = set()
-    for r in today_rows:
+    for r in _dedupe_exact_rows(today_rows):
         key = (r.get("fact_key") or r.get("evidence_id"), r.get("idea"), r.get("checkpoint"))
         if key in seen:
             continue

@@ -864,3 +864,116 @@ def test_plural_pair_is_one_keyword():
     ideas = [{"id": "x", "status": "active", "checkpoints": [
         {"id": "cp", "companies": [], "keywords": ["bond", "bonds"], "themes": []}]}]
     assert ideas_layer.match_checkpoints("Treasury bond yields jump as bonds sell off", [], [], ideas) == []
+
+
+class IdeasDisplayCleanupTests(unittest.TestCase):
+    """2026-10-08 顯示整理：中性折疊、一篇文章一列、完全重複列去重、空網址渲染。"""
+    TODAY = "2026-10-07"
+    CATALOG = {"agents": {"short": "消費級代理人", "url": "/ideas/agents.html",
+                          "checkpoints": {"cp1": "日活", "cp2": "開放結帳", "cp3": "留存", "cp9": "算力"}}}
+
+    def _row(self, cp, verdict, headline, url="https://e.com/a", reason="理由", **kw):
+        r = {"date": self.TODAY, "idea": "agents", "checkpoint": cp, "verdict": verdict,
+             "headline": headline, "url": url, "reason_zh": reason, "source": "CNBC",
+             "basis": "full_article", "origin": "briefing"}
+        r.update(kw)
+        return r
+
+    def _page(self, rows, research=None):
+        ev = {"date": self.TODAY, "ideas": {"status": "ok", "catalog": self.CATALOG},
+              "idea_hits": {"hits": rows}, "idea_research": research}
+        return html_template._ideas_section(ev)
+
+    def test_neutral_only_articles_fold_and_count_articles(self):
+        rows = [self._row("cp1", "supports", "Muse hits 100M DAU", url="https://e.com/1", reason="日活破億"),
+                self._row("cp1", "neutral", "Muse lifts AMD", url="https://e.com/2", reason="沒有日活"),
+                self._row("cp3", "neutral", "Muse lifts AMD", url="https://e.com/2", reason="沒有留存"),
+                self._row("cp9", "neutral", "Other note", url="", reason="只是新品")]
+        page = self._page(rows)
+        self.assertIn("另有 2 則中性（沒有新資訊）", page)   # 文章數，不是列數（3 列）
+        head, _, fold = page.partition("<details")
+        self.assertIn("Muse hits 100M DAU", head)
+        self.assertNotIn("Muse lifts AMD", head)
+        self.assertIn("Muse lifts AMD", fold)
+        self.assertIn("查核點 1、3", fold)
+        self.assertIn("Other note", fold)
+        self.assertIn('href="https://e.com/2"', fold)
+        self.assertNotIn("沒有新聞支持、推翻或動搖", page)
+
+    def test_all_neutral_day_shows_quiet_line_then_fold(self):
+        page = self._page([self._row("cp1", "neutral", "Only neutral", reason="沒有數字")])
+        self.assertIn("今天沒有新聞支持、推翻或動搖任何查核點", page)
+        self.assertIn("另有 1 則中性（沒有新資訊）", page)
+        self.assertLess(page.index("今天沒有新聞支持"), page.index("<details"))
+        self.assertNotIn("（1 則）", page)   # 想法標題列不出現（沒有可見文章）
+
+    def test_one_article_three_checkpoints_is_one_row(self):
+        rows = [self._row("cp1", "supports", "Same story", reason="日活"),
+                self._row("cp2", "shaky", "Same story", reason="結帳延後"),
+                self._row("cp3", "neutral", "Same story", reason="沒資料"),
+                self._row("cp9", "neutral", "Same story", url="https://other-outlet.com/x", reason="沒資料")]
+        page = self._page(rows)
+        self.assertEqual(page.count("Same story"), 1)
+        self.assertIn("（1 則）", page)
+        self.assertIn("支持", page)
+        self.assertIn("動搖", page)
+        self.assertIn("日活", page)
+        self.assertIn("結帳延後", page)
+        self.assertIn("另觸及 查核點 3、9（中性）", page)
+        self.assertNotIn("<details", page)
+
+    def test_same_title_empty_and_nonempty_url_merge(self):
+        rows = [self._row("cp1", "supports", "Muse: big news - CNBC", url="https://e.com/1"),
+                self._row("cp2", "refutes", "Muse big news", url="")]
+        page = self._page(rows)
+        self.assertEqual(page.count("big news"), 1)
+        self.assertIn("（1 則）", page)
+
+    def test_exact_duplicate_rows_prefer_url_then_full_article_then_stronger(self):
+        rows = [self._row("cp1", "supports", "Dup story", url="", basis="full_article"),
+                self._row("cp1", "neutral", "Dup story!", url="https://e.com/1", basis="headline_summary"),
+                self._row("cp2", "shaky", "Other", url="https://e.com/o", basis="headline_summary"),
+                self._row("cp2", "shaky", "Other", url="https://e.com/o2", basis="full_article"),
+                self._row("cp3", "neutral", "Third", url="", basis="full_article"),
+                self._row("cp3", "supports", "Third", url="", basis="full_article")]
+        out = ideas_layer._dedupe_exact_rows(rows)
+        self.assertEqual(len(out), 3)
+        self.assertEqual(out[0]["url"], "https://e.com/1")       # 有網址勝過較強的 verdict
+        self.assertEqual(out[1]["url"], "https://e.com/o2")      # 都有網址 → full_article
+        self.assertEqual(out[2]["verdict"], "supports")          # 其餘相同 → verdict 較強
+
+    def test_merge_hits_dedupes_today_only_and_leaves_history(self):
+        hist = [self._row("cp1", "neutral", "Old", date="2026-10-06"), self._row("cp1", "neutral", "Old", date="2026-10-06")]
+        today = [self._row("cp1", "neutral", "Dup", url=""), self._row("cp1", "neutral", "Dup", url="https://e.com/1")]
+        merged = ideas_layer._merge_hits(lambda u: ({"hits": hist}, "ok"), self.TODAY, today)
+        self.assertEqual(len([r for r in merged["hits"] if r["date"] == "2026-10-06"]), 2)   # 歷史不動
+        t = [r for r in merged["hits"] if r["date"] == self.TODAY]
+        self.assertEqual(len(t), 1)
+        self.assertEqual(t[0]["url"], "https://e.com/1")
+
+    def test_empty_url_renders_plain_headline_without_link(self):
+        page = self._page([self._row("cp1", "supports", "No link story", url="")])
+        self.assertIn("No link story", page)
+        self.assertNotIn('href=""', page)
+        self.assertNotIn(">No link story</a>", page)
+
+    def test_research_entries_unchanged_alongside_hits(self):
+        research = {"status": "ok", "data": {
+            "run": {"date": self.TODAY, "status": "ok"},
+            "entries": [{"date": self.TODAY, "idea": "agents", "checkpoint": "cp1", "verdict": "supports",
+                        "summary": "OpenRouter 用量續創高", "kind": "search"}],
+            "changes": [{"date": self.TODAY, "idea": "agents", "checkpoint": "cp2", "keystone": True,
+                        "from": "supports", "to": "refutes", "reason": "新約降價"}]}}
+        page = self._page([self._row("cp1", "neutral", "Neutral only")], research=research)
+        self.assertIn("OpenRouter 用量續創高", page)
+        self.assertIn("主動搜尋", page)
+        self.assertIn("支持 → 推翻", page)
+        self.assertIn("（1 則）", page)    # 只算深入查核那 1 則，中性文章進折疊
+        self.assertIn("另有 1 則中性", page)
+
+    def test_email_summary_counts_unchanged_by_display(self):
+        rows = [self._row("cp1", "supports", "A"), self._row("cp2", "supports", "A"),
+                self._row("cp3", "neutral", "A")]
+        ev = {"date": self.TODAY, "ideas": {"status": "ok", "catalog": self.CATALOG},
+              "idea_hits": {"hits": rows}}
+        self.assertIn("支持 2", html_template._ideas_email_summary(ev))
