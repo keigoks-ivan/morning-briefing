@@ -65,7 +65,6 @@ from pathlib import Path
 from evidence_ledger import _days_between, content_tokens, extract_figures
 from evidence_ledger import fact_key as ledger_fact_key
 from evidence_fulltext import fetch_fulltext
-from evidence_routing import _keyword_hits
 from source_registry import normalize_url
 
 IDEAS_URL = "https://research.investmquest.com/ideas/ideas.json"
@@ -199,6 +198,21 @@ def _active_checkpoints(ideas: list[dict]):
             yield idea, cp
 
 
+def _kw_hits(text: str, keywords: list[str]) -> list[str]:
+    """2026-10-08：查核點專用的關鍵詞比對，前後要是字界（可帶複數 s）。原本沿用
+    evidence_routing._keyword_hits 的純子字串比對，「ios」會配到 Photos、「ai agent」配到
+    OpenAI Agents、「commission」配到 decommissioned（兩週 11 次，全是無關／中性）。
+    routing 那支不動，派送還在用。"""
+    folded = (text or "").casefold()
+    return [k for k in keywords
+            if re.search(r"(?<![a-z0-9])" + re.escape(k.casefold()) + r"s?(?![a-z0-9])", folded)]
+
+
+def _drop_nested(hits: list[str]) -> list[str]:
+    """「ai capex」已經命中時，裡面的「capex」不另算一個關鍵詞，免得一個片語被規則 (b) 當成兩個字。"""
+    return [h for h in hits if not any(h != o and h.casefold() in o.casefold() for o in hits)]
+
+
 def match_checkpoints(text: str, company_keys, confirmed_themes, ideas: list[dict]) -> list[tuple[dict, dict, list[str]]]:
     """text：候選的 headline+summary（cand["text"]；不含全文，全文只給判斷步驟，見
     _build_judge_entries）。company_keys：這則候選比對到的所有公司 key（不分角色，跟判斷步驟
@@ -212,18 +226,19 @@ def match_checkpoints(text: str, company_keys, confirmed_themes, ideas: list[dic
     (b) 文中出現兩個以上不同關鍵詞（單複數算同一個），或一個三個字以上的關鍵詞片語，或
         （checkpoint.themes 有一個主題被既有主題派送確認，且文中出現至少一個關鍵詞）。
 
-    回 [(idea, checkpoint, matched_keywords)]，只包含 active 想法的 checkpoint。這支刻意不動：
-    早報候選跟早報外掃描共用同一份規則，見檔頭①②。"""
+    回 [(idea, checkpoint, matched_keywords)]，只包含 active 想法的 checkpoint。早報候選跟早報外
+    掃描共用同一份規則，見檔頭①②。2026-10-08 起關鍵詞比對改成字界（`_kw_hits`），片語裡的
+    短關鍵詞不重算（`_drop_nested`）。"""
     company_keys = set(company_keys or [])
     confirmed_themes = set(confirmed_themes or [])
     out = []
     for idea, cp in _active_checkpoints(ideas):
-        hits = _keyword_hits(text, cp.get("keywords") or [])
+        hits = _drop_nested(_kw_hits(text, cp.get("keywords") or []))
         if not hits:
             continue
         # company_names：路由對照表認不得的公司（Nebius、信驊…），名稱出現在文中就算當事公司
         rule_a = bool(company_keys & set(cp.get("companies") or [])) or bool(
-            _keyword_hits(text, cp.get("company_names") or []))
+            _kw_hits(text, cp.get("company_names") or []))
         # 單複數算同一個字：bond／bonds 同時出現不算兩個關鍵詞
         stems = {h.lower().rstrip("s") for h in hits}
         rule_b = (len(stems) >= 2 or any(len(h.split()) >= 3 for h in hits)
@@ -239,7 +254,7 @@ def _rule_a_hit(text: str, company_keys, checkpoint: dict) -> bool:
     同樣的問題。"""
     keys = set(company_keys or [])
     return bool(keys & set(checkpoint.get("companies") or [])) or bool(
-        _keyword_hits(text, checkpoint.get("company_names") or []))
+        _kw_hits(text, checkpoint.get("company_names") or []))
 
 
 def _match_rule(text: str, company_keys, confirmed_themes, checkpoint: dict, hits: list[str]) -> str:

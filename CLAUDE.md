@@ -276,7 +276,7 @@ checkpoint.company_names 列名稱，文中出現就算），且文中（headlin
 不算兩個），或一個三個字以上的關鍵詞片語，或（checkpoint.themes 有一個主題被既有主題派送
 確認，且文中出現至少一個關鍵詞）。每則命中會回報是靠哪一條規則（`rule` 欄位：
 `"company+keyword"`／`"two keywords"`／`"phrase"`／`"theme+keyword"`，`ideas_layer._match_rule`），
-連同命中的關鍵詞（`matched_keywords`）一起寫進輸出。
+連同命中的關鍵詞（`matched_keywords`）一起寫進輸出。**2026-10-08 收緊**：查核點關鍵詞改成字界比對（`ideas_layer._kw_hits`，可帶複數 s；原本純子字串，「ios」配到 Photos、「ai agent」配到 OpenAI Agents），片語裡的短關鍵詞不重算（`_drop_nested`，「ai capex」不再同時算 capex 變成兩個字）；`evidence_routing._keyword_hits` 不動。同日 ideas.json 把 Muse／Siri／Gemini／Alexa+ 等品牌名從 keywords 移到 company_names（只能走規則 (a)）。兩週回放：無關 163→43、中性 91→32、支持／推翻／動搖 30→29（少的是只靠「Muse」配到的 Instinct 估值新聞）。約 10-22 再稽核一次。
 
 兩個候選來源，各自每天最多留幾則新聞（2026-09-24：因為判斷步驟不再論則計費，上限放寬：
 `MAX_BRIEFING_IDEA_ITEMS` 8→12，`MAX_WIDE_IDEA_ITEMS` 8→20；`IDEA_ITEM_BUDGET`／

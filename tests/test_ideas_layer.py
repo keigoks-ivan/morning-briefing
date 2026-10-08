@@ -977,3 +977,29 @@ class IdeasDisplayCleanupTests(unittest.TestCase):
         ev = {"date": self.TODAY, "ideas": {"status": "ok", "catalog": self.CATALOG},
               "idea_hits": {"hits": rows}}
         self.assertIn("支持 2", html_template._ideas_email_summary(ev))
+
+
+class KeywordBoundaryTests(unittest.TestCase):
+    """2026-10-08：查核點關鍵詞改字界比對＋片語內短關鍵詞不重算。"""
+
+    def test_word_boundary_blocks_substrings(self):
+        kw = ["ios", "ai agent", "commission", "hbm"]
+        self.assertEqual(ideas_layer._kw_hits("New Photos app", kw), [])
+        self.assertEqual(ideas_layer._kw_hits("OpenAI Agents SDK ships", kw), [])
+        self.assertEqual(ideas_layer._kw_hits("Plant decommissioned early", kw), [])
+        self.assertEqual(ideas_layer._kw_hits("NVHBM module", kw), [])
+
+    def test_plural_and_case_still_match(self):
+        self.assertEqual(ideas_layer._kw_hits("Two AI Agents launch", ["ai agent"]), ["ai agent"])
+        self.assertEqual(ideas_layer._kw_hits("HBM4 contract prices up", ["contract price"]), ["contract price"])
+        self.assertEqual(ideas_layer._kw_hits("Alexa+ adds shopping", ["alexa+"]), ["alexa+"])
+        self.assertEqual(ideas_layer._kw_hits("三星HBM漲價", ["hbm"]), ["hbm"])
+
+    def test_nested_keyword_not_counted_twice(self):
+        hits = ideas_layer._drop_nested(ideas_layer._kw_hits("Big Tech AI capex rises", ["ai capex", "capex"]))
+        self.assertEqual(hits, ["ai capex"])
+        ideas = [{"id": "x", "status": "active", "checkpoints": [
+            {"id": "cp5", "keywords": ["ai capex", "capex", "capex guidance"]}]}]
+        # one two-word phrase alone is no longer "two distinct keywords"
+        self.assertEqual(ideas_layer.match_checkpoints("Big Tech AI capex rises", [], [], ideas), [])
+        self.assertEqual(len(ideas_layer.match_checkpoints("AI capex up; capex guidance raised", [], [], ideas)), 1)
