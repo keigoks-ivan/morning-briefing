@@ -229,6 +229,139 @@ class EvidenceSectionCompactTests(unittest.TestCase):
         self.assertIn("No new fundamental evidence", page)
 
 
+class NewsBySectorTests(unittest.TestCase):
+    """news 頁依產業分區（2026-10-08，見 CLAUDE.md「news 頁依產業分區」）。"""
+
+    @staticmethod
+    def _it(headline, sector=None, importance="medium", **kw):
+        d = {"headline": headline, "body": f"Body of {headline}.", "source": "Reuters",
+             "source_date": "2026-10-08", "importance": importance, **kw}
+        if sector:
+            d["sector"] = sector
+        return d
+
+    def _data(self):
+        it = self._it
+        return {
+            "date": "2026-10-08",
+            "top_stories": [it(f"Top story {n}", "AI and semiconductors") for n in range(1, 8)],
+            "industry_developments": [
+                it("Chipmaker raises capex", None, industry="Semiconductors", category="US earnings",
+                   evidence="Capex up 20%", unknowns="Timing"),
+                it("Utility signs nuclear deal", None, industry="Energy and logistics")],
+            "macro": [it("Fed holds rates", None), it("CPI cools", None, importance="high")],
+            "geopolitical": [it("New tariffs announced", None)],
+            "regional_tech": {"us": [it("US software merger", "Software and internet")],
+                              "china": [it("China chip subsidy", "Policy and regulation")],
+                              "taiwan": [it("Taiwan packaging plant", "AI and semiconductors")],
+                              "asean": [it("Vietnam data centre", "AI and semiconductors")]},
+        }
+
+    def test_normalize_sector_inference(self):
+        from sector import normalize_sector
+        it = self._it
+        self.assertEqual(normalize_sector("industry_developments", it("x", industry="Semiconductors")), "AI and semiconductors")
+        self.assertEqual(normalize_sector("industry_developments", it("x", industry="Enterprise software and security")), "Software and internet")
+        self.assertEqual(normalize_sector("industry_developments", it("Port strike", industry="Energy and logistics")),
+                         "Industrials, defense and logistics")
+        self.assertEqual(normalize_sector("industry_developments", it("Grid operator buys LNG cargoes", industry="Energy and logistics")),
+                         "Energy and power")
+        self.assertEqual(normalize_sector("industry_developments", it("x", industry="Fintech")), "Finance and macro")
+        self.assertEqual(normalize_sector("macro", it("anything")), "Finance and macro")
+        self.assertEqual(normalize_sector("fintech_crypto", it("anything")), "Finance and macro")
+        self.assertEqual(normalize_sector("geopolitical", it("anything")), "Policy and regulation")
+        self.assertEqual(normalize_sector("ai_industry", it("anything")), "AI and semiconductors")
+        self.assertEqual(normalize_sector("world_news", it("FDA approves new drug")), "Healthcare and biotech")
+        self.assertEqual(normalize_sector("world_news", it("Local festival draws crowds")), "Other")
+        # 合法值（含 & 寫法）保留；不合法值改走推定
+        self.assertEqual(normalize_sector("macro", it("x", "Energy and power")), "Energy and power")
+        self.assertEqual(normalize_sector("macro", it("x", "Healthcare & biotech")), "Healthcare and biotech")
+        self.assertEqual(normalize_sector("macro", it("x", "Cryptids")), "Finance and macro")
+
+    def test_news_page_grouping(self):
+        page = html_template.build_news_html(self._data())
+        top = page.split("By sector")[0]
+        rest = page.split("By sector", 1)[1]
+        for n in range(1, 6):
+            self.assertIn(f"Top story {n}", top)
+            self.assertEqual(page.count(f"Top story {n}<"), 1)     # 只出現一次，不在 sector 區重複
+        for n in (6, 7):
+            self.assertIn(f"Top story {n}", rest)
+            self.assertNotIn(f"Top story {n}", top)
+        for slug in ("ai-semis", "energy", "finance-macro", "policy", "software"):
+            self.assertIn(f'id="sector-{slug}"', page)
+        for slug in ("healthcare", "consumer", "industrials", "other"):   # 空 sector 不顯示
+            self.assertNotIn(f'id="sector-{slug}"', page)
+        # 固定順序
+        self.assertLess(page.index('id="sector-ai-semis"'), page.index('id="sector-energy"'))
+        self.assertLess(page.index('id="sector-energy"'), page.index('id="sector-software"'))
+        self.assertLess(page.index('id="sector-software"'), page.index('id="sector-finance-macro"'))
+        self.assertLess(page.index('id="sector-finance-macro"'), page.index('id="sector-policy"'))
+        # 組內 high 先
+        fm = page[page.index('id="sector-finance-macro"'):page.index('id="sector-policy"')]
+        self.assertLess(fm.index("CPI cools"), fm.index("Fed holds rates"))
+        # region：us 在 sector 區，其他四組在 region 區
+        self.assertIn("US software merger", rest.split("By region")[0])
+        region = rest.split("By region", 1)[1]
+        for slug in ("china", "jp-kr-tw", "india-em"):
+            self.assertIn(f'id="region-{slug}"', page)
+        self.assertNotIn('id="region-europe"', page)
+        self.assertIn("China chip subsidy", region)
+        self.assertIn("Vietnam data centre", region)
+        self.assertNotIn("US software merger", region)
+        self.assertIn("More detail", page)                         # industry_developments 多出欄位收合
+
+    def test_email_digest_max_two_and_anchors(self):
+        data = self._data()
+        data["regional_tech"]["china"] = [self._it(f"China item {n}") for n in range(4)]
+        digest = html_template._news_email_sector_digest(data)
+        import re
+        for block in digest.split('<div style="padding:8px 0;border-bottom')[1:]:
+            self.assertLessEqual(block.count("news.html#"), 2)
+        self.assertIn("news.html#sector-ai-semis", digest)
+        self.assertIn("news.html#region-china", digest)
+        self.assertNotIn("news.html#sector-healthcare", digest)
+        self.assertRegex(digest, r"All \d+ stories by sector")
+        self.assertNotIn("flex", digest)
+        # build_html 用兩段取代舊的八段
+        full = html_template.build_html(data)
+        self.assertIn("Today&#39;s most important", full)
+        self.assertIn("More by sector", full)
+        self.assertNotIn("Fed holds rates</div>", full.split("More by sector")[0])
+
+    def test_deep_card_why_it_matters_fallback(self):
+        card = html_template._deep_card
+        base = self._it("Headline A", "Finance and macro")
+        c1 = card({**base, "why_it_matters": "WHY-1", "confirmed_impact": "CONF-1", "evidence": "EVID-1"}, "macro", {})
+        self.assertIn("WHY-1", c1)
+        self.assertNotIn("CONF-1", c1)
+        c2 = card({**base, "confirmed_impact": "CONF-1", "evidence": "EVID-1"}, "macro", {})
+        self.assertIn("CONF-1", c2)
+        self.assertNotIn("EVID-1", c2)
+        c3 = card({**base, "evidence": "EVID-1"}, "macro", {})
+        self.assertIn("EVID-1", c3)
+        c4 = card(base, "macro", {})
+        self.assertNotIn("Why it matters", c4)
+        self.assertIn("Touches", c4)
+        self.assertIn("no linked research", c4)
+        self.assertIn("headline and summary only", c4)
+
+    def test_deep_card_touches_and_full_text_flag(self):
+        item = self._it("Headline B", "AI and semiconductors",
+                        watchlist_refs=[{"ticker": "2330.TW", "impact": "Capex raises orders"}])
+        ev_item = {"block": "top_stories", "headline": "Headline B", "also_in": [],
+                   "routes": {"dd": [{"ticker": "NVDA", "path": "/dd/nvda.html"}],
+                              "themes": [{"key": "AI capex", "path": "/id/ai.html"}], "macro": []},
+                   "article_check": {"status": "ok"}, "ideas": []}
+        idx = html_template._ev_card_index({"items": [ev_item]})
+        out = html_template._deep_card(item, "top_stories", idx, {})
+        self.assertIn("DD NVDA", out)
+        self.assertIn("/id/ai.html", out)
+        self.assertIn("2330.TW", out)
+        self.assertIn("full text read", out)
+        self.assertNotIn("no linked research", out)
+
+
 if __name__ == "__main__":
     unittest.main()
 

@@ -35,6 +35,7 @@
 ### 列舉值（prompt 與程式必須同步，改一邊會靜默掉條目）
 
 - `industry_developments.category`：US earnings｜Semis and supply chain｜AI in production｜Global startups｜US sector moves｜Industry and finance
+- `sector`（2026-10-08，top_stories／industry_developments／macro／ai_industry／fintech_crypto／geopolitical／world_news／regional_tech 各卡）：AI and semiconductors｜Energy and power｜Industrials, defense and logistics｜Healthcare and biotech｜Consumer and retail｜Software and internet｜Finance and macro｜Policy and regulation（程式端另有 `Other`，只由推定規則產生；半形 `and`，不含 `&`）；同批新增 `why_it_matters`（一句話）。列舉單一來源在 `briefing/sector.py` 的 `SECTORS`，prompt 由 `__SECTOR_ENUM__` 代換
 - `industry`：Semiconductors｜AI infrastructure｜Enterprise software and security｜Robotics and automation｜Healthcare and biotech｜Fintech｜Defense and aerospace｜Energy and logistics｜Other
 - `fact_status`：reported｜completed｜approved｜signed｜filed｜scheduled｜in progress｜company guidance
 - `development`：demand｜supply｜capacity｜technology｜pricing｜regulation｜competition｜capex｜M&A
@@ -528,10 +529,11 @@ trigger.py → Render Cron → GitHub API
 呈現 risk appetite／liquidity／volatility，volatility 括號內帶 sentiment_analysis 的 stage 與
 credit_status，原本獨立的 VOLATILITY REGIME 區塊拿掉，見下方「市場頁精簡」段） 3._market_strip
 4._index_factor_reading（2026-09-23 起只剩單一 market_structure 欄位） 6._market_pulse（2026-09-23
-起只剩 hidden risk／hidden opportunity／key level，各一行） 6b._new_highs_section（美股創高，見下方「美股創高區塊」） 7._daily_deep_dive
-7b._evidence_email_digest（今日新增證據，只放三行摘要＋連結；news 頁則是完整的 `_evidence_section`，排在 Top stories 之前）
-8.top_stories 8b._watchlist_news_section（關注清單動態） 9.world_news 10.us_market_recap 11.macro
-12.geopolitical 13.ai_industry 14.regional_tech 15.fintech_crypto
+起只剩 hidden risk／hidden opportunity／key level，各一行） 6b._new_highs_section（美股創高，見下方「美股創高區塊」）
+7b._evidence_email_digest（今日新增證據，只放三行摘要＋連結；news 頁則是完整的 `_evidence_section`，排在 Today's most important 之前）
+8._news_email_top（Today's most important，top_stories 前 5 則完整深讀卡） 8a._news_email_sector_digest（依產業／地區的精簡清單，連 news 頁錨點；2026-10-08 起取代原本 top_stories 後半、industry_developments、world_news、macro、geopolitical、ai_industry、regional_tech、fintech_crypto 八段，見「news 頁依產業分區」）
+8b._watchlist_news_section（關注清單動態） 8c._daily_deep_dive
+10.us_market_recap
 16.system_status（System status） 17.tech_trends（Deep tech） 17b._frontier_tech（Frontier tech） 18.startup_news（Startups） 18b._weekend_reads_section（Weekend reads） 19.smart_money
 20.earnings_preview 21.implied_trends 22.fun_fact 23.today_events 24.footer
 
@@ -597,6 +599,19 @@ frontier_tech／weekend_reads（`evidence_layer.WIDE_SCAN_EXTRA_BLOCKS`）裡沒
 卡」，轉成跟 RSS 條目同形狀（`ideas_layer._curated_card_as_pool_item`）併入早報外掃描的池
 子，重用既有把關（過舊事件、ledger 已知數字、idea_hits 歷史重複、跟早報候選標題近似），不
 重造規則。
+
+---
+
+## news 頁依產業分區（2026-10-08）
+
+- **news.html 順序**（`build_news_html`）：`_ideas_section`、`_evidence_section`（不動）→ **Today's most important**（`top_stories[:5]`，深讀卡）→ **By sector**（其餘 `top_stories[5:]`＋`industry_developments`＋`macro`＋`ai_industry`＋`fintech_crypto`＋`geopolitical`＋`world_news`＋`regional_tech.us`，依 sector 分組）→ **By region**（`regional_tech` 非 us）→ `_watchlist_news_section` → `_daily_deep_dive`。
+- **sector 分組**：固定順序＝`sector.SECTORS` 列舉順序，`Other` 最後，空的不顯示；標題帶數量與錨點；組內 importance high 先、再照原區塊順序（穩定排序）。top 5 不會再出現在 sector 區。
+- **sector 推定**（`sector.normalize_sector(block, item)`；prompt 要求模型填，程式端在 `ai_processor` sanitize 尾端對所有新聞區塊一律寫回 `item["sector"]`，渲染時再呼叫一次，冪等）：值合法（容忍 `&`、大小寫）就保留；缺或不合法時依序推定——`industry_developments.industry`：Semiconductors／AI infrastructure→AI and semiconductors，Enterprise software and security→Software and internet，Robotics and automation／Defense and aerospace→Industrials, defense and logistics，Energy and logistics→Industrials, defense and logistics（標題含 power／grid／utility／nuclear／solar／LNG／oil 等字則 Energy and power），Healthcare and biotech→同名，Fintech→Finance and macro；`macro`／`fintech_crypto`→Finance and macro；`geopolitical`→Policy and regulation；`ai_industry`→AI and semiconductors；其餘區塊用標題（再內文）關鍵字判斷，判不出來給 `Other`。
+- **深讀卡四行**（`_deep_card(item, block, ev_index, catalog)`）：標題＋Key badge＋sector chip；`What happened ▸`＝body；`Why it matters ▸`＝`why_it_matters`，缺則 `confirmed_impact`，再缺則 `evidence`，都沒有就不印；`Touches ▸`＝對到的研究連結（從 `evidence_layer.items` 以 `(block, headline)` 為 key 找同一張卡，`also_in` 併入的卡也算；取 `routes.dd`／`routes.themes`／`routes.macro`／`routes.clock`／`ideas`（verdict 為 supports／refutes／shaky／candidate）），加上卡自己的 `watchlist_refs` ticker 徽章（impact 在下方「What it means for the watchlist」框），都沒有印 `no linked research`。來源行尾加旗標：evidence 項目的 `article_check.status == "ok"` 印 `full text read`，否則（含找不到對應 evidence 項目）`headline and summary only`。`industry_developments` 的 category／industry／fact_status／development／evidence／value_chain／market_move／unknowns 收進卡片內 collapsed「More detail」。
+- **Email**（`build_html`）：原本八段換成 `_news_email_top`（5 則完整深讀卡）與 `_news_email_sector_digest`（每個非空 sector／region 一塊，名稱＋數量＋最多 2 則「標題（source）」，標題連 `news.html#sector-<slug>`／`#region-<slug>`；末行 `All N stories by sector →`）；只用 div，不用 flex。`_watchlist_news_section`、`_daily_deep_dive` 及其他段落不動。
+- **geo.html／tech.html 暫留**：`build_geo_html`／`build_tech_html` 沒動，仍用舊的 `_news_section` 等 render 函式，內容與 news 頁重複，刻意接受。舊 render 函式不可刪。
+- **錨點 slug**：ai-semis（AI and semiconductors）｜energy（Energy and power）｜industrials（Industrials, defense and logistics）｜healthcare（Healthcare and biotech）｜consumer（Consumer and retail）｜software（Software and internet）｜finance-macro（Finance and macro）｜policy（Policy and regulation）｜other（Other）；頁面錨點為 `sector-<slug>`。地區：`region-china`（china）｜`region-jp-kr-tw`（japan、korea、taiwan）｜`region-europe`（europe）｜`region-india-em`（india、asean 及其他未列出的 key）。
+- **不變量**：區塊名稱與既有欄位不改（evidence_layer／ideas_layer 靠它們），只加 `sector`／`why_it_matters`。測試在 `tests/test_html_template.py::NewsBySectorTests`。
 
 ---
 

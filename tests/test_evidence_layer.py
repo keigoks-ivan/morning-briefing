@@ -292,7 +292,7 @@ class Acceptance20260922Tests(unittest.TestCase):
         data["date"] = "test"
         news = html_template.build_news_html(data)
         a = news.find('id="evidence"')
-        b = news.find('<div class="section-label">Top stories</div>')
+        b = news.find('<div class="section-label">Today&#39;s most important</div>')
         self.assertTrue(0 < a < b)
         for label in ("Last known", "New today", "Direct impact", "Possible transmission",
                       "Not yet confirmed", "Sources", "classification confidence",

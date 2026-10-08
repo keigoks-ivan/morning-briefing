@@ -23,6 +23,7 @@ from google.genai import types
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from source_registry import canonicalize_source, render_source_whitelist
+from sector import SECTORS, normalize_sector
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -321,6 +322,15 @@ Your job: extract, summarise and classify news from the search results and RSS h
   and again in regional_tech.us.
 - The same event also may not repeat across regions (a TSMC event goes in taiwan or japan, not both).
 
+[SECTOR AND WHY IT MATTERS — every card in top_stories, industry_developments, macro, ai_industry, fintech_crypto, geopolitical, world_news and every regional_tech region]
+- sector must be exactly one of: "AI and semiconductors", "Energy and power", "Industrials, defense and logistics", "Healthcare and biotech",
+  "Consumer and retail", "Software and internet", "Finance and macro", "Policy and regulation". Use "and", never "&".
+- Pick the single main industry the event is about. Central banks, rates, FX and credit are "Finance and macro";
+  tariffs, export controls, regulation and elections are "Policy and regulation"; fintech and crypto are "Finance and macro";
+  grid, nuclear and data-centre power are "Energy and power"; data-centre equipment and chips are "AI and semiconductors".
+- why_it_matters is one sentence: why the event matters and who it touches, with a number when the source gives one.
+  It must add something the body does not already say.
+
 [top_stories ORDERING]
 - The first 3-5 items must be events with direct impact on the index book (QQQ / SMH / 0050 / 2330): semiconductor supply chain
   (TSMC / Nvidia / ASML / memory contract prices), AI capex, Fed or central bank path, tariffs and export controls, oil supply shocks.
@@ -431,7 +441,9 @@ Emit the following JSON. Write every field in English.
       "tag_type": "macro|geo|tech|cb",
       "source": "Canonical allowlisted outlet",
       "source_date": "YYYY-MM-DD",
-      "importance": "high|medium"
+      "importance": "high|medium",
+      "sector": "__SECTOR_ENUM__",
+      "why_it_matters": "One sentence: why it matters and who is affected, with a number if possible"
     }}}}
   ],
 
@@ -463,7 +475,9 @@ Emit the following JSON. Write every field in English.
       "tag": "Short category label",
       "source": "Outlet",
       "source_date": "YYYY-MM-DD",
-      "importance": "high|medium"
+      "importance": "high|medium",
+      "sector": "__SECTOR_ENUM__",
+      "why_it_matters": "One sentence: why it matters and who is affected, with a number if possible"
     }}}}
   ],
 
@@ -474,7 +488,9 @@ Emit the following JSON. Write every field in English.
       "tag": "Healthcare|Enterprise|Supply chain|AI industry",
       "source": "Outlet",
       "source_date": "YYYY-MM-DD",
-      "importance": "high|medium"
+      "importance": "high|medium",
+      "sector": "__SECTOR_ENUM__",
+      "why_it_matters": "One sentence: why it matters and who is affected, with a number if possible"
     }}}}
   ],
 
@@ -493,18 +509,20 @@ Emit the following JSON. Write every field in English.
       "unknowns": "What is undisclosed or still unverified; write \'Nothing outstanding\' if none",
       "source": "Canonical allowlisted outlet",
       "source_date": "YYYY-MM-DD",
-      "importance": "high|medium"
+      "importance": "high|medium",
+      "sector": "__SECTOR_ENUM__",
+      "why_it_matters": "One sentence: why it matters and who is affected, with a number if possible"
     }}}}
   ],
 
   "regional_tech": {{{{
-    "taiwan":   [{{{{"headline": "Headline", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
-    "japan":    [{{{{"headline": "Headline", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
-    "us":       [{{{{"headline": "Headline", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
-    "asean":    [{{{{"headline": "Headline (Southeast Asia: Singapore / Malaysia / Vietnam / Indonesia data centres and supply chain)", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
-    "korea":    [{{{{"headline": "Headline", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
-    "china":    [{{{{"headline": "Headline", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}],
-    "europe":   [{{{{"headline": "Headline", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium"}}}}]
+    "taiwan":   [{{{{"headline": "Headline", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium", "sector": "__SECTOR_ENUM__", "why_it_matters": "One sentence: why it matters and who is affected"}}}}],
+    "japan":    [{{{{"headline": "Headline", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium", "sector": "__SECTOR_ENUM__", "why_it_matters": "One sentence: why it matters and who is affected"}}}}],
+    "us":       [{{{{"headline": "Headline", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium", "sector": "__SECTOR_ENUM__", "why_it_matters": "One sentence: why it matters and who is affected"}}}}],
+    "asean":    [{{{{"headline": "Headline (Southeast Asia: Singapore / Malaysia / Vietnam / Indonesia data centres and supply chain)", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium", "sector": "__SECTOR_ENUM__", "why_it_matters": "One sentence: why it matters and who is affected"}}}}],
+    "korea":    [{{{{"headline": "Headline", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium", "sector": "__SECTOR_ENUM__", "why_it_matters": "One sentence: why it matters and who is affected"}}}}],
+    "china":    [{{{{"headline": "Headline", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium", "sector": "__SECTOR_ENUM__", "why_it_matters": "One sentence: why it matters and who is affected"}}}}],
+    "europe":   [{{{{"headline": "Headline", "body": "1-2 sentences", "source": "Outlet", "source_date": "YYYY-MM-DD", "importance": "high|medium", "sector": "__SECTOR_ENUM__", "why_it_matters": "One sentence: why it matters and who is affected"}}}}]
   }}}},
 
   "fintech_crypto": [
@@ -514,7 +532,9 @@ Emit the following JSON. Write every field in English.
       "tag": "Fintech|Crypto|DeFi|Stablecoin",
       "source": "Outlet",
       "source_date": "YYYY-MM-DD",
-      "importance": "high|medium"
+      "importance": "high|medium",
+      "sector": "__SECTOR_ENUM__",
+      "why_it_matters": "One sentence: why it matters and who is affected, with a number if possible"
     }}}}
   ],
 
@@ -525,7 +545,9 @@ Emit the following JSON. Write every field in English.
       "region": "Middle East|Taiwan Strait|US-China|Other",
       "source": "Outlet",
       "source_date": "YYYY-MM-DD",
-      "importance": "high|medium"
+      "importance": "high|medium",
+      "sector": "__SECTOR_ENUM__",
+      "why_it_matters": "One sentence: why it matters and who is affected, with a number if possible"
     }}}}
   ],
 
@@ -537,7 +559,9 @@ Emit the following JSON. Write every field in English.
       "tag": "Short category label",
       "source": "Outlet",
       "source_date": "YYYY-MM-DD",
-      "importance": "high|medium"
+      "importance": "high|medium",
+      "sector": "__SECTOR_ENUM__",
+      "why_it_matters": "One sentence: why it matters and who is affected, with a number if possible"
     }}}}
   ],
 
@@ -646,6 +670,10 @@ Other rules:
 - earnings_preview covers what is about to be released in the NEXT US session (yfinance-confirmed dates); us_market_recap covers what was released in the session that just closed. They are strictly mutually exclusive.
 - Write everything in English. No Chinese characters anywhere in the output.
 """
+
+GEMINI_USER_PROMPT_TEMPLATE = GEMINI_USER_PROMPT_TEMPLATE.replace(
+    "__SECTOR_ENUM__", "|".join(SECTORS)
+)
 
 # ═══════════════════════════════════════════════════════════════
 # Claude Prompt — 分析區塊
@@ -2094,6 +2122,19 @@ def _sanitize_news(data: dict, cutoff_date: str) -> dict:
                 stats["market_sent"] += 1
         if not kept and not recap.get("other_events"):
             recap["has_events"] = False
+
+    # sector 一律寫回（缺值或不合法時依 block／industry／關鍵字推定，見 sector.py）
+    for key in ("top_stories", "industry_developments", "macro", "ai_industry", "fintech_crypto",
+                "geopolitical", "world_news"):
+        if isinstance(data.get(key), list):
+            for it in data[key]:
+                if isinstance(it, dict):
+                    it["sector"] = normalize_sector(key, it)
+    if isinstance(data.get("regional_tech"), dict):
+        for region, its in data["regional_tech"].items():
+            for it in its if isinstance(its, list) else []:
+                if isinstance(it, dict):
+                    it["sector"] = normalize_sector("regional_tech", it)
 
     if any(stats.values()):
         print(

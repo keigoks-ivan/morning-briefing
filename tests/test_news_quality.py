@@ -544,11 +544,15 @@ class AiQualityTests(unittest.TestCase):
                 "importance": "high",
             }],
         })
-        self.assertIn("Industry developments", rendered)
+        # 2026-10-08：news 頁改依產業分區；類別與證據欄位收在卡片的 More detail，
+        # confirmed_impact 在沒有 why_it_matters 時當 Why it matters
+        self.assertIn("By sector", rendered)
+        self.assertIn("AI and semiconductors", rendered)
         self.assertIn("Semis and supply chain", rendered)
         self.assertIn("Evidence", rendered)
         self.assertIn("Value chain", rendered)
-        self.assertIn("Confirmed impact", rendered)
+        self.assertIn("Why it matters", rendered)
+        self.assertIn("The company will expand its delivery schedule.", rendered)
         self.assertIn("Unknowns", rendered)
 
 

@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 import pytz
 
 from site_nav_snippet import NAV_BLOCK_BRIEF
+from sector import SECTORS, OTHER_SECTOR, SECTOR_SLUGS, normalize_sector
 
 
 SENTIMENT_COLOR = {"pos": "#0F6E56", "neg": "#C0392B", "neu": "#888"}
@@ -1913,6 +1914,277 @@ def _news_section(title: str, items: list, tag_style_map: dict | None = None) ->
 </div>'''
 
 
+# ── news 頁依產業分區（2026-10-08，見 CLAUDE.md「news 頁依產業分區」）──────────────
+_SECTOR_COLORS = {
+    "AI and semiconductors": ("#E6F1FB", "#185FA5"),
+    "Energy and power": ("#FFF3E0", "#8A4B08"),
+    "Industrials, defense and logistics": ("#FCEBEB", "#A32D2D"),
+    "Healthcare and biotech": ("#FBEAF0", "#993556"),
+    "Consumer and retail": ("#FAEEDA", "#854F0B"),
+    "Software and internet": ("#E1F5EE", "#0F6E56"),
+    "Finance and macro": ("#E8F2F7", "#1B3A5C"),
+    "Policy and regulation": ("#EEEDFE", "#534AB7"),
+    OTHER_SECTOR: ("#F1F1F1", "#666666"),
+}
+_TOP_DEEP_N = 5
+_SECTOR_POOL_BLOCKS = ["industry_developments", "macro", "ai_industry", "fintech_crypto", "geopolitical", "world_news"]
+# (標題, 錨點 slug, 包含的 regional_tech key)；未列出的 key 併入最後一組
+_REGION_GROUPS = [
+    ("China", "china", ["china"]),
+    ("Japan, Korea and Taiwan", "jp-kr-tw", ["japan", "korea", "taiwan"]),
+    ("Europe", "europe", ["europe"]),
+    ("India and emerging markets", "india-em", ["india", "asean"]),
+]
+_DETAIL_FIELDS = [("category", "Category"), ("industry", "Industry"), ("fact_status", "Fact status"),
+                  ("development", "Development"), ("evidence", "Evidence"), ("value_chain", "Value chain"),
+                  ("market_move", "Market move"), ("unknowns", "Unknowns")]
+_NEWS_PAGE_URL = _SITE + "/briefing/news.html"
+
+
+def _sector_chip(sector: str) -> str:
+    bg, fg = _SECTOR_COLORS.get(sector, _SECTOR_COLORS[OTHER_SECTOR])
+    return (f'<span style="display:inline-block;font-size:11px;font-weight:500;padding:1px 7px;border-radius:3px;'
+            f'margin-left:6px;vertical-align:middle;background:{bg};color:{fg};">{_esc(sector)}</span>')
+
+
+def _news_dicts(items) -> list:
+    return [i for i in (items or []) if isinstance(i, dict) and i.get("headline")]
+
+
+def _ev_card_index(ev: dict | None) -> dict:
+    """(block, headline) -> evidence item；also_in 併入的卡也指到同一個 evidence item。"""
+    idx: dict = {}
+    if not isinstance(ev, dict):
+        return idx
+    for it in ev.get("items") or []:
+        if not isinstance(it, dict):
+            continue
+        idx[(it.get("block", ""), str(it.get("headline", "")).strip())] = it
+        for a in it.get("also_in") or []:
+            idx.setdefault((a.get("block", ""), str(a.get("headline", "")).strip()), it)
+    return idx
+
+
+def _ev_catalog(ev: dict | None) -> dict:
+    if not isinstance(ev, dict):
+        return {}
+    return (ev.get("ideas") or {}).get("catalog") or {}
+
+
+def _touch_links(ev_item: dict | None, catalog: dict) -> list:
+    """這則新聞對到的研究連結（DD／theme／macro report／clock／ideas），每個一段 HTML。"""
+    if not ev_item:
+        return []
+    r = ev_item.get("routes") or {}
+    parts = []
+    for d in r.get("dd") or []:
+        if d.get("path"):
+            parts.append(_ev_link(d["path"], f"DD {d.get('ticker', '')}"))
+    for t in (r.get("themes") or [])[:3]:
+        if t.get("path"):
+            parts.append(_ev_link(t["path"], t.get("key", "theme")))
+    for m in (r.get("macro") or [])[:2]:
+        if m.get("path"):
+            parts.append(_ev_link(m["path"], f"Macro: {m.get('slug', '')}"))
+    if r.get("clock"):
+        parts.append(_ev_link("/macro/", "Macro clock"))
+    seen = set()
+    for row in ev_item.get("ideas") or []:
+        if row.get("verdict") not in ("supports", "refutes", "shaky", "candidate"):
+            continue
+        iid = row.get("idea", "")
+        if iid in seen:
+            continue
+        seen.add(iid)
+        meta = catalog.get(iid) or {}
+        parts.append(_ev_link(meta.get("url") or "/ideas/", f"Idea: {meta.get('short') or iid}"))
+    return parts
+
+
+def _deep_card(item: dict, block: str, ev_index: dict, catalog: dict | None = None) -> str:
+    """深讀卡：標題＋badge＋sector chip／What happened／Why it matters／Touches／來源行＋全文旗標。"""
+    catalog = catalog or {}
+    headline = str(item.get("headline", "")).strip()
+    sector = normalize_sector(block, item)
+    ev_item = ev_index.get((block, headline))
+    why = (str(item.get("why_it_matters") or "").strip() or str(item.get("confirmed_impact") or "").strip()
+           or str(item.get("evidence") or "").strip())
+    label = "font-size:12px;color:#888;font-weight:600;"
+    why_html = (f'<div style="font-size:14px;color:#333;line-height:1.6;margin-top:4px;">'
+                f'<span style="{label}">Why it matters &#9656;</span> {_esc(why)}</div>') if why else ""
+    links = _touch_links(ev_item, catalog)
+    refs = [r for r in item.get("watchlist_refs", []) if isinstance(r, dict)]
+    chips = "".join(
+        f'<span style="display:inline-block;background:#1B3A5C;color:#fff;font-size:11px;font-weight:600;'
+        f'padding:1px 6px;border-radius:3px;margin:0 4px 0 0;">{_esc(r.get("ticker", ""))}</span>' for r in refs)
+    if links or refs:
+        touch_body = " &middot; ".join(links)
+        if links and refs:
+            touch_body += " &middot; "
+        touch_body += chips
+    else:
+        touch_body = '<span style="color:#999;">no linked research</span>'
+    ref_rows = "".join(
+        f'''<div style="margin-top:5px;font-size:13px;line-height:1.55;color:#40566f;">
+          <span style="display:inline-block;background:#1B3A5C;color:#fff;font-size:11px;font-weight:600;
+                       padding:1px 6px;border-radius:3px;margin-right:6px;">{_esc(r.get("ticker", ""))}</span>
+          {_esc(r.get("impact", ""))}</div>''' for r in refs)
+    watch_html = (f'''<div style="margin-top:8px;padding:7px 10px;background:#F3F6FA;border-left:3px solid #1B3A5C;
+                              border-radius:0 4px 4px 0;">
+      <div style="font-size:10px;color:#6B7C8F;letter-spacing:1px;font-weight:600;">What it means for the watchlist</div>
+      {ref_rows}</div>''' if refs else "")
+    touch_html = (f'<div style="font-size:13px;color:#333;line-height:1.7;margin-top:4px;">'
+                  f'<span style="{label}">Touches &#9656;</span> {touch_body}</div>')
+    full_text = bool(ev_item and (ev_item.get("article_check") or {}).get("status") == "ok")
+    flag = "full text read" if full_text else "headline and summary only"
+    source_bits = " &middot; ".join(b for b in (_esc(item.get("source_date", "")), _esc(item.get("source", ""))) if b)
+    source_html = (f'<div style="font-size:13px;color:#aaa;margin-top:4px;">{source_bits}'
+                   f'{" &middot; " if source_bits else ""}{flag}</div>')
+    details = ""
+    rows = "".join(
+        f'<div style="margin-top:3px;"><span style="color:#888;">{lab}:</span> {_esc(item.get(key))}</div>'
+        for key, lab in _DETAIL_FIELDS if str(item.get(key) or "").strip())
+    if block == "industry_developments" and rows:
+        details = (f'<details style="margin-top:6px;"><summary style="cursor:pointer;font-size:12px;color:#888;">'
+                   f'More detail</summary><div style="font-size:13px;color:#555;line-height:1.6;padding-top:4px;">'
+                   f'{rows}</div></details>')
+    return f"""
+<div style="padding:12px 0;border-bottom:0.5px solid #f0f0f0;">
+  <div style="font-size:17px;font-weight:600;color:#111;line-height:1.5;">{_esc(headline)}{_importance_badge(item.get("importance", "medium"))}{_sector_chip(sector)}</div>
+  <div style="font-size:15px;color:#555;line-height:1.65;margin-top:4px;"><span style="{label}">What happened &#9656;</span> {_esc(item.get("body", ""))}</div>
+  {why_html}
+  {touch_html}
+  {watch_html}
+  {source_html}
+  {details}
+</div>"""
+
+
+def _news_top_split(data: dict) -> tuple[list, list]:
+    stories = _news_dicts(data.get("top_stories"))
+    return stories[:_TOP_DEEP_N], stories[_TOP_DEEP_N:]
+
+
+def _news_sector_pool(data: dict) -> list:
+    """[(block, item)]：top_stories[5:] ＋ 其餘區塊 ＋ regional_tech.us，原區塊順序。"""
+    _, rest = _news_top_split(data)
+    pool = [("top_stories", i) for i in rest]
+    for block in _SECTOR_POOL_BLOCKS:
+        pool += [(block, i) for i in _news_dicts(data.get(block))]
+    rt = data.get("regional_tech")
+    if isinstance(rt, dict):
+        pool += [("regional_tech", i) for i in _news_dicts(rt.get("us"))]
+    return pool
+
+
+def _news_by_sector(data: dict) -> list:
+    """[(sector, [(block, item)...])]，固定順序、Other 最後、空的不回；組內 high 先、其餘維持原順序。"""
+    groups: dict = {s: [] for s in SECTORS + [OTHER_SECTOR]}
+    for block, item in _news_sector_pool(data):
+        groups[normalize_sector(block, item)].append((block, item))
+    out = []
+    for sector, members in groups.items():
+        if members:
+            members = sorted(members, key=lambda m: m[1].get("importance") != "high")   # 穩定排序
+            out.append((sector, members))
+    return out
+
+
+def _news_by_region(data: dict) -> list:
+    """[(標題, slug, [(region_key, item)...])]，空的不回。"""
+    rt = data.get("regional_tech")
+    if not isinstance(rt, dict):
+        return []
+    known = {k for _, _, keys in _REGION_GROUPS for k in keys} | {"us"}
+    out = []
+    for n, (title, slug, keys) in enumerate(_REGION_GROUPS):
+        use = list(keys)
+        if n == len(_REGION_GROUPS) - 1:
+            use += [k for k in rt if k not in known]
+        members = [(k, i) for k in use for i in _news_dicts(rt.get(k))]
+        members.sort(key=lambda m: m[1].get("importance") != "high")
+        if members:
+            out.append((title, slug, members))
+    return out
+
+
+def _group_header(title: str, count: int, anchor: str, color: str) -> str:
+    return (f'<div id="{anchor}" style="margin-top:18px;padding-bottom:5px;border-bottom:2px solid {color};'
+            f'font-size:14px;font-weight:700;color:{color};">{_esc(title)} '
+            f'<span style="font-weight:400;color:#888;">{count}</span></div>')
+
+
+def _news_top_section(data: dict, ev_index: dict, catalog: dict) -> str:
+    top, _ = _news_top_split(data)
+    if not top:
+        return ""
+    cards = "".join(_deep_card(i, "top_stories", ev_index, catalog) for i in top)
+    return f'''
+<div class="section" id="top">
+  <div class="section-label">Today&#39;s most important</div>{cards}
+</div>'''
+
+
+def _news_sector_section(data: dict, ev_index: dict, catalog: dict) -> str:
+    body = ""
+    for sector, members in _news_by_sector(data):
+        color = _SECTOR_COLORS[sector][1]
+        body += _group_header(sector, len(members), "sector-" + SECTOR_SLUGS[sector], color)
+        body += "".join(_deep_card(i, b, ev_index, catalog) for b, i in members)
+    if not body:
+        return ""
+    return f'''
+<div class="section">
+  <div class="section-label">By sector</div>{body}
+</div>'''
+
+
+def _news_region_section(data: dict, ev_index: dict, catalog: dict) -> str:
+    body = ""
+    for title, slug, members in _news_by_region(data):
+        body += _group_header(title, len(members), "region-" + slug, "#1B3A5C")
+        body += "".join(_deep_card(i, "regional_tech", ev_index, catalog) for _, i in members)
+    if not body:
+        return ""
+    return f'''
+<div class="section">
+  <div class="section-label">By region</div>{body}
+</div>'''
+
+
+def _news_email_top(data: dict, ev_index: dict, catalog: dict | None = None) -> str:
+    """Email：Today's most important 5 則完整深讀卡（卡片本身不用 flex）。"""
+    return _news_top_section(data, ev_index, catalog or {})
+
+
+def _news_email_sector_digest(data: dict) -> str:
+    """Email：每個非空 sector／region 一小塊，最多 2 則「標題（source）」連到 news 頁錨點。"""
+    def block(title: str, count: int, anchor: str, color: str, members: list) -> str:
+        lines = ""
+        for _, it in members[:2]:
+            src = f' <span style="color:#999;">({_esc(it.get("source", ""))})</span>' if it.get("source") else ""
+            lines += (f'<div style="font-size:14px;color:#333;line-height:1.55;padding:2px 0;">'
+                      f'<a href="{_NEWS_PAGE_URL}#{anchor}" style="color:#333;text-decoration:none;">'
+                      f'{_esc(it.get("headline", ""))}</a>{src}</div>')
+        return (f'<div style="padding:8px 0;border-bottom:0.5px solid #f0f0f0;">'
+                f'<div style="font-size:13px;font-weight:700;color:{color};">{_esc(title)} '
+                f'<span style="font-weight:400;color:#888;">{count}</span></div>{lines}</div>')
+    sectors = _news_by_sector(data)
+    regions = _news_by_region(data)
+    if not sectors and not regions:
+        return ""
+    body = "".join(block(s, len(m), "sector-" + SECTOR_SLUGS[s], _SECTOR_COLORS[s][1], m) for s, m in sectors)
+    if regions:
+        body += ('<div style="font-size:12px;letter-spacing:1px;color:#888;font-weight:600;padding-top:10px;">BY REGION</div>'
+                 + "".join(block(t, len(m), "region-" + slug, "#1B3A5C", m) for t, slug, m in regions))
+    total = sum(len(m) for _, m in sectors) + sum(len(m) for _, _, m in regions)
+    return f'''
+<div class="section">
+  <div class="section-label">More by sector</div>{body}
+  <div style="font-size:14px;padding-top:8px;"><a href="{_NEWS_PAGE_URL}" style="color:#1B3A5C;">All {total} stories by sector &rarr;</a></div>
+</div>'''
+
+
 _INDUSTRY_COLORS = {
     "Semiconductors": ("#E6F1FB", "#185FA5"),
     "AI infrastructure": ("#EEEDFE", "#534AB7"),
@@ -3260,13 +3532,16 @@ def build_index_html(data: dict) -> str:
 
 
 def build_news_html(data: dict) -> str:
-    """要聞・深度"""
+    """要聞・深度（2026-10-08 起依產業分區）"""
     date = data.get("date", "")
-    content = _ideas_section(data.get("evidence_layer"))
-    content += _evidence_section(data.get("evidence_layer"))
-    content += _news_section("Top stories", data.get("top_stories", []))
+    ev = data.get("evidence_layer")
+    ev_index, catalog = _ev_card_index(ev), _ev_catalog(ev)
+    content = _ideas_section(ev)
+    content += _evidence_section(ev)
+    content += _news_top_section(data, ev_index, catalog)
+    content += _news_sector_section(data, ev_index, catalog)
+    content += _news_region_section(data, ev_index, catalog)
     content += _watchlist_news_section(data.get("watchlist_news", []))
-    content += _industry_developments_section(data.get("industry_developments", []))
     content += _daily_deep_dive(data.get("daily_deep_dive", []))
     return _page_wrapper("news", date, content, "Top stories")
 
@@ -3962,8 +4237,6 @@ def build_html(data: dict, screener_result: dict = None) -> str:
     tz  = pytz.timezone("Asia/Taipei")
     now = datetime.now(tz).strftime("%a %d %b %Y, %H:%M TST")
 
-    ai_tag = {"macro": "background:#EBF2FA;color:#185FA5;", "tech": "background:#EAF3DE;color:#3B6D11;"}
-    ai_section = _news_section("AI industry", data.get("ai_industry", []), ai_tag)
     sr = screener_result or {}
 
     return f"""<!DOCTYPE html>
@@ -3986,16 +4259,10 @@ def build_html(data: dict, screener_result: dict = None) -> str:
 {_new_highs_section(data.get("new_highs"), max_near=40)}
 {_ideas_email_summary(data.get("evidence_layer"))}
 {_evidence_email_digest(data.get("evidence_layer"))}
-{_news_section("Top stories", data.get("top_stories",[]))}
+{_news_email_top(data, _ev_card_index(data.get("evidence_layer")), _ev_catalog(data.get("evidence_layer")))}
+{_news_email_sector_digest(data)}
 {_watchlist_news_section(data.get("watchlist_news",[]))}
-{_industry_developments_section(data.get("industry_developments",[]))}
 {_daily_deep_dive(data.get("daily_deep_dive", []))}
-{_world_news(data.get("world_news", []))}
-{_news_section("Macro", data.get("macro",[]))}
-{_geopolitical_section(data.get("geopolitical",[]))}
-{ai_section}
-{_regional_tech_section(data.get("regional_tech", {}))}
-{_fintech_crypto_section(data.get("fintech_crypto",[]))}
 {_status_grid(data.get("system_status", {}))}
 {_tech_trends(data.get("tech_trends",[]))}
 {_frontier_tech(data.get("frontier_tech",[]))}
