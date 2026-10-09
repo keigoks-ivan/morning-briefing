@@ -223,6 +223,19 @@ Google verification`）——那是機器人偵測，不繞。而且就算加成
 
 **測試**：`python3.12 -m pytest -q tests`（不呼叫付費 API）。離線重播 9/22 案例：`python3.12 tests/evidence_offline_replay.py --out /tmp/evidence_replay --mode fake`（`--mode nokey` 看沒金鑰的畫面）。fake 模式用的是測試劇本，不是真實 Jev 輸出。官方來源在測試裡讀 `tests/fixtures/official_20260922/` 的快照，不連網；TDnet 另外測，快照在 `tests/fixtures/tdnet/`（`tests/test_evidence_sources.py`）。全文抓取（`briefing/evidence_fulltext.py`）測試在 `tests/test_evidence_fulltext.py`（假 http_get／解碼函式，不連網）與 `tests/test_evidence_layer.py` 的 `FullTextTests`（斷言全文不會出現在任何輸出檔裡）。 GDELT：`tests/test_gdelt_source.py` 測查詢組裝、限流偵測與重試、標題過濾與排序、候選形狀；`tests/test_evidence_layer.py` 的 `GdeltIntegrationTests` 測 `gdelt_fetch` 參數怎麼接進 `run_evidence_layer`（假的 fetch、預設不查、掛掉不連累早報）。Sitemap（2026-09-24）：`tests/test_sitemap_source.py`、`tests/test_evidence_layer.py` 的 `SitemapIntegrationTests`／`MergeReservedCandidatesTests`、`tests/test_ideas_layer.py` 的 `WideScanTests`（見上方「Sitemap 候選」段末的測試清單），一律不連網；本機即時抓取驗證另外跑（不進 pytest），見「Sitemap 候選」段。
 
+**影子判斷（`briefing/shadow_judge.py`，2026-10-10 至 2026-10-24）**：測 Sonnet 能不能取代 Jev。早報照 Jev 的答案出，Sonnet 的答案只寫進 `docs/briefing/data/shadow_judge_{date}.json`，不進分類、派送、ledger、網頁或 email。
+- 怎麼問：同一批候選、同一份 state、同一組題目（`build_questions`），一天一次。依字數切批，最多 3 批並行，走訂閱 CLI（`claude-sonnet-5-5`，思考關閉，每批逾時 240 秒）。Sonnet 對每題給各選項的機率，程式換成 Jev 的格式（choice 取機率最高的選項，信心＝最高機率；score 取機率加權；noul 取 true 的機率），再跑同一個 `interpret()`／`decide()`。Jev 那邊在同一時間用同一份 cand 重算 `decide()`，兩邊條件相同。
+- 接線：`run_evidence_layer(shadow_jobs=list)` 只把每則的 cand、priors、state、題目與 Jev 答案收進清單，不碰 result。`main.py` 步驟 4.5 在 email 寄出之後才問 Sonnet，慢或失敗都不影響早報。缺題或選項對不上的那則標 `shadow_error`，不另外重試（CLI 內部已重試 3 次）。
+- 自動停止：過了 `SHADOW_JUDGE_UNTIL`（預設 2026-10-24，含當天）就跳過、不寫檔。要延長改環境變數或常數，要提早停就把日期改成過去。
+- 版權：全文只出現在送給 CLI 的提示裡（記憶體），輸出檔只有標題、標籤與機率，錯誤只記例外型別。`tests/test_shadow_judge.py` 斷言全文不會出現在檔案裡。
+- 成本：2026-10-09 本機 3 則實測 2.6 萬 input、2,600 output token，16 秒（訂閱制，API 等價約 0.13 美元）。30 則粗估每天 20 萬至 25 萬 token、1 至 3 分鐘，吃 Max 訂閱額度，不另付費。Jev 同期每天約 0.0075 美元。
+- 兩週後比對：`python3 briefing/shadow_compare.py`（預設從站上抓 10/10 至 10/24；`--local ~/financial-analysis-bot/docs/briefing/data` 讀本機）。依對早報的影響排序看四件事：
+  1. 主線／低優先一致率，這是早報版面真正會變的地方。
+  2. 事後新舊回查：沿用週度校準的規則，用比對當下完整的 ledger 回查，算兩邊「判成新」的那批裡有多少其實是舊聞；新舊判斷相反的逐則列出回查結果。被判成重述的那則會沿用先前紀錄的 fact_key，`hindsight_check` 會因此跳過正好能證明它是舊聞的那筆，所以比對時先不帶 fact_key 找一次。回查是程式比對，unclear 不算任何一方對。
+  3. 各題標籤、直接變數集合、重要性分區、涉及公司的一致率。
+  4. 新舊題信心分布：Sonnet 的機率是自己報的，跟 Jev 的校準方式不同。若大量落在 `NOVELTY_MIN_CONF`（0.60）以下，或全擠在 0.9 以上，現有門檻不能直接沿用。
+- 切不切換由持有人看完比對結果決定，程式不會自動切。
+
 **週度自動校準（`briefing/evidence_calibration.py`，2026-09-23 新增）**：不找人標記，每週自動回頭檢查
 Jev 這週的判斷準不準，真相來自事後的紀錄與市場結果，Sonnet 二次意見只是參考。只寫建議，**永遠不自動
 改任何門檻**，門檻要不要改由持有人自己決定。三個檢查：

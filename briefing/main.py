@@ -113,6 +113,7 @@ def main() -> None:
     #     Jev 只答窄問題；沒 key／API 失敗／任何例外都只讓這一區塊標「未判斷」，早報照出。
     print("\n[2.5] Evidence layer...")
     evidence_ledger = None
+    shadow_jobs: list = []   # 4.5 影子判斷用（shadow_judge.py），寄完 email 才跑
     evidence_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs", "briefing", "data")
     try:
         from evidence_layer import run_evidence_layer
@@ -121,7 +122,7 @@ def main() -> None:
         data["evidence_layer"], evidence_ledger = run_evidence_layer(
             data, moneydj_news, watchlist, data.get("_news_quality") or news_quality,
             today=tz_now.strftime("%Y-%m-%d"), data_dir=evidence_dir, gdelt_fetch=fetch_gdelt_candidates,
-            sitemap_fetch=fetch_sitemap_candidates)
+            sitemap_fetch=fetch_sitemap_candidates, shadow_jobs=shadow_jobs)
         ev = data["evidence_layer"]
         print(f"      jev={ev['jev']['status']} {ev['jev'].get('reason','')}｜items={len(ev['items'])}"
               f"｜top={len(ev['top'])} low={len(ev['low_priority'])} unjudged={len(ev['unjudged'])}"
@@ -252,6 +253,20 @@ def main() -> None:
 """
     email_with_nav = email_html.replace("</body>", nav_links + "</body>")
     send_email(email_with_nav, screener_result=screener_result)
+
+    # 4.5 影子判斷（2026-10-10 起兩週）：同樣的題目再問 Sonnet，只寫 shadow_judge_{date}.json 供比對，
+    #     不影響早報任何輸出；放在 email 之後，慢或失敗都不會拖到早報。
+    if evidence_ledger is not None and shadow_jobs:
+        print("\n[4.5] Shadow judge (Sonnet vs Jev)...")
+        try:
+            from shadow_judge import run_shadow, save_shadow
+            today_str = tz_now.strftime("%Y-%m-%d")
+            shadow = run_shadow(shadow_jobs, today_str, evidence_ledger.available)
+            fn = save_shadow(shadow, evidence_dir, today_str)
+            print(f"      status={shadow['status']} {shadow.get('reason', '')}｜{shadow.get('stats')}"
+                  f"｜{fn or 'not saved'}")
+        except Exception as e:
+            print(f"      ⚠ shadow judge failed: {type(e).__name__}")
 
     print("\n✓ Done.\n")
 

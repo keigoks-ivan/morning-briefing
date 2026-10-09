@@ -678,7 +678,8 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
                        sec_user_agent: str | None = None, official_fetch=http_text,
                        full_text_fetch=None, gdelt_fetch=None, sitemap_fetch=None,
                        ideas: list[dict] | None = None,
-                       idea_full_text_fetch=None, idea_judge_call=None) -> tuple[dict, Ledger]:
+                       idea_full_text_fetch=None, idea_judge_call=None,
+                       shadow_jobs: list | None = None) -> tuple[dict, Ledger]:
     routing = routing or load_routing()
     dd = dd_index(watchlist)
     matcher = EntityMatcher(routing, {t: v.get("name", "") for t, v in dd.items()})
@@ -756,6 +757,11 @@ def run_evidence_layer(data: dict, rss_items: list[dict] | None, watchlist: list
         resp = jev.ask(state, questions)
         j = interpret(resp["answers"], cand["companies"], var_min_conf=VAR_MIN_CONF) if resp else None
         judged.append((cand, priors, resp, j, decide(cand, j, priors, ledger.available, today)))
+        if shadow_jobs is not None:
+            # 2026-10-10 影子判斷（shadow_judge.py）：只收集同一份 state／題目，main.py 寄完 email 才問
+            # Sonnet；state 含全文，只留在記憶體，不進 result。
+            shadow_jobs.append({"cand": cand, "priors": priors, "state": state, "questions": questions,
+                                "jev_answers": resp["answers"] if resp else None})
 
     # ② 當事公司自己發的新聞稿：所有候選的當事公司一次查齊
     party_names = {}
